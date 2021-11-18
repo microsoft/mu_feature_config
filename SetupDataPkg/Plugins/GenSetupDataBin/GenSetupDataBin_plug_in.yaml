@@ -1,0 +1,12 @@
+## @file GenSetupDataBin_plug_in.yaml
+# General helper plugin to generate setup data binary blobs
+# from platform supplied YAML configurations.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+{
+  "scope": "setupdata",
+  "name": "Generate Setup Data Binary",
+  "module": "GenSetupDataBin"
+}

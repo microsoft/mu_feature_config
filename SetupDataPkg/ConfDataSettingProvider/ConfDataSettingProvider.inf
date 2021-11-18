@@ -1,0 +1,45 @@
+## @file
+# Settings provider for configuration data.
+#
+# Copyright (C) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfDataSettingProvider
+  FILE_GUID           = 5EE2664D-723B-4BAD-9E5A-B92011AF5FB0
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = DXE_DRIVER
+  ENTRY_POINT         = ConfDataSettingProviderEntry
+
+[Sources]
+  ConfDataSettingProvider.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  DfciPkg/DfciPkg.dec
+  PolicyServicePkg/PolicyServicePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UefiDriverEntryPoint
+  DebugLib
+  UefiRuntimeServicesTableLib
+  MemoryAllocationLib
+  DxeServicesLib
+  ConfigDataLib
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+
+[Guids]
+
+[Protocols]
+  gDfciSettingsProviderSupportProtocolGuid
+
+[Depex]
+  gEfiVariableWriteArchProtocolGuid
+

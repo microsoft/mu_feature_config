@@ -1,0 +1,77 @@
+## @file
+# Configuration app to support applying configuration data through UEFI application
+# and displaying other basic information.
+#
+# Copyright (C) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION       = 0x00010017
+  BASE_NAME         = ConfApp
+  FILE_GUID         = E3624086-4FCD-446E-9D07-B6B913792071
+  VERSION_STRING    = 1.0
+  MODULE_TYPE       = UEFI_APPLICATION
+  ENTRY_POINT       = ConfAppEntry
+
+[Sources]
+  BootOptions.c
+  ConfApp.c
+  ConfApp.h
+  SecureBoot.c
+  SetupConf.c
+  SystemInfo.c
+  DfciUsb/DfciUsb.c
+  DfciUsb/DfciUsb.h
+  DfciUtility/DfciUtility.c
+  DfciUtility/DfciUtility.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+  PcBdsPkg/PcBdsPkg.dec
+  OemPkg/OemPkg.dec
+  DfciPkg/DfciPkg.dec
+  MsCorePkg/MsCorePkg.dec
+  XmlSupportPkg/XmlSupportPkg.dec
+  PolicyServicePkg/PolicyServicePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UefiApplicationEntryPoint
+  DebugLib
+  UefiRuntimeServicesTableLib
+  MemoryAllocationLib
+  UefiLib
+  ResetSystemLib
+  MuUefiVersionLib
+  UefiBootManagerLib
+  MsSecureBootLib
+  JsonLiteParserLib
+  FileHandleLib
+  DfciUiSupportLib
+  DfciDeviceIdSupportLib
+  XmlTreeLib
+  XmlTreeQueryLib
+  DfciXmlSettingSchemaSupportLib
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+
+[Guids]
+  gDfciAuthProvisionVarNamespace
+  gDfciPermissionManagerVarNamespace
+  gDfciSettingsManagerVarNamespace
+
+[Protocols]
+  gEfiSimpleTextInputExProtocolGuid
+  gDfciSettingAccessProtocolGuid
+  gDfciAuthenticationProtocolGuid
+  gEfiBlockIoProtocolGuid
+  gEfiUsbIoProtocolGuid
+
+[Depex]
+  gEfiVariableWriteArchProtocolGuid
+

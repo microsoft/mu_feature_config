@@ -1,0 +1,22 @@
+## @file
+#  NULL instance for config data library.
+#
+#  Copyright (c) Microsoft Corporation.
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfigDataLibNull
+  FILE_GUID           = F07098A7-2A06-4D8B-9617-94FBB5BB881E
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = BASE
+  LIBRARY_CLASS       = ConfigDataLib
+
+[Sources]
+  ConfigDataLibNull.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  PolicyServicePkg/PolicyServicePkg.dec

@@ -1,0 +1,40 @@
+## @file
+#  ProjectMu SetupDataPkg
+#
+#  Package is a derivitive of the open source Slim Bootloader and
+#  Project MU original configuration modules, interfaces, etc.
+#
+#  Copyright (c) Microsoft Corporation
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = SetupDataPkg
+  PACKAGE_GUID                   = F8A49479-BD16-4382-8C70-B4C277A7A659
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+
+[LibraryClasses]
+  ConfigDataLib|Include/Library/ConfigDataLib.h
+  PlatformPolicyInitLib|Include/Library/PlatformPolicyInitLib.h
+
+[Guids]
+  gSetupDataPkgTokenSpaceGuid     = { 0x651d23a, 0xe244, 0x4a7f, { 0x8d, 0x2e, 0x37, 0xac, 0x2b, 0xf9, 0x32, 0xff } }
+
+[Ppis]
+
+[Protocols]
+
+[PcdsFixedAtBuild]
+  ## The setup data variable GUID
+  # @Prompt Platform supplied GUID, configuration modules will locate variable under this GUID
+  #         to initiate and/or update system configuration.
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid|{0}|VOID*|0x00000001
+
+[PcdsDynamic, PcdsDynamicEx]
+
+[PcdsFeatureFlag]
