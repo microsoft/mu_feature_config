@@ -18,6 +18,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ResetSystemLib.h>
 #include <Library/UefiLib.h>
+#include <Library/UefiBootManagerLib.h>
 
 #include "ConfApp.h"
 
@@ -383,6 +384,10 @@ ConfAppEntry (
       DEBUG((DEBUG_ERROR,"Unable to locate SettingAccess. Code = %r.\n",Status));
       goto Exit;
   }
+
+  // Force-connect all controllers.
+  //
+  EfiBootManagerConnectAll();
 
   Status = GetAuthTokenAndIdentities (NULL);
   if (EFI_ERROR(Status)) {
