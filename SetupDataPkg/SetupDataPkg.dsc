@@ -69,6 +69,7 @@
 [Components]
   SetupDataPkg/Library/ConfigDataLibNull/ConfigDataLibNull.inf
   SetupDataPkg/Library/PlatformPolicyInitLibNull/PlatformPolicyInitLibNull.inf
+  SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
 
   SetupDataPkg/PolicyProducer/PolicyProducer.inf
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf

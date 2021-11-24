@@ -20,6 +20,7 @@
 
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h
+  ConfigBlobBaseLib|Include/Library/ConfigBlobBaseLib.h
   PlatformPolicyInitLib|Include/Library/PlatformPolicyInitLib.h
 
 [Guids]
