@@ -489,13 +489,25 @@ class CFG_YAML():
                             self.process_expand (line)
                     else:
                         value_str = curr_line[pos + 2:].strip()
-                        curr[key] = value_str
-                        if self.log_line and value_str[0] == '{':
-                            # expand {FILE: xxxx} format in the log line
-                            if value_str[1:].rstrip().startswith('FILE:'):
-                                value_bytes = expand_file_value (self.yaml_path, value_str)
-                                value_str = bytes_to_bracket_str (value_bytes)
-                                self.full_lines[-1] = line[:indent] + curr_line[:pos + 2] + value_str
+                        if key == "IdTag" or key == "ArrayIdTag":
+                            # Insert the headers corresponds to this ID tag from here, most contents are hardcoded for now
+                            cfg_hdr = OrderedDict()
+                            cfg_hdr['length'] = '0x04'
+                            cfg_hdr['value'] = '{0x01:2b, ((_LENGTH_%s_)/4):10b, %d:4b, 0:4b, %s:12b}' % (parent_name, 0 if key == "IdTag" else 1, value_str)
+                            curr['CfgHeader'] = cfg_hdr
+
+                            cnd_val = OrderedDict()
+                            cnd_val['length'] = '0x04'
+                            cnd_val['value'] = '0x00000000'
+                            curr['CondValue'] = cnd_val
+                        else:
+                            curr[key] = value_str
+                            if self.log_line and value_str[0] == '{':
+                                # expand {FILE: xxxx} format in the log line
+                                if value_str[1:].rstrip().startswith('FILE:'):
+                                    value_bytes = expand_file_value (self.yaml_path, value_str)
+                                    value_str = bytes_to_bracket_str (value_bytes)
+                                    self.full_lines[-1] = line[:indent] + curr_line[:pos + 2] + value_str
 
             elif marker2 == ':':
                 child = OrderedDict()
@@ -524,6 +536,26 @@ class CFG_YAML():
                 if self.tmp_tree and key == CFG_YAML.CONFIGS:
                     # apply template for the main configs
                     self.allow_template = True
+                    child['Signature'] = OrderedDict()
+                    child['Signature']['length'] = '0x04'
+                    child['Signature']['value'] = "{'CFGD'}"
+
+                    child['HeaderLength'] = OrderedDict()
+                    child['HeaderLength']['length'] = '0x01'
+                    child['HeaderLength']['value'] = '0x10'
+
+                    child['Reserved'] = OrderedDict()
+                    child['Reserved']['length'] = '0x03'
+                    child['Reserved']['value'] = '{0,0,0}'
+
+                    child['UsedLength'] = OrderedDict()
+                    child['UsedLength']['length'] = '0x04'
+                    child['UsedLength']['value'] = '_LENGTH_'
+
+                    # This will be rounded up to 4KB aligned
+                    child['TotalLength'] = OrderedDict()
+                    child['TotalLength']['length'] = '0x04'
+                    child['TotalLength']['value'] = '(_LENGTH_/0x1000 + 1)*0x1000'
             else:
                 child = None
                 # - !include cfg_opt.yaml
@@ -1002,6 +1034,60 @@ class CGenCfgData:
         self.traverse_cfg_tree (_print_cfgs)
 
 
+    def get_cfg_tree(self):
+        return self._cfg_tree
+
+
+    def set_cfg_tree(self, cfg_tree):
+        self._cfg_tree = cfg_tree
+
+
+    def merge_cfg_tree(self, root, other_root):
+        ret = OrderedDict ()
+        prev_key = None
+        for other_key in other_root:
+            if other_key not in root:
+                ret[other_key] = other_root[other_key]
+            else:
+                # this is a good time to check to see if we miss anything from previous root elements
+                found_last = False
+                for key in root:
+                    if key == prev_key:
+                        found_last = True
+                        continue
+                    if prev_key == None:
+                        found_last = True
+                    if found_last:
+                        ret[key] = root[key]
+                    if key == other_key:
+                        prev_key = other_key
+                        break
+
+                if type(root[other_key]) is OrderedDict and type(other_root[other_key]) is OrderedDict:
+                    # if they are both non-leaf, great, process recursively
+                    ret[other_key] = self.merge_cfg_tree (root[other_key], other_root[other_key])
+                elif type(root[other_key]) is OrderedDict or type(other_root[other_key]) is OrderedDict:
+                    raise Exception ("Two yamls files have hierachy mismatch!!!")
+                else:
+                    # this is duplicate value in from both roots, take original root as principal
+                    ret[other_key] = root[other_key]
+
+        # See if there is any leftovers
+        found_last = False
+        for key in root:
+            if key == prev_key:
+                found_last = True
+                continue
+            if prev_key == None:
+                found_last = True
+            if found_last:
+                ret[key] = root[key]
+            if key == other_key:
+                prev_key = other_key
+                break
+        return ret
+
+
     def build_var_dict (self):
         def _build_var_dict (name, cfgs, level):
             if level <= 2:
@@ -1346,9 +1432,8 @@ class CGenCfgData:
                 platform_id = value_str
 
         if platform_id is None:
-            raise Exception(
-                "PLATFORMID_CFG_DATA.PlatformId is missing in file '%s' !" %
-                (dlt_file))
+            platform_id = 0
+            print("PLATFORMID_CFG_DATA.PlatformId is missing in file '%s' !" % (dlt_file))
 
         return error
 
@@ -1374,11 +1459,15 @@ class CGenCfgData:
                 text = '%-40s | %s' % (full_name, val_str)
                 lines.append(text)
 
-        if platform_id is None or def_platform_id == platform_id:
+        if def_platform_id == platform_id:
             platform_id = def_platform_id
 
-        lines.insert(0, '%-40s | %s\n\n' %
-                     ('PLATFORMID_CFG_DATA.PlatformId', '0x%04X' % platform_id))
+            lines.insert(0, '%-40s | %s\n\n' %
+                        ('PLATFORMID_CFG_DATA.PlatformId', '0x%04X' % platform_id))
+
+        if platform_id is None:
+            print ("Platform ID is not set and will be configured to 0")
+            platform_id = 0
 
         self.write_delta_file (delta_file, platform_id, lines)
         return 0
@@ -1794,15 +1883,16 @@ class CGenCfgData:
         return 0
 
 
-    def load_yaml (self, cfg_file):
+    def load_yaml (self, cfg_file, shallow_load=False):
         cfg_yaml = CFG_YAML()
         self.initialize ()
         self._cfg_tree  = cfg_yaml.load_yaml (cfg_file)
         self._def_dict  = cfg_yaml.def_dict
         self._yaml_path = os.path.dirname(cfg_file)
-        self.build_cfg_list()
-        self.build_var_dict()
-        self.update_def_value()
+        if not shallow_load:
+            self.build_cfg_list()
+            self.build_var_dict()
+            self.update_def_value()
         return 0
 
 

@@ -641,8 +641,21 @@ class application(tkinter.Frame):
                 gen_cfg_data.__dict__ = marshal.load(pkl_file)
             gen_cfg_data.prepare_marshal (False)
         elif file_name.endswith('.yaml'):
-            if gen_cfg_data.load_yaml(file_name) != 0:
+            if gen_cfg_data.load_yaml(file_name, shallow_load=True) != 0:
                 raise Exception(gen_cfg_data.get_last_error())
+            nl = file_name.split('.')
+            nl[-2] += '_UI'
+            ui_file_name = '.'.join(nl)
+            if os.path.isfile (ui_file_name):
+              ui_gen_cfg_data = CGenCfgData()
+              if ui_gen_cfg_data.load_yaml(ui_file_name, shallow_load=True) != 0:
+                  raise Exception(ui_gen_cfg_data.get_last_error())
+              # Merge the UI cfg and data cfg objects
+              merged_cfg_tree = gen_cfg_data.merge_cfg_tree(gen_cfg_data.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree())
+              gen_cfg_data.set_cfg_tree(merged_cfg_tree)
+            gen_cfg_data.build_cfg_list()
+            gen_cfg_data.build_var_dict()
+            gen_cfg_data.update_def_value()
         else:
             raise Exception('Unsupported file "%s" !' % file_name)
         return gen_cfg_data
