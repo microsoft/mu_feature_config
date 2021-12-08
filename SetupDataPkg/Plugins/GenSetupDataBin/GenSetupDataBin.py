@@ -90,14 +90,15 @@ class GenSetupDataBin(IUefiBuildPlugin):
             GenSetupDataBin.indent(root)
             xml_str = xml.etree.ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
             out_file.write(xml_str)
-        shutil.copy2(op_xml, thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE")))
+        if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
+            shutil.copy2(op_xml, thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE")))
         return 0
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
-    # Consumes build environement variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
-    # "DELTA_CONF_POLICY" (optional), "CONF_POLICY_GUID_REGISTRY" and "MSFT_PLATFORM_PACKAGE"
+    # Consumes build environement variables: "MSFT_PLATFORM_PACKAGE"
     def do_post_build(self, thebuilder):
-        os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"), "BuiltInVars.xml"))
+        if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
+            os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"), "BuiltInVars.xml"))
         return 0
