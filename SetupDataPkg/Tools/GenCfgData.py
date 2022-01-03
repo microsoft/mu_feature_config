@@ -2029,7 +2029,7 @@ def main():
         gen_cfg_data.generate_delta_file (out_file, cfg_bin_file, cfg_bin_file2)
 
     elif command == "GENHDR":
-        out_files = out_file.split(';')
+        out_files = out_file.strip("'").split(';')
         brd_out_file = out_files[0].strip()
         if len(out_files) > 1:
             com_out_file = out_files[1].strip()
