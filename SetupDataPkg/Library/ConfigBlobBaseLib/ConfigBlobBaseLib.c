@@ -34,7 +34,7 @@ FindConfigHdrByPidMaskTag (
 {
   CDATA_BLOB          *CdataBlob;
   CDATA_HEADER        *CdataHdr;
-  UINT8                Idx;
+  // UINT8                Idx;
   REFERENCE_CFG_DATA  *Refer;
   UINT32               Offset;
 
@@ -48,7 +48,7 @@ FindConfigHdrByPidMaskTag (
   while (Offset < CdataBlob->UsedLength) {
     CdataHdr = (CDATA_HEADER *) ((UINT8 *)CdataBlob + Offset);
     if (CdataHdr->Tag == Tag) {
-      for (Idx = 0; Idx < CdataHdr->ConditionNum; Idx++) {
+      // for (Idx = 0; Idx < CdataHdr->ConditionNum; Idx++) {
         // if ((PidMask & CdataHdr->Condition[Idx].Value) != 0) {
           // Found a match
           if ((CdataHdr->Flags & CDATA_FLAG_TYPE_MASK) == CDATA_FLAG_TYPE_REFER) {
@@ -65,7 +65,7 @@ FindConfigHdrByPidMaskTag (
             return (VOID *)CdataHdr;
           }
         // }
-      }
+      // }
     }
     Offset += (CdataHdr->Length << 2);
   }
