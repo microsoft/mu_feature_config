@@ -28,7 +28,7 @@
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
 
-#define DEFAULT_USB_FILE_NAME L"DfciUpdate.Dfi"
+#define DEFAULT_USB_FILE_NAME  L"DfciUpdate.Dfi"
 
 typedef enum {
   SetupConfInit,
@@ -41,51 +41,51 @@ typedef enum {
   SetupConfMax
 } SetupConfState_t;
 
-#define SETUP_CONF_STATE_OPTIONS      4
+#define SETUP_CONF_STATE_OPTIONS  4
 
-CONST ConfAppKeyOptions SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
+CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   {
-    .KeyName                = L"1",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Update from USB Stick.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '1',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SetupConfUpdateUsb
+    .KeyName             = L"1",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Update from USB Stick.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '1',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SetupConfUpdateUsb
   },
   {
-    .KeyName                = L"2",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Update from Network.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '2',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SetupConfUpdateNetwork
+    .KeyName             = L"2",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Update from Network.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '2',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SetupConfUpdateNetwork
   },
   {
-    .KeyName                = L"3",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Update from Serial Port.\n",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '3',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SetupConfUpdateSerialHint
+    .KeyName             = L"3",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Update from Serial Port.\n",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '3',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SetupConfUpdateSerialHint
   },
   {
-    .KeyName                = L"ESC",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Exit this menu and return to previous menu.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = CHAR_NULL,
-    .ScanCode               = SCAN_ESC,
-    .EndState               = SetupConfExit
+    .KeyName             = L"ESC",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Exit this menu and return to previous menu.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = CHAR_NULL,
+    .ScanCode            = SCAN_ESC,
+    .EndState            = SetupConfExit
   }
 };
 
-SetupConfState_t mSetupConfState = SetupConfInit;
-UINT16           *mConfDataBuffer = NULL;
-UINTN            mConfDataOffset = 0;
-UINTN            mConfDataSize = 0;
+SetupConfState_t  mSetupConfState  = SetupConfInit;
+UINT16            *mConfDataBuffer = NULL;
+UINTN             mConfDataOffset  = 0;
+UINTN             mConfDataSize    = 0;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -101,7 +101,8 @@ ResetGlobals (
     FreePool (mConfDataBuffer);
     mConfDataBuffer = NULL;
   }
-  mConfDataSize = 0;
+
+  mConfDataSize   = 0;
   mConfDataOffset = 0;
 }
 
@@ -116,7 +117,7 @@ PrintOptions (
   VOID
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
 
   PrintScreenInit ();
   Print (L"Setup Configuration Options:\n");
@@ -126,6 +127,7 @@ PrintOptions (
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
   }
+
   return Status;
 }
 
@@ -134,42 +136,42 @@ PrintOptions (
 
   @param[in] Buffer         Complete buffer of config settings in the format of XML.
   @param[in] Count          Number of bytes inside buffer, excluding NULL terminator.
-  
+
   @retval EFI_SUCCESS       Settings are applied successfully.
   @retval other             Error occurred while attempting to apply supplied settings.
 **/
 EFI_STATUS
 ApplySettings (
-  IN  CHAR8         *Buffer,
-  IN  UINTN         Count
+  IN  CHAR8  *Buffer,
+  IN  UINTN  Count
   )
 {
-  XmlNode                   *InputRootNode = NULL;        //The root xml node for the Input list.
-  XmlNode                   *InputPacketNode = NULL;      //The SettingsPacket node in the Input list
-  XmlNode                   *InputSettingsNode = NULL;    //The Settings node for the Input list.
-  XmlNode                   *InputTempNode = NULL;        //Temp node ptr to use when moving thru the Input list
+  XmlNode  *InputRootNode     = NULL;                     // The root xml node for the Input list.
+  XmlNode  *InputPacketNode   = NULL;                     // The SettingsPacket node in the Input list
+  XmlNode  *InputSettingsNode = NULL;                     // The Settings node for the Input list.
+  XmlNode  *InputTempNode     = NULL;                     // Temp node ptr to use when moving thru the Input list
 
-  XmlNode                   *ResultRootNode = NULL;       //The root xml node in the result list
-  XmlNode                   *ResultPacketNode = NULL;     //The ResultsPacket node in the result list
-  XmlNode                   *ResultSettingsNode = NULL;   //The Settings Node in the result list
+  XmlNode  *ResultRootNode     = NULL;                    // The root xml node in the result list
+  XmlNode  *ResultPacketNode   = NULL;                    // The ResultsPacket node in the result list
+  XmlNode  *ResultSettingsNode = NULL;                    // The Settings Node in the result list
 
-  LIST_ENTRY                *Link = NULL;
-  EFI_STATUS                 Status;
-  DFCI_SETTING_FLAGS         Flags = 0;
-  EFI_TIME                   ApplyTime;
-  UINTN                      Version = 0;
-  UINTN                      Lsv = 0;
-  BOOLEAN                    ResetRequired = FALSE;
+  LIST_ENTRY          *Link = NULL;
+  EFI_STATUS          Status;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  EFI_TIME            ApplyTime;
+  UINTN               Version       = 0;
+  UINTN               Lsv           = 0;
+  BOOLEAN             ResetRequired = FALSE;
 
-  UINTN                      b64Size;
-  UINTN                      ValueSize;
-  UINT8                      *ByteArray = NULL;
-  CONST VOID*                SetValue = NULL;
+  UINTN       b64Size;
+  UINTN       ValueSize;
+  UINT8       *ByteArray = NULL;
+  CONST VOID  *SetValue  = NULL;
 
   //
   // Create Node List from input
   //
-  Status = CreateXmlTree ((CHAR8 *) Buffer, Count, &InputRootNode);
+  Status = CreateXmlTree ((CHAR8 *)Buffer, Count, &InputRootNode);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a - Couldn't create a node list from the payload xml  %r\n", __FUNCTION__, Status));
     Status = EFI_NO_MAPPING;
@@ -223,6 +225,7 @@ ApplySettings (
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
+
   DEBUG ((DEBUG_INFO, "Incoming Version: %a\n", InputTempNode->Value));
   Version = AsciiStrDecimalToUintn (InputTempNode->Value);
 
@@ -249,6 +252,7 @@ ApplySettings (
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
+
   DEBUG ((DEBUG_INFO, "Incoming LSV: %a\n", InputTempNode->Value));
   Lsv = AsciiStrDecimalToUintn (InputTempNode->Value);
 
@@ -271,7 +275,7 @@ ApplySettings (
   //   InternalData->Modified = TRUE;
   // }
 
-  //If new LSV is larger set it
+  // If new LSV is larger set it
   // if ((UINT32)Lsv > InternalData->LSV)
   // {
   //   DEBUG ((DEBUG_ERROR, "%a - Setting New LSV (0x%X)\n", __FUNCTION__, Lsv));
@@ -280,10 +284,10 @@ ApplySettings (
   // }
 
   // Get the Xml Node for the SettingsList
-  InputSettingsNode  = GetSettingsListNodeFromPacketNode (InputPacketNode);
+  InputSettingsNode = GetSettingsListNodeFromPacketNode (InputPacketNode);
 
   if (InputSettingsNode == NULL) {
-    DEBUG((DEBUG_ERROR, "Failed to Get Input Settings List Node\n"));
+    DEBUG ((DEBUG_ERROR, "Failed to Get Input Settings List Node\n"));
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
@@ -292,23 +296,23 @@ ApplySettings (
 
   if (ResultSettingsNode == NULL) {
     DEBUG ((DEBUG_ERROR, "Failed to Get Result Settings List Node\n"));
-    Status= EFI_ABORTED;  //internal xml..should never fail
+    Status = EFI_ABORTED;  // internal xml..should never fail
     goto EXIT;
   }
 
   // All verified.   Now lets walk thru the Settings and try to apply each one.
   BASE_LIST_FOR_EACH (Link, &(InputSettingsNode->ChildrenListHead)) {
-    XmlNode *NodeThis = NULL;
-    DFCI_SETTING_ID_STRING Id = NULL;
-    CONST CHAR8* Value = NULL;
-    CHAR8        StatusString[25];   //0xFFFFFFFFFFFFFFFF\n
-    CHAR8        FlagString[25];
+    XmlNode                 *NodeThis = NULL;
+    DFCI_SETTING_ID_STRING  Id        = NULL;
+    CONST CHAR8             *Value    = NULL;
+    CHAR8                   StatusString[25]; // 0xFFFFFFFFFFFFFFFF\n
+    CHAR8                   FlagString[25];
+
     Flags = 0;
 
-    NodeThis = (XmlNode*)Link;   //Link is first member so just cast it.  this is the <Setting> node
-    Status = GetInputSettings (NodeThis, &Id, &Value);
-    if (EFI_ERROR (Status))
-    {
+    NodeThis = (XmlNode *)Link;   // Link is first member so just cast it.  this is the <Setting> node
+    Status   = GetInputSettings (NodeThis, &Id, &Value);
+    if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Failed to GetInputSettings.  Bad XML Data. %r\n", Status));
       Status = EFI_NO_MAPPING;
       goto EXIT;
@@ -320,20 +324,20 @@ ApplySettings (
     }
 
     // Now we have an Id and Value
-    b64Size = AsciiStrnLenS (Value, MAX_ALLOWABLE_DFCI_APPLY_VAR_SIZE);
+    b64Size   = AsciiStrnLenS (Value, MAX_ALLOWABLE_DFCI_APPLY_VAR_SIZE);
     ValueSize = 0;
-    Status = Base64Decode (Value, b64Size, NULL, &ValueSize);
+    Status    = Base64Decode (Value, b64Size, NULL, &ValueSize);
     if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n",Status));
+      DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
       return EFI_INVALID_PARAMETER;
     }
 
-    ByteArray = (UINT8 *) AllocatePool (ValueSize);
+    ByteArray = (UINT8 *)AllocatePool (ValueSize);
 
     Status = Base64Decode (Value, b64Size, ByteArray, &ValueSize);
     if (EFI_ERROR (Status)) {
       FreePool (ByteArray);
-      DEBUG ((DEBUG_ERROR, "Cannot set binary data. Code=%r\n",Status));
+      DEBUG ((DEBUG_ERROR, "Cannot set binary data. Code=%r\n", Status));
       return Status;
     }
 
@@ -349,31 +353,31 @@ ApplySettings (
                                DFCI_SETTING_TYPE_BINARY,
                                ValueSize,
                                SetValue,
-                               &Flags);
+                               &Flags
+                               );
     DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
 
     // Record Status result
-    ZeroMem (StatusString, sizeof(StatusString));
-    ZeroMem (FlagString, sizeof(FlagString));
+    ZeroMem (StatusString, sizeof (StatusString));
+    ZeroMem (FlagString, sizeof (FlagString));
     StatusString[0] = '0';
     StatusString[1] = 'x';
-    FlagString[0] = '0';
-    FlagString[1] = 'x';
+    FlagString[0]   = '0';
+    FlagString[1]   = 'x';
 
     AsciiValueToStringS (&(StatusString[2]), sizeof (StatusString)-2, RADIX_HEX, (INT64)Status, 18);
     AsciiValueToStringS (&(FlagString[2]), sizeof (FlagString)-2, RADIX_HEX, (INT64)Flags, 18);
     Status = SetOutputSettingsStatus (ResultSettingsNode, Id, &(StatusString[0]), &(FlagString[0]));
-    if (EFI_ERROR (Status))
-    {
+    if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Failed to SetOutputSettingStatus.  %r\n", Status));
       Status = EFI_DEVICE_ERROR;
       goto EXIT;
     }
 
-    if (Flags & DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED)
-    {
+    if (Flags & DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED) {
       ResetRequired = TRUE;
     }
+
     // all done.
   } // end for loop
 
@@ -423,6 +427,7 @@ EXIT:
   if (ResetRequired) {
     ResetCold ();
   }
+
   return Status;
 }
 
@@ -439,15 +444,15 @@ ProcessDfciUsbInput (
   VOID
   )
 {
-  EFI_STATUS    Status;
-  CHAR16       *FileName;
-  CHAR16       *FileName2;
-  CHAR8        *XmlString;
-  UINTN         XmlStringSize;
+  EFI_STATUS  Status;
+  CHAR16      *FileName;
+  CHAR16      *FileName2;
+  CHAR8       *XmlString;
+  UINTN       XmlStringSize;
 
   DfciUiExitSecurityBoundary ();
 
-  FileName = NULL;
+  FileName  = NULL;
   XmlString = NULL;
 
   //
@@ -455,19 +460,21 @@ ProcessDfciUsbInput (
   //
   Status = BuildUsbRequest (L".svd", &FileName);
   if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Error building Usb Request. Code=%r\n", Status));
+    DEBUG ((DEBUG_ERROR, "Error building Usb Request. Code=%r\n", Status));
   } else {
     Status = DfciRequestJsonFromUSB (
                FileName,
                &XmlString,
-               &XmlStringSize);
-    if (EFI_ERROR(Status)) {
+               &XmlStringSize
+               );
+    if (EFI_ERROR (Status)) {
       FileName2 = AllocateCopyPool (sizeof (DEFAULT_USB_FILE_NAME), DEFAULT_USB_FILE_NAME);
       if (NULL != FileName2) {
         Status = DfciRequestJsonFromUSB (
                    FileName2,
                    &XmlString,
-                   &XmlStringSize);
+                   &XmlStringSize
+                   );
         if (EFI_ERROR (Status)) {
           DEBUG ((DEBUG_ERROR, "Error loading backup file\n"));
           FreePool (FileName2);
@@ -478,7 +485,7 @@ ProcessDfciUsbInput (
       }
     }
 
-    if (EFI_ERROR(Status)) {
+    if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Error processing Dfci Usb Request. Code=%r\n", Status));
     } else {
       DEBUG ((DEBUG_INFO, "DfciUsb Request processed normally\n"));
@@ -487,8 +494,9 @@ ProcessDfciUsbInput (
         // MEDIA_CHANGED is a good return, It means that a JSON element updated a mailbox.
         Status = EFI_SUCCESS;
       }
+
       if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR,"%a: Error updating from JSON packet. Code=%r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a: Error updating from JSON packet. Code=%r\n", __FUNCTION__, Status));
       }
     }
   }
@@ -521,48 +529,51 @@ ProcessDfciUsbInput (
 STATIC
 EFI_STATUS
 ProcessDfciSerialInput (
-  CHAR16    UnicodeChar
+  CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS    Status = EFI_SUCCESS;
-  CHAR8         *TempAsciiStr = NULL;
+  EFI_STATUS  Status        = EFI_SUCCESS;
+  CHAR8       *TempAsciiStr = NULL;
 
   // Simple resizable array and store them at mConfDataBuffer
   if (mConfDataBuffer == NULL) {
-    mConfDataSize = EFI_PAGE_SIZE;
+    mConfDataSize   = EFI_PAGE_SIZE;
     mConfDataBuffer = AllocateZeroPool (mConfDataSize * sizeof (CHAR16));
     mConfDataOffset = 0;
   } else if (mConfDataOffset >= (mConfDataSize / 2)) {
     mConfDataBuffer = ReallocatePool (mConfDataSize * sizeof (CHAR16), mConfDataSize * 2 * sizeof (CHAR16), mConfDataBuffer);
-    mConfDataSize = mConfDataSize * 2;
+    mConfDataSize   = mConfDataSize * 2;
     if (mConfDataSize <= mConfDataOffset) {
       DEBUG ((
         DEBUG_ERROR,
         "%a Configuration data offset (0x%x) is out of boundary (0x%x)\n",
         __FUNCTION__,
         mConfDataOffset,
-        mConfDataSize));
+        mConfDataSize
+        ));
       ASSERT (FALSE);
       Status = EFI_BAD_BUFFER_SIZE;
       goto Exit;
     }
   }
 
-  if (UnicodeChar == CHAR_CARRIAGE_RETURN || UnicodeChar == CHAR_LINEFEED) {
+  if ((UnicodeChar == CHAR_CARRIAGE_RETURN) || (UnicodeChar == CHAR_LINEFEED)) {
     mConfDataBuffer[mConfDataOffset++] = '\0';
-    TempAsciiStr = AllocateZeroPool (mConfDataOffset);
-    Status = UnicodeStrToAsciiStrS (mConfDataBuffer, TempAsciiStr, mConfDataOffset);
+    TempAsciiStr                       = AllocateZeroPool (mConfDataOffset);
+    Status                             = UnicodeStrToAsciiStrS (mConfDataBuffer, TempAsciiStr, mConfDataOffset);
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "%a Failed to convert received data to Ascii string - %r\n", __FUNCTION__, Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
     }
+
     Status = ApplySettings (TempAsciiStr, mConfDataOffset - 1);
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "%a Failed to apply received settings - %r\n", __FUNCTION__, Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
     }
+
     ResetCold ();
     // Should not be here
     CpuDeadLoop ();
@@ -576,6 +587,7 @@ Exit:
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to process unicode from keystroke - %r\n", __FUNCTION__, Status));
   }
+
   return Status;
 }
 
@@ -593,8 +605,8 @@ SetupConfMgr (
   VOID
   )
 {
-  EFI_STATUS          Status = EFI_SUCCESS;
-  EFI_KEY_DATA        KeyData;
+  EFI_STATUS    Status = EFI_SUCCESS;
+  EFI_KEY_DATA  KeyData;
 
   switch (mSetupConfState) {
     case SetupConfInit:
@@ -605,6 +617,7 @@ SetupConfMgr (
         ASSERT (FALSE);
         break;
       }
+
       mSetupConfState = SetupConfWait;
       break;
     case SetupConfWait:
@@ -617,7 +630,7 @@ SetupConfMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS, (UINTN*)&mSetupConfState);
+        Status = CheckSupportedOptions (&KeyData, SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS, (UINTN *)&mSetupConfState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
@@ -625,6 +638,7 @@ SetupConfMgr (
           ASSERT (FALSE);
         }
       }
+
       break;
     case SetupConfUpdateUsb:
       // Locate data blob from local USB device and apply changes. This function does not return
@@ -634,6 +648,7 @@ SetupConfMgr (
         DEBUG ((DEBUG_ERROR, "%a Failed to load configuration data from USB - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       }
+
       mSetupConfState = SetupConfExit;
       break;
     case SetupConfUpdateNetwork:
@@ -653,7 +668,7 @@ SetupConfMgr (
         // No key pressed, mask the error
         Status = EFI_SUCCESS;
         break;
-      } else if (EFI_ERROR(Status)) {
+      } else if (EFI_ERROR (Status)) {
         break;
       }
 
@@ -665,6 +680,7 @@ SetupConfMgr (
           mSetupConfState = SetupConfExit;
         }
       }
+
       break;
     case SetupConfExit:
       ResetGlobals ();

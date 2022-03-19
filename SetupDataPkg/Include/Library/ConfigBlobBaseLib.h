@@ -7,7 +7,6 @@
 
 **/
 
-
 #ifndef CONFIG_BLOB_H_
 #define CONFIG_BLOB_H_
 

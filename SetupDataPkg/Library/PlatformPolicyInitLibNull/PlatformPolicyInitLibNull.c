@@ -23,7 +23,7 @@
 EFI_STATUS
 EFIAPI
 PlatformPolicyInit (
-  IN POLICY_PROTOCOL      *PolicyProtocol
+  IN POLICY_PROTOCOL  *PolicyProtocol
   )
 {
   return EFI_UNSUPPORTED;

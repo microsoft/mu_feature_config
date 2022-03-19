@@ -7,7 +7,6 @@
 
 **/
 
-
 #ifndef __CONFIGURATION_DATA_H__
 #define __CONFIGURATION_DATA_H__
 
@@ -23,103 +22,101 @@
 #define CDATA_FLAG_TYPE_ARRAY   (1 << 0)
 #define CDATA_FLAG_TYPE_REFER   (2 << 0)
 
-#define CFG_LOAD_SRC_PDR        (1 << 0)
-#define CFG_LOAD_SRC_BIOS       (1 << 1)
+#define CFG_LOAD_SRC_PDR   (1 << 0)
+#define CFG_LOAD_SRC_BIOS  (1 << 1)
 
-#define PID_TO_MASK(x)          (1 << ((x) & 0x1F))
+#define PID_TO_MASK(x)  (1 << ((x) & 0x1F))
 
-#define CDATA_NO_TAG            0x000
-#define CDATA_PLATFORMID_TAG    0x0F0
+#define CDATA_NO_TAG          0x000
+#define CDATA_PLATFORMID_TAG  0x0F0
 
-#define CDATA_NV_VAR_NAME       L"CONF_POLICY_BLOB"
-#define CDATA_NV_VAR_ATTR       (EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_BOOTSERVICE_ACCESS)
+#define CDATA_NV_VAR_NAME  L"CONF_POLICY_BLOB"
+#define CDATA_NV_VAR_ATTR  (EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_BOOTSERVICE_ACCESS)
 
 // Device setting for OEM usage to register settings provider
-#define DFCI_OEM_SETTING_ID__CONF   "Device.ConfigData.ConfigData"
+#define DFCI_OEM_SETTING_ID__CONF  "Device.ConfigData.ConfigData"
 
 typedef struct {
-  UINT16   PlatformId;
-  UINT16   Reserved;
+  UINT16    PlatformId;
+  UINT16    Reserved;
 } PLATFORMID_CFG_DATA;
 
 typedef struct {
-  UINT16   PlatformId;
-  UINT16   Tag        : 12;
-  UINT16   IsInternal : 1;
-  UINT16   Reserved   : 3;
+  UINT16    PlatformId;
+  UINT16    Tag        : 12;
+  UINT16    IsInternal : 1;
+  UINT16    Reserved   : 3;
 } REFERENCE_CFG_DATA;
 
 typedef struct {
-  UINT32  Value;    // Bit masks on supported platforms
+  UINT32    Value;  // Bit masks on supported platforms
 } CDATA_COND;
 
 typedef struct {
-  UINT32  ConditionNum   :  2;      // [1:0]   #of condition words present
-  UINT32  Length         : 10;      // [11:2]  total size of item (in dword)
-  UINT32  Flags          :  4;      // [15:12] unused/reserved so far
-  UINT32  Version        :  4;      // [19:16] item (payload) format version
-  UINT32  Tag            : 12;      // [31:20] identifies item (in payload)
-  CDATA_COND     Condition[0];
+  UINT32        ConditionNum :  2;  // [1:0]   #of condition words present
+  UINT32        Length       : 10;  // [11:2]  total size of item (in dword)
+  UINT32        Flags        :  4;  // [15:12] unused/reserved so far
+  UINT32        Version      :  4;  // [19:16] item (payload) format version
+  UINT32        Tag          : 12;  // [31:20] identifies item (in payload)
+  CDATA_COND    Condition[0];
 } CDATA_HEADER;
 
 typedef struct {
-  UINT32  Signature;
+  UINT32    Signature;
   //
   // This header Length
   //
-  UINT8   HeaderLength;
-  UINT8   Attribute;
+  UINT8     HeaderLength;
+  UINT8     Attribute;
   union {
     //
     // Internal configuration data offset in DWORD from the start of data blob.
     // This value is only valid in runtime.
     //
-    UINT16  InternalDataOffset;
+    UINT16    InternalDataOffset;
     //
     // Security version number
     // This is available only in flash. It would be overwritten by CDATA_BLOB.InternalDataOffset in runtime
     //
-    UINT8   Svn;
+    UINT8     Svn;
   } ExtraInfo;
   //
   // The total valid configuration data length including this header.
   //
-  UINT32  UsedLength;
+  UINT32    UsedLength;
   //
   // The total space for configration data
   //
-  UINT32  TotalLength;
+  UINT32    TotalLength;
 } CDATA_BLOB;
 
 typedef struct {
-
   /* header size */
-  UINT8                       HeaderSize;
+  UINT8     HeaderSize;
 
   /* base table ID */
-  UINT8                       BaseTableId;
+  UINT8     BaseTableId;
 
   /* size in byte for every array entry */
-  UINT16                      ItemSize;
+  UINT16    ItemSize;
 
   /* array entry count */
-  UINT16                      ItemCount;
+  UINT16    ItemCount;
 
   /* array entry ID bit offset */
-  UINT8                       ItemIdBitOff;
+  UINT8     ItemIdBitOff;
 
   /* array entry ID bit length */
-  UINT8                       ItemIdBitLen;
+  UINT8     ItemIdBitLen;
 
   /* array entry valid bit offset */
-  UINT8                       ItemValidBitOff;
+  UINT8     ItemValidBitOff;
 
   /* unused */
-  UINT8                       ItemUnused;
+  UINT8     ItemUnused;
 
   /* array entry bit mask, 1 bit per entry to indicate the entry exists or not */
-  UINT8                       BaseTableBitMask[0];
-
+  UINT8     BaseTableBitMask[0];
 } ARRAY_CFG_HDR;
 
 /**
@@ -143,14 +140,14 @@ typedef struct {
 EFI_STATUS
 EFIAPI
 DumpConfigData (
-  IN  VOID      *Data,
-  IN  UINTN     Size,
-  OUT VOID      *AsciiBuffer OPTIONAL,
-  OUT UINTN     *AsciiBufferSize OPTIONAL
+  IN  VOID   *Data,
+  IN  UINTN  Size,
+  OUT VOID   *AsciiBuffer OPTIONAL,
+  OUT UINTN  *AsciiBufferSize OPTIONAL
   );
 
 /**
-  This function is supplied with a buffer of configuration data defined according to 
+  This function is supplied with a buffer of configuration data defined according to
   platform YAML files. Platform should update the applicable silicon policies.
 
   @param[in]  PolicyInterface Pointer to current policy protocol/PPI interface.

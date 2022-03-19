@@ -10,8 +10,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Uefi.h>
 
-
-
 #include <DfciSystemSettingTypes.h>
 
 #include <Protocol/DfciSettingAccess.h>
@@ -35,20 +33,20 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  **/
 VOID
 DfciFreeSystemInfo (
-    IN DFCI_SYSTEM_INFORMATION *DfciInfo
-  ) {
+  IN DFCI_SYSTEM_INFORMATION  *DfciInfo
+  )
+{
+  if (NULL != DfciInfo->SerialNumber) {
+    FreePool (DfciInfo->SerialNumber);
+  }
 
-    if (NULL != DfciInfo->SerialNumber) {
-        FreePool (DfciInfo->SerialNumber);
-    }
+  if (NULL != DfciInfo->Manufacturer) {
+    FreePool (DfciInfo->Manufacturer);
+  }
 
-    if (NULL != DfciInfo->Manufacturer) {
-        FreePool (DfciInfo->Manufacturer);
-    }
-
-    if (NULL != DfciInfo->ProductName) {
-        FreePool (DfciInfo->ProductName);
-    }
+  if (NULL != DfciInfo->ProductName) {
+    FreePool (DfciInfo->ProductName);
+  }
 }
 
 /**
@@ -61,34 +59,34 @@ DfciFreeSystemInfo (
  **/
 EFI_STATUS
 DfciGetSystemInfo (
-    IN DFCI_SYSTEM_INFORMATION *DfciInfo
-  ) {
+  IN DFCI_SYSTEM_INFORMATION  *DfciInfo
+  )
+{
+  EFI_STATUS  Status;
 
-    EFI_STATUS      Status;
+  ZeroMem (DfciInfo, sizeof (DFCI_SYSTEM_INFORMATION));
 
-    ZeroMem (DfciInfo, sizeof(DFCI_SYSTEM_INFORMATION));
+  Status = DfciIdSupportGetSerialNumber (&DfciInfo->SerialNumber, &DfciInfo->SerialNumberSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
+    goto Error;
+  }
 
-    Status = DfciIdSupportGetSerialNumber (&DfciInfo->SerialNumber, &DfciInfo->SerialNumberSize);
-    if (EFI_ERROR(Status)) {
-        DEBUG((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
-        goto Error;
-    }
+  Status = DfciIdSupportGetManufacturer (&DfciInfo->Manufacturer, &DfciInfo->ManufacturerSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
+    goto Error;
+  }
 
-    Status = DfciIdSupportGetManufacturer (&DfciInfo->Manufacturer, &DfciInfo->ManufacturerSize);
-    if (EFI_ERROR(Status)) {
-        DEBUG((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
-        goto Error;
-    }
+  Status = DfciIdSupportGetProductName (&DfciInfo->ProductName, &DfciInfo->ProductNameSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
+    goto Error;
+  }
 
-    Status = DfciIdSupportGetProductName (&DfciInfo->ProductName, &DfciInfo->ProductNameSize);
-    if (EFI_ERROR(Status)) {
-        DEBUG((DEBUG_ERROR, "Unable to get ProductName. Code=%r\n", Status));
-        goto Error;
-    }
-
-    return EFI_SUCCESS;
+  return EFI_SUCCESS;
 
 Error:
-    DfciFreeSystemInfo (DfciInfo);
-    return Status;
+  DfciFreeSystemInfo (DfciInfo);
+  return Status;
 }

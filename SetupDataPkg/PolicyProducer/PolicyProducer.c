@@ -31,16 +31,16 @@
 **/
 EFI_STATUS
 FindDefaultConfigData (
-  OUT VOID                    **Buffer,
-  OUT UINTN                   *DataSize
+  OUT VOID   **Buffer,
+  OUT UINTN  *DataSize
   )
 {
-  EFI_STATUS                  Status;
-  UINTN                       Instance;
-  EFI_PEI_FV_HANDLE           VolumeHandle;
-  EFI_PEI_FILE_HANDLE         FileHandle;
+  EFI_STATUS           Status;
+  UINTN                Instance;
+  EFI_PEI_FV_HANDLE    VolumeHandle;
+  EFI_PEI_FILE_HANDLE  FileHandle;
 
-  Instance    = 0;
+  Instance = 0;
   while (TRUE) {
     //
     // Traverse all firmware volume instances
@@ -59,7 +59,7 @@ FindDefaultConfigData (
     // Find the config data file type from the beginning in this firmware volume.
     //
     FileHandle = NULL;
-    Status = PeiServicesFfsFindFileByName (PcdGetPtr (PcdConfigPolicyVariableGuid), VolumeHandle, &FileHandle);
+    Status     = PeiServicesFfsFindFileByName (PcdGetPtr (PcdConfigPolicyVariableGuid), VolumeHandle, &FileHandle);
     if (!EFI_ERROR (Status)) {
       //
       // Find config data FileHandle in this volume, then we skip other firmware volume and
@@ -70,6 +70,7 @@ FindDefaultConfigData (
       if (EFI_ERROR (Status)) {
         break;
       }
+
       return EFI_SUCCESS;
     }
 
@@ -93,22 +94,22 @@ FindDefaultConfigData (
 EFI_STATUS
 EFIAPI
 PolicyProducerEntry (
-  IN EFI_PEI_FILE_HANDLE              FileHandle,
-  IN CONST EFI_PEI_SERVICES           **PeiServices
+  IN EFI_PEI_FILE_HANDLE     FileHandle,
+  IN CONST EFI_PEI_SERVICES  **PeiServices
   )
 {
-  EFI_STATUS                        Status;
-  UINT8                             *ConfData = NULL;
-  UINT32                            Attr = 0;
-  UINTN                             DataSize = 0;
-  EFI_PEI_READ_ONLY_VARIABLE2_PPI   *VarPpi = NULL;
-  POLICY_PPI                        *PolPpi = NULL;
+  EFI_STATUS                       Status;
+  UINT8                            *ConfData = NULL;
+  UINT32                           Attr      = 0;
+  UINTN                            DataSize  = 0;
+  EFI_PEI_READ_ONLY_VARIABLE2_PPI  *VarPpi   = NULL;
+  POLICY_PPI                       *PolPpi   = NULL;
 
-  DEBUG((DEBUG_INFO, "%a - Entry.\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a - Entry.\n", __FUNCTION__));
 
   // First locate policy ppi.
   Status = PeiServicesLocatePpi (&gPeiPolicyPpiGuid, 0, NULL, (VOID *)&PolPpi);
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed to locate Policy PPI - %r\n", Status));
     ASSERT (FALSE);
     return Status;
@@ -116,7 +117,7 @@ PolicyProducerEntry (
 
   // Invoke the platform hook to allow them to produce the initialized policy
   Status = PlatformPolicyInit (PolPpi);
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Platform failed to publish default policy - %r\n", Status));
     ASSERT (FALSE);
     return Status;
@@ -124,21 +125,21 @@ PolicyProducerEntry (
 
   // Then locate variable ppi.
   Status = PeiServicesLocatePpi (&gEfiPeiReadOnlyVariable2PpiGuid, 0, NULL, (VOID *)&VarPpi);
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed to locate EFI_PEI_READ_ONLY_VARIABLE2_PPI - %r\n", Status));
     ASSERT (FALSE);
     return Status;
   }
 
   DataSize = 0;
-  Status = VarPpi->GetVariable (
-                     VarPpi,
-                     CDATA_NV_VAR_NAME,
-                     PcdGetPtr (PcdConfigPolicyVariableGuid),
-                     &Attr,
-                     &DataSize,
-                     ConfData
-                     );
+  Status   = VarPpi->GetVariable (
+                       VarPpi,
+                       CDATA_NV_VAR_NAME,
+                       PcdGetPtr (PcdConfigPolicyVariableGuid),
+                       &Attr,
+                       &DataSize,
+                       ConfData
+                       );
   if (Status == EFI_NOT_FOUND) {
     // It could be the first time, thus locate from FV
     Status = FindDefaultConfigData ((VOID **)&ConfData, &DataSize);
@@ -147,7 +148,7 @@ PolicyProducerEntry (
       ASSERT (FALSE);
       goto Exit;
     }
-  } else if (Status == EFI_BUFFER_TOO_SMALL && Attr == CDATA_NV_VAR_ATTR) {
+  } else if ((Status == EFI_BUFFER_TOO_SMALL) && (Attr == CDATA_NV_VAR_ATTR)) {
     ConfData = AllocatePool (DataSize);
     if (ConfData == NULL) {
       DEBUG ((DEBUG_ERROR, "%a Failed to allocate buffer for conf data (size: 0x%x)\n", __FUNCTION__, DataSize));
@@ -158,7 +159,7 @@ PolicyProducerEntry (
     Status = VarPpi->GetVariable (
                        VarPpi,
                        CDATA_NV_VAR_NAME,
-                       PcdGetPtr(PcdConfigPolicyVariableGuid),
+                       PcdGetPtr (PcdConfigPolicyVariableGuid),
                        &Attr,
                        &DataSize,
                        ConfData

@@ -26,25 +26,25 @@ typedef enum {
   SysInfoMax
 } SysInfoState_t;
 
-#define SYS_INFO_STATE_OPTIONS      1
+#define SYS_INFO_STATE_OPTIONS  1
 
-CONST ConfAppKeyOptions SysInfoStateOptions[SYS_INFO_STATE_OPTIONS] = {
+CONST ConfAppKeyOptions  SysInfoStateOptions[SYS_INFO_STATE_OPTIONS] = {
   {
-    .KeyName                = L"ESC",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Return to main menu.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = CHAR_NULL,
-    .ScanCode               = SCAN_ESC,
-    .EndState               = SysInfoExit
+    .KeyName             = L"ESC",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Return to main menu.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = CHAR_NULL,
+    .ScanCode            = SCAN_ESC,
+    .EndState            = SysInfoExit
   }
 };
 
-SysInfoState_t mSysInfoState = SysInfoInit;
-UINTN          mDateTimeCol = 0;
-UINTN          mDateTimeRow = 0;
-UINTN          mEndCol = 0;
-UINTN          mEndRow = 0;
+SysInfoState_t  mSysInfoState = SysInfoInit;
+UINTN           mDateTimeCol  = 0;
+UINTN           mDateTimeRow  = 0;
+UINTN           mEndCol       = 0;
+UINTN           mEndRow       = 0;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -56,10 +56,10 @@ ResetGlobals (
   )
 {
   mSysInfoState = SysInfoInit;
-  mDateTimeCol = 0;
-  mDateTimeRow = 0;
-  mEndCol = 0;
-  mEndRow = 0;
+  mDateTimeCol  = 0;
+  mDateTimeRow  = 0;
+  mEndCol       = 0;
+  mEndRow       = 0;
 }
 
 /**
@@ -72,7 +72,7 @@ PrintVersion (
 {
   EFI_STATUS  Status;
   CHAR16      *Buffer = NULL;
-  UINTN       Length = 0;
+  UINTN       Length  = 0;
 
   Status = GetBuildDateStringUnicode (NULL, &Length);
   Buffer = AllocateZeroPool ((Length + 1) * sizeof (CHAR16));
@@ -100,10 +100,10 @@ PrintSettings (
   VOID
   )
 {
-  EFI_STATUS            Status;
-  CHAR8                 *Buffer = NULL;
-  UINTN                 Length = 0;
-  UINT8                 Dummy;
+  EFI_STATUS  Status;
+  CHAR8       *Buffer = NULL;
+  UINTN       Length  = 0;
+  UINT8       Dummy;
 
   if (mSettingAccess == NULL) {
     return EFI_NOT_STARTED;
@@ -113,33 +113,42 @@ PrintSettings (
   if (mIdMask == DFCI_IDENTITY_INVALID) {
     Print (L"Invalid ");
   }
+
   if (mIdMask & DFCI_IDENTITY_LOCAL) {
     Print (L"Local ");
   }
+
   if (mIdMask == DFCI_IDENTITY_SIGNER_ZTD) {
     Print (L"ZTD ");
   }
+
   if (mIdMask == DFCI_IDENTITY_SIGNER_USER2) {
     Print (L"User2 ");
   }
+
   if (mIdMask == DFCI_IDENTITY_SIGNER_USER1) {
     Print (L"User1 ");
   }
+
   if (mIdMask == DFCI_IDENTITY_SIGNER_USER) {
     Print (L"User ");
   }
+
   if (mIdMask == DFCI_IDENTITY_SIGNER_OWNER) {
     Print (L"Owner ");
   }
+
   Print (L"\n");
 
-  Status = mSettingAccess->Get (mSettingAccess,
-                                DFCI_OEM_SETTING_ID__CONF,
-                                &mAuthToken,
-                                DFCI_SETTING_TYPE_BINARY,
-                                &Length,
-                                &Dummy,
-                                NULL);
+  Status = mSettingAccess->Get (
+                             mSettingAccess,
+                             DFCI_OEM_SETTING_ID__CONF,
+                             &mAuthToken,
+                             DFCI_SETTING_TYPE_BINARY,
+                             &Length,
+                             &Dummy,
+                             NULL
+                             );
   if (Status != EFI_BUFFER_TOO_SMALL) {
     DEBUG ((DEBUG_ERROR, "%a Unexpected result to get settings - %r\n", __FUNCTION__, Status));
     return Status;
@@ -151,13 +160,15 @@ PrintSettings (
     goto Exit;
   }
 
-  Status = mSettingAccess->Get (mSettingAccess,
-                                DFCI_OEM_SETTING_ID__CONF,
-                                &mAuthToken,
-                                DFCI_SETTING_TYPE_BINARY,
-                                &Length,
-                                Buffer,
-                                NULL);
+  Status = mSettingAccess->Get (
+                             mSettingAccess,
+                             DFCI_OEM_SETTING_ID__CONF,
+                             &mAuthToken,
+                             DFCI_SETTING_TYPE_BINARY,
+                             &Length,
+                             Buffer,
+                             NULL
+                             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to get settings - %r\n", __FUNCTION__, Status));
     goto Exit;
@@ -170,6 +181,7 @@ Exit:
   if (Buffer != NULL) {
     FreePool (Buffer);
   }
+
   return Status;
 }
 
@@ -184,23 +196,24 @@ PrintDateTime (
   EFI_STATUS  Status;
   EFI_TIME    CurrentTime;
 
-  Status = gRT->GetTime(&CurrentTime, NULL);
+  Status = gRT->GetTime (&CurrentTime, NULL);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  gST->ConOut->SetCursorPosition(gST->ConOut, mDateTimeCol, mDateTimeRow);
+  gST->ConOut->SetCursorPosition (gST->ConOut, mDateTimeCol, mDateTimeRow);
   gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK));
-  Print (L"Date & Time:\t%02d/%02d/%04d - %02d:%02d:%02d\n",
-         CurrentTime.Month,
-         CurrentTime.Day,
-         CurrentTime.Year,
-         CurrentTime.Hour,
-         CurrentTime.Minute,
-         CurrentTime.Second
-         );
-  if (mEndCol != 0 || mEndRow != 0) {
-    gST->ConOut->SetCursorPosition(gST->ConOut, mEndCol, mEndRow);
+  Print (
+    L"Date & Time:\t%02d/%02d/%04d - %02d:%02d:%02d\n",
+    CurrentTime.Month,
+    CurrentTime.Day,
+    CurrentTime.Year,
+    CurrentTime.Hour,
+    CurrentTime.Minute,
+    CurrentTime.Second
+    );
+  if ((mEndCol != 0) || (mEndRow != 0)) {
+    gST->ConOut->SetCursorPosition (gST->ConOut, mEndCol, mEndRow);
   }
 
   return Status;
@@ -214,10 +227,10 @@ PrintSysInfoOptions (
   VOID
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
 
   PrintScreenInit ();
-  Print(L"System Information:\n\n");
+  Print (L"System Information:\n\n");
   // Collect what is needed and print in this step
   Status = PrintVersion ();
   if (EFI_ERROR (Status)) {
@@ -232,16 +245,17 @@ PrintSysInfoOptions (
 
   mDateTimeCol = gST->ConOut->Mode->CursorColumn;
   mDateTimeRow = gST->ConOut->Mode->CursorRow;
-  Status = PrintDateTime ();
+  Status       = PrintDateTime ();
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Print(L"\n");
+  Print (L"\n");
   Status = PrintAvailableOptions (SysInfoStateOptions, SYS_INFO_STATE_OPTIONS);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
   }
+
   mEndCol = gST->ConOut->Mode->CursorColumn;
   mEndRow = gST->ConOut->Mode->CursorRow;
 
@@ -262,8 +276,8 @@ SysInfoMgr (
   VOID
   )
 {
-  EFI_STATUS          Status = EFI_SUCCESS;
-  EFI_KEY_DATA        KeyData;
+  EFI_STATUS    Status = EFI_SUCCESS;
+  EFI_KEY_DATA  KeyData;
 
   switch (mSysInfoState) {
     case SysInfoInit:
@@ -273,6 +287,7 @@ SysInfoMgr (
         ASSERT (FALSE);
         break;
       }
+
       mSysInfoState = SysInfoWait;
       break;
     case SysInfoWait:
@@ -287,7 +302,7 @@ SysInfoMgr (
         DEBUG ((DEBUG_ERROR, "%a Waiting for keystroke failed at system info page - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINTN*)&mSysInfoState);
+        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINTN *)&mSysInfoState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
@@ -295,6 +310,7 @@ SysInfoMgr (
           ASSERT (FALSE);
         }
       }
+
       break;
     case SysInfoExit:
       ResetGlobals ();

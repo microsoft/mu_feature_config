@@ -15,15 +15,15 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <DfciSystemSettingTypes.h>
 
-#define DFCI_MAX_STRING_LEN (1024)
+#define DFCI_MAX_STRING_LEN  (1024)
 
 typedef struct {
-    CHAR8      *SerialNumber;
-    UINTN       SerialNumberSize;
-    CHAR8      *Manufacturer;
-    UINTN       ManufacturerSize;
-    CHAR8      *ProductName;
-    UINTN       ProductNameSize;
+  CHAR8    *SerialNumber;
+  UINTN    SerialNumberSize;
+  CHAR8    *Manufacturer;
+  UINTN    ManufacturerSize;
+  CHAR8    *ProductName;
+  UINTN    ProductNameSize;
 } DFCI_SYSTEM_INFORMATION;
 
 /**
@@ -36,7 +36,7 @@ typedef struct {
  **/
 EFI_STATUS
 DfciGetSystemInfo (
-    IN DFCI_SYSTEM_INFORMATION *DfciInfo
+  IN DFCI_SYSTEM_INFORMATION  *DfciInfo
   );
 
 /**
@@ -48,7 +48,7 @@ DfciGetSystemInfo (
  **/
 VOID
 DfciFreeSystemInfo (
-    IN DFCI_SYSTEM_INFORMATION *DfciInfo
+  IN DFCI_SYSTEM_INFORMATION  *DfciInfo
   );
 
 #endif

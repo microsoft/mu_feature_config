@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define __DFCI_USB_H__
 
 // MAX_USB_FILE_NAME_LENGTH Includes the terminating NULL
-#define MAX_USB_FILE_NAME_LENGTH 256
+#define MAX_USB_FILE_NAME_LENGTH  256
 
 /**
  * BuildUsbRequest
@@ -24,8 +24,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 EFI_STATUS
 EFIAPI
 BuildUsbRequest (
-    IN  CHAR16       *FileExtension,
-    OUT CHAR16      **FileName
+  IN  CHAR16  *FileExtension,
+  OUT CHAR16  **FileName
   );
 
 /**
@@ -42,9 +42,9 @@ BuildUsbRequest (
 EFI_STATUS
 EFIAPI
 DfciRequestJsonFromUSB (
-    IN  CHAR16          *FileName,
-    OUT CHAR8          **JsonString,
-    OUT UINTN           *JsonStringSize
+  IN  CHAR16  *FileName,
+  OUT CHAR8   **JsonString,
+  OUT UINTN   *JsonStringSize
   );
 
-#endif  // __DFCI_USB_H__
+#endif // __DFCI_USB_H__

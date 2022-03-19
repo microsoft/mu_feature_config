@@ -6,7 +6,6 @@
 
 **/
 
-
 #ifndef PLATFORM_POLICY_INIT_LIB_H_
 #define PLATFORM_POLICY_INIT_LIB_H_
 
@@ -25,7 +24,7 @@
 EFI_STATUS
 EFIAPI
 PlatformPolicyInit (
-  IN POLICY_PROTOCOL      *PolicyProtocol
-);
+  IN POLICY_PROTOCOL  *PolicyProtocol
+  );
 
 #endif

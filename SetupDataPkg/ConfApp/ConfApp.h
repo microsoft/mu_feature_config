@@ -12,16 +12,16 @@
 #include <Protocol/DfciAuthentication.h>
 #include <Protocol/DfciSettingAccess.h>
 
-#define NO_TRANSITION_STATE   MAX_UINTN
+#define NO_TRANSITION_STATE  MAX_UINTN
 
 typedef struct {
-  CHAR16        *KeyName;
-  UINT8         KeyNameTextAttr;
-  CHAR16        *Description;
-  UINT8         DescriptionTextAttr;
-  CHAR16        UnicodeChar;
-  CHAR16        ScanCode;
-  UINTN         EndState;
+  CHAR16    *KeyName;
+  UINT8     KeyNameTextAttr;
+  CHAR16    *Description;
+  UINT8     DescriptionTextAttr;
+  CHAR16    UnicodeChar;
+  CHAR16    ScanCode;
+  UINTN     EndState;
 } ConfAppKeyOptions;
 
 /**
@@ -55,8 +55,8 @@ PollKeyStroke (
 EFI_STATUS
 EFIAPI
 PrintAvailableOptions (
-  IN  CONST ConfAppKeyOptions   *KeyOptions,
-  IN  UINTN                     OptionCount
+  IN  CONST ConfAppKeyOptions  *KeyOptions,
+  IN  UINTN                    OptionCount
   );
 
 /**
@@ -74,10 +74,10 @@ PrintAvailableOptions (
 EFI_STATUS
 EFIAPI
 CheckSupportedOptions (
-  IN  EFI_KEY_DATA              *KeyData,
-  IN  CONST ConfAppKeyOptions   *KeyOptions,
-  IN  UINTN                     OptionCount,
-  IN  UINTN                     *State
+  IN  EFI_KEY_DATA             *KeyData,
+  IN  CONST ConfAppKeyOptions  *KeyOptions,
+  IN  UINTN                    OptionCount,
+  IN  UINTN                    *State
   );
 
 /**
@@ -96,7 +96,7 @@ ExitSubRoutine (
 VOID
 PrintScreenInit (
   VOID
-);
+  );
 
 /**
   State machine for system information page. It will display fundamental information, including

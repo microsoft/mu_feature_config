@@ -30,49 +30,49 @@ typedef enum {
   SecureBootMax
 } SecureBootState_t;
 
-#define SEC_BOOT_CONF_STATE_OPTIONS      4
+#define SEC_BOOT_CONF_STATE_OPTIONS  4
 
-CONST ConfAppKeyOptions SecBootStateOptions[SEC_BOOT_CONF_STATE_OPTIONS] = {
+CONST ConfAppKeyOptions  SecBootStateOptions[SEC_BOOT_CONF_STATE_OPTIONS] = {
   {
-    .KeyName                = L"1",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Microsoft Only.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '1',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SecureBootMsft
+    .KeyName             = L"1",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Microsoft Only.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '1',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SecureBootMsft
   },
   {
-    .KeyName                = L"2",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Microsoft and 3rd Party.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '2',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SecureBootMsftPlus
+    .KeyName             = L"2",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Microsoft and 3rd Party.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '2',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SecureBootMsftPlus
   },
   {
-    .KeyName                = L"3",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"None.\n",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = '3',
-    .ScanCode               = SCAN_NULL,
-    .EndState               = SecureBootClear
+    .KeyName             = L"3",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"None.\n",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '3',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SecureBootClear
   },
   {
-    .KeyName                = L"ESC",
-    .KeyNameTextAttr        = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description            = L"Return to main menu.",
-    .DescriptionTextAttr    = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar            = CHAR_NULL,
-    .ScanCode               = SCAN_ESC,
-    .EndState               = SecureBootExit
+    .KeyName             = L"ESC",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Return to main menu.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = CHAR_NULL,
+    .ScanCode            = SCAN_ESC,
+    .EndState            = SecureBootExit
   }
 };
 
-SecureBootState_t mSecBootState = SecureBootInit;
-UINTN             mCurrentState = (UINTN)-1;
+SecureBootState_t  mSecBootState = SecureBootInit;
+UINTN              mCurrentState = (UINTN)-1;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -98,28 +98,28 @@ PrintSBOptions (
   VOID
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
 
   PrintScreenInit ();
   Print (L"Secure Boot Options:\n");
 
-  gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK));
+  gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK));
   Print (L"Current Status:\t\t");
 
   mCurrentState = GetCurrentSecureBootConfig ();
   switch (mCurrentState) {
     case MS_SB_CONFIG_MS_ONLY:
-      gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR (EFI_GREEN, EFI_BLACK));
+      gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_GREEN, EFI_BLACK));
       Print (L"Microsoft Only\n");
       break;
     case MS_SB_CONFIG_MS_3P:
-      gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR (EFI_CYAN, EFI_BLACK));
+      gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_CYAN, EFI_BLACK));
       Print (L"Microsoft and 3rd Party\n");
       break;
     case MS_SB_CONFIG_NONE:
     // Intentionally fall through
     case (UINTN)-1:
-      gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR (EFI_RED, EFI_BLACK));
+      gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_RED, EFI_BLACK));
       Print (L"None\n");
       break;
     default:
@@ -127,12 +127,14 @@ PrintSBOptions (
       ASSERT (FALSE);
       return EFI_SECURITY_VIOLATION;
   }
+
   Print (L"\n");
 
   Status = PrintAvailableOptions (SecBootStateOptions, SEC_BOOT_CONF_STATE_OPTIONS);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
   }
+
   return Status;
 }
 
@@ -150,8 +152,8 @@ SecureBootMgr (
   VOID
   )
 {
-  EFI_STATUS          Status = EFI_SUCCESS;
-  EFI_KEY_DATA        KeyData;
+  EFI_STATUS    Status = EFI_SUCCESS;
+  EFI_KEY_DATA  KeyData;
 
   switch (mSecBootState) {
     case SecureBootInit:
@@ -162,6 +164,7 @@ SecureBootMgr (
         ASSERT (FALSE);
         break;
       }
+
       mSecBootState = SecureBootWait;
       break;
     case SecureBootWait:
@@ -174,7 +177,7 @@ SecureBootMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for secure boot selections - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SecBootStateOptions, SEC_BOOT_CONF_STATE_OPTIONS, (UINTN*)&mSecBootState);
+        Status = CheckSupportedOptions (&KeyData, SecBootStateOptions, SEC_BOOT_CONF_STATE_OPTIONS, (UINTN *)&mSecBootState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
@@ -182,11 +185,13 @@ SecureBootMgr (
           ASSERT (FALSE);
         }
       }
+
       break;
     case SecureBootClear:
       DEBUG ((DEBUG_INFO, "Selected clear Secure Boot Key\n"));
       if ((mCurrentState != MS_SB_CONFIG_NONE) &&
-          (mCurrentState != (UINTN)-1)) {
+          (mCurrentState != (UINTN)-1))
+      {
         Status = DeleteSecureBootVariables ();
         if (!EFI_ERROR (Status)) {
           mSecBootState = SecureBootConfChange;
@@ -196,6 +201,7 @@ SecureBootMgr (
       } else {
         mSecBootState = SecureBootWait;
       }
+
       break;
     case SecureBootMsft:
       DEBUG ((DEBUG_INFO, "Selected Microsoft ONLY Secure Boot Key\n"));
@@ -209,6 +215,7 @@ SecureBootMgr (
       } else {
         mSecBootState = SecureBootWait;
       }
+
       break;
     case SecureBootMsftPlus:
       DEBUG ((DEBUG_INFO, "Selected Microsoft and 3rd Party Secure Boot Key\n"));
@@ -222,6 +229,7 @@ SecureBootMgr (
       } else {
         mSecBootState = SecureBootWait;
       }
+
       break;
     case SecureBootExit:
       ResetGlobals ();

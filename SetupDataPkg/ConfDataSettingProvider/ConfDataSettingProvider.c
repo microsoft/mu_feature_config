@@ -42,13 +42,13 @@
 EFI_STATUS
 EFIAPI
 ConfDataGetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER     *This,
-  IN  OUT   UINTN                     *ValueSize,
-  OUT       UINT8                     *Value
-)
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN  OUT   UINTN                  *ValueSize,
+  OUT       UINT8                  *Value
+  )
 {
   UINTN       DataSize = 0;
-  VOID        *Data = NULL;
+  VOID        *Data    = NULL;
   EFI_STATUS  Status;
 
   if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == NULL)) {
@@ -62,17 +62,18 @@ ConfDataGetDefault (
 
   // Then populate the slot with default one from FV.
   Status = GetSectionFromAnyFv (
-             PcdGetPtr(PcdConfigPolicyVariableGuid),
+             PcdGetPtr (PcdConfigPolicyVariableGuid),
              EFI_SECTION_RAW,
              0,
              (VOID **)&Data,
-             &DataSize);
+             &DataSize
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to get default settings (%r)\n", __FUNCTION__, Status));
     goto Exit;
   }
 
-  Status = DumpConfigData (Data, DataSize, (CHAR8*)Value, ValueSize);
+  Status = DumpConfigData (Data, DataSize, (CHAR8 *)Value, ValueSize);
   if (Status == EFI_BUFFER_TOO_SMALL) {
     DEBUG ((DEBUG_WARN, "%a Prepared buffer too small, expecting 0x%x.\n", __FUNCTION__, *ValueSize));
   } else if (EFI_ERROR (Status)) {
@@ -84,6 +85,7 @@ Exit:
   if (Data != NULL) {
     FreePool (Data);
   }
+
   return Status;
 }
 
@@ -104,14 +106,14 @@ Exit:
 EFI_STATUS
 EFIAPI
 ConfDataGet (
-  IN CONST DFCI_SETTING_PROVIDER     *This,
-  IN OUT   UINTN                     *ValueSize,
-  OUT      UINT8                     *Value
-)
+  IN CONST DFCI_SETTING_PROVIDER  *This,
+  IN OUT   UINTN                  *ValueSize,
+  OUT      UINT8                  *Value
+  )
 {
-  UINT32      Attr = 0;
+  UINT32      Attr     = 0;
   UINTN       DataSize = 0;
-  VOID        *Data = NULL;
+  VOID        *Data    = NULL;
   EFI_STATUS  Status;
 
   if ((This == NULL) || (Value == NULL) || (ValueSize == NULL)) {
@@ -119,13 +121,13 @@ ConfDataGet (
   }
 
   if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
-    DEBUG((DEBUG_ERROR, "%a was called with incorrect Provider Id (0x%X)\n", __FUNCTION__, This->Id));
+    DEBUG ((DEBUG_ERROR, "%a was called with incorrect Provider Id (0x%X)\n", __FUNCTION__, This->Id));
     return EFI_UNSUPPORTED;
   }
 
   Status = gRT->GetVariable (
                   CDATA_NV_VAR_NAME,
-                  PcdGetPtr(PcdConfigPolicyVariableGuid),
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
                   &Attr,
                   &DataSize,
                   NULL
@@ -135,34 +137,35 @@ ConfDataGet (
     // Simply grab the default one if no luck from var storage
     Status = ConfDataGetDefault (This, ValueSize, Value);
     if (Status == EFI_BUFFER_TOO_SMALL) {
-      DEBUG((DEBUG_WARN, "%a Prepared buffer too small, expecting 0x%x.\n", __FUNCTION__, *ValueSize));
-    } else if (EFI_ERROR (Status)){
-      DEBUG((DEBUG_ERROR, "%a failed to fetch default settings - %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_WARN, "%a Prepared buffer too small, expecting 0x%x.\n", __FUNCTION__, *ValueSize));
+    } else if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a failed to fetch default settings - %r\n", __FUNCTION__, Status));
     }
+
     goto Exit;
   } else if (Status != EFI_BUFFER_TOO_SMALL) {
-    DEBUG((DEBUG_ERROR, "%a unexpected result when fetching settings from var storage - %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a unexpected result when fetching settings from var storage - %r\n", __FUNCTION__, Status));
     Status = EFI_DEVICE_ERROR;
     goto Exit;
   }
 
-  Data = AllocatePool (DataSize);
+  Data   = AllocatePool (DataSize);
   Status = gRT->GetVariable (
                   CDATA_NV_VAR_NAME,
-                  PcdGetPtr(PcdConfigPolicyVariableGuid),
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
                   &Attr,
                   &DataSize,
                   Data
                   );
-  if (EFI_ERROR (Status)){
-    DEBUG((DEBUG_ERROR, "%a failed to fetch settings from storage - %r\n", __FUNCTION__, Status));
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a failed to fetch settings from storage - %r\n", __FUNCTION__, Status));
     goto Exit;
   }
 
-  Status = DumpConfigData (Data, DataSize, (CHAR8*)Value, ValueSize);
+  Status = DumpConfigData (Data, DataSize, (CHAR8 *)Value, ValueSize);
   if (Status == EFI_BUFFER_TOO_SMALL) {
-    DEBUG((DEBUG_WARN, "%a Prepared buffer too small for current setting, expecting 0x%x.\n", __FUNCTION__, *ValueSize));
-  } else if (EFI_ERROR (Status)){
+    DEBUG ((DEBUG_WARN, "%a Prepared buffer too small for current setting, expecting 0x%x.\n", __FUNCTION__, *ValueSize));
+  } else if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a failed to print settings from current settings - %r\n", __FUNCTION__, Status));
     goto Exit;
   }
@@ -171,9 +174,9 @@ Exit:
   if (Data != NULL) {
     FreePool (Data);
   }
+
   return Status;
 }
-
 
 /**
   Set new configuration value to variable storage.
@@ -189,33 +192,33 @@ Exit:
 EFI_STATUS
 EFIAPI
 ConfDataSet (
-  IN  CONST DFCI_SETTING_PROVIDER     *This,
-  IN        UINTN                      ValueSize,
-  IN  CONST UINT8                     *Value,
-  OUT DFCI_SETTING_FLAGS              *Flags
-)
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN        UINTN                  ValueSize,
+  IN  CONST UINT8                  *Value,
+  OUT DFCI_SETTING_FLAGS           *Flags
+  )
 {
   EFI_STATUS  Status = EFI_SUCCESS;
 
-  if ((This == NULL) || (Flags == NULL) || (Value == NULL))
-  {
+  if ((This == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   *Flags = 0;
 
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN))
-  {
+  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
     DEBUG ((DEBUG_ERROR, "ConfDataSet was called with incorrect Provider Id (%a)\n", This->Id));
     return EFI_UNSUPPORTED;
   }
 
   // Just add the new settings to the variable store.
-  Status = gRT->SetVariable (CDATA_NV_VAR_NAME,
-                             PcdGetPtr(PcdConfigPolicyVariableGuid),
-                             CDATA_NV_VAR_ATTR,
-                             ValueSize,
-                             (VOID *) Value);
+  Status = gRT->SetVariable (
+                  CDATA_NV_VAR_NAME,
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
+                  CDATA_NV_VAR_ATTR,
+                  ValueSize,
+                  (VOID *)Value
+                  );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to set variable size %x. Code = %r\n", ValueSize, Status));
     return Status;
@@ -239,16 +242,15 @@ ConfDataSet (
 EFI_STATUS
 EFIAPI
 ConfDataSetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER     *This
+  IN  CONST DFCI_SETTING_PROVIDER  *This
   )
 {
-  EFI_STATUS    Status;
-  UINT32        Attr = 0;
-  UINTN         DataSize = 0;
-  VOID          *Data = NULL;
+  EFI_STATUS  Status;
+  UINT32      Attr     = 0;
+  UINTN       DataSize = 0;
+  VOID        *Data    = NULL;
 
-  if (This == NULL)
-  {
+  if (This == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -259,7 +261,7 @@ ConfDataSetDefault (
 
   Status = gRT->GetVariable (
                   CDATA_NV_VAR_NAME,
-                  PcdGetPtr(PcdConfigPolicyVariableGuid),
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
                   &Attr,
                   &DataSize,
                   NULL
@@ -282,22 +284,25 @@ ConfDataSetDefault (
 
   // Then populate the slot with default one from FV.
   Status = GetSectionFromAnyFv (
-              PcdGetPtr(PcdConfigPolicyVariableGuid),
-              EFI_SECTION_RAW,
-              0,
-              (VOID **)&Data,
-              &DataSize);
+             PcdGetPtr (PcdConfigPolicyVariableGuid),
+             EFI_SECTION_RAW,
+             0,
+             (VOID **)&Data,
+             &DataSize
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to locate variable blob from FV, either %r\n", __FUNCTION__, Status));
     ASSERT (FALSE);
     goto Exit;
   }
 
-  Status = gRT->SetVariable (CDATA_NV_VAR_NAME,
-                             PcdGetPtr(PcdConfigPolicyVariableGuid),
-                             CDATA_NV_VAR_ATTR,
-                             DataSize,
-                             (VOID *) Data);
+  Status = gRT->SetVariable (
+                  CDATA_NV_VAR_NAME,
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
+                  CDATA_NV_VAR_ATTR,
+                  DataSize,
+                  (VOID *)Data
+                  );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to store variable blob to flash %r\n", __FUNCTION__, Status));
     ASSERT (FALSE);
@@ -308,17 +313,18 @@ Exit:
   if (Data != NULL) {
     FreePool (Data);
   }
+
   return Status;
 }
 
-DFCI_SETTING_PROVIDER mSettingsProvider = {
+DFCI_SETTING_PROVIDER  mSettingsProvider = {
   DFCI_OEM_SETTING_ID__CONF,
   DFCI_SETTING_TYPE_BINARY,
   DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
-  (DFCI_SETTING_PROVIDER_SET) ConfDataSet,
-  (DFCI_SETTING_PROVIDER_GET) ConfDataGet,
-  (DFCI_SETTING_PROVIDER_GET_DEFAULT) ConfDataGetDefault,
-  (DFCI_SETTING_PROVIDER_SET_DEFAULT) ConfDataSetDefault
+  (DFCI_SETTING_PROVIDER_SET)ConfDataSet,
+  (DFCI_SETTING_PROVIDER_GET)ConfDataGet,
+  (DFCI_SETTING_PROVIDER_GET_DEFAULT)ConfDataGetDefault,
+  (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
 };
 
 /**
@@ -337,27 +343,25 @@ DFCI_SETTING_PROVIDER mSettingsProvider = {
 VOID
 EFIAPI
 SettingsProviderSupportProtocolNotify (
-  IN  EFI_EVENT       Event,
-  IN  VOID            *Context
-)
+  IN  EFI_EVENT  Event,
+  IN  VOID       *Context
+  )
 {
-
   EFI_STATUS                              Status;
   DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *sp;
   STATIC UINT8                            CallCount = 0;
 
-  //locate protocol
-  Status = gBS->LocateProtocol (&gDfciSettingsProviderSupportProtocolGuid, NULL, (VOID**)&sp);
-  if (EFI_ERROR (Status))
-  {
-    if ((CallCount++ != 0) || (Status != EFI_NOT_FOUND))
-    {
+  // locate protocol
+  Status = gBS->LocateProtocol (&gDfciSettingsProviderSupportProtocolGuid, NULL, (VOID **)&sp);
+  if (EFI_ERROR (Status)) {
+    if ((CallCount++ != 0) || (Status != EFI_NOT_FOUND)) {
       DEBUG ((DEBUG_ERROR, "%a() - Failed to locate gDfciSettingsProviderSupportProtocolGuid in notify.  Status = %r\n", __FUNCTION__, Status));
     }
-    return ;
+
+    return;
   }
 
-  //call function
+  // call function
   DEBUG ((DEBUG_INFO, "Registering configuration Setting Provider\n"));
   Status = sp->RegisterProvider (sp, &mSettingsProvider);
   if (EFI_ERROR (Status)) {
@@ -371,7 +375,7 @@ SettingsProviderSupportProtocolNotify (
 
   @param[in] ImageHandle    The firmware allocated handle for the EFI image.
   @param[in] SystemTable    A pointer to the EFI System Table.
-  
+
   @retval EFI_SUCCESS       The entry point always return success.
 **/
 EFI_STATUS
@@ -381,10 +385,10 @@ ConfDataSettingProviderEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_EVENT SettingsProviderSupportInstallEvent = NULL;
-  VOID      *SettingsProviderSupportInstallEventRegistration = NULL;
+  EFI_EVENT  SettingsProviderSupportInstallEvent              = NULL;
+  VOID       *SettingsProviderSupportInstallEventRegistration = NULL;
 
-  //Install callback on the SettingsManager gDfciSettingsProviderSupportProtocolGuid protocol
+  // Install callback on the SettingsManager gDfciSettingsProviderSupportProtocolGuid protocol
   SettingsProviderSupportInstallEvent =
     EfiCreateProtocolNotifyEvent (
       &gDfciSettingsProviderSupportProtocolGuid,

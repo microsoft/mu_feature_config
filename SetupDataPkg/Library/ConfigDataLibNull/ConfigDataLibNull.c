@@ -29,17 +29,17 @@
 EFI_STATUS
 EFIAPI
 DumpConfigData (
-  IN  VOID      *Data,
-  IN  UINTN     Size,
-  OUT VOID      *AsciiBuffer OPTIONAL,
-  OUT UINTN     *AsciiBufferSize OPTIONAL
+  IN  VOID   *Data,
+  IN  UINTN  Size,
+  OUT VOID   *AsciiBuffer OPTIONAL,
+  OUT UINTN  *AsciiBufferSize OPTIONAL
   )
 {
   return EFI_UNSUPPORTED;
 }
 
 /**
-  This function is supplied with a buffer of configuration data defined according to 
+  This function is supplied with a buffer of configuration data defined according to
   platform YAML files. Platform should update the applicable silicon policies.
 
   @param[in]  PolicyInterface Pointer to current policy protocol/PPI interface.
