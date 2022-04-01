@@ -1298,7 +1298,12 @@ class CGenCfgData:
             else:
                 struct_node = top[struct_str]
             struct_node['offset'] = start
-            struct_node['length'] = info['offset'] - start
+            if len(path) == 1:
+                # Round up first layer tree to be 4 Byte aligned
+                info['offset'] = (info['offset'] + 31) & (~31)
+                struct_node['length'] = (info['offset'] - start + 31) & (~31)
+            else:
+                struct_node['length'] = info['offset'] - start
             if struct_node['length'] % 8 != 0:
                 raise SystemExit("Error: Bits length not aligned for %s !" % str(path))
 
