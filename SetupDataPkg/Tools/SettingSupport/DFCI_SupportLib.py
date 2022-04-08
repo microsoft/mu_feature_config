@@ -118,6 +118,33 @@ class DFCI_SupportLib(object):
         print ("Result Status for Id (%s): %s" % (str(id), r.text))
         return int(r.text.strip(), base=0) == int(statuscode, base=0)
 
+    def iterate_each_setting(self, resultfile, handler):
+        xmlstring = ""
+        found = False
+        a = open(resultfile, "r")
+
+        #find the start of the xml string and then copy all lines to xmlstring variable
+        for l in a.readlines():
+            if(found):
+                xmlstring += l
+            else:
+                if l.lstrip().startswith("<?xml"):
+                    xmlstring = l
+                    found = True
+        a.close()
+
+        if (len(xmlstring) == 0) or (not found):
+            print ("Result XML not found")
+            return None
+
+        #make an element tree from xml string
+        r = None
+        root = ET.fromstring(xmlstring)
+        for e in root.findall("./Settings/SettingCurrent"):
+            i = e.find("Id")
+            r = e.find("Value")
+            handler (i.text, r.text)
+
     def check_current_setting_value(self, resultfile, id, valuestring):
         xmlstring = ""
         found = False

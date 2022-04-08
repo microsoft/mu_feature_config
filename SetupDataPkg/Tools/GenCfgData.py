@@ -493,7 +493,7 @@ class CFG_YAML():
                             # Insert the headers corresponds to this ID tag from here, most contents are hardcoded for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x04'
-                            cfg_hdr['value'] = '{0x01:2b, ((_LENGTH_%s_)/4):10b, %d:4b, 0:4b, %s:12b}' % (parent_name, 0 if key == "IdTag" else 1, value_str)
+                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_/4):10b, %d:4b, 0:4b, %s:12b}' % (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
                             cnd_val = OrderedDict()
@@ -1477,6 +1477,78 @@ class CGenCfgData:
         self.write_delta_file (delta_file, platform_id, lines)
         return 0
 
+
+    def generate_delta_svd_from_bin (self, old_data, new_data):
+        self.load_default_from_bin (new_data)
+        lines = []
+        tag_name = ''
+        level = 0
+        platform_id = None
+        def_platform_id = 0
+        items = []
+
+        for item in self._cfg_list:
+            old_val = get_bits_from_bytes (old_data, item['offset'],  item['length'])
+            new_val = get_bits_from_bytes (new_data, item['offset'],  item['length'])
+
+            full_name = item['path']
+            if 'PLATFORMID_CFG_DATA.PlatformId' == full_name:
+                def_platform_id = old_val
+                platform_id     = new_val
+            elif item['type'] != 'Reserved' and (new_val != old_val):
+                val_str = self.reformat_value_str (item['value'], item['length'])
+                text = '%-40s | %s' % (full_name, val_str)
+                item = self.locate_cfg_item(item['path'])
+                if item is None:
+                    raise Exception ("Failed to locate item from path: %s" % item['path'])
+                items.append(item)
+
+        execs = []
+        # The idea is that the 1st level tag content will be regenerated if changed
+        for item in items:
+            exec = self.locate_exec_from_item (item)
+            if exec == None:
+                raise Exception ("Failed to find the immediate executive tree for an item")
+            if exec not in execs:
+                execs.append (exec)
+
+        bytes_array = []
+        for exec in execs:
+            bytes = self.get_field_value (exec)
+            offset = 0
+            offset += int(exec['CfgHeader']['length'], 0)
+            offset += int(exec['CondValue']['length'], 0)
+            bytes_array.append (bytes[offset:])
+
+        # self.write_delta_file (delta_file, platform_id, lines)
+        return (execs, bytes_array)
+
+    def locate_exec_from_item (self, item):
+
+        def _locate_exec_from_item (name, cfgs, level):
+            if level == 1:
+                exec[0] = cfgs
+            elif cfgs == item:
+                exec[1] = exec[0]
+
+        exec = [None, None]
+        self.traverse_cfg_tree (_locate_exec_from_item, self._cfg_tree)
+        return exec[1]
+
+    def locate_exec_from_tag (self, tag):
+
+        def _locate_exec_from_tag (name, cfgs, level):
+            if level == 1:
+                exec[0] = cfgs
+                if CGenCfgData.STRUCT in cfgs:
+                    cfghdr  = self.get_item_by_index (cfgs['CfgHeader']['indx'])
+                    tag_val = array_str_to_value(cfghdr['value']) >> 20
+                    if tag_val == tag:
+                        exec[1] = exec[0]
+
+        exec = [None, None]
+        self.traverse_cfg_tree (_locate_exec_from_tag, self._cfg_tree)
+        return exec[1]
 
     def generate_delta_file(self, delta_file, bin_file, bin_file2, full=False):
         fd = open (bin_file, 'rb')

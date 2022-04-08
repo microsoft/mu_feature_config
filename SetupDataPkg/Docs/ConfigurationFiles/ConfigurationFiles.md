@@ -63,3 +63,15 @@ size.
 - All `CFGHDR_TMPL` can be ignored from YAML files. Instead, use a `IdTag` to denote a normal ID tag value, or `ArrayIdTag`
 to denote an array ID tag value. [GenCfgData.py](../../Tools/GenCfgData.py) will automatically populate the `CFGHDR_TMPL`
 content to backend database and generate the same binary data blob.
+
+- MU version of ConfigEditor supports 3 more option for loading from and saving to SVD (Setup Variable Data) files:
+  - Save Full Config Data to SVD File:
+      Saving the entire defined YAML structure into encoded binary settings format. This format is useful when many tags
+      of settings need updating at once, as it will save transmission overhead when serial method is selected. But this
+      will *touch* all configurations defined.
+  - Save Config Changes to SVD File:
+      Saving only the changed tag setting into corresponding encoded binary value. This will allow the target system to
+      update only the changed tag setting (i.e. Only disable GFX controllers, and leave USB ports on the same system intact)
+  - Load Config Data from SVD File:
+      Once the target system has dumped current configuration from ConfApp, the output data can be viewed in ConfigEditor
+      on host system.

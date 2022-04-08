@@ -19,6 +19,7 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 from SettingSupport.SettingsXMLLib import SettingsXMLLib
+from SettingSupport.DFCI_SupportLib import DFCI_SupportLib
 
 from GenCfgData import CGenCfgData, bytes_to_value, bytes_to_bracket_str, value_to_bytes, array_str_to_value
 
@@ -360,8 +361,12 @@ class application(tkinter.Frame):
         tkinter.Frame.__init__(self, master, borderwidth=2)
 
         self.menu_string = [
-            'Save Config Data to Binary', 'Load Config Data from Binary',
+            'Save Config Data to Binary',
+            'Load Config Data from Binary',
             'Load Config Changes from Delta File',
+            'Save Full Config Data to SVD File',
+            'Save Config Changes to SVD File',
+            'Load Config Data from SVD File',
             'Save Config Changes to Delta File',
             'Save Full Config Data to Delta File'
         ]
@@ -437,9 +442,18 @@ class application(tkinter.Frame):
                              command=self.load_from_delta,
                              state='disabled')
         file_menu.add_command(label=self.menu_string[3],
-                             command=self.save_to_delta,
+                             command=self.save_full_to_svd,
                              state='disabled')
         file_menu.add_command(label=self.menu_string[4],
+                             command=self.save_to_svd,
+                             state='disabled')
+        file_menu.add_command(label=self.menu_string[5],
+                             command=self.load_from_svd,
+                             state='disabled')
+        file_menu.add_command(label=self.menu_string[6],
+                             command=self.save_delta_file,
+                             state='disabled')
+        file_menu.add_command(label=self.menu_string[7],
                              command=self.save_full_to_delta,
                              state='disabled')
         file_menu.add_command(label="About", command=self.about)
@@ -678,6 +692,8 @@ class application(tkinter.Frame):
                 question = ''
             elif ftype == 'bin':
                 question = 'All configuration will be reloaded from BIN file, continue ?'
+            elif ftype == 'svd':
+                question = ''
             elif ftype == 'yaml':
                 question = ''
             else:
@@ -727,6 +743,22 @@ class application(tkinter.Frame):
         if not path:
             return
         self.load_bin_file (path)
+
+    def load_from_svd(self):
+        def handler (id, value):
+            if id != None and id.startswith ("Device.ConfigData.TagID_"):
+                base64_val = value.strip()
+                bin_data = base64.b64decode(base64_val)
+                tag_id = int (id.lstrip ("Device.ConfigData.TagID_"), 16)
+                exec = self.cfg_data_obj.locate_exec_from_tag (tag_id)
+                self.cfg_data_obj.set_field_value (exec, bin_data)
+
+        path = self.get_open_file_name('svd')
+        if not path:
+            return
+        a = DFCI_SupportLib ()
+
+        a.iterate_each_setting (path, handler)
 
     def load_bin_file (self, path):
         with open(path, 'rb') as fd:
@@ -780,9 +812,44 @@ class application(tkinter.Frame):
         if not path:
             return
 
+        dlt_path = path + '.dlt'
+        base64_path = path + ".svd"
+        temp_file = path + ".tmp"
+
         self.update_config_data_on_page()
         new_data = self.cfg_data_obj.generate_binary_array()
-        self.cfg_data_obj.generate_delta_file_from_bin (path, self.org_cfg_data_bin, new_data, full)
+        self.cfg_data_obj.generate_delta_file_from_bin (dlt_path, self.org_cfg_data_bin, new_data, full)
+
+    def save_to_svd(self):
+        path = self.get_save_file_name (".dlt")
+        if not path:
+            return
+
+        base64_path = path
+        temp_file = path + ".tmp"
+
+        self.update_config_data_on_page()
+        new_data = self.cfg_data_obj.generate_binary_array()
+
+        (execs, bytes_array) = self.cfg_data_obj.generate_delta_svd_from_bin (self.org_cfg_data_bin, new_data)
+
+        settings = []
+        for index in range(len(execs)):
+            b64data = base64.b64encode(bytes_array[index])
+            # This should start with SINGLE_SETTING_PROVIDER_TEMPLATE from SetupDataPkg/Include/Library/ConfigDataLib.h
+            cfghdr  = self.cfg_data_obj.get_item_by_index (execs[index]['CfgHeader']['indx'])
+            tag_val = array_str_to_value(cfghdr['value']) >> 20
+            settings.append(("Device.ConfigData.TagID_%08x" % tag_val, b64data.decode("utf-8")))
+        set_lib = SettingsXMLLib()
+        set_lib.create_settings_xml (filename=temp_file, version=1, lsv=1, settingslist=settings)
+
+        # To remove the line ends and spaces
+        with open(temp_file, "r") as tf:
+          with open(base64_path, "w") as ff:
+            for line in tf:
+              line = line.strip().rstrip('\n')
+              ff.write(line)
+        os.remove(temp_file)
 
     def save_to_delta(self):
         self.save_delta_file()
@@ -791,18 +858,24 @@ class application(tkinter.Frame):
         self.save_delta_file(True)
 
     def save_to_bin(self):
-        path = self.get_save_file_name ("")
+        path = self.get_save_file_name (".bin")
         if not path:
             return
 
-        path_bin = path + ".bin"
-        base64_path = path + ".svd"
+        self.update_config_data_on_page()
+        with open(path, 'wb') as fd:
+            bins = self.cfg_data_obj.generate_binary_array()
+            fd.write(bins)
+
+    def save_full_to_svd(self):
+        path = self.get_save_file_name (".svd")
+        if not path:
+            return
+
+        base64_path = path
         temp_file = path + ".tmp"
 
         self.update_config_data_on_page()
-        with open(path_bin, 'wb') as fd:
-            bins = self.cfg_data_obj.generate_binary_array()
-            fd.write(bins)
 
         b64data = base64.b64encode(self.cfg_data_obj.generate_binary_array())
         # This should match DFCI_OEM_SETTING_ID__CONF from SetupDataPkg/Include/Library/ConfigDataLib.h
