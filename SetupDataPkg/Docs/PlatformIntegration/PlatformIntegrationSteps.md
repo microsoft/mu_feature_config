@@ -17,8 +17,8 @@ to set/get hardware configurations.
 1. [Platform Data Flow](#platform-data-flow) - Modules provided in this package for platform to load/update configuration
 data.
 
-1. [Platform API Calls](#platform-api-calls) - Description of API calls from agents in this package that are provided to
-iterate platform defined configuration data.
+1. [Platform Data Consumption](#platform-data-consumption) - Description of expected platform workflow on how to consume
+data from configuration variables convert to policy data.
 
 1. [Configuration App Code Integration](#configuration-app-code-integration) - How to best integrate the `SetupDataPkg`
 collateral into a platform firmware.
@@ -50,41 +50,42 @@ When silicon module is executed, the consuming module should fetch policy data f
 There will be few modules provided and library classes defined for platform to define their own configuration data. More
 of modules needed to this feature, please see [Configuration App Code Integration](#configuration-app-code-integration).
 
-The default policy will be [initialized by platform](#platformpolicyinitLib) data during PEI phase in `PolicyProducer.inf`
-once policy framework is ready.
+The default policy should be initialized by platform module during early boot phase policy framework is ready.
 
-Immediately after initial policy data was populated, `PolicyProducer.inf` will look up configuration data blob from variable
-storage for the most up-to-date configuration data.
+After initial policy data was populated, platform logic should look up corresponding configuration data, if available,
+from variable storage for the most up-to-date configuration data. Silicon policies defined in [Silicon Code Changes](#silicon-code-changes)
+should then be overridden after platform translation.
 
 - Note: If there is no configuration variable found, the module will attempt to locate default configuration data from UEFI
 firmware volume blob.
 
-With configuration data, [platform implemented API](#configdatalib) will translate the configuration blob into corresponding
-silicon policies defined in [Silicon Code Changes](#silicon-code-changes).
-
 During the rest of boot process, the silicon drivers will consume the updated policy data to configure hardware components.
 
-During DXE phase, `ConfDataSettingProvider.inf` will be loaded and register a setting provider for configuration data in
-the DFCI framework. The settings *setter* will be relayed to [platform supplied interface](#configdatalib) and getter is
-essentially the [platform supplied serializer interface](#configdatalib).
+With configuration data, config data library can walk through the configuration blob into and dispatch the data with
+tag based buffer.
 
-## Platform API Calls
+During DXE phase, `ConfDataSettingProvider.inf` will be loaded and register one setting provider for receiving full
+configuration data (designed to reduce configuration transmission overhead), as well as an individual setting provider
+per define Tag ID, based on holistic Config data blob carried in FV, in the DFCI framework. The holistic settings *setter*
+will walk through the incoming binary data blob and dispatch to individual setting providers, whereas the individual
+settings providers will directly operate on the `SINGLE_SETTING_PROVIDER_TEMPLATE` formatted UEFI variables for updating,
+retrieving.
 
-In order for drivers provided by this package to function as expected, the platform owners are responsible for authoring
-the following library classes:
+## Platform Data Consumption
 
-### ConfigDataLib
+In order for drivers provided by this package to function as expected, the platform owners are suggested for authoring
+the following routines to properly consume configuration data:
 
-| Interface | Functionality |
-| ---| ---|
-| DumpConfigData | This interface should intake the configuration data and serialize the binary data into printable strings. |
-| ProcessIncomingConfigData | This interface should iterate through the supplied configuration data, translate the configuration data into silicon policy and update the policy. |
+### Platform Policy Initialization
 
-### PlatformPolicyInitLib
+Per silicon policy defintion, platforms are responsible for initializing the silicon policy with a default value when
+configuration when under the circumstance that its corresponding configuration is not present or not even defined.
 
-| Interface | Functionality |
-| ---| ---|
-| PlatformPolicyInit | This interface will initialize the silicon policy data to platform default value. |
+### Config Data Translation
+
+If the corresponding configuration is defined and exposed, the platform developer should query variable with the format
+of `Device.ConfigData.TagID_%08X` or defined as `SINGLE_SETTING_PROVIDER_TEMPLATE`, where the %08X should be populated
+with the intended Tag ID defined in the configuration YAML file set.
 
 ## Configuration App Code Integration
 
@@ -110,13 +111,7 @@ will omit the integration steps for these features. For more information about D
   gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid|$(CONF_POLICY_GUID_BYTES)
 
 [LibraryClasses]
-  ConfigDataLib|$(MU_PLATFORM_PACKAGE)/Library/ConfigDataLib/ConfigDataLib.inf
-
-[LibraryClasses.IA32, LibraryClasses.ARM]
-  PlatformPolicyInitLib|$(MU_PLATFORM_PACKAGE)/Library/PlatformPolicyInitLib/PlatformPolicyInitLib.inf
-
-[Components.IA32, Components.ARM]
-  SetupDataPkg/PolicyProducer/PolicyProducer.inf
+  ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
 
 [Components.X64, Components.AARCH64]
   #
@@ -154,9 +149,6 @@ will omit the integration steps for these features. For more information about D
 > Note: This is change is on top of Project MU based BDS and DFCI feature.
 
 ``` bash
-[FV.YOUR_PEI_FV]
-  INF SetupDataPkg/PolicyProducer/PolicyProducer.inf
-
 [FV.YOUR_DXE_FV]
   INF SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
   INF SetupDataPkg/ConfApp/ConfApp.inf

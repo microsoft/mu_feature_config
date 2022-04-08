@@ -24,11 +24,13 @@
 #include <Library/XmlTreeLib.h>
 #include <Library/XmlTreeQueryLib.h>
 #include <Library/DfciXmlSettingSchemaSupportLib.h>
+#include <Library/PerformanceLib.h>
 
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
 
 #define DEFAULT_USB_FILE_NAME  L"DfciUpdate.Dfi"
+#define CURRENT_XML_TEMPLATE   "<?xml version=\"1.0\" encoding=\"utf-8\"?><CurrentSettingsPacket xmlns=\"urn:UefiSettings-Schema\"></CurrentSettingsPacket>"
 
 typedef enum {
   SetupConfInit,
@@ -37,11 +39,13 @@ typedef enum {
   SetupConfUpdateNetwork,
   SetupConfUpdateSerialHint,
   SetupConfUpdateSerial,
+  SetupConfDumpSerial,
+  SetupConfDumpComplete,
   SetupConfExit,
   SetupConfMax
 } SetupConfState_t;
 
-#define SETUP_CONF_STATE_OPTIONS  4
+#define SETUP_CONF_STATE_OPTIONS  6
 
 CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   {
@@ -65,11 +69,29 @@ CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   {
     .KeyName             = L"3",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description         = L"Update from Serial Port.\n",
+    .Description         = L"Update from Serial Port.",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
     .UnicodeChar         = '3',
     .ScanCode            = SCAN_NULL,
     .EndState            = SetupConfUpdateSerialHint
+  },
+  {
+    .KeyName             = L"4",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Dump Current Configuration.\n",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = '4',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SetupConfDumpSerial
+  },
+  {
+    .KeyName             = L"h",
+    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
+    .Description         = L"Reprint this menu.",
+    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
+    .UnicodeChar         = 'h',
+    .ScanCode            = SCAN_NULL,
+    .EndState            = SetupConfInit
   },
   {
     .KeyName             = L"ESC",
@@ -82,10 +104,16 @@ CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   }
 };
 
-SetupConfState_t  mSetupConfState  = SetupConfInit;
-UINT16            *mConfDataBuffer = NULL;
-UINTN             mConfDataOffset  = 0;
-UINTN             mConfDataSize    = 0;
+typedef struct {
+  UINT32        TagId;
+  LIST_ENTRY    Link;
+} CONFIG_TAG_LINK_HEADER;
+
+SetupConfState_t  mSetupConfState      = SetupConfInit;
+UINT16            *mConfDataBuffer     = NULL;
+UINTN             mConfDataOffset      = 0;
+UINTN             mConfDataSize        = 0;
+LIST_ENTRY        mCollectedConfigTags = INITIALIZE_LIST_HEAD_VARIABLE (mCollectedConfigTags);
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -319,7 +347,9 @@ ApplySettings (
     }
 
     // only care about our target
-    if (0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
+    if ((0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) &&
+        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)))
+    {
       continue;
     }
 
@@ -348,7 +378,7 @@ ApplySettings (
     // Now set the settings
     Status = mSettingAccess->Set (
                                mSettingAccess,
-                               DFCI_OEM_SETTING_ID__CONF,
+                               Id,
                                &mAuthToken,
                                DFCI_SETTING_TYPE_BINARY,
                                ValueSize,
@@ -591,6 +621,274 @@ Exit:
   return Status;
 }
 
+EFI_STATUS
+EFIAPI
+CollectAllConfigTags (
+  UINT32  Tag,
+  VOID    *Buffer,
+  UINTN   BufferSize
+  )
+{
+  EFI_STATUS              Status;
+  CONFIG_TAG_LINK_HEADER  *Hdr;
+
+  // Now that we add it to the registered list
+  Hdr = AllocatePool (sizeof (CONFIG_TAG_LINK_HEADER));
+  if (Hdr == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    goto Exit;
+  }
+
+  Hdr->TagId = Tag;
+  InsertTailList (&mCollectedConfigTags, &Hdr->Link);
+
+  Status = EFI_SUCCESS;
+
+Exit:
+  return Status;
+}
+
+/**
+Create an XML string from all the current settings
+
+**/
+EFI_STATUS
+EFIAPI
+CreateXmlStringFromCurrentSettings (
+  OUT CHAR8  **XmlString,
+  OUT UINTN  *StringSize
+  )
+{
+  EFI_STATUS              Status;
+  XmlNode                 *List                    = NULL;
+  XmlNode                 *CurrentSettingsNode     = NULL;
+  XmlNode                 *CurrentSettingsListNode = NULL;
+  CHAR8                   LsvString[20];
+  EFI_TIME                Time;
+  UINT32                  Lsv      = 1;
+  UINTN                   DataSize = 0;
+  CHAR8                   *EncodedBuffer;
+  UINTN                   EncodedSize = 0;
+  VOID                    *Data       = NULL;
+  UINT8                   Dummy;
+  DFCI_SETTING_FLAGS      Flags;
+  CONFIG_TAG_LINK_HEADER  *TagNode;
+  LIST_ENTRY              *Link;
+  UINT32                  TagId;
+  CHAR8                   *AsciiName;
+  UINTN                   AsciiSize;
+
+  if ((XmlString == NULL) || (StringSize == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  PERF_FUNCTION_BEGIN ();
+
+  // create basic xml
+  Status = gRT->GetTime (&Time, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a - Failed to get time. %r\n", __FUNCTION__, Status));
+    goto EXIT;
+  }
+
+  List = New_CurrentSettingsPacketNodeList (&Time);
+  if (List == NULL) {
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create new Current Settings Packet List Node\n", __FUNCTION__));
+    Status = EFI_ABORTED;
+    goto EXIT;
+  }
+
+  // Get SettingsPacket Node
+  CurrentSettingsNode = GetCurrentSettingsPacketNode (List);
+  if (CurrentSettingsNode == NULL) {
+    DEBUG ((DEBUG_INFO, "Failed to Get GetCurrentSettingsPacketNode Node\n"));
+    Status = EFI_NO_MAPPING;
+    goto EXIT;
+  }
+
+  // Record Status result
+  //
+  // Add the Lowest Supported Version Node
+  //
+  ZeroMem (LsvString, sizeof (LsvString));
+  AsciiValueToStringS (&(LsvString[0]), sizeof (LsvString), 0, (UINT32)Lsv, 19);
+  Status = AddSettingsLsvNode (CurrentSettingsNode, LsvString);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_INFO, "Failed to set LSV Node for current settings. %r\n", Status));
+    goto EXIT;
+  }
+
+  //
+  // Get the Settings Node List Node
+  //
+  CurrentSettingsListNode = GetSettingsListNodeFromPacketNode (CurrentSettingsNode);
+  if (CurrentSettingsListNode == NULL) {
+    DEBUG ((DEBUG_INFO, "Failed to Get Settings List Node from Packet Node\n"));
+    Status = EFI_NO_MAPPING;
+    goto EXIT;
+  }
+
+  DataSize = 0;
+  Status   = mSettingAccess->Get (
+                               mSettingAccess,
+                               DFCI_OEM_SETTING_ID__CONF,
+                               &mAuthToken,
+                               DFCI_SETTING_TYPE_BINARY,
+                               &DataSize,
+                               &Dummy,
+                               &Flags
+                               );
+  if (Status != EFI_BUFFER_TOO_SMALL) {
+    DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
+    goto EXIT;
+  }
+
+  Data = AllocatePool (DataSize);
+  if (Data == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    goto EXIT;
+  }
+
+  Status = mSettingAccess->Get (
+                             mSettingAccess,
+                             DFCI_OEM_SETTING_ID__CONF,
+                             &mAuthToken,
+                             DFCI_SETTING_TYPE_BINARY,
+                             &DataSize,
+                             Data,
+                             &Flags
+                             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
+    goto EXIT;
+  }
+
+  Status = IterateConfData (Data, CollectAllConfigTags);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Iterate config data failed - %r\n", Status));
+    goto EXIT;
+  }
+
+  FreePool (Data);
+  Data = NULL;
+
+  // Now get the individual settings
+  while (!IsListEmpty (&mCollectedConfigTags)) {
+    Link    = GetFirstNode (&mCollectedConfigTags);
+    TagNode = BASE_CR (Link, CONFIG_TAG_LINK_HEADER, Link);
+    TagId   = TagNode->TagId;
+    RemoveEntryList (Link);
+    FreePool (TagNode);
+
+    AsciiSize = sizeof (SINGLE_SETTING_PROVIDER_START) + 2 * sizeof (TagId);
+    AsciiName = AllocatePool (AsciiSize);
+    if (AsciiName == NULL) {
+      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID 0x%x.\n", TagId));
+      Status = EFI_OUT_OF_RESOURCES;
+      goto EXIT;
+    }
+
+    AsciiSPrint (AsciiName, AsciiSize, SINGLE_SETTING_PROVIDER_TEMPLATE, TagId);
+
+    DataSize = 0;
+    Status   = mSettingAccess->Get (
+                                 mSettingAccess,
+                                 AsciiName,
+                                 &mAuthToken,
+                                 DFCI_SETTING_TYPE_BINARY,
+                                 &DataSize,
+                                 &Dummy,
+                                 &Flags
+                                 );
+    if (Status != EFI_BUFFER_TOO_SMALL) {
+      DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
+      goto EXIT;
+    }
+
+    Data = AllocatePool (DataSize);
+    if (Data == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+      goto EXIT;
+    }
+
+    Status = mSettingAccess->Get (
+                               mSettingAccess,
+                               AsciiName,
+                               &mAuthToken,
+                               DFCI_SETTING_TYPE_BINARY,
+                               &DataSize,
+                               Data,
+                               &Flags
+                               );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Get binary configuration data returned unexpected result = %r\n", __FUNCTION__, Status));
+      goto EXIT;
+    }
+
+    // First encode the binary blob
+    EncodedSize = 0;
+    Status      = Base64Encode (Data, DataSize, NULL, &EncodedSize);
+    if (Status != EFI_BUFFER_TOO_SMALL) {
+      DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
+      Status = EFI_INVALID_PARAMETER;
+      goto EXIT;
+    }
+
+    EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
+    if (EncodedBuffer == NULL) {
+      DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
+      Status = EFI_OUT_OF_RESOURCES;
+      goto EXIT;
+    }
+
+    Status = Base64Encode (Data, DataSize, EncodedBuffer, &EncodedSize);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
+      return EFI_INVALID_PARAMETER;
+    }
+
+    Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
+
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+    }
+
+    FreePool (Data);
+    Data = NULL;
+  }
+
+  // now output as xml string
+  Status = XmlTreeToString (List, TRUE, StringSize, XmlString);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a - XmlTreeToString failed.  %r\n", __FUNCTION__, Status));
+  }
+
+EXIT:
+  if (List != NULL) {
+    FreeXmlTree (&List);
+  }
+
+  if (Data != NULL) {
+    FreePool (Data);
+  }
+
+  if (EncodedBuffer != NULL) {
+    FreePool (EncodedBuffer);
+  }
+
+  if (EFI_ERROR (Status)) {
+    // free memory since it was an error
+    if (*XmlString != NULL) {
+      FreePool (*XmlString);
+      *XmlString  = NULL;
+      *StringSize = 0;
+    }
+  }
+
+  PERF_FUNCTION_END ();
+  return Status;
+}
+
 /**
   State machine for configuration setup. It will react to user keystroke to accept
   configuration data from selected option.
@@ -607,6 +905,8 @@ SetupConfMgr (
 {
   EFI_STATUS    Status = EFI_SUCCESS;
   EFI_KEY_DATA  KeyData;
+  CHAR8         *StrBuf;
+  UINTN         StrBufSize;
 
   switch (mSetupConfState) {
     case SetupConfInit:
@@ -679,6 +979,36 @@ SetupConfMgr (
         if (EFI_ERROR (Status)) {
           mSetupConfState = SetupConfExit;
         }
+      }
+
+      break;
+    case SetupConfDumpSerial:
+      // Clear screen
+      PrintScreenInit ();
+      Status = CreateXmlStringFromCurrentSettings (&StrBuf, &StrBufSize);
+      if (EFI_ERROR (Status)) {
+        Print (L"\nFailed to print current settings in SVD format - %r\n", Status);
+        Status = EFI_SUCCESS;
+      } else {
+        Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
+        Print (L"\n%a\n", StrBuf);
+      }
+
+      mSetupConfState = SetupConfDumpComplete;
+      break;
+    case SetupConfDumpComplete:
+      // Print hint on how to get out of here..
+      Print (L"\nPress 'ESC' to return to Setup menu.\n");
+      // Wait for key stroke event.
+      //
+      Status = PollKeyStroke (FALSE, 0, &KeyData);
+      if (Status == EFI_NOT_READY) {
+        // Do nothing
+      } else if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __FUNCTION__, Status));
+        ASSERT (FALSE);
+      } else if ((KeyData.Key.UnicodeChar == CHAR_NULL) && (KeyData.Key.ScanCode == SCAN_ESC)) {
+        mSetupConfState = SetupConfInit;
       }
 
       break;

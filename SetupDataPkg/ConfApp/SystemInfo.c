@@ -100,15 +100,6 @@ PrintSettings (
   VOID
   )
 {
-  EFI_STATUS  Status;
-  CHAR8       *Buffer = NULL;
-  UINTN       Length  = 0;
-  UINT8       Dummy;
-
-  if (mSettingAccess == NULL) {
-    return EFI_NOT_STARTED;
-  }
-
   Print (L"Identity:\t");
   if (mIdMask == DFCI_IDENTITY_INVALID) {
     Print (L"Invalid ");
@@ -140,49 +131,7 @@ PrintSettings (
 
   Print (L"\n");
 
-  Status = mSettingAccess->Get (
-                             mSettingAccess,
-                             DFCI_OEM_SETTING_ID__CONF,
-                             &mAuthToken,
-                             DFCI_SETTING_TYPE_BINARY,
-                             &Length,
-                             &Dummy,
-                             NULL
-                             );
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    DEBUG ((DEBUG_ERROR, "%a Unexpected result to get settings - %r\n", __FUNCTION__, Status));
-    return Status;
-  }
-
-  Buffer = AllocatePool (Length * sizeof (CHAR8));
-  if (Buffer == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Cannot allocate buffer of 0x%x to hold settings\n", __FUNCTION__, Length));
-    goto Exit;
-  }
-
-  Status = mSettingAccess->Get (
-                             mSettingAccess,
-                             DFCI_OEM_SETTING_ID__CONF,
-                             &mAuthToken,
-                             DFCI_SETTING_TYPE_BINARY,
-                             &Length,
-                             Buffer,
-                             NULL
-                             );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to get settings - %r\n", __FUNCTION__, Status));
-    goto Exit;
-  }
-
-  Print (L"System Settings:\n");
-  Print (L"%a\n", Buffer);
-
-Exit:
-  if (Buffer != NULL) {
-    FreePool (Buffer);
-  }
-
-  return Status;
+  return EFI_SUCCESS;
 }
 
 /**

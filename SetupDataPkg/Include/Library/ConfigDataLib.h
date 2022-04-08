@@ -10,8 +10,6 @@
 #ifndef __CONFIGURATION_DATA_H__
 #define __CONFIGURATION_DATA_H__
 
-#include <Protocol/Policy.h>
-
 #define CFG_DATA_SIGNATURE  SIGNATURE_32 ('C', 'F', 'G', 'D')
 
 #define CDATA_BLOB_ATTR_SIGNED  (1 << 0)
@@ -34,7 +32,9 @@
 #define CDATA_NV_VAR_ATTR  (EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_BOOTSERVICE_ACCESS)
 
 // Device setting for OEM usage to register settings provider
-#define DFCI_OEM_SETTING_ID__CONF  "Device.ConfigData.ConfigData"
+#define DFCI_OEM_SETTING_ID__CONF         "Device.ConfigData.ConfigData"
+#define SINGLE_SETTING_PROVIDER_START     "Device.ConfigData.TagID_"
+#define SINGLE_SETTING_PROVIDER_TEMPLATE  "Device.ConfigData.TagID_%08X"
 
 typedef struct {
   UINT16    PlatformId;
@@ -120,52 +120,34 @@ typedef struct {
 } ARRAY_CFG_HDR;
 
 /**
-  This function is supplied with a buffer of configuration data defined according platform
-  YAML files. Platform should derive a printable string based on supplied data.
+  Handler function dispatched for individual tag based data.
 
-  @param[in]  Data            Pointer to platform configuration data.
-  @param[in]  Size            The size of Data.
-  @param[out] AsciiBuffer     When supplied, the printable string should be copied
-                              into this buffer.
-  @param[out] AsciiBufferSize When supplied, on input, this indicate the available size of
-                              AsciiBuffer. On output, this should be the size of printable
-                              string, including NULL terminator.
+  @param[in] ConfDataPtr  Pointer to configuration data.
 
-  @retval EFI_SUCCESS           The string is successfully serialized.
-  @retval EFI_INVALID_PARAMETER The input data does not comply with platform configuration format.
-  @retval EFI_BUFFER_TOO_SMALL  The supplied buffer is too small to fit in output.
-  @retval EFI_UNSUPPORTED       This function is not supported for this instance.
-  @retval Others                Other errors occurred.
+  @retval EFI_INVALID_PARAMETER   Input argument is null.
+  @retval EFI_SUCCESS             All p.
+
 **/
-EFI_STATUS
-EFIAPI
-DumpConfigData (
-  IN  VOID   *Data,
-  IN  UINTN  Size,
-  OUT VOID   *AsciiBuffer OPTIONAL,
-  OUT UINTN  *AsciiBufferSize OPTIONAL
+typedef EFI_STATUS
+(EFIAPI *SINGLE_TAG_HANDLER)(
+  UINT32    Tag,
+  VOID      *Buffer,
+  UINTN     BufferSize
   );
 
 /**
-  This function is supplied with a buffer of configuration data defined according to
-  platform YAML files. Platform should update the applicable silicon policies.
+  Find configuration data header by its tag and platform ID.
 
-  @param[in]  PolicyInterface Pointer to current policy protocol/PPI interface.
-  @param[in]  Data            Pointer to platform configuration data.
-  @param[in]  Size            The size of Data.
+  @param[in] ConfDataPtr  Pointer to configuration data.
 
-  @retval EFI_SUCCESS           The configuration is successfully applied to policy.
-  @retval EFI_INVALID_PARAMETER The input data does not comply with platform configuration format,
-                                or the policy interface is NULL.
-  @retval EFI_UNSUPPORTED       This function is not supported for this instance.
-  @retval Others                Other errors occurred.
+  @retval EFI_INVALID_PARAMETER   Input argument is null.
+  @retval EFI_SUCCESS             All p.
+
 **/
 EFI_STATUS
-EFIAPI
-ProcessIncomingConfigData (
-  IN POLICY_PROTOCOL  *PolicyInterface,
-  IN VOID             *Data,
-  IN UINTN            Size
+IterateConfData (
+  IN CONST VOID          *ConfDataPtr,
+  IN SINGLE_TAG_HANDLER  SingleTagHandler
   );
 
 #endif

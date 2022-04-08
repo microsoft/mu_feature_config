@@ -56,6 +56,8 @@
   XmlTreeLib
   XmlTreeQueryLib
   DfciXmlSettingSchemaSupportLib
+  ConfigDataLib
+  PerformanceLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid

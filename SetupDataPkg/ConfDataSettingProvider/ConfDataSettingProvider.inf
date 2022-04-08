@@ -19,9 +19,11 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
   DfciPkg/DfciPkg.dec
   PolicyServicePkg/PolicyServicePkg.dec
   SetupDataPkg/SetupDataPkg.dec
+  MsCorePkg/MsCorePkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -31,15 +33,21 @@
   MemoryAllocationLib
   DxeServicesLib
   ConfigDataLib
+  ConfigBlobBaseLib
+  VariablePolicyHelperLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
 
 [Guids]
+  gMuVarPolicyDxePhaseGuid
 
 [Protocols]
+  gPolicyProtocolGuid
   gDfciSettingsProviderSupportProtocolGuid
+  gEdkiiVariablePolicyProtocolGuid
 
 [Depex]
-  gEfiVariableWriteArchProtocolGuid
+  gEfiVariableWriteArchProtocolGuid AND
+  gEdkiiVariablePolicyProtocolGuid
 

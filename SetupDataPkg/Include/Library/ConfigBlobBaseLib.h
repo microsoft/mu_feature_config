@@ -13,6 +13,23 @@
 #include <Library/ConfigDataLib.h>
 
 /**
+  Find configuration data header by its tag.
+
+  @param[in] ConfBlob    Pointer to configuration data blob to be looked at.
+  @param[in] Tag         Configuration TAG ID to find.
+
+  @retval            Configuration data header pointer.
+                     NULL if the tag cannot be found.
+
+**/
+CDATA_HEADER *
+EFIAPI
+FindConfigHdrByTag (
+  VOID    *ConfBlob,
+  UINT32  Tag
+  );
+
+/**
   Find configuration data by its tag.
 
   @param[in] ConfBlob   Pointer to configuration data blob to be looked at.

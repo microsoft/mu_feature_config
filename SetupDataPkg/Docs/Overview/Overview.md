@@ -191,7 +191,8 @@ followed by a system reboot:
 
 | Variable Name | Variable GUID | Variable Attributes |
 | ------------ | ------------------ | ------------------|
-| `CONF_POLICY_BLOB` | `6E08E434-8E04-47B5-9A77-78A3A24523EA` | `EFI_VARIABLE_NON_VOLATILE + EFI_VARIABLE_BOOTSERVICE_ACCESS` |
+| `CONF_POLICY_BLOB` | `gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid` | `EFI_VARIABLE_NON_VOLATILE + EFI_VARIABLE_BOOTSERVICE_ACCESS` |
+| `Device.ConfigData.TagID_%08X` | `gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid` | `EFI_VARIABLE_NON_VOLATILE + EFI_VARIABLE_BOOTSERVICE_ACCESS` |
 
 - Upon a new boot, entities other than UEFI can consume the aforementioned variable.
 - After entering UEFI firmware, platform policy module will pull previously stored configuration data variable from UEFI
