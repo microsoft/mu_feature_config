@@ -6,17 +6,75 @@
     Commit:         [{{mu_config_apps.commit}}]({{mu_config_apps.commitlink}})  
     Commit Date:    {{mu_config_apps.date}}
 
-## About
+This Configuration Applications feature repo contains the generic Config Editor tools from Intel's Slim Bootloader
+repo. This code should be consumed as needed for firmware configuration update feature support.
 
-This repo contains Microsoft Secured Core MM Supervisor code that should only take public Project Mu repositories as a dependency and be applicable to almost any FW project. For full documentation.
-Please see the [Project Mu docs](https://github.com/Microsoft/mu) for more information.
+## Repository Philosophy
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+Like other Project MU feature repositories, the Configuration Applications feature repo does not strictly follow the
+EDKII releases, but instead has a continuous main branch which will periodically receive cherry-picks of needed changes
+from EDKII. For stable builds, release tags will be used instead to determine commit hashes at stable points in development.
+Release branches may be created as needed to facilitate a specific release with needed features, but this should be avoided.
 
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+## Consuming the Configuration Applications Feature Package
 
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+Since this project does not follow the release fork model, the code should be
+consumed from a release hash and should be consumed as a extdep in the platform
+repo. To include, create a file named feature_config_apps_ext_dep.yaml desired release
+tag hash. This could be in the root of the project or in a subdirectory as
+desired.
+
+```yaml
+{
+  "scope": "global",
+  "type": "git",
+  "name": "FEATURE_CONFIG_APPS",
+  "var_name": "FEATURE_CONFIG_APPS_PATH",
+  "source": "https://github.com/microsoft/mu_feature_config_apps.git",
+  "version": "<RELEASE HASH>",
+  "flags": ["set_build_var"]
+}
+```
+
+Setting the the var_name and the set_build_var flags will allow the build scripts
+to reference the extdep location. To make sure that the package is discoverable
+for the build, the following line should also be added to the build
+configurations GetPackagesPath list.
+
+```python
+shell_environment.GetBuildVars().GetValue("FEATURE_CONFIG_APPS_PATH", "")
+```
+
+*Note: If using pytool extensions older then version 0.17.0 you will need to
+append the root path to the build variable string.*
+
+After this the package should be discoverable to can be used in the build like
+any other dependency.
+
+## Code of Conduct
+
+This project has adopted the Microsoft Open Source Code of Conduct https://opensource.microsoft.com/codeofconduct/
+
+For more information see the Code of Conduct FAQ https://opensource.microsoft.com/codeofconduct/faq/
+or contact `opencode@microsoft.com <mailto:opencode@microsoft.com>`_. with any additional questions or comments.
+
+## Contributions
+
+Contributions are always welcome and encouraged!
+Please open any issues in the Project Mu GitHub tracker and read https://microsoft.github.io/mu/How/contributing/
+
+* [Code Requirements](https://microsoft.github.io/mu/CodeDevelopment/requirements/)
+* [Doc Requirements](https://microsoft.github.io/mu/DeveloperDocs/requirements/)
+
+## Issues
+
+Please open any issues in the Project Mu GitHub tracker. [More
+Details](https://microsoft.github.io/mu/How/contributing/)
+
+## Builds
+
+Please follow the steps in the Project Mu docs to build for CI and local
+testing. [More Details](https://microsoft.github.io/mu/CodeDevelopment/compile/)
 
 ## Copyright
 

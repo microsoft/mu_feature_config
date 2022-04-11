@@ -119,7 +119,7 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
     def GetActiveScopes(self):
         ''' return tuple containing scopes that should be active for this process '''
         if self.ActualScopes is None:
-            scopes = ("cibuild", "edk2-build", "host-based-test")
+            scopes = ("feature-config-apps-ci", "cibuild", "edk2-build", "host-based-test")
 
             self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue("TOOL_CHAIN_TAG", "")
 
@@ -175,31 +175,16 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
         }
         '''
         return [
-            {
-                "Path": "MU_BASECORE",
-                "Url": "https://github.com/Microsoft/mu_basecore.git",
-                "Branch": "release/202202"
-            },
-            {
-                "Path": "Common/MU",
-                "Url": "https://github.com/Microsoft/mu_plus.git",
-                "Branch": "release/202202"
-            },
-            {
-                "Path": "Common/MU_TIANO",
-                "Url": "https://github.com/Microsoft/mu_tiano_plus.git",
-                "Branch": "release/202202"
-            },
-            {
-                "Path": "Common/MU_OEM_SAMPLE",
-                "Url": "https://github.com/microsoft/mu_oem_sample.git",
-                "Branch": "release/202202"
-            }
         ]
 
     def GetPackagesPath(self):
         ''' Return a list of workspace relative paths that should be mapped as edk2 PackagesPath '''
-        result = []
+        result = [
+            shell_environment.GetBuildVars().GetValue("BASECORE_PATH", ""),
+            shell_environment.GetBuildVars().GetValue("MU_PLUS_PATH", ""),
+            shell_environment.GetBuildVars().GetValue("MU_OEM_PATH", ""),
+            shell_environment.GetBuildVars().GetValue("MU_TIANO_PATH", "")
+        ]
         for a in self.GetDependencies():
             result.append(a["Path"])
         return result
