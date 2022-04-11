@@ -112,19 +112,20 @@ SysInfoMgr (
   VOID
   );
 
-/**
-  State machine for secure boot page. It will react to user input from keystroke
-  to set selected secure boot option or go back to previous page.
+// TODO: Temporarily disable for Secure Boot library restructure in progress
+// /**
+//   State machine for secure boot page. It will react to user input from keystroke
+//   to set selected secure boot option or go back to previous page.
 
-  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
-  @retval Others                Failed to wait for valid keystrokes or failed to set
-                                platform key to variable service.
-**/
-EFI_STATUS
-EFIAPI
-SecureBootMgr (
-  VOID
-  );
+//   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
+//   @retval Others                Failed to wait for valid keystrokes or failed to set
+//                                 platform key to variable service.
+// **/
+// EFI_STATUS
+// EFIAPI
+// SecureBootMgr (
+//   VOID
+//   );
 
 /**
   State machine for boot option page. It will react to user input from keystroke

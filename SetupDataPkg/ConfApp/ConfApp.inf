@@ -19,7 +19,7 @@
   BootOptions.c
   ConfApp.c
   ConfApp.h
-  SecureBoot.c
+  # SecureBoot.c # TODO: Temporarily disable for Secure Boot library restructure in progress
   SetupConf.c
   SystemInfo.c
   DfciUsb/DfciUsb.c
@@ -32,7 +32,6 @@
   MdeModulePkg/MdeModulePkg.dec
   SetupDataPkg/SetupDataPkg.dec
   PcBdsPkg/PcBdsPkg.dec
-  OemPkg/OemPkg.dec
   DfciPkg/DfciPkg.dec
   MsCorePkg/MsCorePkg.dec
   XmlSupportPkg/XmlSupportPkg.dec
@@ -48,7 +47,7 @@
   ResetSystemLib
   MuUefiVersionLib
   UefiBootManagerLib
-  MsSecureBootLib
+  # MsSecureBootLib # TODO: Temporarily disable for Secure Boot library restructure in progress
   JsonLiteParserLib
   FileHandleLib
   DfciUiSupportLib

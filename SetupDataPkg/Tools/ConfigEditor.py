@@ -821,7 +821,7 @@ class application(tkinter.Frame):
         self.cfg_data_obj.generate_delta_file_from_bin (dlt_path, self.org_cfg_data_bin, new_data, full)
 
     def save_to_svd(self):
-        path = self.get_save_file_name (".dlt")
+        path = self.get_save_file_name (".svd")
         if not path:
             return
 

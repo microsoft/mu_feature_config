@@ -35,7 +35,6 @@
             "DfciPkg/DfciPkg.dec",
             "PcBdsPkg/PcBdsPkg.dec",
             "XmlSupportPkg/XmlSupportPkg.dec",
-            "OemPkg/OemPkg.dec",
             "SetupDataPkg/SetupDataPkg.dec"
         ],
         # For host based unit tests
