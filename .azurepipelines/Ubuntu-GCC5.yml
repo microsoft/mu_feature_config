@@ -7,21 +7,18 @@
 ##
 # MU_CHANGE BEGIN
 trigger:
-- dev/*
-- release/*
+- main
 
 schedules:
-- cron: "30 9 * * 0,3"  # Sun/Wed at 2:30AM Pacific
-  displayName: Sun/Wed Build
+- cron: "30 9 * * 0"  # Sun/Wed at 2:30AM Pacific
+  displayName: Sun Build
   branches:
     include:
-    - dev/*
-    - release/*
+    - main
   always: true          # Always build, even if no changes
 
 pr:
-- dev/*
-- release/*
+- main
 # MU_CHANGE END
 
 jobs:
