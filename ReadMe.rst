@@ -161,12 +161,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 .. CoreCI
 
-.. _Windows_VS2022: https://dev.azure.com/projectmu/mu/_build/latest?definitionId=99&&branchName=main
-.. |WindowsCiBuild| image:: https://dev.azure.com/projectmu/mu/_apis/build/status/CI/feature_config_apps/Windows%20VS2022%20CI?branchName=main
-.. |WindowsCiTest| image:: https://img.shields.io/azure-devops/tests/projectmu/mu/99.svg
+.. _Windows_VS2022: https://dev.azure.com/projectmu/mu/_build/latest?definitionId=104&&branchName=main
+.. |WindowsCiBuild| image:: https://dev.azure.com/projectmu/mu/_apis/build/status/CI/feature_config/Windows%20VS%20CI?branchName=main
+.. |WindowsCiTest| image:: https://img.shields.io/azure-devops/tests/projectmu/mu/104.svg
 .. |WindowsCiCoverage| image:: https://img.shields.io/badge/coverage-coming_soon-blue
 
-.. _Ubuntu_GCC5: https://dev.azure.com/projectmu/mu/_build/latest?definitionId=98&branchName=main
-.. |UbuntuCiBuild| image:: https://dev.azure.com/projectmu/mu/_apis/build/status/CI/feature_config_apps/Ubuntu%20GCC5%20CI?branchName=main
-.. |UbuntuCiTest| image:: https://img.shields.io/azure-devops/tests/projectmu/mu/98.svg
+.. _Ubuntu_GCC5: https://dev.azure.com/projectmu/mu/_build/latest?definitionId=105&branchName=main
+.. |UbuntuCiBuild| image:: https://dev.azure.com/projectmu/mu/_apis/build/status/CI/feature_config/Windows%20VS%20CI?branchName=main
+.. |UbuntuCiTest| image:: https://img.shields.io/azure-devops/tests/projectmu/mu/105.svg
 .. |UbuntuCiCoverage| image:: https://img.shields.io/badge/coverage-coming_soon-blue
