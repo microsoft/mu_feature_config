@@ -1,6 +1,6 @@
-========================================
-Project Mu Configuration Apps Repository
-========================================
+===================================
+Project Mu Configuration Repository
+===================================
 
 ============================= ================= =============== ===================
  Host Type & Toolchain        Build Status      Test Status     Code Coverage
@@ -11,8 +11,8 @@ Ubuntu_GCC5_                  |UbuntuCiBuild|   |UbuntuCiTest|  |UbuntuCiCoverag
 
 This repository is part of Project Mu.  Please see Project Mu for details https://microsoft.github.io/mu
 
-This Configuration Applications feature repo contains the generic Config Editor tools from Intel's Slim Bootloader
-repo which has been refactored to support more general use and with added functionality.
+This Configuration feature repo contains the generic Config Editor tools from Intel's Slim Bootloader repo which has
+been refactored to support more general use and with added functionality.
 
 Detailed Feature Information
 ============================
@@ -22,17 +22,17 @@ Far more details about using this repo can be found in: `Configuration Applicati
 Repository Philosophy
 =====================
 
-Like other Project MU feature repositories, the Configuration Applications feature repo does not strictly follow the
+Like other Project MU feature repositories, the Project MU Configuration feature repo does not strictly follow the
 EDKII releases, but instead has a continuous main branch which will periodically receive cherry-picks of needed changes
 from EDKII. For stable builds, release tags will be used instead to determine commit hashes at stable points in development.
 Release branches may be created as needed to facilitate a specific release with needed features, but this should be avoided.
 
-Consuming the Configuration Applications Feature Package
-========================================================
+Consuming the Configuration Feature Package
+===========================================
 
 Since this project does not follow the release fork model, the code should be
 consumed from a release hash and should be consumed as a extdep in the platform
-repo. To include, create a file named feature_config_apps_ext_dep.yaml desired release
+repo. To include, create a file named feature_config_ext_dep.yaml desired release
 tag hash. This could be in the root of the project or in a subdirectory as
 desired.
 
@@ -41,11 +41,11 @@ desired.
 
       "type": "git",
 
-      "name": "FEATURE_CONFIG_APPS",
+      "name": "FEATURE_CONFIG",
 
-      "var_name": "FEATURE_CONFIG_APPS_PATH",
+      "var_name": "FEATURE_CONFIG_PATH",
 
-      "source": "https://github.com/microsoft/mu_feature_config_apps.git",
+      "source": "https://github.com/microsoft/mu_feature_config.git",
 
       "version": "<RELEASE HASH>",
 
@@ -57,7 +57,7 @@ to reference the extdep location. To make sure that the package is discoverable
 for the build, the following line should also be added to the build
 configurations GetPackagesPath list.
 
-    shell_environment.GetBuildVars().GetValue("FEATURE_CONFIG_APPS_PATH", "")
+    shell_environment.GetBuildVars().GetValue("FEATURE_CONFIG_PATH", "")
 
 *Note: If using pytool extensions older then version 0.17.0 you will need to
 append the root path to the build variable string.*
