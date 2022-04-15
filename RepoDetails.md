@@ -1,26 +1,26 @@
-# Microsoft Secured Core MM Supervisor
+# Project Mu Configuration Repository
 
 ??? info "Git Details"
-    Repository Url: {{mu_config_apps.url}}  
-    Branch:         {{mu_config_apps.branch}}  
-    Commit:         [{{mu_config_apps.commit}}]({{mu_config_apps.commitlink}})  
-    Commit Date:    {{mu_config_apps.date}}
+    Repository Url: {{mu_feature_config.url}}  
+    Branch:         {{mu_feature_config.branch}}  
+    Commit:         [{{mu_feature_config.commit}}]({{mu_feature_config.commitlink}})  
+    Commit Date:    {{mu_feature_config.date}}
 
-This Configuration Applications feature repo contains the generic Config Editor tools from Intel's Slim Bootloader
-repo. This code should be consumed as needed for firmware configuration update feature support.
+This MU Configuration feature repo contains the generic Config Editor tools from Intel's Slim Bootloader repo. This
+code should be consumed as needed for firmware configuration update feature support.
 
 ## Repository Philosophy
 
-Like other Project MU feature repositories, the Configuration Applications feature repo does not strictly follow the
-EDKII releases, but instead has a continuous main branch which will periodically receive cherry-picks of needed changes
-from EDKII. For stable builds, release tags will be used instead to determine commit hashes at stable points in development.
-Release branches may be created as needed to facilitate a specific release with needed features, but this should be avoided.
+Like other Project MU feature repositories, the Configuration feature repo does not strictly follow the EDKII releases,
+but instead has a continuous main branch which will periodically receive cherry-picks of needed changes from EDKII. For
+stable builds, release tags will be used instead to determine commit hashes at stable points in development. Release
+branches may be created as needed to facilitate a specific release with needed features, but this should be avoided.
 
-## Consuming the Configuration Applications Feature Package
+## Consuming the MU Configuration Feature Package
 
 Since this project does not follow the release fork model, the code should be
 consumed from a release hash and should be consumed as a extdep in the platform
-repo. To include, create a file named feature_config_apps_ext_dep.yaml desired release
+repo. To include, create a file named feature_config_ext_dep.yaml desired release
 tag hash. This could be in the root of the project or in a subdirectory as
 desired.
 
@@ -28,9 +28,9 @@ desired.
 {
   "scope": "global",
   "type": "git",
-  "name": "FEATURE_CONFIG_APPS",
-  "var_name": "FEATURE_CONFIG_APPS_PATH",
-  "source": "https://github.com/microsoft/mu_feature_config_apps.git",
+  "name": "FEATURE_CONFIG",
+  "var_name": "FEATURE_CONFIG_PATH",
+  "source": "https://github.com/microsoft/mu_feature_config.git",
   "version": "<RELEASE HASH>",
   "flags": ["set_build_var"]
 }
@@ -42,7 +42,7 @@ for the build, the following line should also be added to the build
 configurations GetPackagesPath list.
 
 ```python
-shell_environment.GetBuildVars().GetValue("FEATURE_CONFIG_APPS_PATH", "")
+shell_environment.GetBuildVars().GetValue("FEATURE_CONFIG_PATH", "")
 ```
 
 *Note: If using pytool extensions older then version 0.17.0 you will need to
