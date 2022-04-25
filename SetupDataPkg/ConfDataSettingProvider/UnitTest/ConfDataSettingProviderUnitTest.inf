@@ -7,8 +7,8 @@
 
 [Defines]
   INF_VERSION                    = 0x00010006
-  BASE_NAME                      = DxeResetSystemLibUnitTestHost
-  FILE_GUID                      = 83E35653-B943-4C5F-BA08-9B2996AE9273
+  BASE_NAME                      = ConfDataSettingProviderUnitTest
+  FILE_GUID                      = E6C3EE0C-CF9B-4ABF-9F4C-8F984B620807
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
 
@@ -19,7 +19,8 @@
 #
 
 [Sources]
-  DxeResetSystemLibUnitTest.c
+  ConfDataSettingProviderUnitTest.c
+  ../ConfDataSettingProvider.c
 
 [Packages]
   MdePkg/MdePkg.dec

@@ -13,7 +13,8 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <Uefi.h>
+#include <PiDxe.h>
+#include <Protocol/FirmwareVolume2.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
@@ -23,6 +24,22 @@
 
 #define UNIT_TEST_APP_NAME     "Conf Data Setting Provider Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
+
+EFI_STATUS
+EFIAPI
+MockReadSection (
+  IN CONST  EFI_FIRMWARE_VOLUME2_PROTOCOL  *This,
+  IN CONST  EFI_GUID                       *NameGuid,
+  IN        EFI_SECTION_TYPE               SectionType,
+  IN        UINTN                          SectionInstance,
+  IN OUT    VOID                           **Buffer,
+  IN OUT    UINTN                          *BufferSize,
+  OUT       UINT32                         *AuthenticationStatus
+  );
+
+EFI_FIRMWARE_VOLUME2_PROTOCOL  mFvProtocol = {
+  .ReadSection = MockReadSection
+};
 
 /**
   Resets the entire platform.
@@ -187,39 +204,39 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
 //   return UNIT_TEST_PASSED;
 // }
 
-// /**
-//   Unit test for ResetSystem () API of the ResetSystemLib.
+/**
+  Unit test for SettingsProviderSupportProtocolNotify of ConfDataSettingProvider.
 
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
 
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetSystemShouldPassTheParametersThrough (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetCold);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SettingsProviderNotifyShouldComplete (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
 
-//   ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
+  ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
 
-//   expect_value (MockResetSystem, ResetType, EfiResetShutdown);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
+  expect_value (MockResetSystem, ResetType, EfiResetShutdown);
+  expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
 
-//   ResetSystem (EfiResetShutdown, EFI_SUCCESS, 0, NULL);
+  ResetSystem (EfiResetShutdown, EFI_SUCCESS, 0, NULL);
 
-//   return UNIT_TEST_PASSED;
-// }
+  return UNIT_TEST_PASSED;
+}
 
 /**
   Initialze the unit test framework, suite, and unit tests for the
@@ -267,10 +284,10 @@ UnitTestingEntry (
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
   AddTestCase (ResetTests, "ResetCold should issue a cold reset", "Cold", ResetColdShouldIssueAColdReset, NULL, NULL, NULL);
-  AddTestCase (ResetTests, "ResetWarm should issue a warm reset", "Warm", ResetWarmShouldIssueAWarmReset, NULL, NULL, NULL);
-  AddTestCase (ResetTests, "ResetShutdown should issue a shutdown", "Shutdown", ResetShutdownShouldIssueAShutdown, NULL, NULL, NULL);
-  AddTestCase (ResetTests, "ResetPlatformSpecific should issue a platform-specific reset", "Platform", ResetPlatformSpecificShouldIssueAPlatformSpecificReset, NULL, NULL, NULL);
-  AddTestCase (ResetTests, "ResetSystem should pass all parameters through", "Parameters", ResetSystemShouldPassTheParametersThrough, NULL, NULL, NULL);
+  // AddTestCase (ResetTests, "ResetWarm should issue a warm reset", "Warm", ResetWarmShouldIssueAWarmReset, NULL, NULL, NULL);
+  // AddTestCase (ResetTests, "ResetShutdown should issue a shutdown", "Shutdown", ResetShutdownShouldIssueAShutdown, NULL, NULL, NULL);
+  // AddTestCase (ResetTests, "ResetPlatformSpecific should issue a platform-specific reset", "Platform", ResetPlatformSpecificShouldIssueAPlatformSpecificReset, NULL, NULL, NULL);
+  // AddTestCase (ResetTests, "ResetSystem should pass all parameters through", "Parameters", ResetSystemShouldPassTheParametersThrough, NULL, NULL, NULL);
 
   //
   // Execute the tests.
