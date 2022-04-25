@@ -18,6 +18,9 @@
 [Includes]
   Include
 
+[Includes.Common.Private]
+  Test/Include
+
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h
   ConfigBlobBaseLib|Include/Library/ConfigBlobBaseLib.h
