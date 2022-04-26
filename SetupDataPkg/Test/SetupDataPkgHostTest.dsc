@@ -19,10 +19,16 @@
 !include UnitTestFrameworkPkg/UnitTestFrameworkPkgHost.dsc.inc
 
 [LibraryClasses]
+  ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
+  ConfigBlobBaseLib|SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
   SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
   SecurityLockAuditLib|MdeModulePkg/Library/SecurityLockAuditLibNull/SecurityLockAuditLibNull.inf
 
 [Components]
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+  SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+
+  SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
+  SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
 
   SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf
