@@ -50,122 +50,6 @@ MockSingleTagHandler (
   return (EFI_STATUS)mock ();
 }
 
-// /**
-//   Unit test for ColdReset () API of the ResetSystemLib.
-
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
-
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetColdShouldIssueAColdReset (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetCold);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
-
-//   ResetCold ();
-
-//   return UNIT_TEST_PASSED;
-// }
-
-// /**
-//   Unit test for WarmReset () API of the ResetSystemLib.
-
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
-
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetWarmShouldIssueAWarmReset (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetWarm);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
-
-//   ResetWarm ();
-
-//   return UNIT_TEST_PASSED;
-// }
-
-// /**
-//   Unit test for ResetShutdown () API of the ResetSystemLib.
-
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
-
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetShutdownShouldIssueAShutdown (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetShutdown);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
-
-//   ResetShutdown ();
-
-//   return UNIT_TEST_PASSED;
-// }
-
-// /**
-//   Unit test for ResetPlatformSpecific () API of the ResetSystemLib.
-
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
-
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetPlatformSpecificShouldIssueAPlatformSpecificReset (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetPlatformSpecific);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
-
-//   ResetPlatformSpecific (0, NULL);
-
-//   return UNIT_TEST_PASSED;
-// }
-
 /**
   Unit test for IterateConfData with known good data.
 
@@ -400,9 +284,9 @@ UnitTestingEntry (
   }
 
   //
-  // Populate the ResetSytemLib Unit Test Suite.
+  // Populate the ConfigDataLib Unit Test Suite.
   //
-  Status = CreateUnitTestSuite (&ConfigDataTests, Framework, "DxeResetSystemLib Reset Tests", "ResetSystemLib.Reset", NULL, NULL);
+  Status = CreateUnitTestSuite (&ConfigDataTests, Framework, "ConfigBlobBaseLib Iteration Tests", "ConfigBlobBaseLib.Iterate", NULL, NULL);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for ConfigDataTests\n"));
     Status = EFI_OUT_OF_RESOURCES;
