@@ -1,0 +1,35 @@
+## @file
+# Unit tests of the ConfigBlobBaseLib class
+#
+# Copyright (C) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ConfigBlobBaseLibUnitTest
+  FILE_GUID                      = 05A93641-6168-4C37-B603-F2FEC12C1AEE
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  ConfigBlobBaseLibUnitTest.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  ConfigBlobBaseLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  UnitTestLib
