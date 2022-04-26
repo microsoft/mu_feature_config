@@ -26,10 +26,27 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  DfciPkg/DfciPkg.dec
+  MsCorePkg/MsCorePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
 
 [LibraryClasses]
-  ResetSystemLib
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
   BaseLib
   BaseMemoryLib
   DebugLib
   UnitTestLib
+  ConfigDataLib
+  ConfigBlobBaseLib
+  PrintLib
+
+[Protocols]
+  gEdkiiVariablePolicyProtocolGuid
+  gDfciSettingsProviderSupportProtocolGuid
+
+[Guids]
+  gMuVarPolicyDxePhaseGuid
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
