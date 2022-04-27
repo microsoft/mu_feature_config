@@ -31,4 +31,8 @@
   SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
 
-  SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf
+  SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {
+    <LibraryClasses>
+      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+  }
