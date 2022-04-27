@@ -15,9 +15,10 @@
 
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
-#include <Protocol/VariablePolicy.h>
 #include <DfciSystemSettingTypes.h>
+#include <Protocol/VariablePolicy.h>
 #include <Protocol/DfciSettingsProvider.h>
+#include <Guid/MuVarPolicyFoundationDxe.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
@@ -245,22 +246,17 @@ RegisterVarStateVariablePolicy (
   IN        UINT8                           VarStateValue
   )
 {
-  check_expected_ptr (Namespace);
+  DEBUG ((DEBUG_INFO, "%a Register for %s under %g\n", __FUNCTION__, Name, Namespace));
+  assert_ptr_equal (Namespace, PcdGetPtr (PcdConfigPolicyVariableGuid));
+  assert_int_equal (MaxSize, VARIABLE_POLICY_NO_MAX_SIZE);
+  assert_int_equal (AttributesMustHave, CDATA_NV_VAR_ATTR);
+  assert_int_equal (AttributesCantHave, (UINT32) ~CDATA_NV_VAR_ATTR);
+  assert_ptr_equal (VarStateNamespace, &gMuVarPolicyDxePhaseGuid);
+  assert_memory_equal (VarStateName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  assert_int_equal (VarStateValue, PHASE_INDICATOR_SET);
+
   check_expected (Name);
-
-    // Status = RegisterVarStateVariablePolicy (
-    //          mVariablePolicy,
-    //          PcdGetPtr (PcdConfigPolicyVariableGuid),
-    //          TempUnicodeId,
-    //          (UINT32)BufferSize,
-    //          VARIABLE_POLICY_NO_MAX_SIZE,
-    //          CDATA_NV_VAR_ATTR,
-    //          (UINT32) ~CDATA_NV_VAR_ATTR,
-    //          &gMuVarPolicyDxePhaseGuid,
-    //          READY_TO_BOOT_INDICATOR_VAR_NAME,
-    //          PHASE_INDICATOR_SET
-    //          );
-
+  check_expected (MinSize);
   return EFI_SUCCESS;
 }
 
@@ -302,7 +298,7 @@ MockGetVariable (
   UINTN Size;
   VOID  *RetData;
 
-  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g\n", VariableName, VendorGuid));
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g\n", __FUNCTION__, VariableName, VendorGuid));
 
   assert_non_null (VariableName);
   assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
@@ -555,7 +551,12 @@ SettingsProviderNotifyShouldComplete (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CHAR8 ConfigId[SINGLE_CONF_DATA_ID_LEN];
+  CHAR8   ConfigId[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16  ConfigIdUni[SINGLE_CONF_DATA_ID_LEN];
+  CHAR8   *ComparePtr[7];
+  CHAR16  *CompareUniPtr[7];
+  UINTN   Index = 0;
+
   expect_value (MockLocateProtocol, Protocol, &gDfciSettingsProviderSupportProtocolGuid);
   will_return (MockLocateProtocol, &mMockDfciSetting);
 
@@ -571,7 +572,80 @@ SettingsProviderNotifyShouldComplete (
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
 
   AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ConfigId);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0xF0));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0xF0));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x70);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x70);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x70));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x70));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x280);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x280);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x280));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x280));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x180);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x180);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x180));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x180));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x200);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x200);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x200));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x200));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x10);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x10);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x10));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x10));
+
+  Index++;
+  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x80);
+  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x80);
+  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
+  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0x80));
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x80));
 
   SettingsProviderSupportProtocolNotify  (NULL, NULL);
 
