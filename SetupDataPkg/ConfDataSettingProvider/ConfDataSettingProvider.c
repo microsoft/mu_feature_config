@@ -293,27 +293,52 @@ DFCI_SETTING_PROVIDER  mSettingsProvider = {
   (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
 };
 
+/*
+  Helper function extract tag ID from single setting provider ID.
+
+  @param IdString       Seting Provider ID, should be in the format
+                        SINGLE_SETTING_PROVIDER_TEMPLATE
+  @param TagId          Pointer to hold extracted TagId value in the
+                        IdString.
+
+  @retval EFI_SUCCESS             Tag ID extracted.
+  @retval EFI_INVALID_PARAMETER   Input ID string does not match template,
+                                  or the 
+*/
 EFI_STATUS
 GetTagIdFromDfciId (
-  DFCI_SETTING_ID_STRING  IdString,
-  UINT32                  *TagId
+  IN  DFCI_SETTING_ID_STRING  IdString,
+  OUT UINT32                  *TagId
   )
 {
-  UINTN  Temp;
-  UINTN  Offset;
+  UINT32      Temp;
+  UINTN       Offset;
+  CHAR8       Char;
+  UINTN       TotalSize = sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2;
 
   if ((TagId == NULL) ||
       (IdString == NULL) ||
-      !AsciiStrStr (IdString, SINGLE_SETTING_PROVIDER_START))
+      (AsciiStrSize (IdString) != TotalSize) ||
+      !CompareMem (IdString, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START)))
   {
     return EFI_INVALID_PARAMETER;
   }
 
-  Offset = sizeof (SINGLE_SETTING_PROVIDER_START);
+  // Till here, we know that we have 8 bytes left to process
+  Offset = sizeof (SINGLE_SETTING_PROVIDER_START) - 1;
 
-  Temp = AsciiStrHexToUintn (&IdString[Offset]);
-  if (Temp > MAX_UINT32) {
-    return EFI_BAD_BUFFER_SIZE;
+  Temp = 0;
+  while (Offset < (TotalSize - 1)) {
+    Char = IdString[Offset];
+    if (Char >= 'A' && Char <= 'F') {
+      Temp = (Temp << 4) + (Char - 'A' + 0x0A);
+    } else if (Char >= '0' && Char <= '9') {
+      Temp = (Temp << 4) + (Char - '0');
+    } else {
+      // Do not support other characters from here...
+      return EFI_INVALID_PARAMETER;
+    }
+    Offset ++;
   }
 
   *TagId = (UINT32)Temp;
@@ -447,6 +472,11 @@ SingleConfDataGetDefault (
     goto Done;
   }
 
+  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
   Size   = 0;
   Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
   if (Status != EFI_BUFFER_TOO_SMALL) {
@@ -460,11 +490,6 @@ SingleConfDataGetDefault (
   }
 
   Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
-
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
   if (EFI_ERROR (Status)) {
     goto Done;
   }
