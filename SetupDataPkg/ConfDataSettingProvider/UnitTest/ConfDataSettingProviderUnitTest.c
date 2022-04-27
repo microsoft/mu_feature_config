@@ -1859,7 +1859,7 @@ GetTagIdFromDfciIdShouldFailOnMalformatted (
   UINT32      Tag;
   CHAR8       ComparePtr[SINGLE_CONF_DATA_ID_LEN];
 
-  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, "%08X%a", SINGLE_SETTING_PROVIDER_START, KNOWN_GOOD_TAG_0xF0);
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, "%08X%a", KNOWN_GOOD_TAG_0xF0, SINGLE_SETTING_PROVIDER_START);
   Status = GetTagIdFromDfciId (ComparePtr, &Tag);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
