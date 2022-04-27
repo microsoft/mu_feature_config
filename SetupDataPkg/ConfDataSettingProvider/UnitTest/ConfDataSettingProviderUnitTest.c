@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the DxeResetSystemLib instance of the ResetSystemLib class
+  Unit tests of the ConfDataSettingProvider module
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -31,6 +31,7 @@
 #include <Library/UnitTestLib.h>
 
 #include <Good_Config_Data.h>
+#include "ConfDataSettingProviderUnitTest.h"
 
 #define UNIT_TEST_APP_NAME      "Conf Data Setting Provider Unit Tests"
 #define UNIT_TEST_APP_VERSION   "1.0"
@@ -43,27 +44,24 @@
 #define KNOWN_GOOD_TAG_0x10   0x10
 #define KNOWN_GOOD_TAG_0x80   0x80
 
+#define KNOWN_GOOD_TAG_COUNT    7
 #define SINGLE_CONF_DATA_ID_LEN (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
 
-/**
-  Library design is such that a dependency on gDfciSettingsProviderSupportProtocolGuid
-  is not desired.  So to resolve that a ProtocolNotify is used.
+typedef struct {
+  UINTN     Tag;
+  UINT8     *Data;
+  UINTN     DataSize;
+} TAG_DATA;
 
-  This function gets triggered once on install and 2nd time when the Protocol gets installed.
-
-  When the gDfciSettingsProviderSupportProtocolGuid protocol is available the function will
-  loop thru all supported device disablement supported features (using PCD) and install the settings
-
-  @param[in]  Event                 Event whose notification function is being invoked.
-  @param[in]  Context               The pointer to the notification function's context, which is
-                                    implementation-dependent.
-**/
-VOID
-EFIAPI
-SettingsProviderSupportProtocolNotify (
-  IN  EFI_EVENT  Event,
-  IN  VOID       *Context
-  );
+TAG_DATA mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
+  {KNOWN_GOOD_TAG_0xF0,   mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)},
+  {KNOWN_GOOD_TAG_0x70,   mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)},
+  {KNOWN_GOOD_TAG_0x280,  mGood_Tag_0x280, sizeof (mGood_Tag_0x280)},
+  {KNOWN_GOOD_TAG_0x180,  mGood_Tag_0x180, sizeof (mGood_Tag_0x180)},
+  {KNOWN_GOOD_TAG_0x200,  mGood_Tag_0x200, sizeof (mGood_Tag_0x200)},
+  {KNOWN_GOOD_TAG_0x10,   mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)},
+  {KNOWN_GOOD_TAG_0x80,   mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)}
+};
 
 /**
   Searches all the availables firmware volumes and returns the first matching FFS section.
@@ -298,11 +296,11 @@ MockGetVariable (
   UINTN Size;
   VOID  *RetData;
 
-  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g\n", __FUNCTION__, VariableName, VendorGuid));
-
   assert_non_null (VariableName);
   assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
   assert_non_null (DataSize);
+
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
 
   check_expected (VariableName);
   Size = (UINTN)mock();
@@ -367,6 +365,8 @@ MockSetVariable (
   assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
   assert_int_equal (Attributes, CDATA_NV_VAR_ATTR);
 
+  DEBUG ((DEBUG_INFO, "%a Name: %s\n", __FUNCTION__, VariableName));
+
   check_expected (VariableName);
   check_expected (DataSize);
   check_expected (Data);
@@ -415,7 +415,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 };
 
 // /**
-//   Unit test for ColdReset () API of the ResetSystemLib.
+//   Unit test for ColdReset () API of the ConfDataSettingProvider.
 
 //   @param[in]  Context    [Optional] An optional parameter that enables:
 //                          1) test-case reuse with varied parameters and
@@ -444,7 +444,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 // }
 
 // /**
-//   Unit test for WarmReset () API of the ResetSystemLib.
+//   Unit test for WarmReset () API of the ConfDataSettingProvider.
 
 //   @param[in]  Context    [Optional] An optional parameter that enables:
 //                          1) test-case reuse with varied parameters and
@@ -473,7 +473,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 // }
 
 // /**
-//   Unit test for ResetShutdown () API of the ResetSystemLib.
+//   Unit test for ResetShutdown () API of the ConfDataSettingProvider.
 
 //   @param[in]  Context    [Optional] An optional parameter that enables:
 //                          1) test-case reuse with varied parameters and
@@ -501,34 +501,1187 @@ EFI_BOOT_SERVICES  MockBoot = {
 //   return UNIT_TEST_PASSED;
 // }
 
-// /**
-//   Unit test for ResetPlatformSpecific () API of the ResetSystemLib.
+/**
+  Unit test for ConfDataGetDefault of ConfDataSettingProvider with normal input.
 
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
 
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// ResetPlatformSpecificShouldIssueAPlatformSpecificReset (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   expect_value (MockResetSystem, ResetType, EfiResetPlatformSpecific);
-//   expect_value (MockResetSystem, ResetStatus, EFI_SUCCESS);
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetDefaultNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
 
-//   ResetPlatformSpecific (0, NULL);
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
 
-//   return UNIT_TEST_PASSED;
-// }
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = ConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+  UT_ASSERT_EQUAL (Size, sizeof (mKnown_Good_Config_Data));
+
+  Data = AllocatePool (Size);
+  Status = ConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Data, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
+
+  FreePool (Data);
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataGetDefault of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetDefaultNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = ConfDataGetDefault (NULL, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConfDataGetDefault (&SettingsProvider, NULL, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataGetDefault of ConfDataSettingProvider with mismatched provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetDefaultMismatch (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = SINGLE_SETTING_PROVIDER_START
+  };
+
+  Status = ConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_UNSUPPORTED);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataGet of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = ConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+  UT_ASSERT_EQUAL (Size, sizeof (mKnown_Good_Config_Data));
+
+  Data = AllocatePool (Size);
+  Status = ConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Data, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
+
+  FreePool (Data);
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataGet of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = ConfDataGet (NULL, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConfDataGet (&SettingsProvider, NULL, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataGet of ConfDataSettingProvider with mismatched provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataGetMismatch (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = SINGLE_SETTING_PROVIDER_START
+  };
+
+  Status = ConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_UNSUPPORTED);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataSetDefault of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetDefaultNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  CHAR16      *CompareUniPtr[KNOWN_GOOD_TAG_COUNT];
+  UINTN       UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
+  UINTN       Index = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return_always (MockSetVariable, EFI_SUCCESS);
+
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index ++) {
+    CompareUniPtr[Index] = AllocatePool (UniStrSize);
+    UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
+    expect_value (MockSetVariable, DataSize, mKnownGoodTags[Index].DataSize);
+    expect_memory (MockSetVariable, Data, mKnownGoodTags[Index].Data, mKnownGoodTags[Index].DataSize);
+  }
+
+  Status = ConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Index = 0;
+  while (Index < KNOWN_GOOD_TAG_COUNT) {
+    FreePool (CompareUniPtr[Index]);
+    Index ++;
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataSetDefault of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetDefaultNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+
+  Status = ConfDataSetDefault (NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataSetDefault of ConfDataSettingProvider with mismatched provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetDefaultMismatch (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = SINGLE_SETTING_PROVIDER_START
+  };
+
+  Status = ConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_UNSUPPORTED);
+
+  return UNIT_TEST_PASSED;
+}
+
+
+/**
+  Unit test for ConfDataSet of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  CHAR16              *CompareUniPtr[KNOWN_GOOD_TAG_COUNT];
+  UINTN               UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
+  UINTN               Index = 0;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  will_return_always (MockSetVariable, EFI_SUCCESS);
+
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index ++) {
+    CompareUniPtr[Index] = AllocatePool (UniStrSize);
+    UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
+    expect_value (MockSetVariable, DataSize, mKnownGoodTags[Index].DataSize);
+    expect_memory (MockSetVariable, Data, mKnownGoodTags[Index].Data, mKnownGoodTags[Index].DataSize);
+  }
+
+  Status = ConfDataSet (
+             &SettingsProvider,
+             sizeof (mKnown_Good_Config_Data),
+             mKnown_Good_Config_Data,
+             &Flags
+             );
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Index = 0;
+  while (Index < KNOWN_GOOD_TAG_COUNT) {
+    FreePool (CompareUniPtr[Index]);
+    Index ++;
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataSet of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = ConfDataSet (NULL, sizeof (mKnown_Good_Config_Data), mKnown_Good_Config_Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConfDataSet (&SettingsProvider, sizeof (mKnown_Good_Config_Data), NULL, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConfDataSet (&SettingsProvider, sizeof (mKnown_Good_Config_Data), mKnown_Good_Config_Data, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfDataSet of ConfDataSettingProvider with mismatched provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfDataSetMismatch (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = SINGLE_SETTING_PROVIDER_START
+  };
+
+  Status = ConfDataSet (&SettingsProvider, sizeof (mKnown_Good_Config_Data), mKnown_Good_Config_Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_UNSUPPORTED);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGetDefault of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetDefaultNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+  UT_ASSERT_EQUAL (Size, sizeof (mGood_Tag_0xF0));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Data = AllocatePool (Size);
+  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+
+  FreePool (Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGetDefault of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetDefaultNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = SingleConfDataGetDefault (NULL, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataGetDefault (&SettingsProvider, NULL, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGetDefault of ConfDataSettingProvider with off target ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetDefaultNonTarget (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
+  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
+  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGetDefault of ConfDataSettingProvider with invalid ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetDefaultInvalidId (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGet of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+  UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr, sizeof (CompareUniPtr));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0xF0));
+
+  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+  UT_ASSERT_EQUAL (Size, sizeof (mGood_Tag_0xF0));
+
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr, sizeof (CompareUniPtr));
+  will_return (MockGetVariable, sizeof (mGood_Tag_0xF0));
+  will_return (MockGetVariable, mGood_Tag_0xF0);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  Data = AllocatePool (Size);
+  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+
+  FreePool (Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGet of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       Size = 0;
+  VOID        *Data = &Size;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = SingleConfDataGet (NULL, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataGet (&SettingsProvider, NULL, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGet of ConfDataSettingProvider with off target ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetNonTarget (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
+  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
+  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataGet of ConfDataSettingProvider with invalid ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataGetInvalidId (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 0;
+  VOID                  *Data = &Size;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
+  UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr, sizeof (CompareUniPtr));
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
+  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSetDefault of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetDefaultNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+  UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  expect_memory (MockSetVariable, VariableName, CompareUniPtr, sizeof (CompareUniPtr));
+  expect_value (MockSetVariable, DataSize, sizeof (mGood_Tag_0xF0));
+  expect_memory (MockSetVariable, Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  Status = SingleConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSetDefault of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetDefaultNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = SingleConfDataSetDefault (NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSetDefault of ConfDataSettingProvider with off target ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetDefaultNonTarget (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
+  Status = SingleConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
+  Status = SingleConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSetDefault of ConfDataSettingProvider with invalid ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetDefaultInvalidId (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = SingleConfDataSetDefault (&SettingsProvider);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSet of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+  DFCI_SETTING_FLAGS    Flags = 0;
+
+  AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+  UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  expect_memory (MockSetVariable, VariableName, CompareUniPtr, sizeof (CompareUniPtr));
+  expect_value (MockSetVariable, DataSize, sizeof (mGood_Tag_0xF0));
+  expect_memory (MockSetVariable, Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  Status = SingleConfDataSet (&SettingsProvider, sizeof (mGood_Tag_0xF0), mGood_Tag_0xF0, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSet of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  UINTN               Size = 1;
+  VOID                *Data = &Size;
+  DFCI_SETTING_FLAGS  Flags;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER SettingsProvider = {
+    .Id       = DFCI_OEM_SETTING_ID__CONF
+  };
+
+  Status = SingleConfDataSet (NULL, Size, Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataSet (&SettingsProvider, 0, Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataSet (&SettingsProvider, 0, NULL, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = SingleConfDataSet (&SettingsProvider, Size, Data, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSet of ConfDataSettingProvider with off target ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetNonTarget (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 1;
+  VOID                  *Data = &Size;
+  DFCI_SETTING_FLAGS    Flags;
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
+  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
+  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SingleConfDataSet of ConfDataSettingProvider with invalid ID provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SingleConfDataSetInvalidId (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS            Status;
+  UINTN                 Size = 1;
+  VOID                  *Data = &Size;
+  DFCI_SETTING_FLAGS    Flags;
+  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER SettingsProvider;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
+
+  // Minimal initialization to tag this provider instance
+  SettingsProvider.Id = ComparePtr;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+
+  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
+
+  return UNIT_TEST_PASSED;
+}
 
 /**
   Unit test for SettingsProviderSupportProtocolNotify of ConfDataSettingProvider.
@@ -551,10 +1704,8 @@ SettingsProviderNotifyShouldComplete (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CHAR8   ConfigId[SINGLE_CONF_DATA_ID_LEN];
-  CHAR16  ConfigIdUni[SINGLE_CONF_DATA_ID_LEN];
-  CHAR8   *ComparePtr[7];
-  CHAR16  *CompareUniPtr[7];
+  CHAR8   *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  CHAR16  *CompareUniPtr[KNOWN_GOOD_TAG_COUNT];
   UINTN   Index = 0;
 
   expect_value (MockLocateProtocol, Protocol, &gDfciSettingsProviderSupportProtocolGuid);
@@ -571,90 +1722,198 @@ SettingsProviderNotifyShouldComplete (
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
 
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0xF0));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0xF0));
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT - 1; Index ++) {
+    ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    CompareUniPtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+    UnicodeSPrintAsciiFormat (CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16), SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+    expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+    will_return (MockGetVariable, mKnownGoodTags[Index].DataSize);
+    expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+    expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
+  }
 
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x70);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x70);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
+  // Intentionally leave out the last entry to make sure it will be set if first seen
+  ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+  AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+  CompareUniPtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+  UnicodeSPrintAsciiFormat (CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16), SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
   expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x70));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x70));
-
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x280);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x280);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x280));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x280));
-
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x180);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x180);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x180));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x180));
-
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x200);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x200);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x200));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x200));
-
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x10);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x10);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x10));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x10));
-
-  Index++;
-  AsciiSPrint (ConfigId, sizeof (ConfigId), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x80);
-  UnicodeSPrintAsciiFormat (ConfigIdUni, sizeof (ConfigIdUni), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0x80);
-  ComparePtr[Index] = AllocateCopyPool (sizeof (ConfigId), ConfigId);
-  CompareUniPtr[Index] = AllocateCopyPool (sizeof (ConfigIdUni), ConfigIdUni);
-  expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
-  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  will_return (MockGetVariable, sizeof (mGood_Tag_0x80));
-  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], sizeof (ConfigIdUni));
-  expect_value (RegisterVarStateVariablePolicy, MinSize, sizeof (mGood_Tag_0x80));
+  expect_memory (MockGetVariable, VariableName, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+  expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+  expect_value (MockSetVariable, DataSize, mKnownGoodTags[Index].DataSize);
+  expect_memory (MockSetVariable, Data, mKnownGoodTags[Index].Data, mKnownGoodTags[Index].DataSize);
+  will_return (MockSetVariable, EFI_SUCCESS);
+  expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+  expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
 
   SettingsProviderSupportProtocolNotify  (NULL, NULL);
+
+  Index = 0;
+  while (Index < KNOWN_GOOD_TAG_COUNT) {
+    FreePool (ComparePtr[Index]);
+    FreePool (CompareUniPtr[Index]);
+    Index ++;
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetTagIdFromDfciId of ConfDataSettingProvider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetTagIdFromDfciIdShouldComplete (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  UINT32      Tag;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  Status = GetTagIdFromDfciId (ComparePtr, &Tag);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Tag, KNOWN_GOOD_TAG_0xF0);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetTagIdFromDfciId of ConfDataSettingProvider with NULL.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetTagIdFromDfciIdShouldFailNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  UINT32      Tag;
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
+
+  Status = GetTagIdFromDfciId (NULL, &Tag);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = GetTagIdFromDfciId (ComparePtr, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetTagIdFromDfciId of ConfDataSettingProvider with unformatted
+  ID string.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetTagIdFromDfciIdShouldFailOnMalformatted (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      Tag;
+  CHAR8       ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, "%08X%a", SINGLE_SETTING_PROVIDER_START, KNOWN_GOOD_TAG_0xF0);
+  Status = GetTagIdFromDfciId (ComparePtr, &Tag);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, "%a%%08X", SINGLE_SETTING_PROVIDER_START);
+  Status = GetTagIdFromDfciId (ComparePtr, &Tag);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, "%a08Xa", SINGLE_SETTING_PROVIDER_START);
+  Status = GetTagIdFromDfciId (ComparePtr, &Tag);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetTagIdFromDfciId of ConfDataSettingProvider with unformatted
+  ID string.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetTagIdFromDfciIdShouldFailOnUnformatted (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      Tag;
+
+  Status = GetTagIdFromDfciId (DFCI_OEM_SETTING_ID__CONF, &Tag);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = GetTagIdFromDfciId (SINGLE_SETTING_PROVIDER_TEMPLATE, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = GetTagIdFromDfciId (SINGLE_SETTING_PROVIDER_START, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
   Initialze the unit test framework, suite, and unit tests for the
-  ResetSystemLib and run the ResetSystemLib unit test.
+  ConfDataSettingProvider and run the ConfDataSettingProvider unit test.
 
   @retval  EFI_SUCCESS           All test cases were dispatched.
   @retval  EFI_OUT_OF_RESOURCES  There are not enough resources available to
@@ -669,7 +1928,9 @@ UnitTestingEntry (
 {
   EFI_STATUS                  Status;
   UNIT_TEST_FRAMEWORK_HANDLE  Framework;
-  UNIT_TEST_SUITE_HANDLE      ResetTests;
+  UNIT_TEST_SUITE_HANDLE      ConfSettingTests;
+  UNIT_TEST_SUITE_HANDLE      SingleSettingTests;
+  UNIT_TEST_SUITE_HANDLE      MiscTests;
 
   Framework = NULL;
 
@@ -685,11 +1946,25 @@ UnitTestingEntry (
   }
 
   //
-  // Populate the ResetSytemLib Unit Test Suite.
+  // Populate the ConfDataSettingProvider Unit Test Suite.
   //
-  Status = CreateUnitTestSuite (&ResetTests, Framework, "DxeResetSystemLib Reset Tests", "ResetSystemLib.Reset", NULL, NULL);
+  Status = CreateUnitTestSuite (&ConfSettingTests, Framework, "ConfDataSettingProvider Conf Setting Tests", "ConfDataSettingProvider.Conf", NULL, NULL);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for ResetTests\n"));
+    DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for ConfSettingTests\n"));
+    Status = EFI_OUT_OF_RESOURCES;
+    goto EXIT;
+  }
+
+  Status = CreateUnitTestSuite (&SingleSettingTests, Framework, "ConfDataSettingProvider Single Setting Tests", "ConfDataSettingProvider.Single", NULL, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for SingleSettingTests\n"));
+    Status = EFI_OUT_OF_RESOURCES;
+    goto EXIT;
+  }
+
+  Status = CreateUnitTestSuite (&MiscTests, Framework, "ConfDataSettingProvider Misc Tests", "ConfDataSettingProvider.Misc", NULL, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for MiscTests\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto EXIT;
   }
@@ -697,11 +1972,46 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (ResetTests, "Protocol notify routine should succeed", "ProtocolNotify", SettingsProviderNotifyShouldComplete, NULL, NULL, NULL);
-  // AddTestCase (ResetTests, "ResetWarm should issue a warm reset", "Warm", ResetWarmShouldIssueAWarmReset, NULL, NULL, NULL);
-  // AddTestCase (ResetTests, "ResetShutdown should issue a shutdown", "Shutdown", ResetShutdownShouldIssueAShutdown, NULL, NULL, NULL);
-  // AddTestCase (ResetTests, "ResetPlatformSpecific should issue a platform-specific reset", "Platform", ResetPlatformSpecificShouldIssueAPlatformSpecificReset, NULL, NULL, NULL);
-  // AddTestCase (ResetTests, "ResetSystem should pass all parameters through", "Parameters", ResetSystemShouldPassTheParametersThrough, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "Protocol notify routine should succeed", "ProtocolNotify", SettingsProviderNotifyShouldComplete, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "Get Tag ID from ascii string should succeed", "GetTagNormal", GetTagIdFromDfciIdShouldComplete, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on NULL pointers", "GetTagNull", GetTagIdFromDfciIdShouldFailNull, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on unformatted string", "GetTagUnformatted", GetTagIdFromDfciIdShouldFailOnUnformatted, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on mail formatted string", "GetTagMalformatted", GetTagIdFromDfciIdShouldFailOnMalformatted, NULL, NULL, NULL);
+
+  AddTestCase (ConfSettingTests, "Get ConfData Default should return full blob", "GetFullDefaultNormal", ConfDataGetDefaultNormal, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Get ConfData Default should fail with null provider", "GetFullDefaultNull", ConfDataGetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Get ConfData Default should fail with mismatched provider", "GetFullDefaultMismatch", ConfDataGetDefaultMismatch, NULL, NULL, NULL);
+
+  AddTestCase (ConfSettingTests, "Get ConfData should return full blob", "GetFullNormal", ConfDataGetNormal, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Get ConfData should fail with null provider", "GetFullNull", ConfDataGetNull, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Get ConfData should fail with mismatched provider", "GetFullMismatch", ConfDataGetMismatch, NULL, NULL, NULL);
+
+  AddTestCase (ConfSettingTests, "Set ConfData Default should return full blob", "GetFullDefaultNormal", ConfDataSetDefaultNormal, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set ConfData Default should fail with null provider", "GetFullDefaultNull", ConfDataSetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set ConfData Default should fail with mismatched provider", "GetFullDefaultMismatch", ConfDataSetDefaultMismatch, NULL, NULL, NULL);
+
+  AddTestCase (ConfSettingTests, "Set ConfData should return full blob", "SetFullNormal", ConfDataSetNormal, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set ConfData should fail with null provider", "SetFullNull", ConfDataSetNull, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set ConfData should fail with mismatched provider", "SetFullMismatch", ConfDataSetMismatch, NULL, NULL, NULL);
+
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should return full blob", "SingleGetFullDefaultNormal", SingleConfDataGetDefaultNormal, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with null provider", "SingleGetFullDefaultNull", SingleConfDataGetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of invalid ID", "SingleGetFullDefaultInvalidId", SingleConfDataGetDefaultInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of ID not related to config settings", "SingleGetDefaultNonTarget", SingleConfDataGetDefaultNonTarget, NULL, NULL, NULL);
+
+  AddTestCase (SingleSettingTests, "Get Single ConfData should return full blob", "SingleGetFullNormal", SingleConfDataGetNormal, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with null provider", "SingleGetFullNull", SingleConfDataGetNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of invalid ID", "SingleGetFullInvalidId", SingleConfDataGetInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of ID not related to config settings", "SingleGetNonTarget", SingleConfDataGetNonTarget, NULL, NULL, NULL);
+
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should return full blob", "SingleSetDefaultNormal", SingleConfDataSetDefaultNormal, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with null provider", "SingleSetDefaultNull", SingleConfDataSetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of invalid ID", "SingleSetDefaultInvalidId", SingleConfDataSetDefaultInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of ID not related to config settings", "SingleSetDefaultNonTarget", SingleConfDataSetDefaultNonTarget, NULL, NULL, NULL);
+
+  AddTestCase (SingleSettingTests, "Set Single ConfData should return full blob", "SingleSetNormal", SingleConfDataSetNormal, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData should fail with null provider", "SingleSetNull", SingleConfDataSetNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData should fail with provider of ID not related to config settings", "SingleSetNonTarget", SingleConfDataSetNonTarget, NULL, NULL, NULL);
 
   //
   // Execute the tests.
