@@ -19,7 +19,7 @@
 
 #include "ConfApp.h"
 
-typedef enum {
+typedef enum SysInfoState_t_def {
   SysInfoInit,
   SysInfoWait,
   SysInfoExit,
@@ -75,6 +75,13 @@ PrintVersion (
   UINTN       Length  = 0;
 
   Status = GetBuildDateStringUnicode (NULL, &Length);
+  if (Status != EFI_BUFFER_TOO_SMALL) {
+    DEBUG ((DEBUG_ERROR, "%a Get the size of build date string returns unexpected - %r\n", __FUNCTION__, Status));
+    ASSERT (FALSE);
+    Status = EFI_DEVICE_ERROR;
+    return Status;
+  }
+
   Buffer = AllocateZeroPool ((Length + 1) * sizeof (CHAR16));
   if (Buffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
