@@ -31,7 +31,7 @@
 
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Application System Info Unit Tests"
+#define UNIT_TEST_APP_NAME      "Conf Application Boot Options Unit Tests"
 #define UNIT_TEST_APP_VERSION   "1.0"
 
 #define MOCK_BUILD_TIME         L"04/01/2022"
@@ -226,7 +226,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 
 VOID
 EFIAPI
-SysInfoCleanup (
+BootOptionsCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -234,7 +234,7 @@ SysInfoCleanup (
 }
 
 /**
-  Unit test for SystemInfo page when selecting ESC.
+  Unit test for BootOptions page when selecting ESC.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -272,7 +272,7 @@ ConfAppBootOptInit (
 }
 
 /**
-  Unit test for SystemInfo page when selecting ESC.
+  Unit test for BootOptions page when selecting ESC.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -322,7 +322,7 @@ ConfAppBootOptSelectEsc (
 }
 
 /**
-  Unit test for SystemInfo page when selecting others.
+  Unit test for BootOptions page when selecting others.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -372,7 +372,7 @@ ConfAppBootOptSelectOther (
 }
 
 /**
-  Unit test for SystemInfo page when selecting boot options.
+  Unit test for BootOptions page when selecting boot options.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -440,7 +440,7 @@ ConfAppBootOptSelectOne (
 
 
 /**
-  Unit test for SystemInfo page when selecting boot options.
+  Unit test for BootOptions page when selecting boot options.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -557,11 +557,11 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (MiscTests, "Boot Options page should initialize properly", "NormalInit", ConfAppBootOptInit, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "Boot Options page select Esc should go to previous menu", "SelectEsc", ConfAppBootOptSelectEsc, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "Boot Options page select others should do nothing", "SelectOther", ConfAppBootOptSelectOther, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "Boot Options page should boot to single option", "BootOptionSingle", ConfAppBootOptSelectOne, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "Boot Options page should boot to multiple options", "BootOptionMultiple", ConfAppBootOptSelectMore, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should initialize properly", "NormalInit", ConfAppBootOptInit, NULL, BootOptionsCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page select Esc should go to previous menu", "SelectEsc", ConfAppBootOptSelectEsc, NULL, BootOptionsCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page select others should do nothing", "SelectOther", ConfAppBootOptSelectOther, NULL, BootOptionsCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should boot to single option", "BootOptionSingle", ConfAppBootOptSelectOne, NULL, BootOptionsCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should boot to multiple options", "BootOptionMultiple", ConfAppBootOptSelectMore, NULL, BootOptionsCleanup, NULL);
 
   //
   // Execute the tests.
