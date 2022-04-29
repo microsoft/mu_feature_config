@@ -414,6 +414,9 @@ EFI_BOOT_SERVICES  MockBoot = {
   .LocateProtocol = MockLocateProtocol,  // LocateProtocol
 };
 
+// System table, not used in this test.
+EFI_SYSTEM_TABLE MockSys;
+
 /**
   Unit test for ConfDataGetDefault of ConfDataSettingProvider with normal input.
 
