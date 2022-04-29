@@ -1,0 +1,54 @@
+## @file
+# Unit tests of the DxeResetSystemLib instance of the ResetSystemLib class
+#
+# Copyright (C) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ConfAppBootOptionUnitTest
+  FILE_GUID                      = E7217F69-7E62-4B97-944D-4D6BADC8C3B4
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  ConfAppBootOptionUnitTest.c
+  ConInConOut.c
+  ../ConfApp.c
+  ../ConfApp.h
+  ../BootOptions.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  DfciPkg/DfciPkg.dec
+  MsCorePkg/MsCorePkg.dec
+  PcBdsPkg/PcBdsPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  UnitTestLib
+  PrintLib
+  ResetSystemLib
+
+[Protocols]
+  gEdkiiVariablePolicyProtocolGuid
+  gDfciSettingAccessProtocolGuid
+  gDfciAuthenticationProtocolGuid
+  gEfiSimpleTextInputExProtocolGuid
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid

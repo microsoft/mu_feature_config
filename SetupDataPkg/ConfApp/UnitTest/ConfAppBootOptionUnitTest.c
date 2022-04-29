@@ -25,7 +25,7 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/ConfigDataLib.h>
-#include <Library/DxeServicesLib.h>
+#include <Library/UefiBootManagerLib.h>
 
 #include <Library/UnitTestLib.h>
 
@@ -38,21 +38,19 @@
 #define MOCK_TIMER_EVENT        0xFEEDF00D
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
-extern enum SysInfoState_t_def            mSysInfoState;
-extern UINTN                              mEndCol;
-extern UINTN                              mEndRow;
+extern enum BootOptState_t_def            mBootOptState;
 
 /**
-  State machine for boot option page. It will react to user input from keystroke
-  to boot to selected boot option or go back to previous page.
+  State machine for system information page. It will display fundamental information, including
+  UEFI version, system time, DFCI identity and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
-  @retval Others                Failed to wait for valid keystrokes. Failed boot will not
-                                return error code but cause reboot directly.
+  @retval Others                Failed to wait for valid keystrokes or application of
+                                new configuration data failed.
 **/
 EFI_STATUS
 EFIAPI
-BootOptionMgr (
+SysInfoMgr (
   VOID
   )
 {
@@ -97,67 +95,64 @@ EfiBootManagerConnectAll (
 }
 
 /**
-  Return a Null-terminated Uefi build date Unicode defined by platform
+  Returns an array of load options based on the EFI variable
+  L"BootOrder"/L"DriverOrder" and the L"Boot####"/L"Driver####" variables impled by it.
+  #### is the hex value of the UINT16 in each BootOrder/DriverOrder entry.
 
-  @param[out]       Buffer        The caller allocated buffer to hold the returned build
-                                  date Unicode string. May be NULL with a zero Length in
-                                  order to determine the length buffer needed.
-  @param[in, out]   Length        On input, the count of Unicode chars available in Buffer.
-                                  On output, the count of Unicode chars of data returned
-                                  in Buffer, including Null-terminator.
+  @param  LoadOptionCount   Returns number of entries in the array.
+  @param  LoadOptionType    The type of the load option.
 
-  @retval EFI_SUCCESS             The function completed successfully.
-  @retval EFI_BUFFER_TOO_SMALL    The Length is too small for the result.
-  @retval EFI_INVALID_PARAMETER   Buffer is NULL.
-  @retval EFI_INVALID_PARAMETER   Length is NULL.
-  @retval EFI_INVALID_PARAMETER   The Length is not 0 and Buffer is NULL.
-  @retval Others                  Other implementation specific errors.
+  @retval NULL  No load options exist.
+  @retval !NULL Array of load option entries.
+
 **/
-EFI_STATUS
+EFI_BOOT_MANAGER_LOAD_OPTION *
 EFIAPI
-GetBuildDateStringUnicode (
-  OUT CHAR16 *Buffer, OPTIONAL
-  IN  OUT UINTN   *Length
+EfiBootManagerGetLoadOptions (
+  OUT UINTN                             *LoadOptionCount,
+  IN EFI_BOOT_MANAGER_LOAD_OPTION_TYPE  LoadOptionType
   )
 {
-  assert_non_null (Length);
-  if (*Length < (sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16))) {
-    *Length = sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16);
-    return EFI_BUFFER_TOO_SMALL;
+  EFI_BOOT_MANAGER_LOAD_OPTION *ret_buf;
+
+  assert_non_null (LoadOptionCount);
+  assert_int_equal (LoadOptionType, LoadOptionTypeBoot);
+
+  *LoadOptionCount = (UINTN)mock();
+  if (*LoadOptionCount != 0) {
+    ret_buf = (EFI_BOOT_MANAGER_LOAD_OPTION*)mock();
+    return AllocateCopyPool (*LoadOptionCount * sizeof (EFI_BOOT_MANAGER_LOAD_OPTION), ret_buf);
   }
-
-  assert_non_null (Buffer);
-  CopyMem (Buffer, MOCK_BUILD_TIME, sizeof (MOCK_BUILD_TIME));
-  *Length = sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16);
-
-  return (EFI_STATUS)mock();
+  return NULL;
 }
 
-EFI_STATUS
+/**
+  Attempt to boot the EFI boot option. This routine sets L"BootCurent" and
+  signals the EFI ready to boot event. If the device path for the option starts
+  with a BBS device path a legacy boot is attempted. Short form device paths are
+  also supported via this rountine. A device path starting with
+  MEDIA_HARDDRIVE_DP, MSG_USB_WWID_DP, MSG_USB_CLASS_DP gets expaned out
+  to find the first device that matches. If the BootOption Device Path
+  fails the removable media boot algorithm is attempted (\EFI\BOOTIA32.EFI,
+  \EFI\BOOTX64.EFI,... only one file type is tried per processor type)
+
+  @param  BootOption    Boot Option to try and boot.
+                        On return, BootOption->Status contains the boot status:
+                        EFI_SUCCESS     BootOption was booted
+                        EFI_UNSUPPORTED BootOption isn't supported.
+                        EFI_NOT_FOUND   The BootOption was not found on the system
+                        Others          BootOption failed with this error status
+
+**/
+VOID
 EFIAPI
-MockGetTime (
-  OUT  EFI_TIME                    *Time,
-  OUT  EFI_TIME_CAPABILITIES       *Capabilities OPTIONAL
+EfiBootManagerBoot (
+  IN  EFI_BOOT_MANAGER_LOAD_OPTION  *BootOption
   )
 {
-  EFI_TIME  DefaultPayloadTimestamp = {
-    22,   // Year (2022)
-    4,    // Month (April)
-    29,   // Day (29)
-  };
-
-  assert_non_null (Time);
-  CopyMem (Time, &DefaultPayloadTimestamp, sizeof (EFI_TIME));
-
-  return EFI_SUCCESS;
+  check_expected (BootOption);
+  BootOption->Status = (EFI_STATUS)mock();
 }
-
-///
-/// Mock version of the UEFI Runtime Services Table
-///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .GetTime = MockGetTime
-};
 
 /**
   Prints a formatted Unicode string to the console output device specified by
@@ -201,65 +196,17 @@ Print (
 
 EFI_STATUS
 EFIAPI
-MockCreateEvent (
-  IN  UINT32                       Type,
-  IN  EFI_TPL                      NotifyTpl,
-  IN  EFI_EVENT_NOTIFY             NotifyFunction,
-  IN  VOID                         *NotifyContext,
-  OUT EFI_EVENT                    *Event
-  )
-{
-  // Check that this is the right protocol being located
-  assert_int_equal (Type, EVT_TIMER);
-  assert_int_equal (NotifyTpl, 0);
-  assert_null (NotifyFunction);
-  assert_null (NotifyContext);
-  assert_non_null (Event);
-
-  *Event = (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT;
-
-  return (EFI_STATUS)mock();
-}
-
-EFI_STATUS
-EFIAPI
-MockSetTimer (
-  IN  EFI_EVENT                Event,
-  IN  EFI_TIMER_DELAY          Type,
-  IN  UINT64                   TriggerTime
-  )
-{
-  assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
-  assert_int_equal (Type, TimerRelative);
-  assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
-
-  return (EFI_STATUS)mock();
-}
-
-EFI_STATUS
-EFIAPI
 MockWaitForEvent (
   IN  UINTN                    NumberOfEvents,
   IN  EFI_EVENT                *Event,
   OUT UINTN                    *Index
   )
 {
-  assert_int_equal (NumberOfEvents, 2);
+  assert_int_equal (NumberOfEvents, 1);
   assert_int_equal (Event[0], MockSimpleInput.WaitForKeyEx);
-  assert_int_equal (Event[1], (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
   assert_non_null (Index);
 
-  *Index = (UINTN)mock();
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
-EFIAPI
-MockCloseEvent (
-  IN EFI_EVENT                Event
-  )
-{
-  assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
+  *Index = 0;
   return EFI_SUCCESS;
 }
 
@@ -274,10 +221,7 @@ EFI_BOOT_SERVICES  MockBoot = {
     0,
     0
   },
-  .CreateEvent = MockCreateEvent,
-  .SetTimer = MockSetTimer,
   .WaitForEvent = MockWaitForEvent,
-  .CloseEvent = MockCloseEvent,
 };
 
 VOID
@@ -286,9 +230,7 @@ SysInfoCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mSysInfoState = 0;
-  mEndCol = 0;
-  mEndRow = 0;
+  mBootOptState = 0;
 }
 
 /**
@@ -308,7 +250,7 @@ SysInfoCleanup (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSysInfoInit (
+ConfAppBootOptInit (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -317,13 +259,13 @@ ConfAppSysInfoInit (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 2);
-  expect_any_count (MockSetCursorPosition, Row, 2);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
+  will_return (EfiBootManagerGetLoadOptions, 0);
 
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
@@ -346,7 +288,7 @@ ConfAppSysInfoInit (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSysInfoSelectEsc (
+ConfAppBootOptSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -356,15 +298,15 @@ ConfAppSysInfoSelectEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 2);
-  expect_any_count (MockSetCursorPosition, Row, 2);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
+  will_return (EfiBootManagerGetLoadOptions, 0);
 
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, 1);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -372,13 +314,9 @@ ConfAppSysInfoSelectEsc (
   KeyData1.Key.ScanCode    = SCAN_ESC;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (MockCreateEvent, EFI_SUCCESS);
-  will_return (MockSetTimer, EFI_SUCCESS);
-  will_return (MockWaitForEvent, 0);
-
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 2);
+  UT_ASSERT_EQUAL (mBootOptState, 4);
 
   return UNIT_TEST_PASSED;
 }
@@ -400,7 +338,7 @@ ConfAppSysInfoSelectEsc (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSysInfoSelectOther (
+ConfAppBootOptSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -410,15 +348,15 @@ ConfAppSysInfoSelectOther (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 2);
-  expect_any_count (MockSetCursorPosition, Row, 2);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
+  will_return (EfiBootManagerGetLoadOptions, 0);
 
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, 1);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -426,19 +364,15 @@ ConfAppSysInfoSelectOther (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (MockCreateEvent, EFI_SUCCESS);
-  will_return (MockSetTimer, EFI_SUCCESS);
-  will_return (MockWaitForEvent, 0);
-
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, 1);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for SystemInfo page when selecting others.
+  Unit test for SystemInfo page when selecting boot options.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -454,37 +388,126 @@ ConfAppSysInfoSelectOther (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSysInfoTimeRefresh (
+ConfAppBootOptSelectOne (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
+  EFI_STATUS                    Status;
+  EFI_KEY_DATA                  KeyData1;
+  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
+  EFI_BOOT_MANAGER_LOAD_OPTION  BootOption = {
+    .Description = L"Test1",
+    .Attributes = 0xFEEDF00D
+  };
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   // Expect the prints twice
-  expect_any_count (MockSetCursorPosition, Column, 4);
-  expect_any_count (MockSetCursorPosition, Row, 4);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 4);
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
+  will_return (EfiBootManagerGetLoadOptions, 1);
+  will_return (EfiBootManagerGetLoadOptions, &BootOption);
 
   // Initial run
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, 1);
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  will_return (MockCreateEvent, EFI_SUCCESS);
-  will_return (MockSetTimer, EFI_SUCCESS);
-  will_return (MockWaitForEvent, 1);
+  KeyData1.Key.UnicodeChar = '1';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
 
-  // Time out
-  Status = SysInfoMgr ();
+  Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, 2);
+
+  expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
+  will_return (EfiBootManagerBoot, EFI_SUCCESS);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    BootOptionMgr ();
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+
+/**
+  Unit test for SystemInfo page when selecting boot options.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppBootOptSelectMore (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                    Status;
+  EFI_KEY_DATA                  KeyData1;
+  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
+  EFI_BOOT_MANAGER_LOAD_OPTION  BootOption[2] = {
+    {
+      .Description = L"Test1",
+      .Attributes = 0xFEEDF00D
+    },
+    {
+      .Description = L"Test2",
+      .Attributes = 0xBA5EBA11
+    }
+  };
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  will_return (EfiBootManagerGetLoadOptions, 2);
+  will_return (EfiBootManagerGetLoadOptions, BootOption);
+
+  // Initial run
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, 1);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '2';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, 2);
+
+  expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
+  will_return (EfiBootManagerBoot, EFI_SUCCESS);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    BootOptionMgr ();
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -534,10 +557,11 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (MiscTests, "System Info page should initialize properly", "NormalInit", ConfAppSysInfoInit, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "System Info page select Esc should go to previous menu", "SelectEsc", ConfAppSysInfoSelectEsc, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "System Info page select others should do nothing", "SelectOther", ConfAppSysInfoSelectOther, NULL, SysInfoCleanup, NULL);
-  AddTestCase (MiscTests, "System Info page should auto refresh time display", "TimeRefresh", ConfAppSysInfoTimeRefresh, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should initialize properly", "NormalInit", ConfAppBootOptInit, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page select Esc should go to previous menu", "SelectEsc", ConfAppBootOptSelectEsc, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page select others should do nothing", "SelectOther", ConfAppBootOptSelectOther, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should boot to single option", "BootOptionSingle", ConfAppBootOptSelectOne, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should boot to multiple options", "BootOptionMultiple", ConfAppBootOptSelectMore, NULL, SysInfoCleanup, NULL);
 
   //
   // Execute the tests.

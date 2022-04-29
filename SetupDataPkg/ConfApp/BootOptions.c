@@ -20,7 +20,7 @@
 
 #include "ConfApp.h"
 
-typedef enum {
+typedef enum BootOptState_t_def {
   BootOptInit,
   BootOptWait,
   BootOptBootNow,
@@ -186,6 +186,7 @@ BootOptionMgr (
       EfiBootManagerBoot (mBootOptions + mOpCandidate);
       // If we ever come back, we should directly reboot since the state of system might have changed...
       ResetCold ();
+      CpuDeadLoop ();
       break;
     case BootOptExit:
       ResetGlobals ();
