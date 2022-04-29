@@ -36,6 +36,8 @@
 #define UNIT_TEST_APP_NAME      "Conf Application Unit Tests"
 #define UNIT_TEST_APP_VERSION   "1.0"
 
+extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
+
 /**
   Entrypoint of configuration app. This function holds the main state machine for
   console based user interface.
@@ -53,21 +55,51 @@ ConfAppEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   );
 
-// // Mocked version of setting provider register protocol instance.
-// DFCI_SETTING_ACCESS_PROTOCOL mMockDfciSetting = {
-//   .Set ;
-//   DFCI_SETTING_ACCESS_GET      Get;
-//   DFCI_SETTING_ACCESS_RESET    Reset;
-// };
+// Mocked version of DFCI_AUTHENTICATION_PROTOCOL instance.
+EFI_STATUS
+EFIAPI
+MockGetEnrolledIdentities (
+  IN CONST DFCI_AUTHENTICATION_PROTOCOL     *This,
+  OUT      DFCI_IDENTITY_MASK               *EnrolledIdentities
+  )
+{
+  assert_non_null (This);
+  assert_non_null (EnrolledIdentities);
+
+  *EnrolledIdentities = (DFCI_IDENTITY_MASK)mock();
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+MockAuthWithPW (
+  IN  CONST DFCI_AUTHENTICATION_PROTOCOL  *This,
+  IN  CONST CHAR16                        *Password OPTIONAL,
+  IN  UINTN                                PasswordLength,
+  OUT DFCI_AUTH_TOKEN                     *IdentityToken
+  )
+{
+  assert_non_null (This);
+  assert_null (Password);
+  assert_int_equal (PasswordLength, 0);
+
+  *IdentityToken = (DFCI_AUTH_TOKEN)mock();
+  return EFI_SUCCESS;
+}
+
+DFCI_AUTHENTICATION_PROTOCOL MockAuthProtocol = {
+  .GetEnrolledIdentities = MockGetEnrolledIdentities,
+  .AuthWithPW = MockAuthWithPW,
+};
 
 extern enum ConfState_t_def mConfState;
 
 VOID
 SwitchMachineState (
-  IN enum ConfState_t_def state
+  IN UINT32   State
 )
 {
-  mConfState = state;
+  mConfState = State;
 }
 
 /**
@@ -84,7 +116,7 @@ SysInfoMgr (
   VOID
   )
 {
-  SwitchMachineState ((enum ConfState_t_def)mock());
+  SwitchMachineState ((UINT32)mock());
   return (EFI_STATUS)mock();
 }
 
@@ -102,7 +134,7 @@ BootOptionMgr (
   VOID
   )
 {
-  SwitchMachineState ((enum ConfState_t_def)mock());
+  SwitchMachineState ((UINT32)mock());
   return (EFI_STATUS)mock();
 }
 
@@ -120,7 +152,7 @@ SetupConfMgr (
   VOID
   )
 {
-  SwitchMachineState ((enum ConfState_t_def)mock());
+  SwitchMachineState ((UINT32)mock());
   return (EFI_STATUS)mock();
 }
 
@@ -180,55 +212,6 @@ Print (
   return Ret;
 }
 
-/**
-  This helper function does everything that CreateBasicVariablePolicy() does, but also
-  uses the passed in protocol to register the policy with the infrastructure.
-  Does not return a buffer, does not require the caller to free anything.
-
-  @param[in]  VariablePolicy  Pointer to a valid instance of the VariablePolicy protocol.
-  @param[in]  Namespace   Pointer to an EFI_GUID for the target variable namespace that this policy will protect.
-  @param[in]  Name        [Optional] If provided, a pointer to the CHAR16 array for the target variable name.
-                          Otherwise, will create a policy that targets an entire namespace.
-  @param[in]  MinSize     MinSize for the VariablePolicy.
-  @param[in]  MaxSize     MaxSize for the VariablePolicy.
-  @param[in]  AttributesMustHave    AttributesMustHave for the VariablePolicy.
-  @param[in]  AttributesCantHave    AttributesCantHave for the VariablePolicy.
-  @param[in]  VarStateNamespace     Pointer to the EFI_GUID for the VARIABLE_LOCK_ON_VAR_STATE_POLICY.Namespace.
-  @param[in]  VarStateName          Pointer to the CHAR16 array for the VARIABLE_LOCK_ON_VAR_STATE_POLICY.Name.
-  @param[in]  VarStateValue         Value for the VARIABLE_LOCK_ON_VAR_STATE_POLICY.Value.
-
-  @retval     EFI_INVALID_PARAMETER VariablePolicy pointer is NULL.
-  @retval     EFI_STATUS    Status returned by CreateBasicVariablePolicy() or RegisterVariablePolicy().
-
-**/
-EFI_STATUS
-EFIAPI
-RegisterVarStateVariablePolicy (
-  IN        EDKII_VARIABLE_POLICY_PROTOCOL  *VariablePolicy,
-  IN CONST  EFI_GUID                        *Namespace,
-  IN CONST  CHAR16                          *Name OPTIONAL,
-  IN        UINT32                          MinSize,
-  IN        UINT32                          MaxSize,
-  IN        UINT32                          AttributesMustHave,
-  IN        UINT32                          AttributesCantHave,
-  IN CONST  EFI_GUID                        *VarStateNamespace,
-  IN CONST  CHAR16                          *VarStateName,
-  IN        UINT8                           VarStateValue
-  )
-{
-  DEBUG ((DEBUG_INFO, "%a Register for %s under %g\n", __FUNCTION__, Name, Namespace));
-  assert_ptr_equal (Namespace, PcdGetPtr (PcdConfigPolicyVariableGuid));
-  assert_int_equal (MaxSize, VARIABLE_POLICY_NO_MAX_SIZE);
-  assert_int_equal (AttributesMustHave, CDATA_NV_VAR_ATTR);
-  assert_int_equal (AttributesCantHave, (UINT32) ~CDATA_NV_VAR_ATTR);
-  assert_ptr_equal (VarStateNamespace, &gMuVarPolicyDxePhaseGuid);
-  assert_memory_equal (VarStateName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  assert_int_equal (VarStateValue, PHASE_INDICATOR_SET);
-
-  check_expected (Name);
-  check_expected (MinSize);
-  return EFI_SUCCESS;
-}
 
 /**
   Returns the value of a variable.
@@ -372,18 +355,107 @@ MockLocateProtocol (
   return EFI_SUCCESS;
 }
 
+EFI_STATUS
+EFIAPI
+MockHandleProtocol (
+  IN  EFI_HANDLE               Handle,
+  IN  EFI_GUID                 *Protocol,
+  OUT VOID                     **Interface
+  )
+{
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  assert_non_null (Interface);
+  assert_ptr_equal (Protocol, &gEfiSimpleTextInputExProtocolGuid);
+
+  *Interface = &MockSimpleInput;
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+MockSetWatchdogTimer (
+  IN UINTN                    Timeout,
+  IN UINT64                   WatchdogCode,
+  IN UINTN                    DataSize,
+  IN CHAR16                   *WatchdogData OPTIONAL
+  )
+{
+  // Check that this is the right protocol being located
+  assert_int_equal (Timeout, 0);
+  assert_int_equal (WatchdogCode, 0);
+  assert_int_equal (DataSize, 0);
+  assert_null (WatchdogData);
+
+  return (EFI_STATUS)mock();
+}
+
+// EFI_STATUS
+// EFIAPI
+// MockCreateEvent (
+//   IN  UINT32                       Type,
+//   IN  EFI_TPL                      NotifyTpl,
+//   IN  EFI_EVENT_NOTIFY             NotifyFunction,
+//   IN  VOID                         *NotifyContext,
+//   OUT EFI_EVENT                    *Event
+//   )
+// {
+//   return 
+// }
+
+// EFI_STATUS
+// EFIAPI
+// MockSetTimer (
+//   IN  EFI_EVENT                Event,
+//   IN  EFI_TIMER_DELAY          Type,
+//   IN  UINT64                   TriggerTime
+//   )
+// {
+
+// }
+
+EFI_STATUS
+EFIAPI
+MockWaitForEvent (
+  IN  UINTN                    NumberOfEvents,
+  IN  EFI_EVENT                *Event,
+  OUT UINTN                    *Index
+  )
+{
+  assert_int_equal (NumberOfEvents, 1);
+  assert_int_equal (*Event, MockSimpleInput.WaitForKeyEx);
+  assert_non_null (Index);
+
+  *Index = 0;
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+MockCloseEvent (
+  IN EFI_EVENT                Event
+  )
+{
+  assert_int_equal (Event, MockSimpleInput.WaitForKeyEx);
+  return EFI_SUCCESS;
+}
+
 ///
 /// Mock version of the UEFI Boot Services Table
 ///
 EFI_BOOT_SERVICES  MockBoot = {
   {
-    EFI_BOOT_SERVICES_SIGNATURE,         // Signature
-    EFI_BOOT_SERVICES_REVISION,          // Revision
-    sizeof (EFI_BOOT_SERVICES),          // HeaderSize
-    0,                                   // CRC32
+    EFI_BOOT_SERVICES_SIGNATURE,
+    EFI_BOOT_SERVICES_REVISION,
+    sizeof (EFI_BOOT_SERVICES),
+    0,
     0
   },
-  .LocateProtocol = MockLocateProtocol,  // LocateProtocol
+  .SetWatchdogTimer = MockSetWatchdogTimer,
+  .HandleProtocol = MockHandleProtocol,
+  .LocateProtocol = MockLocateProtocol,
+  .WaitForEvent = MockWaitForEvent,
+  .CloseEvent = MockCloseEvent,
 };
 
 // /**
@@ -474,7 +546,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 // }
 
 /**
-  Unit test for ConfAppEntry of ConfApp.
+  Unit test for ConfAppEntry of ConfApp when selecting 1.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -490,14 +562,384 @@ EFI_BOOT_SERVICES  MockBoot = {
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppEntryShouldTransitionState (
+ConfAppEntrySelect1 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS  Status;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  Status = ConfAppEntry (NULL, NULL);
-  UT_ASSERT_NOT_EFI_ERROR (Status);
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '1';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (SysInfoMgr, 6);
+  will_return (SysInfoMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 3.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect3 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (BootOptionMgr, 6);
+  will_return (BootOptionMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 4.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect4 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '4';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (SetupConfMgr, 6);
+  will_return (SetupConfMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting h.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelectH (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA              KeyData3;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = 'h';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = CHAR_NULL;
+  KeyData2.Key.ScanCode    = SCAN_ESC;
+  will_return (MockReadKey, &KeyData2);
+
+  KeyData3.Key.UnicodeChar = 'y';
+  KeyData3.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData3);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting ESC.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelectEsc (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = CHAR_NULL;
+  KeyData1.Key.ScanCode    = SCAN_ESC;
+  will_return (MockReadKey, &KeyData1);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting others.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelectOther (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA              KeyData3;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = 'q';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  KeyData2.Key.UnicodeChar = CHAR_NULL;
+  KeyData2.Key.ScanCode    = SCAN_ESC;
+  will_return (MockReadKey, &KeyData2);
+
+  KeyData3.Key.UnicodeChar = 'y';
+  KeyData3.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData3);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -547,11 +989,14 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (MiscTests, "Protocol notify routine should succeed", "ProtocolNotify", ConfAppEntryShouldTransitionState, NULL, NULL, NULL);
-  // AddTestCase (MiscTests, "Get Tag ID from ascii string should succeed", "GetTagNormal", GetTagIdFromDfciIdShouldComplete, NULL, NULL, NULL);
-  // AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on NULL pointers", "GetTagNull", GetTagIdFromDfciIdShouldFailNull, NULL, NULL, NULL);
-  // AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on unformatted string", "GetTagUnformatted", GetTagIdFromDfciIdShouldFailOnUnformatted, NULL, NULL, NULL);
-  // AddTestCase (MiscTests, "Get Tag ID from ascii string should fail on mail formatted string", "GetTagMalformatted", GetTagIdFromDfciIdShouldFailOnMalformatted, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 1 should go to System Info", "Select1", ConfAppEntrySelect1, NULL, NULL, NULL);
+  // TODO: this is not supported yet
+  // AddTestCase (MiscTests, "ConfApp Select 2 should go to Secure Boot", "Select2", ConfAppEntrySelect2, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 3 should go to Boot Options", "Select3", ConfAppEntrySelect3, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 4 should go to Setup Option", "Select4", ConfAppEntrySelect4, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select h should reprint the options", "SelectH", ConfAppEntrySelectH, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select ESC should confirm reboot", "SelectEsc", ConfAppEntrySelectEsc, NULL, NULL, NULL);
+  AddTestCase (MiscTests, "ConfApp Select other should do nothing", "SelectOther", ConfAppEntrySelectOther, NULL, NULL, NULL);
 
   //
   // Execute the tests.

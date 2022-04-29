@@ -20,7 +20,7 @@
 
 [Sources]
   ConfAppUnitTest.c
-  SysTableUnitTest.c
+  ConInConOut.c
   ../ConfApp.c
   ../ConfApp.h
 

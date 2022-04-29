@@ -22,7 +22,7 @@
 
 #include "ConfApp.h"
 
-typedef enum ConfState_t_def {
+typedef enum {
   MainInit,
   MainWait,
   SystemInfo,

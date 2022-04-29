@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the ConfApp. Shared mock implementation of gST.
+  Unit tests of the ConfApp. Shared mock implementation of ConIn/ConOut.
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -15,6 +15,7 @@
 
 #include <Uefi.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/BaseMemoryLib.h>
 
 EFI_STATUS
 EFIAPI
@@ -42,6 +43,13 @@ EFIAPI
 MockEnableCursor (
   IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
   IN BOOLEAN                                Visible
+  );
+
+EFI_STATUS
+EFIAPI
+MockReadKey (
+  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This,
+  OUT EFI_KEY_DATA                      *KeyData
   );
 
 EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL mConOut = {
@@ -104,3 +112,29 @@ MockEnableCursor (
 EFI_SYSTEM_TABLE MockSys = {
   .ConOut = &mConOut
 };
+
+EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL MockSimpleInput = {
+  .ReadKeyStrokeEx  = MockReadKey,
+  .WaitForKeyEx     = (EFI_EVENT)(UINTN)0xDEADBEEF,
+};
+
+EFI_STATUS
+EFIAPI
+MockReadKey (
+  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This,
+  OUT EFI_KEY_DATA                      *KeyData
+  )
+{
+  EFI_KEY_DATA *MockKey;
+
+  assert_ptr_equal (This, &MockSimpleInput);
+  assert_non_null (KeyData);
+
+  MockKey = (EFI_KEY_DATA*)mock();
+  if (MockKey == NULL) {
+    return EFI_NOT_READY;
+  }
+
+  CopyMem (KeyData, MockKey, sizeof (EFI_KEY_DATA));
+  return EFI_SUCCESS;
+}
