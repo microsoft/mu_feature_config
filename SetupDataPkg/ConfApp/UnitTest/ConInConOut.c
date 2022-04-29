@@ -52,11 +52,17 @@ MockReadKey (
   OUT EFI_KEY_DATA                      *KeyData
   );
 
+EFI_SIMPLE_TEXT_OUTPUT_MODE MockMode = {
+  .CursorColumn = 5,
+  .CursorRow    = 5,
+};
+
 EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL mConOut = {
   .SetAttribute = MockSetAttribute,
   .ClearScreen = MockClearScreen,
   .SetCursorPosition = MockSetCursorPosition,
   .EnableCursor = MockEnableCursor,
+  .Mode = &MockMode,
 };
 
 EFI_STATUS
