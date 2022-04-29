@@ -34,7 +34,6 @@
 
 [LibraryClasses]
   UefiBootServicesTableLib
-  UefiRuntimeServicesTableLib
   BaseLib
   BaseMemoryLib
   DebugLib
