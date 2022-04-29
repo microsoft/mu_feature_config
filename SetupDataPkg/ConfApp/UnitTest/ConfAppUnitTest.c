@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the ConfDataSettingProvider module
+  Unit tests of the ConfApp module
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -18,7 +18,6 @@
 #include <DfciSystemSettingTypes.h>
 #include <Protocol/VariablePolicy.h>
 #include <Protocol/DfciSettingsProvider.h>
-#include <Guid/MuVarPolicyFoundationDxe.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
@@ -30,7 +29,6 @@
 
 #include <Library/UnitTestLib.h>
 
-#include <Good_Config_Data.h>
 #include "ConfApp.h"
 
 #define UNIT_TEST_APP_NAME      "Conf Application Unit Tests"
@@ -281,16 +279,6 @@ MockWaitForEvent (
   return EFI_SUCCESS;
 }
 
-EFI_STATUS
-EFIAPI
-MockCloseEvent (
-  IN EFI_EVENT                Event
-  )
-{
-  assert_int_equal (Event, MockSimpleInput.WaitForKeyEx);
-  return EFI_SUCCESS;
-}
-
 ///
 /// Mock version of the UEFI Boot Services Table
 ///
@@ -306,7 +294,6 @@ EFI_BOOT_SERVICES  MockBoot = {
   .HandleProtocol = MockHandleProtocol,
   .LocateProtocol = MockLocateProtocol,
   .WaitForEvent = MockWaitForEvent,
-  .CloseEvent = MockCloseEvent,
 };
 
 VOID
@@ -719,7 +706,7 @@ ConfAppEntrySelectOther (
 
 /**
   Initialze the unit test framework, suite, and unit tests for the
-  ConfDataSettingProvider and run the ConfDataSettingProvider unit test.
+  ConfApp and run the ConfApp unit test.
 
   @retval  EFI_SUCCESS           All test cases were dispatched.
   @retval  EFI_OUT_OF_RESOURCES  There are not enough resources available to
@@ -750,9 +737,9 @@ UnitTestingEntry (
   }
 
   //
-  // Populate the ConfDataSettingProvider Unit Test Suite.
+  // Populate the ConfApp Unit Test Suite.
   //
-  Status = CreateUnitTestSuite (&MiscTests, Framework, "ConfDataSettingProvider Misc Tests", "ConfDataSettingProvider.Misc", NULL, NULL);
+  Status = CreateUnitTestSuite (&MiscTests, Framework, "ConfApp Misc Tests", "ConfApp.Misc", NULL, NULL);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed in CreateUnitTestSuite for MiscTests\n"));
     Status = EFI_OUT_OF_RESOURCES;

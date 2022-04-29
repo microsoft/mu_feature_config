@@ -38,8 +38,6 @@
   BaseMemoryLib
   DebugLib
   UnitTestLib
-  ConfigDataLib
-  ConfigBlobBaseLib
   PrintLib
   ResetSystemLib
 
@@ -48,9 +46,6 @@
   gDfciSettingAccessProtocolGuid
   gDfciAuthenticationProtocolGuid
   gEfiSimpleTextInputExProtocolGuid
-
-[Guids]
-  gMuVarPolicyDxePhaseGuid
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
