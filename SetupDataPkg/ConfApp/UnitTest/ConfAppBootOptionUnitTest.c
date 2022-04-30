@@ -125,14 +125,7 @@ EfiBootManagerGetLoadOptions (
 }
 
 /**
-  Attempt to boot the EFI boot option. This routine sets L"BootCurent" and
-  signals the EFI ready to boot event. If the device path for the option starts
-  with a BBS device path a legacy boot is attempted. Short form device paths are
-  also supported via this rountine. A device path starting with
-  MEDIA_HARDDRIVE_DP, MSG_USB_WWID_DP, MSG_USB_CLASS_DP gets expaned out
-  to find the first device that matches. If the BootOption Device Path
-  fails the removable media boot algorithm is attempted (\EFI\BOOTIA32.EFI,
-  \EFI\BOOTX64.EFI,... only one file type is tried per processor type)
+  Mocked version of EfiBootManagerBoot
 
   @param  BootOption    Boot Option to try and boot.
                         On return, BootOption->Status contains the boot status:
@@ -510,7 +503,7 @@ ConfAppBootOptSelectMore (
 }
 
 /**
-  Initialze the unit test framework, suite, and unit tests for the
+  Initialize the unit test framework, suite, and unit tests for the
   ConfApp and run the ConfApp unit test.
 
   @retval  EFI_SUCCESS           All test cases were dispatched.

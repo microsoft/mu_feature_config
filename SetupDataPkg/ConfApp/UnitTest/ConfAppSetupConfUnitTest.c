@@ -810,7 +810,7 @@ ConfAppSetupConfDumpSerial (
 }
 
 /**
-  Initialze the unit test framework, suite, and unit tests for the
+  Initialize the unit test framework, suite, and unit tests for the
   ConfApp and run the ConfApp unit test.
 
   @retval  EFI_SUCCESS           All test cases were dispatched.

@@ -9,7 +9,7 @@
 #ifndef GOOD_CONFIG_DATA_H_
 #define GOOD_CONFIG_DATA_H_
 
-#define KNOWN_GOOD_XML           "<?xml version=\"1.0\" encoding=\"utf-8\"?><SettingsPacket xmlns=\"urn:UefiSettings-Schema\"><CreatedBy>Dfci Testcase Libraries</CreatedBy><CreatedOn>2022-04-29 17:19</CreatedOn><Version>1</Version><LowestSupportedVersion>1</LowestSupportedVersion><Settings><Setting><Id>Device.ConfigData.ConfigData</Id><Value>Q0ZHRBAAAACkAAAAABAAAA0AAA8AAAAAAAAAABEAAAcAAAAAIAAAAAAAAAANAAAoAAAAAAAAAAARAAAYAAAAAEQzIhFGMyIRIQAAIAAAAABHMyIRAQIDBBERIiIzM0REIiIREUREMzMZAAABAAAAAE8AAIAAAAAAAAAAAQAAAAAlAAAIAAAAAAAAAAAAAgAARnd1SW1hZ2UuYmluAAAAAAAAAAA=</Value></Setting></Settings></SettingsPacket>"
+#define KNOWN_GOOD_XML  "<?xml version=\"1.0\" encoding=\"utf-8\"?><SettingsPacket xmlns=\"urn:UefiSettings-Schema\"><CreatedBy>Dfci Testcase Libraries</CreatedBy><CreatedOn>2022-04-29 17:19</CreatedOn><Version>1</Version><LowestSupportedVersion>1</LowestSupportedVersion><Settings><Setting><Id>Device.ConfigData.ConfigData</Id><Value>Q0ZHRBAAAACkAAAAABAAAA0AAA8AAAAAAAAAABEAAAcAAAAAIAAAAAAAAAANAAAoAAAAAAAAAAARAAAYAAAAAEQzIhFGMyIRIQAAIAAAAABHMyIRAQIDBBERIiIzM0REIiIREUREMzMZAAABAAAAAE8AAIAAAAAAAAAAAQAAAAAlAAAIAAAAAAAAAAAAAgAARnd1SW1hZ2UuYmluAAAAAAAAAAA=</Value></Setting></Settings></SettingsPacket>"
 
 UINT8  mGood_Tag_0xF0[] = {
   0x00, 0x00, 0x00, 0x00,

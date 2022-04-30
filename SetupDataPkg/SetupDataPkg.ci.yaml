@@ -72,7 +72,7 @@
     "SpellCheck": {
         "AuditOnly": False,          # Fails test but run in AuditOnly mode to collect log
         "IgnoreFiles": [
-          "SetupDataPkg/Test/Include/Good_Config_Data.h"
+          "Test/Include/Good_Config_Data.h"
         ],           # use gitignore syntax to ignore errors in matching files
         "ExtendWords": [
           "basecore",
