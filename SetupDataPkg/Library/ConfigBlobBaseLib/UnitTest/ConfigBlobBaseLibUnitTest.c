@@ -213,8 +213,8 @@ FindConfigDataByTagShouldFailWithBadData (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  VOID  *Buffer;
-  UINT8 BadData[] = {
+  VOID   *Buffer;
+  UINT8  BadData[] = {
     0xDE, 0xAD, 0xBE, 0xEF
   };
 
@@ -279,37 +279,37 @@ FindConfigHdrByTagShouldComplete (
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0xF0);
   UT_ASSERT_EQUAL (Header->Tag, 0xF0);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x70);
   UT_ASSERT_EQUAL (Header->Tag, 0x70);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x70, sizeof (mGood_Tag_0x70));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x280);
   UT_ASSERT_EQUAL (Header->Tag, 0x280);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x280, sizeof (mGood_Tag_0x280));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x180);
   UT_ASSERT_EQUAL (Header->Tag, 0x180);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x180, sizeof (mGood_Tag_0x180));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x200);
   UT_ASSERT_EQUAL (Header->Tag, 0x200);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x200, sizeof (mGood_Tag_0x200));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x10);
   UT_ASSERT_EQUAL (Header->Tag, 0x10);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x10, sizeof (mGood_Tag_0x10));
 
   Header = FindConfigHdrByTag (mKnown_Good_Config_Data, 0x80);
   UT_ASSERT_EQUAL (Header->Tag, 0x80);
-  Buffer = (VOID*)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
+  Buffer = (VOID *)((UINTN)Header + sizeof (CDATA_HEADER) + sizeof (CDATA_COND) * Header->ConditionNum);
   UT_ASSERT_MEM_EQUAL (Buffer, mGood_Tag_0x80, sizeof (mGood_Tag_0x80));
 
   return UNIT_TEST_PASSED;

@@ -31,11 +31,11 @@
 
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Application System Info Unit Tests"
-#define UNIT_TEST_APP_VERSION   "1.0"
+#define UNIT_TEST_APP_NAME     "Conf Application System Info Unit Tests"
+#define UNIT_TEST_APP_VERSION  "1.0"
 
-#define MOCK_BUILD_TIME         L"04/01/2022"
-#define MOCK_TIMER_EVENT        0xFEEDF00D
+#define MOCK_BUILD_TIME   L"04/01/2022"
+#define MOCK_TIMER_EVENT  0xFEEDF00D
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern enum SysInfoState_t_def            mSysInfoState;
@@ -130,14 +130,14 @@ GetBuildDateStringUnicode (
   CopyMem (Buffer, MOCK_BUILD_TIME, sizeof (MOCK_BUILD_TIME));
   *Length = sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16);
 
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockGetTime (
-  OUT  EFI_TIME                    *Time,
-  OUT  EFI_TIME_CAPABILITIES       *Capabilities OPTIONAL
+  OUT  EFI_TIME               *Time,
+  OUT  EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
   )
 {
   EFI_TIME  DefaultPayloadTimestamp = {
@@ -186,9 +186,9 @@ Print (
   ...
   )
 {
-  CHAR8     Buffer[128];
-  VA_LIST   Marker;
-  UINTN     Ret;
+  CHAR8    Buffer[128];
+  VA_LIST  Marker;
+  UINTN    Ret;
 
   VA_START (Marker, Format);
   Ret = AsciiVSPrintUnicodeFormat (Buffer, sizeof (Buffer), Format, Marker);
@@ -202,11 +202,11 @@ Print (
 EFI_STATUS
 EFIAPI
 MockCreateEvent (
-  IN  UINT32                       Type,
-  IN  EFI_TPL                      NotifyTpl,
-  IN  EFI_EVENT_NOTIFY             NotifyFunction,
-  IN  VOID                         *NotifyContext,
-  OUT EFI_EVENT                    *Event
+  IN  UINT32            Type,
+  IN  EFI_TPL           NotifyTpl,
+  IN  EFI_EVENT_NOTIFY  NotifyFunction,
+  IN  VOID              *NotifyContext,
+  OUT EFI_EVENT         *Event
   )
 {
   // Check that this is the right protocol being located
@@ -218,30 +218,30 @@ MockCreateEvent (
 
   *Event = (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT;
 
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockSetTimer (
-  IN  EFI_EVENT                Event,
-  IN  EFI_TIMER_DELAY          Type,
-  IN  UINT64                   TriggerTime
+  IN  EFI_EVENT        Event,
+  IN  EFI_TIMER_DELAY  Type,
+  IN  UINT64           TriggerTime
   )
 {
   assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
   assert_int_equal (Type, TimerRelative);
   assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
 
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
-  IN  UINTN                    NumberOfEvents,
-  IN  EFI_EVENT                *Event,
-  OUT UINTN                    *Index
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *Event,
+  OUT UINTN      *Index
   )
 {
   assert_int_equal (NumberOfEvents, 2);
@@ -249,14 +249,14 @@ MockWaitForEvent (
   assert_int_equal (Event[1], (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
   assert_non_null (Index);
 
-  *Index = (UINTN)mock();
+  *Index = (UINTN)mock ();
   return EFI_SUCCESS;
 }
 
 EFI_STATUS
 EFIAPI
 MockCloseEvent (
-  IN EFI_EVENT                Event
+  IN EFI_EVENT  Event
   )
 {
   assert_ptr_equal (Event, (EFI_EVENT)(UINTN)MOCK_TIMER_EVENT);
@@ -274,10 +274,10 @@ EFI_BOOT_SERVICES  MockBoot = {
     0,
     0
   },
-  .CreateEvent = MockCreateEvent,
-  .SetTimer = MockSetTimer,
+  .CreateEvent  = MockCreateEvent,
+  .SetTimer     = MockSetTimer,
   .WaitForEvent = MockWaitForEvent,
-  .CloseEvent = MockCloseEvent,
+  .CloseEvent   = MockCloseEvent,
 };
 
 VOID
@@ -287,8 +287,8 @@ SysInfoCleanup (
   )
 {
   mSysInfoState = 0;
-  mEndCol = 0;
-  mEndRow = 0;
+  mEndCol       = 0;
+  mEndRow       = 0;
 }
 
 /**
@@ -312,7 +312,7 @@ ConfAppSysInfoInit (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
+  EFI_STATUS  Status;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -350,8 +350,8 @@ ConfAppSysInfoSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -404,8 +404,8 @@ ConfAppSysInfoSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -458,7 +458,7 @@ ConfAppSysInfoTimeRefresh (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
+  EFI_STATUS  Status;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);

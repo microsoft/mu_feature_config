@@ -31,8 +31,8 @@
 
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Application Boot Options Unit Tests"
-#define UNIT_TEST_APP_VERSION   "1.0"
+#define UNIT_TEST_APP_NAME     "Conf Application Boot Options Unit Tests"
+#define UNIT_TEST_APP_VERSION  "1.0"
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern enum BootOptState_t_def            mBootOptState;
@@ -110,16 +110,17 @@ EfiBootManagerGetLoadOptions (
   IN EFI_BOOT_MANAGER_LOAD_OPTION_TYPE  LoadOptionType
   )
 {
-  EFI_BOOT_MANAGER_LOAD_OPTION *ret_buf;
+  EFI_BOOT_MANAGER_LOAD_OPTION  *ret_buf;
 
   assert_non_null (LoadOptionCount);
   assert_int_equal (LoadOptionType, LoadOptionTypeBoot);
 
-  *LoadOptionCount = (UINTN)mock();
+  *LoadOptionCount = (UINTN)mock ();
   if (*LoadOptionCount != 0) {
-    ret_buf = (EFI_BOOT_MANAGER_LOAD_OPTION*)mock();
+    ret_buf = (EFI_BOOT_MANAGER_LOAD_OPTION *)mock ();
     return AllocateCopyPool (*LoadOptionCount * sizeof (EFI_BOOT_MANAGER_LOAD_OPTION), ret_buf);
   }
+
   return NULL;
 }
 
@@ -148,7 +149,7 @@ EfiBootManagerBoot (
   )
 {
   check_expected (BootOption);
-  BootOption->Status = (EFI_STATUS)mock();
+  BootOption->Status = (EFI_STATUS)mock ();
 }
 
 /**
@@ -178,9 +179,9 @@ Print (
   ...
   )
 {
-  CHAR8     Buffer[128];
-  VA_LIST   Marker;
-  UINTN     Ret;
+  CHAR8    Buffer[128];
+  VA_LIST  Marker;
+  UINTN    Ret;
 
   VA_START (Marker, Format);
   Ret = AsciiVSPrintUnicodeFormat (Buffer, sizeof (Buffer), Format, Marker);
@@ -194,9 +195,9 @@ Print (
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
-  IN  UINTN                    NumberOfEvents,
-  IN  EFI_EVENT                *Event,
-  OUT UINTN                    *Index
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *Event,
+  OUT UINTN      *Index
   )
 {
   assert_int_equal (NumberOfEvents, 1);
@@ -251,7 +252,7 @@ ConfAppBootOptInit (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
+  EFI_STATUS  Status;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -289,8 +290,8 @@ ConfAppBootOptSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -339,8 +340,8 @@ ConfAppBootOptSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -394,7 +395,7 @@ ConfAppBootOptSelectOne (
   BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption = {
     .Description = L"Test1",
-    .Attributes = 0xFEEDF00D
+    .Attributes  = 0xFEEDF00D
   };
 
   will_return (MockClearScreen, EFI_SUCCESS);
@@ -435,7 +436,6 @@ ConfAppBootOptSelectOne (
   return UNIT_TEST_PASSED;
 }
 
-
 /**
   Unit test for BootOptions page when selecting boot options.
 
@@ -463,11 +463,11 @@ ConfAppBootOptSelectMore (
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption[2] = {
     {
       .Description = L"Test1",
-      .Attributes = 0xFEEDF00D
+      .Attributes  = 0xFEEDF00D
     },
     {
       .Description = L"Test2",
-      .Attributes = 0xBA5EBA11
+      .Attributes  = 0xBA5EBA11
     }
   };
 

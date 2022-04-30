@@ -25,7 +25,6 @@
 #define UNIT_TEST_APP_NAME     "Conf Data Iterator Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
 
-
 /**
   Handler function dispatched for individual tag based data.
 
@@ -38,9 +37,9 @@
 EFI_STATUS
 EFIAPI
 MockSingleTagHandler (
-  UINT32    Tag,
-  VOID      *Buffer,
-  UINTN     BufferSize
+  UINT32  Tag,
+  VOID    *Buffer,
+  UINTN   BufferSize
   )
 {
   check_expected (Tag);
@@ -71,7 +70,7 @@ IterateDataShouldComplete (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
 
   expect_value (MockSingleTagHandler, Tag, 0xF0);
   expect_memory (MockSingleTagHandler, Buffer, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
@@ -135,7 +134,7 @@ IterateNullDataShouldFail (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
 
   Status = IterateConfData (NULL, MockSingleTagHandler);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
@@ -198,10 +197,10 @@ IterateDataWithNoTagShouldComplete (
 {
   EFI_STATUS  Status;
   CDATA_BLOB  InitData = {
-    .Signature = CFG_DATA_SIGNATURE,
+    .Signature    = CFG_DATA_SIGNATURE,
     .HeaderLength = sizeof (CDATA_BLOB),
-    .UsedLength = sizeof (CDATA_BLOB),
-    .TotalLength = sizeof (CDATA_BLOB)
+    .UsedLength   = sizeof (CDATA_BLOB),
+    .TotalLength  = sizeof (CDATA_BLOB)
   };
 
   Status = IterateConfData (&InitData, MockSingleTagHandler);
@@ -233,19 +232,19 @@ IterateDataWithWrongLengthShouldFail (
 {
   EFI_STATUS  Status;
   CDATA_BLOB  InitData = {
-    .Signature = CFG_DATA_SIGNATURE,
+    .Signature    = CFG_DATA_SIGNATURE,
     .HeaderLength = sizeof (CDATA_BLOB),
-    .UsedLength = sizeof (CDATA_BLOB),
-    .TotalLength = sizeof (CDATA_BLOB)
+    .UsedLength   = sizeof (CDATA_BLOB),
+    .TotalLength  = sizeof (CDATA_BLOB)
   };
 
   InitData.UsedLength = InitData.UsedLength + 1;
-  Status = IterateConfData (&InitData, MockSingleTagHandler);
+  Status              = IterateConfData (&InitData, MockSingleTagHandler);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  InitData.UsedLength = InitData.UsedLength - 1;
+  InitData.UsedLength   = InitData.UsedLength - 1;
   InitData.HeaderLength = InitData.HeaderLength + 1;
-  Status = IterateConfData (&InitData, MockSingleTagHandler);
+  Status                = IterateConfData (&InitData, MockSingleTagHandler);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;

@@ -33,8 +33,8 @@
 #include <Good_Config_Data.h>
 #include "ConfDataSettingProviderUnitTest.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Data Setting Provider Unit Tests"
-#define UNIT_TEST_APP_VERSION   "1.0"
+#define UNIT_TEST_APP_NAME     "Conf Data Setting Provider Unit Tests"
+#define UNIT_TEST_APP_VERSION  "1.0"
 
 #define KNOWN_GOOD_TAG_0xF0   0xF0
 #define KNOWN_GOOD_TAG_0x70   0x70
@@ -44,23 +44,23 @@
 #define KNOWN_GOOD_TAG_0x10   0x10
 #define KNOWN_GOOD_TAG_0x80   0x80
 
-#define KNOWN_GOOD_TAG_COUNT    7
-#define SINGLE_CONF_DATA_ID_LEN (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
+#define KNOWN_GOOD_TAG_COUNT     7
+#define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
 
 typedef struct {
-  UINTN     Tag;
-  UINT8     *Data;
-  UINTN     DataSize;
+  UINTN    Tag;
+  UINT8    *Data;
+  UINTN    DataSize;
 } TAG_DATA;
 
-TAG_DATA mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
-  {KNOWN_GOOD_TAG_0xF0,   mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)},
-  {KNOWN_GOOD_TAG_0x70,   mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)},
-  {KNOWN_GOOD_TAG_0x280,  mGood_Tag_0x280, sizeof (mGood_Tag_0x280)},
-  {KNOWN_GOOD_TAG_0x180,  mGood_Tag_0x180, sizeof (mGood_Tag_0x180)},
-  {KNOWN_GOOD_TAG_0x200,  mGood_Tag_0x200, sizeof (mGood_Tag_0x200)},
-  {KNOWN_GOOD_TAG_0x10,   mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)},
-  {KNOWN_GOOD_TAG_0x80,   mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)}
+TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
+  { KNOWN_GOOD_TAG_0xF0,  mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)  },
+  { KNOWN_GOOD_TAG_0x70,  mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)  },
+  { KNOWN_GOOD_TAG_0x280, mGood_Tag_0x280, sizeof (mGood_Tag_0x280) },
+  { KNOWN_GOOD_TAG_0x180, mGood_Tag_0x180, sizeof (mGood_Tag_0x180) },
+  { KNOWN_GOOD_TAG_0x200, mGood_Tag_0x200, sizeof (mGood_Tag_0x200) },
+  { KNOWN_GOOD_TAG_0x10,  mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)  },
+  { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
 };
 
 /**
@@ -116,20 +116,21 @@ GetSectionFromAnyFv (
   OUT       UINTN             *Size
   )
 {
-  VOID *ret_buf;
+  VOID  *ret_buf;
 
   assert_memory_equal (NameGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
   assert_int_equal (SectionType, EFI_SECTION_RAW);
   assert_non_null (Buffer);
   assert_non_null (Size);
 
-  ret_buf = (VOID*)mock();
+  ret_buf = (VOID *)mock ();
   if (ret_buf != NULL) {
-    *Size = (UINTN)mock();
+    *Size   = (UINTN)mock ();
     *Buffer = AllocateCopyPool (*Size, ret_buf);
   } else {
     return EFI_NOT_FOUND;
   }
+
   return EFI_SUCCESS;
 }
 
@@ -146,8 +147,8 @@ Registers a Setting Provider with the System Settings module
 EFI_STATUS
 EFIAPI
 MockDfciRegisterProvider (
-  IN DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL       *This,
-  IN DFCI_SETTING_PROVIDER                        *Provider
+  IN DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *This,
+  IN DFCI_SETTING_PROVIDER                   *Provider
   )
 {
   assert_non_null (This);
@@ -161,7 +162,7 @@ MockDfciRegisterProvider (
 }
 
 // Mocked version of setting provider register protocol instance.
-DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL mMockDfciSetting = {
+DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  mMockDfciSetting = {
   .RegisterProvider = MockDfciRegisterProvider
 };
 
@@ -286,15 +287,15 @@ STATIC
 EFI_STATUS
 EFIAPI
 MockGetVariable (
-  IN     CHAR16                      *VariableName,
-  IN     EFI_GUID                    *VendorGuid,
-  OUT    UINT32                      *Attributes     OPTIONAL,
-  IN OUT UINTN                       *DataSize,
-  OUT    VOID                        *Data           OPTIONAL
+  IN     CHAR16    *VariableName,
+  IN     EFI_GUID  *VendorGuid,
+  OUT    UINT32    *Attributes     OPTIONAL,
+  IN OUT UINTN     *DataSize,
+  OUT    VOID      *Data           OPTIONAL
   )
 {
-  UINTN Size;
-  VOID  *RetData;
+  UINTN  Size;
+  VOID   *RetData;
 
   assert_non_null (VariableName);
   assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
@@ -303,13 +304,13 @@ MockGetVariable (
   DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
 
   check_expected (VariableName);
-  Size = (UINTN)mock();
+  Size = (UINTN)mock ();
   if (Size > *DataSize) {
     *DataSize = Size;
     return EFI_BUFFER_TOO_SMALL;
   } else {
     *DataSize = Size;
-    RetData = (VOID*)mock();
+    RetData   = (VOID *)mock ();
     CopyMem (Data, RetData, Size);
   }
 
@@ -354,11 +355,11 @@ STATIC
 EFI_STATUS
 EFIAPI
 MockSetVariable (
-  IN  CHAR16                       *VariableName,
-  IN  EFI_GUID                     *VendorGuid,
-  IN  UINT32                       Attributes,
-  IN  UINTN                        DataSize,
-  IN  VOID                         *Data
+  IN  CHAR16    *VariableName,
+  IN  EFI_GUID  *VendorGuid,
+  IN  UINT32    Attributes,
+  IN  UINTN     DataSize,
+  IN  VOID      *Data
   )
 {
   assert_non_null (VariableName);
@@ -415,7 +416,7 @@ EFI_BOOT_SERVICES  MockBoot = {
 };
 
 // System table, not used in this test.
-EFI_SYSTEM_TABLE MockSys;
+EFI_SYSTEM_TABLE  MockSys;
 
 /**
   Unit test for ConfDataGetDefault of ConfDataSettingProvider with normal input.
@@ -439,11 +440,11 @@ ConfDataGetDefaultNormal (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
@@ -456,7 +457,7 @@ ConfDataGetDefaultNormal (
   UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
   UT_ASSERT_EQUAL (Size, sizeof (mKnown_Good_Config_Data));
 
-  Data = AllocatePool (Size);
+  Data   = AllocatePool (Size);
   Status = ConfDataGetDefault (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_MEM_EQUAL (Data, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
@@ -487,11 +488,11 @@ ConfDataGetDefaultNull (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = ConfDataGetDefault (NULL, &Size, Data);
@@ -525,11 +526,11 @@ ConfDataGetDefaultMismatch (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = SINGLE_SETTING_PROVIDER_START
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = SINGLE_SETTING_PROVIDER_START
   };
 
   Status = ConfDataGetDefault (&SettingsProvider, &Size, Data);
@@ -560,11 +561,11 @@ ConfDataGetNormal (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
@@ -577,7 +578,7 @@ ConfDataGetNormal (
   UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
   UT_ASSERT_EQUAL (Size, sizeof (mKnown_Good_Config_Data));
 
-  Data = AllocatePool (Size);
+  Data   = AllocatePool (Size);
   Status = ConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_MEM_EQUAL (Data, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
@@ -608,11 +609,11 @@ ConfDataGetNull (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = ConfDataGet (NULL, &Size, Data);
@@ -646,11 +647,11 @@ ConfDataGetMismatch (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = SINGLE_SETTING_PROVIDER_START
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = SINGLE_SETTING_PROVIDER_START
   };
 
   Status = ConfDataGet (&SettingsProvider, &Size, Data);
@@ -683,10 +684,10 @@ ConfDataSetDefaultNormal (
   EFI_STATUS  Status;
   CHAR16      *CompareUniPtr[KNOWN_GOOD_TAG_COUNT];
   UINTN       UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
-  UINTN       Index = 0;
+  UINTN       Index      = 0;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
@@ -697,7 +698,7 @@ ConfDataSetDefaultNormal (
 
   will_return_always (MockSetVariable, EFI_SUCCESS);
 
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index ++) {
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
     CompareUniPtr[Index] = AllocatePool (UniStrSize);
     UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
     expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
@@ -711,7 +712,7 @@ ConfDataSetDefaultNormal (
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT) {
     FreePool (CompareUniPtr[Index]);
-    Index ++;
+    Index++;
   }
 
   return UNIT_TEST_PASSED;
@@ -769,8 +770,8 @@ ConfDataSetDefaultMismatch (
 {
   EFI_STATUS  Status;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = SINGLE_SETTING_PROVIDER_START
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = SINGLE_SETTING_PROVIDER_START
   };
 
   Status = ConfDataSetDefault (&SettingsProvider);
@@ -778,7 +779,6 @@ ConfDataSetDefaultMismatch (
 
   return UNIT_TEST_PASSED;
 }
-
 
 /**
   Unit test for ConfDataSet of ConfDataSettingProvider with normal input.
@@ -804,16 +804,16 @@ ConfDataSetNormal (
   EFI_STATUS          Status;
   CHAR16              *CompareUniPtr[KNOWN_GOOD_TAG_COUNT];
   UINTN               UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
-  UINTN               Index = 0;
-  DFCI_SETTING_FLAGS  Flags = 0;
+  UINTN               Index      = 0;
+  DFCI_SETTING_FLAGS  Flags      = 0;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   will_return_always (MockSetVariable, EFI_SUCCESS);
 
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index ++) {
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
     CompareUniPtr[Index] = AllocatePool (UniStrSize);
     UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
     expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
@@ -832,7 +832,7 @@ ConfDataSetNormal (
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT) {
     FreePool (CompareUniPtr[Index]);
-    Index ++;
+    Index++;
   }
 
   return UNIT_TEST_PASSED;
@@ -862,8 +862,8 @@ ConfDataSetNull (
   EFI_STATUS          Status;
   DFCI_SETTING_FLAGS  Flags = 0;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = ConfDataSet (NULL, sizeof (mKnown_Good_Config_Data), mKnown_Good_Config_Data, &Flags);
@@ -902,8 +902,8 @@ ConfDataSetMismatch (
   EFI_STATUS          Status;
   DFCI_SETTING_FLAGS  Flags = 0;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = SINGLE_SETTING_PROVIDER_START
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = SINGLE_SETTING_PROVIDER_START
   };
 
   Status = ConfDataSet (&SettingsProvider, sizeof (mKnown_Good_Config_Data), mKnown_Good_Config_Data, &Flags);
@@ -933,11 +933,11 @@ SingleConfDataGetDefaultNormal (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
 
@@ -960,7 +960,7 @@ SingleConfDataGetDefaultNormal (
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
 
-  Data = AllocatePool (Size);
+  Data   = AllocatePool (Size);
   Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
@@ -992,11 +992,11 @@ SingleConfDataGetDefaultNull (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = SingleConfDataGetDefault (NULL, &Size, Data);
@@ -1029,17 +1029,17 @@ SingleConfDataGetDefaultNonTarget (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
-  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  Status              = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
-  Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
+  Status              = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -1066,11 +1066,11 @@ SingleConfDataGetDefaultInvalidId (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
 
@@ -1110,12 +1110,12 @@ SingleConfDataGetNormal (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                 CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
   UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
@@ -1135,7 +1135,7 @@ SingleConfDataGetNormal (
   will_return (MockGetVariable, mGood_Tag_0xF0);
   will_return (MockGetVariable, EFI_SUCCESS);
 
-  Data = AllocatePool (Size);
+  Data   = AllocatePool (Size);
   Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
@@ -1167,11 +1167,11 @@ SingleConfDataGetNull (
   )
 {
   EFI_STATUS  Status;
-  UINTN       Size = 0;
+  UINTN       Size  = 0;
   VOID        *Data = &Size;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = SingleConfDataGet (NULL, &Size, Data);
@@ -1204,17 +1204,17 @@ SingleConfDataGetNonTarget (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
-  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  Status              = SingleConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
-  Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
+  Status              = SingleConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -1241,12 +1241,12 @@ SingleConfDataGetInvalidId (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 0;
-  VOID                  *Data = &Size;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 0;
+  VOID                   *Data = &Size;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                 CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
   UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
@@ -1286,10 +1286,10 @@ SingleConfDataSetDefaultNormal (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                 CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
   UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
@@ -1337,8 +1337,8 @@ SingleConfDataSetDefaultNull (
 {
   EFI_STATUS  Status;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = SingleConfDataSetDefault (NULL);
@@ -1371,15 +1371,15 @@ SingleConfDataSetDefaultNonTarget (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
-  Status = SingleConfDataSetDefault (&SettingsProvider);
+  Status              = SingleConfDataSetDefault (&SettingsProvider);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
-  Status = SingleConfDataSetDefault (&SettingsProvider);
+  Status              = SingleConfDataSetDefault (&SettingsProvider);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -1406,9 +1406,9 @@ SingleConfDataSetDefaultInvalidId (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
 
@@ -1448,11 +1448,11 @@ SingleConfDataSetNormal (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  CHAR16                CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
-  DFCI_SETTING_FLAGS    Flags = 0;
+  EFI_STATUS             Status;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  CHAR16                 CompareUniPtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
+  DFCI_SETTING_FLAGS     Flags = 0;
 
   AsciiSPrint (ComparePtr, sizeof (ComparePtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
   UnicodeSPrintAsciiFormat (CompareUniPtr, sizeof (CompareUniPtr), SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
@@ -1493,12 +1493,12 @@ SingleConfDataSetNull (
   )
 {
   EFI_STATUS          Status;
-  UINTN               Size = 1;
+  UINTN               Size  = 1;
   VOID                *Data = &Size;
   DFCI_SETTING_FLAGS  Flags;
   // Minimal initialization to tag this provider instance
-  DFCI_SETTING_PROVIDER SettingsProvider = {
-    .Id       = DFCI_OEM_SETTING_ID__CONF
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__CONF
   };
 
   Status = SingleConfDataSet (NULL, Size, Data, &Flags);
@@ -1537,18 +1537,18 @@ SingleConfDataSetNonTarget (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 1;
-  VOID                  *Data = &Size;
-  DFCI_SETTING_FLAGS    Flags;
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 1;
+  VOID                   *Data = &Size;
+  DFCI_SETTING_FLAGS     Flags;
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
-  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
+  Status              = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
-  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
+  Status              = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -1575,12 +1575,12 @@ SingleConfDataSetInvalidId (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 Size = 1;
-  VOID                  *Data = &Size;
-  DFCI_SETTING_FLAGS    Flags;
-  CHAR8                 ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER SettingsProvider;
+  EFI_STATUS             Status;
+  UINTN                  Size  = 1;
+  VOID                   *Data = &Size;
+  DFCI_SETTING_FLAGS     Flags;
+  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
+  DFCI_SETTING_PROVIDER  SettingsProvider;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
 
@@ -1638,7 +1638,7 @@ SettingsProviderNotifyShouldComplete (
   will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
 
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT - 1; Index ++) {
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT - 1; Index++) {
     ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
     AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
     CompareUniPtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
@@ -1667,13 +1667,13 @@ SettingsProviderNotifyShouldComplete (
   expect_memory (RegisterVarStateVariablePolicy, Name, CompareUniPtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
   expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
 
-  SettingsProviderSupportProtocolNotify  (NULL, NULL);
+  SettingsProviderSupportProtocolNotify (NULL, NULL);
 
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT) {
     FreePool (ComparePtr[Index]);
     FreePool (CompareUniPtr[Index]);
-    Index ++;
+    Index++;
   }
 
   return UNIT_TEST_PASSED;

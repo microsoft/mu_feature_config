@@ -31,8 +31,8 @@
 
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Application Unit Tests"
-#define UNIT_TEST_APP_VERSION   "1.0"
+#define UNIT_TEST_APP_NAME     "Conf Application Unit Tests"
+#define UNIT_TEST_APP_VERSION  "1.0"
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 
@@ -57,14 +57,14 @@ ConfAppEntry (
 EFI_STATUS
 EFIAPI
 MockGetEnrolledIdentities (
-  IN CONST DFCI_AUTHENTICATION_PROTOCOL     *This,
-  OUT      DFCI_IDENTITY_MASK               *EnrolledIdentities
+  IN CONST DFCI_AUTHENTICATION_PROTOCOL  *This,
+  OUT      DFCI_IDENTITY_MASK            *EnrolledIdentities
   )
 {
   assert_non_null (This);
   assert_non_null (EnrolledIdentities);
 
-  *EnrolledIdentities = (DFCI_IDENTITY_MASK)mock();
+  *EnrolledIdentities = (DFCI_IDENTITY_MASK)mock ();
   return EFI_SUCCESS;
 }
 
@@ -73,7 +73,7 @@ EFIAPI
 MockAuthWithPW (
   IN  CONST DFCI_AUTHENTICATION_PROTOCOL  *This,
   IN  CONST CHAR16                        *Password OPTIONAL,
-  IN  UINTN                                PasswordLength,
+  IN  UINTN                               PasswordLength,
   OUT DFCI_AUTH_TOKEN                     *IdentityToken
   )
 {
@@ -81,21 +81,21 @@ MockAuthWithPW (
   assert_null (Password);
   assert_int_equal (PasswordLength, 0);
 
-  *IdentityToken = (DFCI_AUTH_TOKEN)mock();
+  *IdentityToken = (DFCI_AUTH_TOKEN)mock ();
   return EFI_SUCCESS;
 }
 
-DFCI_AUTHENTICATION_PROTOCOL MockAuthProtocol = {
+DFCI_AUTHENTICATION_PROTOCOL  MockAuthProtocol = {
   .GetEnrolledIdentities = MockGetEnrolledIdentities,
-  .AuthWithPW = MockAuthWithPW,
+  .AuthWithPW            = MockAuthWithPW,
 };
 
-extern enum ConfState_t_def mConfState;
+extern enum ConfState_t_def  mConfState;
 
 VOID
 SwitchMachineState (
-  IN UINT32   State
-)
+  IN UINT32  State
+  )
 {
   mConfState = State;
 }
@@ -114,8 +114,8 @@ SysInfoMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock());
-  return (EFI_STATUS)mock();
+  SwitchMachineState ((UINT32)mock ());
+  return (EFI_STATUS)mock ();
 }
 
 /**
@@ -132,8 +132,8 @@ BootOptionMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock());
-  return (EFI_STATUS)mock();
+  SwitchMachineState ((UINT32)mock ());
+  return (EFI_STATUS)mock ();
 }
 
 /**
@@ -150,8 +150,8 @@ SetupConfMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock());
-  return (EFI_STATUS)mock();
+  SwitchMachineState ((UINT32)mock ());
+  return (EFI_STATUS)mock ();
 }
 
 /**
@@ -197,9 +197,9 @@ Print (
   ...
   )
 {
-  CHAR8     Buffer[128];
-  VA_LIST   Marker;
-  UINTN     Ret;
+  CHAR8    Buffer[128];
+  VA_LIST  Marker;
+  UINTN    Ret;
 
   VA_START (Marker, Format);
   Ret = AsciiVSPrintUnicodeFormat (Buffer, sizeof (Buffer), Format, Marker);
@@ -231,9 +231,9 @@ MockLocateProtocol (
 EFI_STATUS
 EFIAPI
 MockHandleProtocol (
-  IN  EFI_HANDLE               Handle,
-  IN  EFI_GUID                 *Protocol,
-  OUT VOID                     **Interface
+  IN  EFI_HANDLE  Handle,
+  IN  EFI_GUID    *Protocol,
+  OUT VOID        **Interface
   )
 {
   DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
@@ -248,10 +248,10 @@ MockHandleProtocol (
 EFI_STATUS
 EFIAPI
 MockSetWatchdogTimer (
-  IN UINTN                    Timeout,
-  IN UINT64                   WatchdogCode,
-  IN UINTN                    DataSize,
-  IN CHAR16                   *WatchdogData OPTIONAL
+  IN UINTN   Timeout,
+  IN UINT64  WatchdogCode,
+  IN UINTN   DataSize,
+  IN CHAR16  *WatchdogData OPTIONAL
   )
 {
   // Check that this is the right protocol being located
@@ -260,15 +260,15 @@ MockSetWatchdogTimer (
   assert_int_equal (DataSize, 0);
   assert_null (WatchdogData);
 
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
-  IN  UINTN                    NumberOfEvents,
-  IN  EFI_EVENT                *Event,
-  OUT UINTN                    *Index
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *Event,
+  OUT UINTN      *Index
   )
 {
   assert_int_equal (NumberOfEvents, 1);
@@ -291,9 +291,9 @@ EFI_BOOT_SERVICES  MockBoot = {
     0
   },
   .SetWatchdogTimer = MockSetWatchdogTimer,
-  .HandleProtocol = MockHandleProtocol,
-  .LocateProtocol = MockLocateProtocol,
-  .WaitForEvent = MockWaitForEvent,
+  .HandleProtocol   = MockHandleProtocol,
+  .LocateProtocol   = MockLocateProtocol,
+  .WaitForEvent     = MockWaitForEvent,
 };
 
 VOID

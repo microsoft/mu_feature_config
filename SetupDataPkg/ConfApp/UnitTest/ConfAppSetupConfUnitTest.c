@@ -32,8 +32,8 @@
 #include <Good_Config_Data.h>
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME      "Conf Application Setup Configuration Unit Tests"
-#define UNIT_TEST_APP_VERSION   "1.0"
+#define UNIT_TEST_APP_NAME     "Conf Application Setup Configuration Unit Tests"
+#define UNIT_TEST_APP_VERSION  "1.0"
 
 #define KNOWN_GOOD_TAG_0xF0   0xF0
 #define KNOWN_GOOD_TAG_0x70   0x70
@@ -43,27 +43,27 @@
 #define KNOWN_GOOD_TAG_0x10   0x10
 #define KNOWN_GOOD_TAG_0x80   0x80
 
-#define KNOWN_GOOD_TAG_COUNT    7
-#define KNOWN_GOOD_XML          "<?xml version=\"1.0\" encoding=\"utf-8\"?><SettingsPacket xmlns=\"urn:UefiSettings-Schema\"><CreatedBy>Dfci Testcase Libraries</CreatedBy><CreatedOn>2022-04-29 17:19</CreatedOn><Version>1</Version><LowestSupportedVersion>1</LowestSupportedVersion><Settings><Setting><Id>Device.ConfigData.ConfigData</Id><Value>Q0ZHRBAAAACkAAAAABAAAA0AAA8AAAAAAAAAABEAAAcAAAAAIAAAAAAAAAANAAAoAAAAAAAAAAARAAAYAAAAAEQzIhFGMyIRIQAAIAAAAABHMyIRAQIDBBERIiIzM0REIiIREUREMzMZAAABAAAAAE8AAIAAAAAAAAAAAQAAAAAlAAAIAAAAAAAAAAAAAgAARnd1SW1hZ2UuYmluAAAAAAAAAAA=</Value></Setting></Settings></SettingsPacket>"
-#define SINGLE_CONF_DATA_ID_LEN (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
+#define KNOWN_GOOD_TAG_COUNT     7
+#define KNOWN_GOOD_XML           "<?xml version=\"1.0\" encoding=\"utf-8\"?><SettingsPacket xmlns=\"urn:UefiSettings-Schema\"><CreatedBy>Dfci Testcase Libraries</CreatedBy><CreatedOn>2022-04-29 17:19</CreatedOn><Version>1</Version><LowestSupportedVersion>1</LowestSupportedVersion><Settings><Setting><Id>Device.ConfigData.ConfigData</Id><Value>Q0ZHRBAAAACkAAAAABAAAA0AAA8AAAAAAAAAABEAAAcAAAAAIAAAAAAAAAANAAAoAAAAAAAAAAARAAAYAAAAAEQzIhFGMyIRIQAAIAAAAABHMyIRAQIDBBERIiIzM0REIiIREUREMzMZAAABAAAAAE8AAIAAAAAAAAAAAQAAAAAlAAAIAAAAAAAAAAAAAgAARnd1SW1hZ2UuYmluAAAAAAAAAAA=</Value></Setting></Settings></SettingsPacket>"
+#define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern enum SetupConfState_t_def          mSetupConfState;
 
 typedef struct {
-  UINTN     Tag;
-  UINT8     *Data;
-  UINTN     DataSize;
+  UINTN    Tag;
+  UINT8    *Data;
+  UINTN    DataSize;
 } TAG_DATA;
 
-TAG_DATA mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
-  {KNOWN_GOOD_TAG_0xF0,   mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)},
-  {KNOWN_GOOD_TAG_0x70,   mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)},
-  {KNOWN_GOOD_TAG_0x280,  mGood_Tag_0x280, sizeof (mGood_Tag_0x280)},
-  {KNOWN_GOOD_TAG_0x180,  mGood_Tag_0x180, sizeof (mGood_Tag_0x180)},
-  {KNOWN_GOOD_TAG_0x200,  mGood_Tag_0x200, sizeof (mGood_Tag_0x200)},
-  {KNOWN_GOOD_TAG_0x10,   mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)},
-  {KNOWN_GOOD_TAG_0x80,   mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)}
+TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
+  { KNOWN_GOOD_TAG_0xF0,  mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)  },
+  { KNOWN_GOOD_TAG_0x70,  mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)  },
+  { KNOWN_GOOD_TAG_0x280, mGood_Tag_0x280, sizeof (mGood_Tag_0x280) },
+  { KNOWN_GOOD_TAG_0x180, mGood_Tag_0x180, sizeof (mGood_Tag_0x180) },
+  { KNOWN_GOOD_TAG_0x200, mGood_Tag_0x200, sizeof (mGood_Tag_0x200) },
+  { KNOWN_GOOD_TAG_0x10,  mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)  },
+  { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
 };
 
 /*
@@ -84,13 +84,13 @@ Set a single setting
 EFI_STATUS
 EFIAPI
 MockSet (
-  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL   *This,
-  IN  DFCI_SETTING_ID_STRING                Id,
-  IN  CONST DFCI_AUTH_TOKEN                *AuthToken,
-  IN  DFCI_SETTING_TYPE                     Type,
-  IN  UINTN                                 ValueSize,
-  IN  CONST VOID                           *Value,
-  IN OUT DFCI_SETTING_FLAGS                *Flags
+  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL  *This,
+  IN  DFCI_SETTING_ID_STRING              Id,
+  IN  CONST DFCI_AUTH_TOKEN               *AuthToken,
+  IN  DFCI_SETTING_TYPE                   Type,
+  IN  UINTN                               ValueSize,
+  IN  CONST VOID                          *Value,
+  IN OUT DFCI_SETTING_FLAGS               *Flags
   )
 {
   assert_non_null (This);
@@ -127,17 +127,17 @@ Get a single setting
 EFI_STATUS
 EFIAPI
 MockGet (
-  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL *This,
+  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL  *This,
   IN  DFCI_SETTING_ID_STRING              Id,
-  IN  CONST DFCI_AUTH_TOKEN              *AuthToken  OPTIONAL,
+  IN  CONST DFCI_AUTH_TOKEN               *AuthToken  OPTIONAL,
   IN  DFCI_SETTING_TYPE                   Type,
-  IN  OUT UINTN                          *ValueSize,
-  OUT     VOID                           *Value,
-  IN  OUT DFCI_SETTING_FLAGS             *Flags OPTIONAL
+  IN  OUT UINTN                           *ValueSize,
+  OUT     VOID                            *Value,
+  IN  OUT DFCI_SETTING_FLAGS              *Flags OPTIONAL
   )
 {
-  UINTN Size;
-  VOID  *Data;
+  UINTN  Size;
+  VOID   *Data;
 
   assert_non_null (This);
   assert_ptr_equal (AuthToken, &mAuthToken);
@@ -146,18 +146,19 @@ MockGet (
   DEBUG ((DEBUG_INFO, "%a Settings get ID: %a\n", __FUNCTION__, Id));
   check_expected (Id);
 
-  Size = (UINTN)mock();
+  Size = (UINTN)mock ();
   if (*ValueSize < Size) {
     *ValueSize = Size;
     return EFI_BUFFER_TOO_SMALL;
   }
+
   *ValueSize = Size;
-  Data = (VOID*)mock();
+  Data       = (VOID *)mock ();
   CopyMem (Value, Data, Size);
   return EFI_SUCCESS;
 }
 
-DFCI_SETTING_ACCESS_PROTOCOL MockSettingAccess = {
+DFCI_SETTING_ACCESS_PROTOCOL  MockSettingAccess = {
   .Set = MockSet,
   .Get = MockGet,
 };
@@ -177,10 +178,11 @@ BuildUsbRequest (
   )
 {
   CHAR16  *ret_buf;
+
   assert_memory_equal (FileExtension, L".svd", sizeof (L".svd"));
   assert_non_null (FileName);
 
-  ret_buf = (CHAR16*)mock();
+  ret_buf = (CHAR16 *)mock ();
 
   *FileName = AllocateCopyPool (StrSize (ret_buf), ret_buf);
   return EFI_SUCCESS;
@@ -205,14 +207,14 @@ DfciRequestJsonFromUSB (
   OUT UINTN   *JsonStringSize
   )
 {
-  CHAR8 *Ret_Buff;
+  CHAR8  *Ret_Buff;
 
   check_expected (FileName);
   assert_non_null (JsonStringSize);
 
-  *JsonStringSize = (UINTN)mock();
-  Ret_Buff = (UINT8*)mock();
-  *JsonString = AllocateCopyPool (*JsonStringSize, Ret_Buff);
+  *JsonStringSize = (UINTN)mock ();
+  Ret_Buff        = (UINT8 *)mock ();
+  *JsonString     = AllocateCopyPool (*JsonStringSize, Ret_Buff);
 
   return EFI_SUCCESS;
 }
@@ -298,9 +300,9 @@ Print (
   ...
   )
 {
-  CHAR8     Buffer[128];
-  VA_LIST   Marker;
-  UINTN     Ret;
+  CHAR8    Buffer[128];
+  VA_LIST  Marker;
+  UINTN    Ret;
 
   VA_START (Marker, Format);
   Ret = AsciiVSPrintUnicodeFormat (Buffer, sizeof (Buffer), Format, Marker);
@@ -314,8 +316,8 @@ Print (
 EFI_STATUS
 EFIAPI
 MockGetTime (
-  OUT  EFI_TIME                    *Time,
-  OUT  EFI_TIME_CAPABILITIES       *Capabilities OPTIONAL
+  OUT  EFI_TIME               *Time,
+  OUT  EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
   )
 {
   EFI_TIME  DefaultPayloadTimestamp = {
@@ -340,9 +342,9 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
-  IN  UINTN                    NumberOfEvents,
-  IN  EFI_EVENT                *Event,
-  OUT UINTN                    *Index
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *Event,
+  OUT UINTN      *Index
   )
 {
   assert_int_equal (NumberOfEvents, 1);
@@ -397,7 +399,7 @@ ConfAppSetupConfInit (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
+  EFI_STATUS  Status;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -433,8 +435,8 @@ ConfAppSetupConfSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -481,8 +483,8 @@ ConfAppSetupConfSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -529,9 +531,9 @@ ConfAppSetupConfSelectUsb (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
+  EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -598,11 +600,11 @@ ConfAppSetupConfSelectSerial (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
-  UINTN                         Index;
-  CHAR8                         *KnowGoodXml;
+  EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  UINTN                     Index;
+  CHAR8                     *KnowGoodXml;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -629,14 +631,14 @@ ConfAppSetupConfSelectSerial (
 
   mSettingAccess = &MockSettingAccess;
 
-  Index = 0;
+  Index       = 0;
   KnowGoodXml = KNOWN_GOOD_XML;
   while (KnowGoodXml[Index] != 0) {
     KeyData1.Key.UnicodeChar = KnowGoodXml[Index];
     KeyData1.Key.ScanCode    = SCAN_NULL;
     will_return (MockReadKey, &KeyData1);
     Status = SetupConfMgr ();
-    Index ++;
+    Index++;
   }
 
   KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
@@ -677,10 +679,10 @@ ConfAppSetupConfSelectSerialEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
-  UINTN                         Index;
-  CHAR8                         *KnowGoodXml;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+  UINTN         Index;
+  CHAR8         *KnowGoodXml;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -707,14 +709,14 @@ ConfAppSetupConfSelectSerialEsc (
 
   mSettingAccess = &MockSettingAccess;
 
-  Index = 0;
+  Index       = 0;
   KnowGoodXml = KNOWN_GOOD_XML;
   while (KnowGoodXml[Index] != 0) {
     KeyData1.Key.UnicodeChar = KnowGoodXml[Index];
     KeyData1.Key.ScanCode    = SCAN_NULL;
     will_return (MockReadKey, &KeyData1);
     Status = SetupConfMgr ();
-    Index ++;
+    Index++;
   }
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -785,7 +787,7 @@ ConfAppSetupConfDumpSerial (
   will_return (MockGet, sizeof (mKnown_Good_Config_Data));
   will_return (MockGet, mKnown_Good_Config_Data);
 
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index ++) {
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
     ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
     AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
     expect_string (MockGet, Id, ComparePtr[Index]);
@@ -802,7 +804,7 @@ ConfAppSetupConfDumpSerial (
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT) {
     FreePool (ComparePtr[Index]);
-    Index ++;
+    Index++;
   }
 
   return UNIT_TEST_PASSED;

@@ -46,12 +46,13 @@ IterateConfData (
   if ((CdataBlob->Signature != CFG_DATA_SIGNATURE) ||
       (CdataBlob->HeaderLength > CdataBlob->TotalLength) ||
       (CdataBlob->HeaderLength > CdataBlob->UsedLength) ||
-      (CdataBlob->UsedLength > CdataBlob->TotalLength)) {
+      (CdataBlob->UsedLength > CdataBlob->TotalLength))
+  {
     return EFI_INVALID_PARAMETER;
   }
 
-  Status  = EFI_SUCCESS;
-  Offset  = CdataBlob->HeaderLength;
+  Status = EFI_SUCCESS;
+  Offset = CdataBlob->HeaderLength;
   DEBUG ((DEBUG_VERBOSE, "Config Blob Header\n"));
   DEBUG ((DEBUG_VERBOSE, "Signature:     0x%08X\n", CdataBlob->Signature));
   DEBUG ((DEBUG_VERBOSE, "HeaderLength:  0x%02X\n", CdataBlob->HeaderLength));

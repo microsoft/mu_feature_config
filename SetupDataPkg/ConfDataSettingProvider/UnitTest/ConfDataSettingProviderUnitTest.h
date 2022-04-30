@@ -176,7 +176,7 @@ SingleConfDataSet (
 
   @retval EFI_SUCCESS             Tag ID extracted.
   @retval EFI_INVALID_PARAMETER   Input ID string does not match template,
-                                  or the 
+                                  or the
 */
 EFI_STATUS
 GetTagIdFromDfciId (

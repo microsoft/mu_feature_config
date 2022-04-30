@@ -303,7 +303,7 @@ DFCI_SETTING_PROVIDER  mSettingsProvider = {
 
   @retval EFI_SUCCESS             Tag ID extracted.
   @retval EFI_INVALID_PARAMETER   Input ID string does not match template,
-                                  or the 
+                                  or the
 */
 EFI_STATUS
 GetTagIdFromDfciId (
@@ -311,10 +311,10 @@ GetTagIdFromDfciId (
   OUT UINT32                  *TagId
   )
 {
-  UINT32      Temp;
-  UINTN       Offset;
-  CHAR8       Char;
-  UINTN       TotalSize = sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2;
+  UINT32  Temp;
+  UINTN   Offset;
+  CHAR8   Char;
+  UINTN   TotalSize = sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2;
 
   if ((TagId == NULL) ||
       (IdString == NULL) ||
@@ -330,15 +330,16 @@ GetTagIdFromDfciId (
   Temp = 0;
   while (Offset < (TotalSize - 1)) {
     Char = IdString[Offset];
-    if (Char >= 'A' && Char <= 'F') {
+    if ((Char >= 'A') && (Char <= 'F')) {
       Temp = (Temp << 4) + (Char - 'A' + 0x0A);
-    } else if (Char >= '0' && Char <= '9') {
+    } else if ((Char >= '0') && (Char <= '9')) {
       Temp = (Temp << 4) + (Char - '0');
     } else {
       // Do not support other characters from here...
       return EFI_INVALID_PARAMETER;
     }
-    Offset ++;
+
+    Offset++;
   }
 
   *TagId = (UINT32)Temp;

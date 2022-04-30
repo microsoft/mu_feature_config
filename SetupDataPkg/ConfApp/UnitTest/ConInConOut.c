@@ -20,123 +20,123 @@
 EFI_STATUS
 EFIAPI
 MockSetAttribute (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN UINTN                                  Attribute
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN UINTN                            Attribute
   );
 
 EFI_STATUS
 EFIAPI
 MockClearScreen (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL   *This
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This
   );
 
 EFI_STATUS
 EFIAPI
 MockSetCursorPosition (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN UINTN                                  Column,
-  IN UINTN                                  Row
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN UINTN                            Column,
+  IN UINTN                            Row
   );
 
 EFI_STATUS
 EFIAPI
 MockEnableCursor (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN BOOLEAN                                Visible
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN BOOLEAN                          Visible
   );
 
 EFI_STATUS
 EFIAPI
 MockReadKey (
-  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This,
-  OUT EFI_KEY_DATA                      *KeyData
+  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  OUT EFI_KEY_DATA                       *KeyData
   );
 
-EFI_SIMPLE_TEXT_OUTPUT_MODE MockMode = {
+EFI_SIMPLE_TEXT_OUTPUT_MODE  MockMode = {
   .CursorColumn = 5,
   .CursorRow    = 5,
 };
 
-EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL mConOut = {
-  .SetAttribute = MockSetAttribute,
-  .ClearScreen = MockClearScreen,
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  mConOut = {
+  .SetAttribute      = MockSetAttribute,
+  .ClearScreen       = MockClearScreen,
   .SetCursorPosition = MockSetCursorPosition,
-  .EnableCursor = MockEnableCursor,
-  .Mode = &MockMode,
+  .EnableCursor      = MockEnableCursor,
+  .Mode              = &MockMode,
 };
 
 EFI_STATUS
 EFIAPI
 MockSetAttribute (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN UINTN                                  Attribute
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN UINTN                            Attribute
   )
 {
   assert_ptr_equal (This, &mConOut);
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockClearScreen (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL   *This
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This
   )
 {
   assert_ptr_equal (This, &mConOut);
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockSetCursorPosition (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN UINTN                                  Column,
-  IN UINTN                                  Row
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN UINTN                            Column,
+  IN UINTN                            Row
   )
 {
   assert_ptr_equal (This, &mConOut);
   check_expected (Column);
   check_expected (Row);
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 EFI_STATUS
 EFIAPI
 MockEnableCursor (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
-  IN BOOLEAN                                Visible
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN BOOLEAN                          Visible
   )
 {
   assert_ptr_equal (This, &mConOut);
   check_expected (Visible);
-  return (EFI_STATUS)mock();
+  return (EFI_STATUS)mock ();
 }
 
 ///
 /// EFI System Table
 ///
-EFI_SYSTEM_TABLE MockSys = {
+EFI_SYSTEM_TABLE  MockSys = {
   .ConOut = &mConOut
 };
 
-EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL MockSimpleInput = {
-  .ReadKeyStrokeEx  = MockReadKey,
-  .WaitForKeyEx     = (EFI_EVENT)(UINTN)0xDEADBEEF,
+EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput = {
+  .ReadKeyStrokeEx = MockReadKey,
+  .WaitForKeyEx    = (EFI_EVENT)(UINTN)0xDEADBEEF,
 };
 
 EFI_STATUS
 EFIAPI
 MockReadKey (
-  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This,
-  OUT EFI_KEY_DATA                      *KeyData
+  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  OUT EFI_KEY_DATA                       *KeyData
   )
 {
-  EFI_KEY_DATA *MockKey;
+  EFI_KEY_DATA  *MockKey;
 
   assert_ptr_equal (This, &MockSimpleInput);
   assert_non_null (KeyData);
 
-  MockKey = (EFI_KEY_DATA*)mock();
+  MockKey = (EFI_KEY_DATA *)mock ();
   if (MockKey == NULL) {
     return EFI_NOT_READY;
   }
