@@ -1,7 +1,8 @@
 ## @file
-#  Mock implementation of the UEFI Runtime Services Table Library.
+#  Mock implementation of the UEFI Boot Services Table Library.
 #
 #  Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
+#  Copyright (C) Microsoft Corporation.
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
