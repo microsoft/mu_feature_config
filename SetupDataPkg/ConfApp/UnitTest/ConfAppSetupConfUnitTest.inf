@@ -8,7 +8,7 @@
 [Defines]
   INF_VERSION                    = 0x00010006
   BASE_NAME                      = ConfAppSetupConfUnitTest
-  FILE_GUID                      = E7217F69-7E62-4B97-944D-4D6BADC8C3B4
+  FILE_GUID                      = A00A5A70-F26B-4826-A2AE-5978DCCAC5D8
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
 

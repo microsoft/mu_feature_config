@@ -10,7 +10,7 @@
   INF_VERSION                    = 0x00010005
   BASE_NAME                      = MockResetSystemLib
   FILE_GUID                      = FCDB0F20-B02A-4C5E-892A-7BF098B04CD9
-  MODULE_TYPE                    = BASE
+  MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
   LIBRARY_CLASS                  = ResetSystemLib
 

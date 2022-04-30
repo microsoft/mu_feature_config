@@ -8,7 +8,7 @@
 [Defines]
   INF_VERSION                    = 0x00010006
   BASE_NAME                      = ConfigDataLibUnitTest
-  FILE_GUID                      = E6C3EE0C-CF9B-4ABF-9F4C-8F984B620807
+  FILE_GUID                      = E8602B72-1408-487F-A714-9D0FDBD16549
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
 
