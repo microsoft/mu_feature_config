@@ -58,14 +58,6 @@ steps:
 - template: markdownlint-check-prereq-steps.yml
 
 # Build repo
-# MU_CHANGE - We use CI dependencies as well as submodules.
-- task: CmdLine@1
-  displayName: Setup ${{ parameters.build_pkgs }} ${{ parameters.build_archs}}
-  inputs:
-    filename: stuart_ci_setup
-    arguments: -c .pytool/CISettings.py -p $(pkgs_to_build) --force-git -t ${{ parameters.build_targets}} -a ${{ parameters.build_archs}} TOOL_CHAIN_TAG=${{ parameters.tool_chain_tag}}
-  condition: and(gt(variables.pkg_count, 0), succeeded())
-
 - task: CmdLine@1
   displayName: Setup ${{ parameters.build_pkgs }} ${{ parameters.build_archs}}
   inputs:
