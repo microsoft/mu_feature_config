@@ -549,7 +549,7 @@ SingleConfDataSet (
   CHAR16      *VarName = NULL;
   UINTN       Size;
 
-  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0)) {
+  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0) || (Flags == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
@@ -570,6 +570,10 @@ SingleConfDataSet (
 
   // Now set it to non-volatile variable
   Status = gRT->SetVariable (VarName, PcdGetPtr (PcdConfigPolicyVariableGuid), CDATA_NV_VAR_ATTR, ValueSize, (VOID *)Value);
+
+  if (!EFI_ERROR (Status)) {
+    *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
+  }
 
 Done:
   if (VarName != NULL) {
