@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the ConfDataSettingProvider module
+  Unit tests of the Boot Option page of ConfApp module
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -33,9 +33,6 @@
 
 #define UNIT_TEST_APP_NAME      "Conf Application Boot Options Unit Tests"
 #define UNIT_TEST_APP_VERSION   "1.0"
-
-#define MOCK_BUILD_TIME         L"04/01/2022"
-#define MOCK_TIMER_EVENT        0xFEEDF00D
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern enum BootOptState_t_def            mBootOptState;

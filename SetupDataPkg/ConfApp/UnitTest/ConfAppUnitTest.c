@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the ConfApp module
+  Unit tests of the main page of ConfApp module
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent

@@ -29,10 +29,10 @@
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
 
-#define DEFAULT_USB_FILE_NAME  L"DfciUpdate.Dfi"
+#define DEFAULT_USB_FILE_NAME  L"SetupConfUpdate.svd"
 #define CURRENT_XML_TEMPLATE   "<?xml version=\"1.0\" encoding=\"utf-8\"?><CurrentSettingsPacket xmlns=\"urn:UefiSettings-Schema\"></CurrentSettingsPacket>"
 
-typedef enum {
+typedef enum SetupConfState_t_def {
   SetupConfInit,
   SetupConfWait,
   SetupConfUpdateUsb,
@@ -374,6 +374,11 @@ ApplySettings (
     SetValue = ByteArray;
     DEBUG ((DEBUG_INFO, "Setting BINARY data\n"));
     DUMP_HEX (DEBUG_VERBOSE, 0, SetValue, ValueSize, "");
+
+    if (mSettingAccess == NULL) {
+      // Should not be here
+      return EFI_NOT_STARTED;
+    }
 
     // Now set the settings
     Status = mSettingAccess->Set (
