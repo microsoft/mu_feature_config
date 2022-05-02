@@ -66,7 +66,7 @@ typedef struct {
   UINT32    EndState;
 } ConfAppKeyOptions;
 
-STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t));
+STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does not match sizeof (enum) in this environment");
 
 #pragma pack (pop)
 
