@@ -25,6 +25,7 @@
 
 **/
 EFI_STATUS
+EFIAPI
 IterateConfData (
   IN CONST VOID          *ConfDataPtr,
   IN SINGLE_TAG_HANDLER  SingleTagHandler

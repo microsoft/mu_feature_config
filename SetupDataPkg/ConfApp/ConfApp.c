@@ -22,17 +22,6 @@
 
 #include "ConfApp.h"
 
-typedef enum ConfState_t_def {
-  MainInit,
-  MainWait,
-  SystemInfo,
-  SecureBoot,
-  BootOption,
-  SetupConf,
-  MainExit,
-  StateMax
-} ConfState_t;
-
 #define MAIN_STATE_OPTIONS  6
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {

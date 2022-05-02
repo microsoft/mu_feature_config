@@ -14,6 +14,46 @@
 
 #define NO_TRANSITION_STATE  MAX_UINTN
 
+typedef enum ConfState_t_def {
+  MainInit,
+  MainWait,
+  SystemInfo,
+  SecureBoot,
+  BootOption,
+  SetupConf,
+  MainExit,
+  StateMax
+} ConfState_t;
+
+typedef enum SysInfoState_t_def {
+  SysInfoInit,
+  SysInfoWait,
+  SysInfoExit,
+  SysInfoMax
+} SysInfoState_t;
+
+typedef enum BootOptState_t_def {
+  BootOptInit,
+  BootOptWait,
+  BootOptBootNow,
+  BootOptReorder,
+  BootOptExit,
+  BootOptMax
+} BootOptState_t;
+
+typedef enum SetupConfState_t_def {
+  SetupConfInit,
+  SetupConfWait,
+  SetupConfUpdateUsb,
+  SetupConfUpdateNetwork,
+  SetupConfUpdateSerialHint,
+  SetupConfUpdateSerial,
+  SetupConfDumpSerial,
+  SetupConfDumpComplete,
+  SetupConfExit,
+  SetupConfMax
+} SetupConfState_t;
+
 typedef struct {
   CHAR16    *KeyName;
   UINT8     KeyNameTextAttr;

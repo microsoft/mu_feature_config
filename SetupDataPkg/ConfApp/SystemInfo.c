@@ -19,13 +19,6 @@
 
 #include "ConfApp.h"
 
-typedef enum SysInfoState_t_def {
-  SysInfoInit,
-  SysInfoWait,
-  SysInfoExit,
-  SysInfoMax
-} SysInfoState_t;
-
 #define SYS_INFO_STATE_OPTIONS  1
 
 CONST ConfAppKeyOptions  SysInfoStateOptions[SYS_INFO_STATE_OPTIONS] = {

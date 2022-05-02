@@ -38,7 +38,7 @@
 #define MOCK_TIMER_EVENT  0xFEEDF00D
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
-extern enum SysInfoState_t_def            mSysInfoState;
+extern SysInfoState_t                     mSysInfoState;
 extern UINTN                              mEndCol;
 extern UINTN                              mEndRow;
 
@@ -286,7 +286,7 @@ SysInfoCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mSysInfoState = 0;
+  mSysInfoState = SysInfoInit;
   mEndCol       = 0;
   mEndRow       = 0;
 }
@@ -364,7 +364,7 @@ ConfAppSysInfoSelectEsc (
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -378,7 +378,7 @@ ConfAppSysInfoSelectEsc (
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 2);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoExit);
 
   return UNIT_TEST_PASSED;
 }
@@ -418,7 +418,7 @@ ConfAppSysInfoSelectOther (
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -432,7 +432,7 @@ ConfAppSysInfoSelectOther (
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoWait);
 
   return UNIT_TEST_PASSED;
 }
@@ -473,7 +473,7 @@ ConfAppSysInfoTimeRefresh (
   // Initial run
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -484,7 +484,7 @@ ConfAppSysInfoTimeRefresh (
   // Time out
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSysInfoState, 1);
+  UT_ASSERT_EQUAL (mSysInfoState, SysInfoWait);
 
   return UNIT_TEST_PASSED;
 }

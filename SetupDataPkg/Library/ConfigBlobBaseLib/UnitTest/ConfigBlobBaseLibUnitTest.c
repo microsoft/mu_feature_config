@@ -405,47 +405,6 @@ FindConfigHdrByTagShouldFailWithInvalidTag (
   return UNIT_TEST_PASSED;
 }
 
-// /**
-//   Unit test for IterateConfData with various length information.
-
-//   @param[in]  Context    [Optional] An optional parameter that enables:
-//                          1) test-case reuse with varied parameters and
-//                          2) test-case re-entry for Target tests that need a
-//                          reboot.  This parameter is a VOID* and it is the
-//                          responsibility of the test author to ensure that the
-//                          contents are well understood by all test cases that may
-//                          consume it.
-
-//   @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-//                                         case was successful.
-//   @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-// **/
-// UNIT_TEST_STATUS
-// EFIAPI
-// IterateDataWithWrongLengthShouldFail (
-//   IN UNIT_TEST_CONTEXT  Context
-//   )
-// {
-//   EFI_STATUS  Status;
-//   CDATA_BLOB  InitData = {
-//     .Signature = CFG_DATA_SIGNATURE,
-//     .HeaderLength = sizeof (CDATA_BLOB),
-//     .UsedLength = sizeof (CDATA_BLOB),
-//     .TotalLength = sizeof (CDATA_BLOB)
-//   };
-
-//   InitData.UsedLength = InitData.UsedLength + 1;
-//   Status = IterateConfData (&InitData, MockSingleTagHandler);
-//   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
-
-//   InitData.UsedLength = InitData.UsedLength - 1;
-//   InitData.HeaderLength = InitData.HeaderLength + 1;
-//   Status = IterateConfData (&InitData, MockSingleTagHandler);
-//   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
-
-//   return UNIT_TEST_PASSED;
-// }
-
 /**
   Initialize the unit test framework, suite, and unit tests for the
   ConfigBlobBaseLib and run the ConfigBlobBaseLib unit test.

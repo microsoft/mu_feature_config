@@ -158,6 +158,7 @@ ConfDataGet (
 // Helper functions to set a per-tag based data
 STATIC
 EFI_STATUS
+EFIAPI
 SetSingleConfigData (
   UINT32  Tag,
   VOID    *Buffer,

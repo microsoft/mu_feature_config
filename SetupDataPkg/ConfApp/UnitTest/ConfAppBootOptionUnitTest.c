@@ -35,7 +35,7 @@
 #define UNIT_TEST_APP_VERSION  "1.0"
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
-extern enum BootOptState_t_def            mBootOptState;
+extern BootOptState_t                     mBootOptState;
 
 /**
   State machine for system information page. It will display fundamental information, including
@@ -221,7 +221,7 @@ BootOptionsCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mBootOptState = 0;
+  mBootOptState = BootOptInit;
 }
 
 /**
@@ -297,7 +297,7 @@ ConfAppBootOptSelectEsc (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -307,7 +307,7 @@ ConfAppBootOptSelectEsc (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 4);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptExit);
 
   return UNIT_TEST_PASSED;
 }
@@ -347,7 +347,7 @@ ConfAppBootOptSelectOther (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -357,7 +357,7 @@ ConfAppBootOptSelectOther (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
 
   return UNIT_TEST_PASSED;
 }
@@ -405,7 +405,7 @@ ConfAppBootOptSelectOne (
   // Initial run
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -415,7 +415,7 @@ ConfAppBootOptSelectOne (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 2);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptBootNow);
 
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
@@ -478,7 +478,7 @@ ConfAppBootOptSelectMore (
   // Initial run
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 1);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -488,7 +488,7 @@ ConfAppBootOptSelectMore (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mBootOptState, 2);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptBootNow);
 
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);

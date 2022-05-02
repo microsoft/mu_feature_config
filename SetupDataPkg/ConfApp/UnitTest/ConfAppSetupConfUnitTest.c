@@ -47,7 +47,7 @@
 #define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
-extern enum SetupConfState_t_def          mSetupConfState;
+extern SetupConfState_t                   mSetupConfState;
 
 typedef struct {
   UINTN    Tag;
@@ -212,7 +212,7 @@ DfciRequestJsonFromUSB (
   assert_non_null (JsonStringSize);
 
   *JsonStringSize = (UINTN)mock ();
-  Ret_Buff        = (UINT8 *)mock ();
+  Ret_Buff        = (CHAR8 *)mock ();
   *JsonString     = AllocateCopyPool (*JsonStringSize, Ret_Buff);
 
   return EFI_SUCCESS;
@@ -374,7 +374,7 @@ SetupConfCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mSetupConfState = 0;
+  mSetupConfState = SetupConfInit;
 }
 
 /**
@@ -446,7 +446,7 @@ ConfAppSetupConfSelectEsc (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -456,7 +456,7 @@ ConfAppSetupConfSelectEsc (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 8);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfExit);
 
   return UNIT_TEST_PASSED;
 }
@@ -494,7 +494,7 @@ ConfAppSetupConfSelectOther (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -504,7 +504,7 @@ ConfAppSetupConfSelectOther (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   return UNIT_TEST_PASSED;
 }
@@ -545,7 +545,7 @@ ConfAppSetupConfSelectUsb (
   // Initial run
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -555,7 +555,7 @@ ConfAppSetupConfSelectUsb (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 2);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateUsb);
 
   mSettingAccess = &MockSettingAccess;
 
@@ -616,7 +616,7 @@ ConfAppSetupConfSelectSerial (
   // Initial run
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -626,7 +626,7 @@ ConfAppSetupConfSelectSerial (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 4);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerialHint);
 
   mSettingAccess = &MockSettingAccess;
 
@@ -694,7 +694,7 @@ ConfAppSetupConfSelectSerialEsc (
   // Initial run
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -704,7 +704,7 @@ ConfAppSetupConfSelectSerialEsc (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 4);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerialHint);
 
   mSettingAccess = &MockSettingAccess;
 
@@ -715,6 +715,8 @@ ConfAppSetupConfSelectSerialEsc (
     KeyData1.Key.ScanCode    = SCAN_NULL;
     will_return (MockReadKey, &KeyData1);
     Status = SetupConfMgr ();
+    UT_ASSERT_NOT_EFI_ERROR (Status);
+    UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerial);
     Index++;
   }
 
@@ -724,7 +726,7 @@ ConfAppSetupConfSelectSerialEsc (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 8);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfExit);
 
   return UNIT_TEST_PASSED;
 }
@@ -766,7 +768,7 @@ ConfAppSetupConfDumpSerial (
   // Initial run
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 1);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -776,7 +778,7 @@ ConfAppSetupConfDumpSerial (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 6);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpSerial);
 
   mSettingAccess = &MockSettingAccess;
 
@@ -798,7 +800,7 @@ ConfAppSetupConfDumpSerial (
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, 7);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpComplete);
 
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT) {

@@ -32,19 +32,6 @@
 #define DEFAULT_USB_FILE_NAME  L"SetupConfUpdate.svd"
 #define CURRENT_XML_TEMPLATE   "<?xml version=\"1.0\" encoding=\"utf-8\"?><CurrentSettingsPacket xmlns=\"urn:UefiSettings-Schema\"></CurrentSettingsPacket>"
 
-typedef enum SetupConfState_t_def {
-  SetupConfInit,
-  SetupConfWait,
-  SetupConfUpdateUsb,
-  SetupConfUpdateNetwork,
-  SetupConfUpdateSerialHint,
-  SetupConfUpdateSerial,
-  SetupConfDumpSerial,
-  SetupConfDumpComplete,
-  SetupConfExit,
-  SetupConfMax
-} SetupConfState_t;
-
 #define SETUP_CONF_STATE_OPTIONS  6
 
 CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {

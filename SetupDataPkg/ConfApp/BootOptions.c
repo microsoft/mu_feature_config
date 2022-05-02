@@ -20,15 +20,6 @@
 
 #include "ConfApp.h"
 
-typedef enum BootOptState_t_def {
-  BootOptInit,
-  BootOptWait,
-  BootOptBootNow,
-  BootOptReorder,
-  BootOptExit,
-  BootOptMax
-} BootOptState_t;
-
 #define STATIC_BOOT_OPTIONS  2
 
 CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {

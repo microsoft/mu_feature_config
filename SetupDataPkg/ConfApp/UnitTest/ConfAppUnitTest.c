@@ -35,6 +35,7 @@
 #define UNIT_TEST_APP_VERSION  "1.0"
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
+extern ConfState_t                        mConfState;
 
 /**
   Entrypoint of configuration app. This function holds the main state machine for
@@ -90,11 +91,9 @@ DFCI_AUTHENTICATION_PROTOCOL  MockAuthProtocol = {
   .AuthWithPW            = MockAuthWithPW,
 };
 
-extern enum ConfState_t_def  mConfState;
-
 VOID
 SwitchMachineState (
-  IN UINT32  State
+  IN ConfState_t  State
   )
 {
   mConfState = State;
@@ -114,7 +113,7 @@ SysInfoMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock ());
+  SwitchMachineState ((ConfState_t)mock ());
   return (EFI_STATUS)mock ();
 }
 
@@ -132,7 +131,7 @@ BootOptionMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock ());
+  SwitchMachineState ((ConfState_t)mock ());
   return (EFI_STATUS)mock ();
 }
 
@@ -150,7 +149,7 @@ SetupConfMgr (
   VOID
   )
 {
-  SwitchMachineState ((UINT32)mock ());
+  SwitchMachineState ((ConfState_t)mock ());
   return (EFI_STATUS)mock ();
 }
 
@@ -355,7 +354,7 @@ ConfAppEntrySelect1 (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (SysInfoMgr, 6);
+  will_return (SysInfoMgr, MainExit);
   will_return (SysInfoMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
@@ -421,7 +420,7 @@ ConfAppEntrySelect3 (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (BootOptionMgr, 6);
+  will_return (BootOptionMgr, MainExit);
   will_return (BootOptionMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
@@ -487,7 +486,7 @@ ConfAppEntrySelect4 (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (SetupConfMgr, 6);
+  will_return (SetupConfMgr, MainExit);
   will_return (SetupConfMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
