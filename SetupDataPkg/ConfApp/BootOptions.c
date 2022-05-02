@@ -30,7 +30,7 @@ CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
     .UnicodeChar         = CHAR_NULL,
     .ScanCode            = SCAN_NULL,
-    .EndState            = MAX_UINTN
+    .EndState            = MAX_UINT32
   },
   {
     .KeyName             = L"ESC",
