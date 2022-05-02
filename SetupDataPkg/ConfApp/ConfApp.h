@@ -54,6 +54,8 @@ typedef enum SetupConfState_t_def {
   SetupConfMax
 } SetupConfState_t;
 
+#pragma pack (push, 1)
+
 typedef struct {
   CHAR16    *KeyName;
   UINT8     KeyNameTextAttr;
@@ -61,8 +63,12 @@ typedef struct {
   UINT8     DescriptionTextAttr;
   CHAR16    UnicodeChar;
   CHAR16    ScanCode;
-  UINTN     EndState;
+  UINT32    EndState;
 } ConfAppKeyOptions;
+
+STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t));
+
+#pragma pack (pop)
 
 /**
   Polling function for key that was pressed.
@@ -117,7 +123,7 @@ CheckSupportedOptions (
   IN  EFI_KEY_DATA             *KeyData,
   IN  CONST ConfAppKeyOptions  *KeyOptions,
   IN  UINTN                    OptionCount,
-  IN  UINTN                    *State
+  IN  UINT32                   *State
   );
 
 /**

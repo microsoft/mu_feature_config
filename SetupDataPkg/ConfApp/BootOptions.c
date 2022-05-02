@@ -160,7 +160,7 @@ BootOptionMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for key stroke - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINTN *)&mBootOptState);
+        Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINT32 *)&mBootOptState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {

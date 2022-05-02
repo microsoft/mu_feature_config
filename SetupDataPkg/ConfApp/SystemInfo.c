@@ -251,7 +251,7 @@ SysInfoMgr (
         DEBUG ((DEBUG_ERROR, "%a Waiting for keystroke failed at system info page - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINTN *)&mSysInfoState);
+        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINT32 *)&mSysInfoState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
