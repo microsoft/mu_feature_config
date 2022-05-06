@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the DxeResetSystemLib instance of the ResetSystemLib class
+  Unit tests of the ConfigBlobBaseLib class
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent

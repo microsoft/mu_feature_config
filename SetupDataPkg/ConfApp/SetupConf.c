@@ -346,7 +346,8 @@ ApplySettings (
     Status    = Base64Decode (Value, b64Size, NULL, &ValueSize);
     if (Status != EFI_BUFFER_TOO_SMALL) {
       DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
-      return EFI_INVALID_PARAMETER;
+      Status = EFI_INVALID_PARAMETER;
+      goto EXIT;
     }
 
     ByteArray = (UINT8 *)AllocatePool (ValueSize);
@@ -355,7 +356,7 @@ ApplySettings (
     if (EFI_ERROR (Status)) {
       FreePool (ByteArray);
       DEBUG ((DEBUG_ERROR, "Cannot set binary data. Code=%r\n", Status));
-      return Status;
+      goto EXIT;
     }
 
     SetValue = ByteArray;
@@ -364,7 +365,8 @@ ApplySettings (
 
     if (mSettingAccess == NULL) {
       // Should not be here
-      return EFI_NOT_STARTED;
+      Status = EFI_NOT_STARTED;
+      goto EXIT;
     }
 
     // Now set the settings
