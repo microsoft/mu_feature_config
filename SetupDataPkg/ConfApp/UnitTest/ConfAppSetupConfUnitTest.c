@@ -71,8 +71,9 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   @param[in] This:       Access Protocol
   @param[in] Id:         Setting ID to set
   @param[in] AuthToken:  A valid auth token to apply the setting using.  This auth token will be validated
-                        to check permissions for changing the setting.
+                         to check permissions for changing the setting.
   @param[in] Type:       Type that caller expects this setting to be.
+  @param[in] ValueSize:  Size of Value in bytes.
   @param[in] Value:      A pointer to a datatype defined by the Type for this setting.
   @param[in,out] Flags:  Informational Flags passed to the SET and/or Returned as a result of the set
 
