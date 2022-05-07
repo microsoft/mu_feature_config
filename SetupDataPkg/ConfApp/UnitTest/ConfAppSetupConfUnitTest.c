@@ -65,21 +65,21 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
 };
 
-/*
-Set a single setting
+/**
+  Mocked version of setting a single setting
 
-@param[in] This:       Access Protocol
-@param[in] Id:         Setting ID to set
-@param[in] AuthToken:  A valid auth token to apply the setting using.  This auth token will be validated
-                       to check permissions for changing the setting.
-@param[in] Type:       Type that caller expects this setting to be.
-@param[in] Value:      A pointer to a datatype defined by the Type for this setting.
-@param[in,out] Flags:  Informational Flags passed to the SET and/or Returned as a result of the set
+  @param[in] This:       Access Protocol
+  @param[in] Id:         Setting ID to set
+  @param[in] AuthToken:  A valid auth token to apply the setting using.  This auth token will be validated
+                        to check permissions for changing the setting.
+  @param[in] Type:       Type that caller expects this setting to be.
+  @param[in] Value:      A pointer to a datatype defined by the Type for this setting.
+  @param[in,out] Flags:  Informational Flags passed to the SET and/or Returned as a result of the set
 
-@retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
-@retval Error - Setting not set.
+  @retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error - Setting not set.
 
-*/
+**/
 EFI_STATUS
 EFIAPI
 MockSet (
@@ -105,24 +105,24 @@ MockSet (
   return EFI_SUCCESS;
 }
 
-/*
-Get a single setting
+/**
+  Mocked version of getting a single setting
 
-@param[in] This:         Access Protocol
-@param[in] Id:           Setting ID to Get
-@param[in] AuthToken:    An optional auth token* to use to check permission of setting.  This auth token will be validated
-                         to check permissions for changing the setting which will be reported in flags if valid.
-@param[in] Type:         Type that caller expects this setting to be.
-@param[in,out] ValueSize IN=Size of location to store value
-                         OUT=Size of value stored
-@param[out] Value:       A pointer to a datatype defined by the Type for this setting.
-@param[IN OUT] Flags     Optional Informational flags passed back from the Get operation.  If the Auth Token is valid write access will be set in
-                         flags for the given auth.
+  @param[in] This:         Access Protocol
+  @param[in] Id:           Setting ID to Get
+  @param[in] AuthToken:    An optional auth token* to use to check permission of setting.  This auth token will be validated
+                          to check permissions for changing the setting which will be reported in flags if valid.
+  @param[in] Type:         Type that caller expects this setting to be.
+  @param[in,out] ValueSize IN=Size of location to store value
+                          OUT=Size of value stored
+  @param[out] Value:       A pointer to a datatype defined by the Type for this setting.
+  @param[IN OUT] Flags     Optional Informational flags passed back from the Get operation.  If the Auth Token is valid write access will be set in
+                          flags for the given auth.
 
-@retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
-@retval Error - couldn't get setting.
+  @retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error - couldn't get setting.
 
-*/
+**/
 EFI_STATUS
 EFIAPI
 MockGet (
@@ -163,7 +163,7 @@ DFCI_SETTING_ACCESS_PROTOCOL  MockSettingAccess = {
 };
 
 /**
- * BuildUsbRequest
+ * Mocked version of BuildUsbRequest.
  *
  * @param[in]   FileNameExtension - Extension for file name
  * @param[out]  filename          - Name of the file on USB to retrieve
@@ -189,7 +189,7 @@ BuildUsbRequest (
 
 /**
 *
-*  Request a Json Dfci settings packet.
+*  Mocked version of DfciRequestJsonFromUSB.
 *
 *  @param[in]     FileName        What file to read.
 *  @param[out]    JsonString      Where to store the Json String
@@ -273,17 +273,7 @@ EfiBootManagerConnectAll (
 }
 
 /**
-  Prints a formatted Unicode string to the console output device specified by
-  ConOut defined in the EFI_SYSTEM_TABLE.
-
-  This function prints a formatted Unicode string to the console output device
-  specified by ConOut in EFI_SYSTEM_TABLE and returns the number of Unicode
-  characters that printed to ConOut.  If the length of the formatted Unicode
-  string is greater than PcdUefiLibMaxPrintBufferSize, then only the first
-  PcdUefiLibMaxPrintBufferSize characters are sent to ConOut.
-  If Format is NULL, then ASSERT().
-  If Format is not aligned on a 16-bit boundary, then ASSERT().
-  If gST->ConOut is NULL, then ASSERT().
+  Mock version of Print.
 
   @param Format   A Null-terminated Unicode format string.
   @param ...      A Variable argument list whose contents are accessed based
@@ -312,6 +302,18 @@ Print (
   return Ret;
 }
 
+/**
+  Mocked version of GetTime.
+
+  @param[out]  Time             A pointer to storage to receive a snapshot of the current time.
+  @param[out]  Capabilities     An optional pointer to a buffer to receive the real time clock
+                                device's capabilities.
+
+  @retval EFI_SUCCESS           The operation completed successfully.
+  @retval EFI_INVALID_PARAMETER Time is NULL.
+  @retval EFI_DEVICE_ERROR      The time could not be retrieved due to hardware error.
+
+**/
 EFI_STATUS
 EFIAPI
 MockGetTime (
@@ -338,6 +340,20 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetTime = MockGetTime
 };
 
+/**
+  Mocked version of MockWaitForEvent.
+
+  @param[in]   NumberOfEvents   The number of events in the Event array.
+  @param[in]   Event            An array of EFI_EVENT.
+  @param[out]  Index            The pointer to the index of the event which satisfied the wait condition.
+
+  @retval EFI_SUCCESS           The event indicated by Index was signaled.
+  @retval EFI_INVALID_PARAMETER 1) NumberOfEvents is 0.
+                                2) The event indicated by Index is of type
+                                   EVT_NOTIFY_SIGNAL.
+  @retval EFI_UNSUPPORTED       The current TPL is not TPL_APPLICATION.
+
+**/
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
@@ -368,6 +384,21 @@ EFI_BOOT_SERVICES  MockBoot = {
   .WaitForEvent = MockWaitForEvent,
 };
 
+/**
+  Clean up state machine for this page.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED                Test case cleanup succeeded.
+  @retval  UNIT_TEST_ERROR_CLEANUP_FAILED  Test case cleanup failed.
+
+**/
 VOID
 EFIAPI
 SetupConfCleanup (

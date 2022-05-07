@@ -97,7 +97,7 @@ EfiBootManagerConnectAll (
 }
 
 /**
-  Return a Null-terminated Uefi build date Unicode defined by platform
+  Mocked version of GetBuildDateStringUnicode.
 
   @param[out]       Buffer        The caller allocated buffer to hold the returned build
                                   date Unicode string. May be NULL with a zero Length in
@@ -133,6 +133,18 @@ GetBuildDateStringUnicode (
   return (EFI_STATUS)mock ();
 }
 
+/**
+  Mocked version of GetTime.
+
+  @param[out]  Time             A pointer to storage to receive a snapshot of the current time.
+  @param[out]  Capabilities     An optional pointer to a buffer to receive the real time clock
+                                device's capabilities.
+
+  @retval EFI_SUCCESS           The operation completed successfully.
+  @retval EFI_INVALID_PARAMETER Time is NULL.
+  @retval EFI_DEVICE_ERROR      The time could not be retrieved due to hardware error.
+
+**/
 EFI_STATUS
 EFIAPI
 MockGetTime (
@@ -160,17 +172,7 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
 };
 
 /**
-  Prints a formatted Unicode string to the console output device specified by
-  ConOut defined in the EFI_SYSTEM_TABLE.
-
-  This function prints a formatted Unicode string to the console output device
-  specified by ConOut in EFI_SYSTEM_TABLE and returns the number of Unicode
-  characters that printed to ConOut.  If the length of the formatted Unicode
-  string is greater than PcdUefiLibMaxPrintBufferSize, then only the first
-  PcdUefiLibMaxPrintBufferSize characters are sent to ConOut.
-  If Format is NULL, then ASSERT().
-  If Format is not aligned on a 16-bit boundary, then ASSERT().
-  If gST->ConOut is NULL, then ASSERT().
+  Mock version of Print.
 
   @param Format   A Null-terminated Unicode format string.
   @param ...      A Variable argument list whose contents are accessed based
@@ -199,6 +201,22 @@ Print (
   return Ret;
 }
 
+/**
+  Mocked version of CreateEvent.
+
+  @param[in]   Type             The type of event to create and its mode and attributes.
+  @param[in]   NotifyTpl        The task priority level of event notifications, if needed.
+  @param[in]   NotifyFunction   The pointer to the event's notification function, if any.
+  @param[in]   NotifyContext    The pointer to the notification function's context; corresponds to parameter
+                                Context in the notification function.
+  @param[out]  Event            The pointer to the newly created event if the call succeeds; undefined
+                                otherwise.
+
+  @retval EFI_SUCCESS           The event structure was created.
+  @retval EFI_INVALID_PARAMETER One or more parameters are invalid.
+  @retval EFI_OUT_OF_RESOURCES  The event could not be allocated.
+
+**/
 EFI_STATUS
 EFIAPI
 MockCreateEvent (
@@ -221,6 +239,22 @@ MockCreateEvent (
   return (EFI_STATUS)mock ();
 }
 
+/**
+  Mocked version of SetTimer.
+
+  @param[in]  Event             The timer event that is to be signaled at the specified time.
+  @param[in]  Type              The type of time that is specified in TriggerTime.
+  @param[in]  TriggerTime       The number of 100ns units until the timer expires.
+                                A TriggerTime of 0 is legal.
+                                If Type is TimerRelative and TriggerTime is 0, then the timer
+                                event will be signaled on the next timer tick.
+                                If Type is TimerPeriodic and TriggerTime is 0, then the timer
+                                event will be signaled on every timer tick.
+
+  @retval EFI_SUCCESS           The event has been set to be signaled at the requested time.
+  @retval EFI_INVALID_PARAMETER Event or Type is not valid.
+
+**/
 EFI_STATUS
 EFIAPI
 MockSetTimer (
@@ -236,6 +270,20 @@ MockSetTimer (
   return (EFI_STATUS)mock ();
 }
 
+/**
+  Mocked version of MockWaitForEvent.
+
+  @param[in]   NumberOfEvents   The number of events in the Event array.
+  @param[in]   Event            An array of EFI_EVENT.
+  @param[out]  Index            The pointer to the index of the event which satisfied the wait condition.
+
+  @retval EFI_SUCCESS           The event indicated by Index was signaled.
+  @retval EFI_INVALID_PARAMETER 1) NumberOfEvents is 0.
+                                2) The event indicated by Index is of type
+                                   EVT_NOTIFY_SIGNAL.
+  @retval EFI_UNSUPPORTED       The current TPL is not TPL_APPLICATION.
+
+**/
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
@@ -253,6 +301,14 @@ MockWaitForEvent (
   return EFI_SUCCESS;
 }
 
+/**
+  Mocked version of CloseEvent.
+
+  @param[in]  Event             The event to close.
+
+  @retval EFI_SUCCESS           The event has been closed.
+
+**/
 EFI_STATUS
 EFIAPI
 MockCloseEvent (
@@ -280,6 +336,21 @@ EFI_BOOT_SERVICES  MockBoot = {
   .CloseEvent   = MockCloseEvent,
 };
 
+/**
+  Clean up state machine for this page.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED                Test case cleanup succeeded.
+  @retval  UNIT_TEST_ERROR_CLEANUP_FAILED  Test case cleanup failed.
+
+**/
 VOID
 EFIAPI
 SysInfoCleanup (

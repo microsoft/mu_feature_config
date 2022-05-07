@@ -92,9 +92,7 @@ EfiBootManagerConnectAll (
 }
 
 /**
-  Returns an array of load options based on the EFI variable
-  L"BootOrder"/L"DriverOrder" and the L"Boot####"/L"Driver####" variables impled by it.
-  #### is the hex value of the UINT16 in each BootOrder/DriverOrder entry.
+  Mock version of EfiBootManagerGetLoadOptions.
 
   @param  LoadOptionCount   Returns number of entries in the array.
   @param  LoadOptionType    The type of the load option.
@@ -146,17 +144,7 @@ EfiBootManagerBoot (
 }
 
 /**
-  Prints a formatted Unicode string to the console output device specified by
-  ConOut defined in the EFI_SYSTEM_TABLE.
-
-  This function prints a formatted Unicode string to the console output device
-  specified by ConOut in EFI_SYSTEM_TABLE and returns the number of Unicode
-  characters that printed to ConOut.  If the length of the formatted Unicode
-  string is greater than PcdUefiLibMaxPrintBufferSize, then only the first
-  PcdUefiLibMaxPrintBufferSize characters are sent to ConOut.
-  If Format is NULL, then ASSERT().
-  If Format is not aligned on a 16-bit boundary, then ASSERT().
-  If gST->ConOut is NULL, then ASSERT().
+  Mock version of Print.
 
   @param Format   A Null-terminated Unicode format string.
   @param ...      A Variable argument list whose contents are accessed based
@@ -185,6 +173,20 @@ Print (
   return Ret;
 }
 
+/**
+  Mocked version of MockWaitForEvent.
+
+  @param[in]   NumberOfEvents   The number of events in the Event array.
+  @param[in]   Event            An array of EFI_EVENT.
+  @param[out]  Index            The pointer to the index of the event which satisfied the wait condition.
+
+  @retval EFI_SUCCESS           The event indicated by Index was signaled.
+  @retval EFI_INVALID_PARAMETER 1) NumberOfEvents is 0.
+                                2) The event indicated by Index is of type
+                                   EVT_NOTIFY_SIGNAL.
+  @retval EFI_UNSUPPORTED       The current TPL is not TPL_APPLICATION.
+
+**/
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
@@ -215,6 +217,21 @@ EFI_BOOT_SERVICES  MockBoot = {
   .WaitForEvent = MockWaitForEvent,
 };
 
+/**
+  Clean up state machine for this page.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED                Test case cleanup succeeded.
+  @retval  UNIT_TEST_ERROR_CLEANUP_FAILED  Test case cleanup failed.
+
+**/
 VOID
 EFIAPI
 BootOptionsCleanup (

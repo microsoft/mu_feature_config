@@ -91,6 +91,12 @@ DFCI_AUTHENTICATION_PROTOCOL  MockAuthProtocol = {
   .AuthWithPW            = MockAuthWithPW,
 };
 
+/**
+  Helper function to switch main state machine.
+
+  @param[in] State    The target state the main state machine transition to.
+
+**/
 VOID
 SwitchMachineState (
   IN ConfState_t  State
@@ -170,17 +176,7 @@ EfiBootManagerConnectAll (
 }
 
 /**
-  Prints a formatted Unicode string to the console output device specified by
-  ConOut defined in the EFI_SYSTEM_TABLE.
-
-  This function prints a formatted Unicode string to the console output device
-  specified by ConOut in EFI_SYSTEM_TABLE and returns the number of Unicode
-  characters that printed to ConOut.  If the length of the formatted Unicode
-  string is greater than PcdUefiLibMaxPrintBufferSize, then only the first
-  PcdUefiLibMaxPrintBufferSize characters are sent to ConOut.
-  If Format is NULL, then ASSERT().
-  If Format is not aligned on a 16-bit boundary, then ASSERT().
-  If gST->ConOut is NULL, then ASSERT().
+  Mock version of Print.
 
   @param Format   A Null-terminated Unicode format string.
   @param ...      A Variable argument list whose contents are accessed based
@@ -209,6 +205,23 @@ Print (
   return Ret;
 }
 
+/**
+  Mocked version of LocateProtocol.
+
+  @param[in]  Protocol          Provides the protocol to search for.
+  @param[in]  Registration      Optional registration key returned from
+                                RegisterProtocolNotify().
+  @param[out]  Interface        On return, a pointer to the first interface that matches Protocol and
+                                Registration.
+
+  @retval EFI_SUCCESS           A protocol instance matching Protocol was found and returned in
+                                Interface.
+  @retval EFI_NOT_FOUND         No protocol instances were found that match Protocol and
+                                Registration.
+  @retval EFI_INVALID_PARAMETER Interface is NULL.
+                                Protocol is NULL.
+
+**/
 EFI_STATUS
 EFIAPI
 MockLocateProtocol (
@@ -227,6 +240,21 @@ MockLocateProtocol (
   return EFI_SUCCESS;
 }
 
+/**
+  Mocked version of HandleProtocol.
+
+  @param[in]   Handle           The handle being queried.
+  @param[in]   Protocol         The published unique identifier of the protocol.
+  @param[out]  Interface        Supplies the address where a pointer to the corresponding Protocol
+                                Interface is returned.
+
+  @retval EFI_SUCCESS           The interface information for the specified protocol was returned.
+  @retval EFI_UNSUPPORTED       The device does not support the specified protocol.
+  @retval EFI_INVALID_PARAMETER Handle is NULL.
+  @retval EFI_INVALID_PARAMETER Protocol is NULL.
+  @retval EFI_INVALID_PARAMETER Interface is NULL.
+
+**/
 EFI_STATUS
 EFIAPI
 MockHandleProtocol (
@@ -244,6 +272,22 @@ MockHandleProtocol (
   return EFI_SUCCESS;
 }
 
+/**
+  Mocked version of SetWatchdogTimer.
+
+  @param[in]  Timeout           The number of seconds to set the watchdog timer to.
+  @param[in]  WatchdogCode      The numeric code to log on a watchdog timer timeout event.
+  @param[in]  DataSize          The size, in bytes, of WatchdogData.
+  @param[in]  WatchdogData      A data buffer that includes a Null-terminated string, optionally
+                                followed by additional binary data.
+
+  @retval EFI_SUCCESS           The timeout has been set.
+  @retval EFI_INVALID_PARAMETER The supplied WatchdogCode is invalid.
+  @retval EFI_UNSUPPORTED       The system does not have a watchdog timer.
+  @retval EFI_DEVICE_ERROR      The watchdog timer could not be programmed due to a hardware
+                                error.
+
+**/
 EFI_STATUS
 EFIAPI
 MockSetWatchdogTimer (
@@ -262,6 +306,20 @@ MockSetWatchdogTimer (
   return (EFI_STATUS)mock ();
 }
 
+/**
+  Mocked version of WaitForEvent.
+
+  @param[in]   NumberOfEvents   The number of events in the Event array.
+  @param[in]   Event            An array of EFI_EVENT.
+  @param[out]  Index            The pointer to the index of the event which satisfied the wait condition.
+
+  @retval EFI_SUCCESS           The event indicated by Index was signaled.
+  @retval EFI_INVALID_PARAMETER 1) NumberOfEvents is 0.
+                                2) The event indicated by Index is of type
+                                   EVT_NOTIFY_SIGNAL.
+  @retval EFI_UNSUPPORTED       The current TPL is not TPL_APPLICATION.
+
+**/
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (

@@ -64,25 +64,7 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
 };
 
 /**
-  Searches all the availables firmware volumes and returns the first matching FFS section.
-
-  This function searches all the firmware volumes for FFS files with an FFS filename specified by NameGuid.
-  The order that the firmware volumes is searched is not deterministic. For each FFS file found a search
-  is made for FFS sections of type SectionType. If the FFS file contains at least SectionInstance instances
-  of the FFS section specified by SectionType, then the SectionInstance instance is returned in Buffer.
-  Buffer is allocated using AllocatePool(), and the size of the allocated buffer is returned in Size.
-  It is the caller's responsibility to use FreePool() to free the allocated buffer.
-  See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections
-  are retrieved from an FFS file based on SectionType and SectionInstance.
-
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
-  This function must be called with a TPL <= TPL_NOTIFY.
-
-  If NameGuid is NULL, then ASSERT().
-  If Buffer is NULL, then ASSERT().
-  If Size is NULL, then ASSERT().
-
+  Mocked version of GetSectionFromAnyFv.
 
   @param  NameGuid             A pointer to to the FFS filename GUID to search for
                                within any of the firmware volumes in the platform.
@@ -135,13 +117,13 @@ GetSectionFromAnyFv (
 }
 
 /**
-Registers a Setting Provider with the System Settings module
+  Mocked version of DfciRegisterProvider
 
-@param  This                 Protocol instance pointer.
-@param  Provider             Provider pointer to register
+  @param  This                 Protocol instance pointer.
+  @param  Provider             Provider pointer to register
 
-@retval EFI_SUCCESS          The provider registered.
-@retval ERROR                The provider could not be registered.
+  @retval EFI_SUCCESS          The provider registered.
+  @retval ERROR                The provider could not be registered.
 
 **/
 EFI_STATUS
@@ -167,20 +149,7 @@ DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  mMockDfciSetting = {
 };
 
 /**
-  Creates and returns a notification event and registers that event with all the protocol
-  instances specified by ProtocolGuid.
-
-  This function causes the notification function to be executed for every protocol of type
-  ProtocolGuid instance that exists in the system when this function is invoked. If there are
-  no instances of ProtocolGuid in the handle database at the time this function is invoked,
-  then the notification function is still executed one time. In addition, every time a protocol
-  of type ProtocolGuid instance is installed or reinstalled, the notification function is also
-  executed. This function returns the notification event that was created.
-  If ProtocolGuid is NULL, then ASSERT().
-  If NotifyTpl is not a legal TPL value, then ASSERT().
-  If NotifyFunction is NULL, then ASSERT().
-  If Registration is NULL, then ASSERT().
-
+  Mocked version of EfiCreateProtocolNotifyEvent.
 
   @param  ProtocolGuid    Supplies GUID of the protocol upon whose installation the event is fired.
   @param  NotifyTpl       Supplies the task priority level of the event notifications.
@@ -210,9 +179,7 @@ EfiCreateProtocolNotifyEvent (
 }
 
 /**
-  This helper function does everything that CreateBasicVariablePolicy() does, but also
-  uses the passed in protocol to register the policy with the infrastructure.
-  Does not return a buffer, does not require the caller to free anything.
+  Mocked version of RegisterVarStateVariablePolicy.
 
   @param[in]  VariablePolicy  Pointer to a valid instance of the VariablePolicy protocol.
   @param[in]  Namespace   Pointer to an EFI_GUID for the target variable namespace that this policy will protect.
@@ -260,7 +227,7 @@ RegisterVarStateVariablePolicy (
 }
 
 /**
-  Returns the value of a variable.
+  Mocked version of GetVariable.
 
   @param[in]       VariableName  A Null-terminated string that is the name of the vendor's
                                  variable.
@@ -318,7 +285,7 @@ MockGetVariable (
 }
 
 /**
-  Sets the value of a variable.
+  Mocked version of SetVariable.
 
   @param[in]  VariableName       A Null-terminated string that is the name of the vendor's variable.
                                  Each VariableName is unique for each VendorGuid. VariableName must
@@ -383,6 +350,23 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
   .SetVariable = MockSetVariable,
 };
 
+/**
+  Mocked version of LocateProtocol.
+
+  @param[in]  Protocol          Provides the protocol to search for.
+  @param[in]  Registration      Optional registration key returned from
+                                RegisterProtocolNotify().
+  @param[out]  Interface        On return, a pointer to the first interface that matches Protocol and
+                                Registration.
+
+  @retval EFI_SUCCESS           A protocol instance matching Protocol was found and returned in
+                                Interface.
+  @retval EFI_NOT_FOUND         No protocol instances were found that match Protocol and
+                                Registration.
+  @retval EFI_INVALID_PARAMETER Interface is NULL.
+                                Protocol is NULL.
+
+**/
 EFI_STATUS
 EFIAPI
 MockLocateProtocol (
