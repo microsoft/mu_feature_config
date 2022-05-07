@@ -62,6 +62,25 @@ BootOptionMgr (
 }
 
 /**
+  State machine for secure boot page. It will react to user input from keystroke
+  to set selected secure boot option or go back to previous page.
+
+  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
+  @retval Others                Failed to wait for valid keystrokes or failed to set
+                                platform key to variable service.
+**/
+EFI_STATUS
+EFIAPI
+SecureBootMgr (
+  VOID
+  )
+{
+  // Not used
+  ASSERT (FALSE);
+  return EFI_ACCESS_DENIED;
+}
+
+/**
   State machine for configuration setup. It will react to user keystroke to accept
   configuration data from selected option.
 

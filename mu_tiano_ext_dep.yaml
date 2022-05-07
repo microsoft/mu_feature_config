@@ -1,6 +1,6 @@
 
 #
-# This external dependency pulls MU_BASECORE for the IPMI feature package CI.
+# This external dependency pulls MU_BASECORE for the configuration feature package CI.
 # This should not be pulled when consuming this package as a dependency.
 #
 {
@@ -9,6 +9,6 @@
   "name": "MU_TIANO_PLUS",
   "var_name": "MU_TIANO_PATH",
   "source": "https://github.com/microsoft/mu_tiano_plus.git",
-  "version": "62721e22258c38f65aaf0499208d4fb266775ace", # release/202202
+  "version": "81f1216adc1d7f8596fd5b4bbed439b1dfb992df", # release/202202
   "flags": ["set_build_var"]
 }

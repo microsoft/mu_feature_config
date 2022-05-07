@@ -258,6 +258,25 @@ BootOptionMgr (
 }
 
 /**
+  State machine for secure boot page. It will react to user input from keystroke
+  to set selected secure boot option or go back to previous page.
+
+  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
+  @retval Others                Failed to wait for valid keystrokes or failed to set
+                                platform key to variable service.
+**/
+EFI_STATUS
+EFIAPI
+SecureBootMgr (
+  VOID
+  )
+{
+  // Not used
+  ASSERT (FALSE);
+  return EFI_ACCESS_DENIED;
+}
+
+/**
   This function will connect all the system driver to controller
   first, and then special connect the default console, this make
   sure all the system controller available and the platform default

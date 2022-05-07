@@ -7,6 +7,7 @@
 **/
 
 #include <Uefi.h>
+#include <UefiSecureBoot.h>
 #include <DfciSystemSettingTypes.h>
 #include <Protocol/DfciAuthentication.h>
 
@@ -19,6 +20,7 @@
 #include <Library/ResetSystemLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootManagerLib.h>
+#include <Library/SecureBootKeyStoreLib.h>
 
 #include "ConfApp.h"
 
@@ -86,6 +88,8 @@ EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx = NULL;
 DFCI_SETTING_ACCESS_PROTOCOL       *mSettingAccess  = NULL;
 DFCI_AUTH_TOKEN                    mAuthToken;
 DFCI_IDENTITY_MASK                 mIdMask;          // Identities installed
+SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
+UINT8                              mSecureBootKeysCount;
 
 /**
   Polling function for key that was pressed.
@@ -386,6 +390,12 @@ ConfAppEntry (
     goto Exit;
   }
 
+  Status = GetPlatformKeyStore (&mSecureBootKeys, &mSecureBootKeysCount);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to get platform secure boot keys. Code = %r.\n", Status));
+    goto Exit;
+  }
+
   // Force-connect all controllers.
   //
   EfiBootManagerConnectAll ();
@@ -437,10 +447,7 @@ ConfAppEntry (
         Status = SysInfoMgr ();
         break;
       case SecureBoot:
-        // TODO:
-        // Status = SecureBootMgr ();
-        Print (L"This feature is under construction yet, please check back later...\n");
-        mConfState = MainWait;
+        Status = SecureBootMgr ();
         break;
       case BootOption:
         Status = BootOptionMgr ();

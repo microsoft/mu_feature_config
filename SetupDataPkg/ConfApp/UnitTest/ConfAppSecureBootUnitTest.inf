@@ -1,5 +1,5 @@
 ## @file
-# Unit tests of the System Information page of ConfApp module
+# Unit tests of the Boot Option page of ConfApp module
 #
 # Copyright (C) Microsoft Corporation.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -7,8 +7,8 @@
 
 [Defines]
   INF_VERSION                    = 0x00010006
-  BASE_NAME                      = ConfAppSysInfoUnitTest
-  FILE_GUID                      = 8C4D1054-8E5C-4AC9-8C50-B27180565028
+  BASE_NAME                      = ConfAppSecureBootUnitTest
+  FILE_GUID                      = 98AA24A5-D73D-4CD9-8EA1-4910CB1AC551
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
 
@@ -19,11 +19,11 @@
 #
 
 [Sources]
-  ConfAppSysInfoUnitTest.c
+  ConfAppSecureBootUnitTest.c
   ConInConOut.c
   ../ConfApp.c
   ../ConfApp.h
-  ../SystemInfo.c
+  ../SecureBoot.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -45,6 +45,9 @@
   PrintLib
   ResetSystemLib
   SecureBootKeyStoreLib
+
+[Guids]
+  gMuVarPolicyDxePhaseGuid
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
