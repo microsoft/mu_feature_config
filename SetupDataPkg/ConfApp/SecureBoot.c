@@ -177,7 +177,7 @@ SecureBootMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for secure boot selections - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SecBootStateOptions, SEC_BOOT_CONF_STATE_OPTIONS, (UINTN *)&mSecBootState);
+        Status = CheckSupportedOptions (&KeyData, SecBootStateOptions, SEC_BOOT_CONF_STATE_OPTIONS, (UINT32 *)&mSecBootState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {

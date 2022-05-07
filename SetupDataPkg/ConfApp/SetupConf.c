@@ -29,21 +29,8 @@
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
 
-#define DEFAULT_USB_FILE_NAME  L"DfciUpdate.Dfi"
+#define DEFAULT_USB_FILE_NAME  L"SetupConfUpdate.svd"
 #define CURRENT_XML_TEMPLATE   "<?xml version=\"1.0\" encoding=\"utf-8\"?><CurrentSettingsPacket xmlns=\"urn:UefiSettings-Schema\"></CurrentSettingsPacket>"
-
-typedef enum {
-  SetupConfInit,
-  SetupConfWait,
-  SetupConfUpdateUsb,
-  SetupConfUpdateNetwork,
-  SetupConfUpdateSerialHint,
-  SetupConfUpdateSerial,
-  SetupConfDumpSerial,
-  SetupConfDumpComplete,
-  SetupConfExit,
-  SetupConfMax
-} SetupConfState_t;
 
 #define SETUP_CONF_STATE_OPTIONS  6
 
@@ -359,7 +346,8 @@ ApplySettings (
     Status    = Base64Decode (Value, b64Size, NULL, &ValueSize);
     if (Status != EFI_BUFFER_TOO_SMALL) {
       DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
-      return EFI_INVALID_PARAMETER;
+      Status = EFI_INVALID_PARAMETER;
+      goto EXIT;
     }
 
     ByteArray = (UINT8 *)AllocatePool (ValueSize);
@@ -368,12 +356,18 @@ ApplySettings (
     if (EFI_ERROR (Status)) {
       FreePool (ByteArray);
       DEBUG ((DEBUG_ERROR, "Cannot set binary data. Code=%r\n", Status));
-      return Status;
+      goto EXIT;
     }
 
     SetValue = ByteArray;
     DEBUG ((DEBUG_INFO, "Setting BINARY data\n"));
     DUMP_HEX (DEBUG_VERBOSE, 0, SetValue, ValueSize, "");
+
+    if (mSettingAccess == NULL) {
+      // Should not be here
+      Status = EFI_NOT_STARTED;
+      goto EXIT;
+    }
 
     // Now set the settings
     Status = mSettingAccess->Set (
@@ -621,6 +615,17 @@ Exit:
   return Status;
 }
 
+/**
+  Handler function dispatched for individual tag based data.
+
+  @param[in] Tag          Discovered Tag ID of Buffer.
+  @param[in] Buffer       Data content of Tag ID from target configuration data blob.
+  @param[in] BufferSize   Size of Tag ID buffer discovered from target configuration data blob.
+
+  @retval EFI_INVALID_PARAMETER   Input argument is null.
+  @retval EFI_SUCCESS             All p.
+
+**/
 EFI_STATUS
 EFIAPI
 CollectAllConfigTags (
@@ -930,7 +935,7 @@ SetupConfMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS, (UINTN *)&mSetupConfState);
+        Status = CheckSupportedOptions (&KeyData, SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS, (UINT32 *)&mSetupConfState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {

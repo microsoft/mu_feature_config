@@ -22,17 +22,6 @@
 
 #include "ConfApp.h"
 
-typedef enum {
-  MainInit,
-  MainWait,
-  SystemInfo,
-  SecureBoot,
-  BootOption,
-  SetupConf,
-  MainExit,
-  StateMax
-} ConfState_t;
-
 #define MAIN_STATE_OPTIONS  6
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
@@ -261,7 +250,7 @@ CheckSupportedOptions (
   IN  EFI_KEY_DATA             *KeyData,
   IN  CONST ConfAppKeyOptions  *KeyOptions,
   IN  UINTN                    OptionCount,
-  IN  UINTN                    *State
+  IN  UINT32                   *State
   )
 {
   UINTN       Index  = 0;
@@ -434,7 +423,7 @@ ConfAppEntry (
           DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for keystroke - %r\n", __FUNCTION__, Status));
           ASSERT (FALSE);
         } else {
-          Status = CheckSupportedOptions (&KeyData, MainStateOptions, MAIN_STATE_OPTIONS, (UINTN *)&mConfState);
+          Status = CheckSupportedOptions (&KeyData, MainStateOptions, MAIN_STATE_OPTIONS, (UINT32 *)&mConfState);
           if (Status == EFI_NOT_FOUND) {
             Status = EFI_SUCCESS;
           } else if (EFI_ERROR (Status)) {

@@ -14,6 +14,48 @@
 
 #define NO_TRANSITION_STATE  MAX_UINTN
 
+typedef enum ConfState_t_def {
+  MainInit,
+  MainWait,
+  SystemInfo,
+  SecureBoot,
+  BootOption,
+  SetupConf,
+  MainExit,
+  StateMax
+} ConfState_t;
+
+typedef enum SysInfoState_t_def {
+  SysInfoInit,
+  SysInfoWait,
+  SysInfoExit,
+  SysInfoMax
+} SysInfoState_t;
+
+typedef enum BootOptState_t_def {
+  BootOptInit,
+  BootOptWait,
+  BootOptBootNow,
+  BootOptReorder,
+  BootOptExit,
+  BootOptMax
+} BootOptState_t;
+
+typedef enum SetupConfState_t_def {
+  SetupConfInit,
+  SetupConfWait,
+  SetupConfUpdateUsb,
+  SetupConfUpdateNetwork,
+  SetupConfUpdateSerialHint,
+  SetupConfUpdateSerial,
+  SetupConfDumpSerial,
+  SetupConfDumpComplete,
+  SetupConfExit,
+  SetupConfMax
+} SetupConfState_t;
+
+#pragma pack (push, 1)
+
 typedef struct {
   CHAR16    *KeyName;
   UINT8     KeyNameTextAttr;
@@ -21,8 +63,12 @@ typedef struct {
   UINT8     DescriptionTextAttr;
   CHAR16    UnicodeChar;
   CHAR16    ScanCode;
-  UINTN     EndState;
+  UINT32    EndState;
 } ConfAppKeyOptions;
+
+STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does not match sizeof (enum) in this environment");
+
+#pragma pack (pop)
 
 /**
   Polling function for key that was pressed.
@@ -77,7 +123,7 @@ CheckSupportedOptions (
   IN  EFI_KEY_DATA             *KeyData,
   IN  CONST ConfAppKeyOptions  *KeyOptions,
   IN  UINTN                    OptionCount,
-  IN  UINTN                    *State
+  IN  UINT32                   *State
   );
 
 /**

@@ -18,13 +18,15 @@
 /**
   Find configuration data header by its tag and platform ID.
 
-  @param[in] ConfDataPtr  Pointer to configuration data.
+  @param[in] ConfDataPtr      Pointer to configuration data.
+  @param[in] SingleTagHandler Function pointer to process each individual configuration data.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_SUCCESS             All p.
 
 **/
 EFI_STATUS
+EFIAPI
 IterateConfData (
   IN CONST VOID          *ConfDataPtr,
   IN SINGLE_TAG_HANDLER  SingleTagHandler
@@ -43,7 +45,16 @@ IterateConfData (
   }
 
   CdataBlob = (CDATA_BLOB *)ConfDataPtr;
-  Offset    = CdataBlob->HeaderLength;
+  if ((CdataBlob->Signature != CFG_DATA_SIGNATURE) ||
+      (CdataBlob->HeaderLength > CdataBlob->TotalLength) ||
+      (CdataBlob->HeaderLength > CdataBlob->UsedLength) ||
+      (CdataBlob->UsedLength > CdataBlob->TotalLength))
+  {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = EFI_SUCCESS;
+  Offset = CdataBlob->HeaderLength;
   DEBUG ((DEBUG_VERBOSE, "Config Blob Header\n"));
   DEBUG ((DEBUG_VERBOSE, "Signature:     0x%08X\n", CdataBlob->Signature));
   DEBUG ((DEBUG_VERBOSE, "HeaderLength:  0x%02X\n", CdataBlob->HeaderLength));

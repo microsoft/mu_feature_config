@@ -46,4 +46,19 @@ FindConfigDataByTag (
   UINT32  Tag
   );
 
+/**
+  Get a full CFGDATA set length.
+
+  @param[in] ConfBlob    Pointer to configuration data blob to be looked at.
+
+  @retval   Length of a full CFGDATA set.
+            0 indicates no CFGDATA exists.
+
+**/
+UINT32
+EFIAPI
+GetConfigDataSize (
+  VOID  *ConfBlob
+  );
+
 #endif

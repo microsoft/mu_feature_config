@@ -23,6 +23,10 @@
     "CompilerPlugin": {
         "DscPath": "SetupDataPkg.dsc"
     },
+    ## options defined .pytool/Plugin/HostUnitTestCompilerPlugin
+    "HostUnitTestCompilerPlugin": {
+        "DscPath": "Test/SetupDataPkgHostTest.dsc"
+    },
     "CharEncodingCheck": {
         "IgnoreFiles": []
     },
@@ -38,7 +42,9 @@
             "SetupDataPkg/SetupDataPkg.dec"
         ],
         # For host based unit tests
-        "AcceptableDependencies-HOST_APPLICATION":[],
+        "AcceptableDependencies-HOST_APPLICATION":[
+            "UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec"
+        ],
         # For UEFI shell based apps
         "AcceptableDependencies-UEFI_APPLICATION":[],
         "IgnoreInf": []
@@ -46,6 +52,11 @@
     "DscCompleteCheck": {
         "DscPath": "SetupDataPkg.dsc",
         "IgnoreInf": []
+    },
+    ## options defined .pytool/Plugin/HostUnitTestDscCompleteCheck
+    "HostUnitTestDscCompleteCheck": {
+        "IgnoreInf": [""],
+        "DscPath": "Test/SetupDataPkgHostTest.dsc"
     },
     "GuidCheck": {
         "IgnoreGuidName": [],
@@ -60,7 +71,9 @@
     ## options defined ci/Plugin/SpellCheck
     "SpellCheck": {
         "AuditOnly": False,          # Fails test but run in AuditOnly mode to collect log
-        "IgnoreFiles": [],           # use gitignore syntax to ignore errors in matching files
+        "IgnoreFiles": [
+          "Test/Include/Good_Config_Data.h"
+        ],           # use gitignore syntax to ignore errors in matching files
         "ExtendWords": [
           "basecore",
           "configdatalib",

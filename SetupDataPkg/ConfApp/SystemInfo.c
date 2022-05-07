@@ -19,13 +19,6 @@
 
 #include "ConfApp.h"
 
-typedef enum {
-  SysInfoInit,
-  SysInfoWait,
-  SysInfoExit,
-  SysInfoMax
-} SysInfoState_t;
-
 #define SYS_INFO_STATE_OPTIONS  1
 
 CONST ConfAppKeyOptions  SysInfoStateOptions[SYS_INFO_STATE_OPTIONS] = {
@@ -75,6 +68,13 @@ PrintVersion (
   UINTN       Length  = 0;
 
   Status = GetBuildDateStringUnicode (NULL, &Length);
+  if (Status != EFI_BUFFER_TOO_SMALL) {
+    DEBUG ((DEBUG_ERROR, "%a Get the size of build date string returns unexpected - %r\n", __FUNCTION__, Status));
+    ASSERT (FALSE);
+    Status = EFI_DEVICE_ERROR;
+    return Status;
+  }
+
   Buffer = AllocateZeroPool ((Length + 1) * sizeof (CHAR16));
   if (Buffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
@@ -251,7 +251,7 @@ SysInfoMgr (
         DEBUG ((DEBUG_ERROR, "%a Waiting for keystroke failed at system info page - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINTN *)&mSysInfoState);
+        Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINT32 *)&mSysInfoState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {

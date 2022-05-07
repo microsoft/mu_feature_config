@@ -20,15 +20,6 @@
 
 #include "ConfApp.h"
 
-typedef enum {
-  BootOptInit,
-  BootOptWait,
-  BootOptBootNow,
-  BootOptReorder,
-  BootOptExit,
-  BootOptMax
-} BootOptState_t;
-
 #define STATIC_BOOT_OPTIONS  2
 
 CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {
@@ -39,7 +30,7 @@ CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
     .UnicodeChar         = CHAR_NULL,
     .ScanCode            = SCAN_NULL,
-    .EndState            = MAX_UINTN
+    .EndState            = MAX_UINT32
   },
   {
     .KeyName             = L"ESC",
@@ -169,7 +160,7 @@ BootOptionMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for key stroke - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINTN *)&mBootOptState);
+        Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINT32 *)&mBootOptState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
@@ -186,6 +177,7 @@ BootOptionMgr (
       EfiBootManagerBoot (mBootOptions + mOpCandidate);
       // If we ever come back, we should directly reboot since the state of system might have changed...
       ResetCold ();
+      CpuDeadLoop ();
       break;
     case BootOptExit:
       ResetGlobals ();

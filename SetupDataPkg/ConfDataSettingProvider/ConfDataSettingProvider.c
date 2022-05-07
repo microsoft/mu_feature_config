@@ -9,6 +9,7 @@
 #include <Uefi.h>
 #include <DfciSystemSettingTypes.h>
 #include <Guid/MuVarPolicyFoundationDxe.h>
+#include <Pi/PiFirmwareFile.h>
 
 #include <Protocol/DfciSettingsProvider.h>
 #include <Protocol/VariablePolicy.h>
@@ -29,6 +30,19 @@
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
 
+/**
+  Find and return the default value of a setting from UEFI FV.
+
+  @param ValueSize      IN=Size of location to store value
+                        OUT=Size of value stored
+  @param Value          Output parameter for the settings default value.
+                        The type and size is based on the provider type
+                        and must be allocated by the caller.
+
+  @retval EFI_SUCCESS           If the default could be returned.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
+**/
 EFI_STATUS
 GetDefaultConfigDataBin (
   IN OUT  UINTN  *ValueSize,
@@ -69,7 +83,7 @@ Exit:
 }
 
 /**
-  Get the default value of a single setting from UEFI FV.
+  Get the default value of configuration settings from UEFI FV.
   This getter will serialize default configuration setting
   to printable strings to be used in Config App.
 
@@ -108,8 +122,7 @@ ConfDataGetDefault (
 }
 
 /**
-  Get a single setting from variable storage and serial content
-  to printable string.
+  Get the full setting in binary from FV.
 
   @param This       Seting Provider
   @param ValueSize  IN=Size of location to store value
@@ -129,7 +142,7 @@ ConfDataGet (
   OUT      UINT8                  *Value
   )
 {
-  if ((This == NULL) || (ValueSize == NULL)) {
+  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -142,6 +155,8 @@ ConfDataGet (
   return ConfDataGetDefault (This, ValueSize, Value);
 }
 
+// Helper functions to set a per-tag based data
+STATIC
 EFI_STATUS
 EFIAPI
 SetSingleConfigData (
@@ -196,7 +211,7 @@ ConfDataSet (
 {
   EFI_STATUS  Status = EFI_SUCCESS;
 
-  if ((This == NULL) || (Flags == NULL) || (Value == NULL)) {
+  if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -233,7 +248,7 @@ ConfDataSetDefault (
   UINTN       Size  = 0;
   VOID        *Data = NULL;
 
-  if (This == NULL) {
+  if ((This == NULL) || (This->Id == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -279,27 +294,53 @@ DFCI_SETTING_PROVIDER  mSettingsProvider = {
   (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
 };
 
+/*
+  Helper function extract tag ID from single setting provider ID.
+
+  @param IdString       Seting Provider ID, should be in the format
+                        SINGLE_SETTING_PROVIDER_TEMPLATE
+  @param TagId          Pointer to hold extracted TagId value in the
+                        IdString.
+
+  @retval EFI_SUCCESS             Tag ID extracted.
+  @retval EFI_INVALID_PARAMETER   Input ID string does not match template,
+                                  or the
+*/
 EFI_STATUS
 GetTagIdFromDfciId (
-  DFCI_SETTING_ID_STRING  IdString,
-  UINT32                  *TagId
+  IN  DFCI_SETTING_ID_STRING  IdString,
+  OUT UINT32                  *TagId
   )
 {
-  UINTN  Temp;
-  UINTN  Offset;
+  UINT32  Temp;
+  UINTN   Offset;
+  CHAR8   Char;
+  UINTN   TotalSize = sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2;
 
   if ((TagId == NULL) ||
       (IdString == NULL) ||
-      !AsciiStrStr (IdString, SINGLE_SETTING_PROVIDER_START))
+      (AsciiStrSize (IdString) != TotalSize) ||
+      !CompareMem (IdString, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START)))
   {
     return EFI_INVALID_PARAMETER;
   }
 
-  Offset = sizeof (SINGLE_SETTING_PROVIDER_START);
+  // Till here, we know that we have 8 bytes left to process
+  Offset = sizeof (SINGLE_SETTING_PROVIDER_START) - 1;
 
-  Temp = AsciiStrHexToUintn (&IdString[Offset]);
-  if (Temp > MAX_UINT32) {
-    return EFI_BAD_BUFFER_SIZE;
+  Temp = 0;
+  while (Offset < (TotalSize - 1)) {
+    Char = IdString[Offset];
+    if ((Char >= 'A') && (Char <= 'F')) {
+      Temp = (Temp << 4) + (Char - 'A' + 0x0A);
+    } else if ((Char >= '0') && (Char <= '9')) {
+      Temp = (Temp << 4) + (Char - '0');
+    } else {
+      // Do not support other characters from here...
+      return EFI_INVALID_PARAMETER;
+    }
+
+    Offset++;
   }
 
   *TagId = (UINT32)Temp;
@@ -359,11 +400,13 @@ SingleConfDataSetDefault (
   TagHdrBuffer = FindConfigHdrByTag (DefaultBuffer, TagId);
   if (TagHdrBuffer == NULL) {
     Status = EFI_NOT_FOUND;
+    goto Done;
   }
 
   TagBuffer = FindConfigDataByTag (DefaultBuffer, TagId);
   if (TagBuffer == NULL) {
     Status = EFI_NOT_FOUND;
+    goto Done;
   }
 
   Size    = AsciiStrLen (This->Id);
@@ -431,6 +474,11 @@ SingleConfDataGetDefault (
     goto Done;
   }
 
+  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
   Size   = 0;
   Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
   if (Status != EFI_BUFFER_TOO_SMALL) {
@@ -448,19 +496,16 @@ SingleConfDataGetDefault (
     goto Done;
   }
 
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
-
   TagHdrBuffer = FindConfigHdrByTag (DefaultBuffer, TagId);
   if (TagHdrBuffer == NULL) {
     Status = EFI_NOT_FOUND;
+    goto Done;
   }
 
   TagBuffer = FindConfigDataByTag (DefaultBuffer, TagId);
   if (TagBuffer == NULL) {
     Status = EFI_NOT_FOUND;
+    goto Done;
   }
 
   Size = (TagHdrBuffer->Length << 2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum;
@@ -506,7 +551,7 @@ SingleConfDataSet (
   CHAR16      *VarName = NULL;
   UINTN       Size;
 
-  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0)) {
+  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0) || (Flags == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
@@ -527,6 +572,10 @@ SingleConfDataSet (
 
   // Now set it to non-volatile variable
   Status = gRT->SetVariable (VarName, PcdGetPtr (PcdConfigPolicyVariableGuid), CDATA_NV_VAR_ATTR, ValueSize, (VOID *)Value);
+
+  if (!EFI_ERROR (Status)) {
+    *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
+  }
 
 Done:
   if (VarName != NULL) {

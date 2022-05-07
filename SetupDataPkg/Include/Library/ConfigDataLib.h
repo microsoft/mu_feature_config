@@ -122,7 +122,9 @@ typedef struct {
 /**
   Handler function dispatched for individual tag based data.
 
-  @param[in] ConfDataPtr  Pointer to configuration data.
+  @param[in] Tag          Discovered Tag ID of Buffer.
+  @param[in] Buffer       Data content of Tag ID from target configuration data blob.
+  @param[in] BufferSize   Size of Tag ID buffer discovered from target configuration data blob.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_SUCCESS             All p.
@@ -138,13 +140,15 @@ typedef EFI_STATUS
 /**
   Find configuration data header by its tag and platform ID.
 
-  @param[in] ConfDataPtr  Pointer to configuration data.
+  @param[in] ConfDataPtr      Pointer to configuration data.
+  @param[in] SingleTagHandler Function pointer to process each individual configuration data.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_SUCCESS             All p.
 
 **/
 EFI_STATUS
+EFIAPI
 IterateConfData (
   IN CONST VOID          *ConfDataPtr,
   IN SINGLE_TAG_HANDLER  SingleTagHandler
