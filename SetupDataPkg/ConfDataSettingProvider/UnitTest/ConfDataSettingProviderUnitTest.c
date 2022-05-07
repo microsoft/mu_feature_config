@@ -154,7 +154,7 @@ DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  mMockDfciSetting = {
   @param  ProtocolGuid    Supplies GUID of the protocol upon whose installation the event is fired.
   @param  NotifyTpl       Supplies the task priority level of the event notifications.
   @param  NotifyFunction  Supplies the function to notify when the event is signaled.
-  @param  NotifyContext   The context parameter to pass to NotifyFunction.
+  @param  NotifyContext   The optional context parameter to pass to NotifyFunction.
   @param  Registration    A pointer to a memory location to receive the registration value.
                           This value is passed to LocateHandle() to obtain new handles that
                           have been added that support the ProtocolGuid-specified protocol.
