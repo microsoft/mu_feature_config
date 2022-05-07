@@ -18,7 +18,8 @@
 /**
   Find configuration data header by its tag and platform ID.
 
-  @param[in] ConfDataPtr  Pointer to configuration data.
+  @param[in] ConfDataPtr      Pointer to configuration data.
+  @param[in] SingleTagHandler Function pointer to process each individual configuration data.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_SUCCESS             All p.

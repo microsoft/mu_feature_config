@@ -28,7 +28,9 @@
 /**
   Handler function dispatched for individual tag based data.
 
-  @param[in] ConfDataPtr  Pointer to configuration data.
+  @param[in] Tag          Discovered Tag ID of Buffer.
+  @param[in] Buffer       Data content of Tag ID from target configuration data blob.
+  @param[in] BufferSize   Size of Tag ID buffer discovered from target configuration data blob.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_SUCCESS             All p.
