@@ -163,17 +163,7 @@ SetSecureBootConfig (
 }
 
 /**
-  Prints a formatted Unicode string to the console output device specified by
-  ConOut defined in the EFI_SYSTEM_TABLE.
-
-  This function prints a formatted Unicode string to the console output device
-  specified by ConOut in EFI_SYSTEM_TABLE and returns the number of Unicode
-  characters that printed to ConOut.  If the length of the formatted Unicode
-  string is greater than PcdUefiLibMaxPrintBufferSize, then only the first
-  PcdUefiLibMaxPrintBufferSize characters are sent to ConOut.
-  If Format is NULL, then ASSERT().
-  If Format is not aligned on a 16-bit boundary, then ASSERT().
-  If gST->ConOut is NULL, then ASSERT().
+  Mock version of Print.
 
   @param Format   A Null-terminated Unicode format string.
   @param ...      A Variable argument list whose contents are accessed based
@@ -296,6 +286,21 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetVariable = MockGetVariable
 };
 
+/**
+  Clean up state machine for this page.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED                Test case cleanup succeeded.
+  @retval  UNIT_TEST_ERROR_CLEANUP_FAILED  Test case cleanup failed.
+
+**/
 VOID
 EFIAPI
 SecureBootCleanup (
