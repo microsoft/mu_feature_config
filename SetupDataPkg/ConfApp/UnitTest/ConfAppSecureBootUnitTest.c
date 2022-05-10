@@ -192,6 +192,20 @@ Print (
   return Ret;
 }
 
+/**
+  Mock function for WaitForEvent.
+
+  @param[in]   NumberOfEvents   The number of events in the Event array.
+  @param[in]   Event            An array of EFI_EVENT.
+  @param[out]  Index            The pointer to the index of the event which satisfied the wait condition.
+
+  @retval EFI_SUCCESS           The event indicated by Index was signaled.
+  @retval EFI_INVALID_PARAMETER 1) NumberOfEvents is 0.
+                                2) The event indicated by Index is of type
+                                   EVT_NOTIFY_SIGNAL.
+  @retval EFI_UNSUPPORTED       The current TPL is not TPL_APPLICATION.
+
+**/
 EFI_STATUS
 EFIAPI
 MockWaitForEvent (
