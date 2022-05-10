@@ -8,6 +8,7 @@
 #ifndef CONF_APP_H_
 #define CONF_APP_H_
 
+#include <UefiSecureBoot.h>
 #include <DfciSystemSettingTypes.h>
 #include <Protocol/DfciAuthentication.h>
 #include <Protocol/DfciSettingAccess.h>
@@ -31,6 +32,17 @@ typedef enum SysInfoState_t_def {
   SysInfoExit,
   SysInfoMax
 } SysInfoState_t;
+
+typedef enum {
+  SecureBootInit,
+  SecureBootWait,
+  SecureBootClear,
+  SecureBootEnroll,
+  SecureBootError,
+  SecureBootExit,
+  SecureBootConfChange,
+  SecureBootMax
+} SecureBootState_t;
 
 typedef enum BootOptState_t_def {
   BootOptInit,
@@ -57,13 +69,13 @@ typedef enum SetupConfState_t_def {
 #pragma pack (push, 1)
 
 typedef struct {
-  CHAR16    *KeyName;
-  UINT8     KeyNameTextAttr;
-  CHAR16    *Description;
-  UINT8     DescriptionTextAttr;
-  CHAR16    UnicodeChar;
-  CHAR16    ScanCode;
-  UINT32    EndState;
+  CONST CHAR16    *KeyName;
+  UINT8           KeyNameTextAttr;
+  CONST CHAR16    *Description;
+  UINT8           DescriptionTextAttr;
+  CHAR16          UnicodeChar;
+  CHAR16          ScanCode;
+  UINT32          EndState;
 } ConfAppKeyOptions;
 
 STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does not match sizeof (enum) in this environment");
@@ -158,20 +170,19 @@ SysInfoMgr (
   VOID
   );
 
-// TODO: Temporarily disable for Secure Boot library restructure in progress
-// /**
-//   State machine for secure boot page. It will react to user input from keystroke
-//   to set selected secure boot option or go back to previous page.
+/**
+  State machine for secure boot page. It will react to user input from keystroke
+  to set selected secure boot option or go back to previous page.
 
-//   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
-//   @retval Others                Failed to wait for valid keystrokes or failed to set
-//                                 platform key to variable service.
-// **/
-// EFI_STATUS
-// EFIAPI
-// SecureBootMgr (
-//   VOID
-//   );
+  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
+  @retval Others                Failed to wait for valid keystrokes or failed to set
+                                platform key to variable service.
+**/
+EFI_STATUS
+EFIAPI
+SecureBootMgr (
+  VOID
+  );
 
 /**
   State machine for boot option page. It will react to user input from keystroke
@@ -205,5 +216,7 @@ extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx;
 extern DFCI_SETTING_ACCESS_PROTOCOL       *mSettingAccess;
 extern DFCI_AUTH_TOKEN                    mAuthToken;
 extern DFCI_IDENTITY_MASK                 mIdMask;
+extern SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
+extern UINT8                              mSecureBootKeysCount;
 
 #endif // CONF_APP_H_

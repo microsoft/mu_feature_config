@@ -142,6 +142,24 @@ BootOptionMgr (
 }
 
 /**
+  State machine for secure boot page. It will react to user input from keystroke
+  to set selected secure boot option or go back to previous page.
+
+  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
+  @retval Others                Failed to wait for valid keystrokes or failed to set
+                                platform key to variable service.
+**/
+EFI_STATUS
+EFIAPI
+SecureBootMgr (
+  VOID
+  )
+{
+  SwitchMachineState ((ConfState_t)mock ());
+  return (EFI_STATUS)mock ();
+}
+
+/**
   State machine for configuration setup. It will react to user keystroke to accept
   configuration data from selected option.
 
@@ -414,6 +432,72 @@ ConfAppEntrySelect1 (
 
   will_return (SysInfoMgr, MainExit);
   will_return (SysInfoMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 2.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect2 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '2';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (SecureBootMgr, MainExit);
+  will_return (SecureBootMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
@@ -807,8 +891,7 @@ UnitTestingEntry (
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
   AddTestCase (MiscTests, "ConfApp Select 1 should go to System Info", "Select1", ConfAppEntrySelect1, NULL, ConfAppCleanup, NULL);
-  // TODO: this is not supported yet
-  // AddTestCase (MiscTests, "ConfApp Select 2 should go to Secure Boot", "Select2", ConfAppEntrySelect2, NULL, ConfAppCleanup, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 2 should go to Secure Boot", "Select2", ConfAppEntrySelect2, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select 3 should go to Boot Options", "Select3", ConfAppEntrySelect3, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select 4 should go to Setup Option", "Select4", ConfAppEntrySelect4, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select h should reprint the options", "SelectH", ConfAppEntrySelectH, NULL, ConfAppCleanup, NULL);

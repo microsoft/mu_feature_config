@@ -32,6 +32,7 @@
   DfciPkg/DfciPkg.dec
   MsCorePkg/MsCorePkg.dec
   XmlSupportPkg/XmlSupportPkg.dec
+  SecurityPkg/SecurityPkg.dec
   SetupDataPkg/SetupDataPkg.dec
 
 [LibraryClasses]
@@ -49,6 +50,7 @@
   XmlTreeQueryLib
   DfciXmlSettingSchemaSupportLib
   DfciUiSupportLib
+  SecureBootKeyStoreLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid

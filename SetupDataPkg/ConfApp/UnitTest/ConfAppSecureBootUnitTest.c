@@ -1,5 +1,5 @@
 /** @file
-  Unit tests of the Setup Configuration page of ConfApp module
+  Unit tests of the Boot Option page of ConfApp module
 
   Copyright (C) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -16,6 +16,7 @@
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
 #include <DfciSystemSettingTypes.h>
+#include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Protocol/VariablePolicy.h>
 #include <Protocol/DfciSettingsProvider.h>
 
@@ -25,199 +26,18 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/ConfigDataLib.h>
-#include <Library/UefiBootManagerLib.h>
+#include <Library/MuSecureBootKeySelectorLib.h>
 
 #include <Library/UnitTestLib.h>
 
-#include <Good_Config_Data.h>
 #include "ConfApp.h"
 
-#define UNIT_TEST_APP_NAME     "Conf Application Setup Configuration Unit Tests"
+#define UNIT_TEST_APP_NAME     "Conf Application Secure Boot Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
 
-#define KNOWN_GOOD_TAG_0xF0   0xF0
-#define KNOWN_GOOD_TAG_0x70   0x70
-#define KNOWN_GOOD_TAG_0x280  0x280
-#define KNOWN_GOOD_TAG_0x180  0x180
-#define KNOWN_GOOD_TAG_0x200  0x200
-#define KNOWN_GOOD_TAG_0x10   0x10
-#define KNOWN_GOOD_TAG_0x80   0x80
-
-#define KNOWN_GOOD_TAG_COUNT     7
-#define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
-
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
-extern SetupConfState_t                   mSetupConfState;
-
-typedef struct {
-  UINTN    Tag;
-  UINT8    *Data;
-  UINTN    DataSize;
-} TAG_DATA;
-
-TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
-  { KNOWN_GOOD_TAG_0xF0,  mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)  },
-  { KNOWN_GOOD_TAG_0x70,  mGood_Tag_0x70,  sizeof (mGood_Tag_0x70)  },
-  { KNOWN_GOOD_TAG_0x280, mGood_Tag_0x280, sizeof (mGood_Tag_0x280) },
-  { KNOWN_GOOD_TAG_0x180, mGood_Tag_0x180, sizeof (mGood_Tag_0x180) },
-  { KNOWN_GOOD_TAG_0x200, mGood_Tag_0x200, sizeof (mGood_Tag_0x200) },
-  { KNOWN_GOOD_TAG_0x10,  mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)  },
-  { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
-};
-
-/**
-  Mocked version of setting a single setting
-
-  @param[in] This:       Access Protocol
-  @param[in] Id:         Setting ID to set
-  @param[in] AuthToken:  A valid auth token to apply the setting using.  This auth token will be validated
-                         to check permissions for changing the setting.
-  @param[in] Type:       Type that caller expects this setting to be.
-  @param[in] ValueSize:  Size of Value in bytes.
-  @param[in] Value:      A pointer to a datatype defined by the Type for this setting.
-  @param[in,out] Flags:  Informational Flags passed to the SET and/or Returned as a result of the set
-
-  @retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
-  @retval Error - Setting not set.
-
-**/
-EFI_STATUS
-EFIAPI
-MockSet (
-  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL  *This,
-  IN  DFCI_SETTING_ID_STRING              Id,
-  IN  CONST DFCI_AUTH_TOKEN               *AuthToken,
-  IN  DFCI_SETTING_TYPE                   Type,
-  IN  UINTN                               ValueSize,
-  IN  CONST VOID                          *Value,
-  IN OUT DFCI_SETTING_FLAGS               *Flags
-  )
-{
-  assert_non_null (This);
-  assert_ptr_equal (AuthToken, &mAuthToken);
-  assert_int_equal (Type, DFCI_SETTING_TYPE_BINARY);
-  assert_non_null (ValueSize);
-  assert_non_null (Flags);
-  check_expected (Id);
-  check_expected (ValueSize);
-  check_expected (Value);
-
-  *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
-  return EFI_SUCCESS;
-}
-
-/**
-  Mocked version of getting a single setting
-
-  @param[in] This:         Access Protocol
-  @param[in] Id:           Setting ID to Get
-  @param[in] AuthToken:    An optional auth token* to use to check permission of setting.  This auth token will be validated
-                          to check permissions for changing the setting which will be reported in flags if valid.
-  @param[in] Type:         Type that caller expects this setting to be.
-  @param[in,out] ValueSize IN=Size of location to store value
-                          OUT=Size of value stored
-  @param[out] Value:       A pointer to a datatype defined by the Type for this setting.
-  @param[IN OUT] Flags     Optional Informational flags passed back from the Get operation.  If the Auth Token is valid write access will be set in
-                          flags for the given auth.
-
-  @retval EFI_SUCCESS if setting could be set.  Check flags for other info (reset required, etc)
-  @retval Error - couldn't get setting.
-
-**/
-EFI_STATUS
-EFIAPI
-MockGet (
-  IN  CONST DFCI_SETTING_ACCESS_PROTOCOL  *This,
-  IN  DFCI_SETTING_ID_STRING              Id,
-  IN  CONST DFCI_AUTH_TOKEN               *AuthToken  OPTIONAL,
-  IN  DFCI_SETTING_TYPE                   Type,
-  IN  OUT UINTN                           *ValueSize,
-  OUT     VOID                            *Value,
-  IN  OUT DFCI_SETTING_FLAGS              *Flags OPTIONAL
-  )
-{
-  UINTN  Size;
-  VOID   *Data;
-
-  assert_non_null (This);
-  assert_ptr_equal (AuthToken, &mAuthToken);
-  assert_int_equal (Type, DFCI_SETTING_TYPE_BINARY);
-  assert_non_null (ValueSize);
-  DEBUG ((DEBUG_INFO, "%a Settings get ID: %a\n", __FUNCTION__, Id));
-  check_expected (Id);
-
-  Size = (UINTN)mock ();
-  if (*ValueSize < Size) {
-    *ValueSize = Size;
-    return EFI_BUFFER_TOO_SMALL;
-  }
-
-  *ValueSize = Size;
-  Data       = (VOID *)mock ();
-  CopyMem (Value, Data, Size);
-  return EFI_SUCCESS;
-}
-
-DFCI_SETTING_ACCESS_PROTOCOL  MockSettingAccess = {
-  .Set = MockSet,
-  .Get = MockGet,
-};
-
-/**
- * Mocked version of BuildUsbRequest.
- *
- * @param[in]   FileNameExtension - Extension for file name
- * @param[out]  filename          - Name of the file on USB to retrieve
- *
- **/
-EFI_STATUS
-EFIAPI
-BuildUsbRequest (
-  IN  CHAR16  *FileExtension,
-  OUT CHAR16  **FileName
-  )
-{
-  CHAR16  *ret_buf;
-
-  assert_memory_equal (FileExtension, L".svd", sizeof (L".svd"));
-  assert_non_null (FileName);
-
-  ret_buf = (CHAR16 *)mock ();
-
-  *FileName = AllocateCopyPool (StrSize (ret_buf), ret_buf);
-  return EFI_SUCCESS;
-}
-
-/**
-*
-*  Mocked version of DfciRequestJsonFromUSB.
-*
-*  @param[in]     FileName        What file to read.
-*  @param[out]    JsonString      Where to store the Json String
-*  @param[out]    JsonStringSize  Size of Json String
-*
-*  @retval   Status               Always returns success.
-*
-**/
-EFI_STATUS
-EFIAPI
-DfciRequestJsonFromUSB (
-  IN  CHAR16  *FileName,
-  OUT CHAR8   **JsonString,
-  OUT UINTN   *JsonStringSize
-  )
-{
-  CHAR8  *Ret_Buff;
-
-  check_expected (FileName);
-  assert_non_null (JsonStringSize);
-
-  *JsonStringSize = (UINTN)mock ();
-  Ret_Buff        = (CHAR8 *)mock ();
-  *JsonString     = AllocateCopyPool (*JsonStringSize, Ret_Buff);
-
-  return EFI_SUCCESS;
-}
+extern SecureBootState_t                  mSecBootState;
+extern BOOLEAN                            mInitialized;
 
 /**
   State machine for system information page. It will display fundamental information, including
@@ -258,16 +78,16 @@ BootOptionMgr (
 }
 
 /**
-  State machine for secure boot page. It will react to user input from keystroke
-  to set selected secure boot option or go back to previous page.
+  State machine for configuration setup. It will react to user keystroke to accept
+  configuration data from selected option.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
-  @retval Others                Failed to wait for valid keystrokes or failed to set
-                                platform key to variable service.
+  @retval Others                Failed to wait for valid keystrokes or application of
+                                new configuration data failed.
 **/
 EFI_STATUS
 EFIAPI
-SecureBootMgr (
+SetupConfMgr (
   VOID
   )
 {
@@ -290,6 +110,56 @@ EfiBootManagerConnectAll (
   )
 {
   return;
+}
+
+/**
+  This function will delete the secure boot keys, thus
+  disabling secure boot.
+
+  @return EFI_SUCCESS or underlying failure code.
+**/
+EFI_STATUS
+EFIAPI
+DeleteSecureBootVariables (
+  VOID
+  )
+{
+  return (EFI_STATUS)mock ();
+}
+
+/**
+  Query the index of the actively used Secure Boot keys corresponds to the Secure Boot key store, if it
+  can be determined.
+
+  @retval     UINTN   Will return an index of key store or MU_SB_CONFIG_NONE if secure boot is not enabled,
+                      or MU_SB_CONFIG_UNKOWN if the active key does not match anything in the key store.
+
+**/
+UINTN
+EFIAPI
+GetCurrentSecureBootConfig (
+  VOID
+  )
+{
+  return (UINTN)mock ();
+}
+
+/**
+  Returns the status of setting secure boot keys.
+
+  @param  [in] Index  The index of key from key stores.
+
+  @retval Will return the status of setting secure boot variables.
+
+**/
+EFI_STATUS
+EFIAPI
+SetSecureBootConfig (
+  IN  UINT8  Index
+  )
+{
+  check_expected (Index);
+  return (EFI_STATUS)mock ();
 }
 
 /**
@@ -323,45 +193,7 @@ Print (
 }
 
 /**
-  Mocked version of GetTime.
-
-  @param[out]  Time             A pointer to storage to receive a snapshot of the current time.
-  @param[out]  Capabilities     An optional pointer to a buffer to receive the real time clock
-                                device's capabilities.
-
-  @retval EFI_SUCCESS           The operation completed successfully.
-  @retval EFI_INVALID_PARAMETER Time is NULL.
-  @retval EFI_DEVICE_ERROR      The time could not be retrieved due to hardware error.
-
-**/
-EFI_STATUS
-EFIAPI
-MockGetTime (
-  OUT  EFI_TIME               *Time,
-  OUT  EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
-  )
-{
-  EFI_TIME  DefaultPayloadTimestamp = {
-    22,   // Year (2022)
-    4,    // Month (April)
-    29,   // Day (29)
-  };
-
-  assert_non_null (Time);
-  CopyMem (Time, &DefaultPayloadTimestamp, sizeof (EFI_TIME));
-
-  return EFI_SUCCESS;
-}
-
-///
-/// Mock version of the UEFI Runtime Services Table
-///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .GetTime = MockGetTime
-};
-
-/**
-  Mocked version of MockWaitForEvent.
+  Mock function for WaitForEvent.
 
   @param[in]   NumberOfEvents   The number of events in the Event array.
   @param[in]   Event            An array of EFI_EVENT.
@@ -405,6 +237,70 @@ EFI_BOOT_SERVICES  MockBoot = {
 };
 
 /**
+  Returns the value of a variable.
+
+  @param[in]       VariableName  A Null-terminated string that is the name of the vendor's
+                                 variable.
+  @param[in]       VendorGuid    A unique identifier for the vendor.
+  @param[out]      Attributes    If not NULL, a pointer to the memory location to return the
+                                 attributes bitmask for the variable.
+  @param[in, out]  DataSize      On input, the size in bytes of the return Data buffer.
+                                 On output the size of data returned in Data.
+  @param[out]      Data          The buffer to return the contents of the variable. May be NULL
+                                 with a zero DataSize in order to determine the size buffer needed.
+
+  @retval EFI_SUCCESS            The function completed successfully.
+  @retval EFI_NOT_FOUND          The variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL   The DataSize is too small for the result.
+  @retval EFI_INVALID_PARAMETER  VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER  VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER  DataSize is NULL.
+  @retval EFI_INVALID_PARAMETER  The DataSize is not too small and Data is NULL.
+  @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
+  @retval EFI_SECURITY_VIOLATION The variable could not be retrieved due to an authentication failure.
+
+**/
+EFI_STATUS
+EFIAPI
+MockGetVariable (
+  IN     CHAR16    *VariableName,
+  IN     EFI_GUID  *VendorGuid,
+  OUT    UINT32    *Attributes     OPTIONAL,
+  IN OUT UINTN     *DataSize,
+  OUT    VOID      *Data           OPTIONAL
+  )
+{
+  UINTN  Size;
+  VOID   *RetData;
+
+  assert_ptr_equal (VendorGuid, &gMuVarPolicyDxePhaseGuid);
+  assert_memory_equal (VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  assert_non_null (Attributes);
+
+  *Attributes = READY_TO_BOOT_INDICATOR_VAR_ATTR;
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+
+  Size = (UINTN)mock ();
+  if (Size > *DataSize) {
+    *DataSize = Size;
+    return EFI_BUFFER_TOO_SMALL;
+  } else {
+    *DataSize = Size;
+    RetData   = (VOID *)mock ();
+    CopyMem (Data, RetData, Size);
+  }
+
+  return (EFI_STATUS)mock ();
+}
+
+///
+/// Mock version of the UEFI Runtime Services Table
+///
+EFI_RUNTIME_SERVICES  MockRuntime = {
+  .GetVariable = MockGetVariable
+};
+
+/**
   Clean up state machine for this page.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
@@ -421,15 +317,16 @@ EFI_BOOT_SERVICES  MockBoot = {
 **/
 VOID
 EFIAPI
-SetupConfCleanup (
+SecureBootCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mSetupConfState = SetupConfInit;
+  mSecBootState = SecureBootInit;
+  mInitialized  = FALSE;
 }
 
 /**
-  Unit test for SetupConf page when selecting ESC.
+  Unit test for SecureBoot page when selecting ESC.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -445,7 +342,7 @@ SetupConfCleanup (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfInit (
+ConfAppSecureBootInit (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -454,18 +351,24 @@ ConfAppSetupConfInit (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_UNKNOWN);
+
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
   will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for SetupConf page when selecting ESC.
+  Unit test for SecureBoot page when selecting ESC.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -481,7 +384,7 @@ ConfAppSetupConfInit (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfSelectEsc (
+ConfAppSecureBootSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -491,13 +394,15 @@ ConfAppSetupConfSelectEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_NONE);
+
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
   will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -505,15 +410,15 @@ ConfAppSetupConfSelectEsc (
   KeyData1.Key.ScanCode    = SCAN_ESC;
   will_return (MockReadKey, &KeyData1);
 
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfExit);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootExit);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for SetupConf page when selecting others.
+  Unit test for SecureBoot page when selecting others.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -529,7 +434,7 @@ ConfAppSetupConfSelectEsc (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfSelectOther (
+SecureBootSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -539,13 +444,15 @@ ConfAppSetupConfSelectOther (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_NONE);
+
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
   will_return (MockSetCursorPosition, EFI_SUCCESS);
 
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -553,15 +460,15 @@ ConfAppSetupConfSelectOther (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for SetupConf page when selecting configure from USB.
+  Unit test for SecureBoot page when selecting secure boot one option.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -577,16 +484,23 @@ ConfAppSetupConfSelectOther (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfSelectUsb (
+SecureBootSelectOne (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS                Status;
   EFI_KEY_DATA              KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  SECURE_BOOT_PAYLOAD_INFO  SBKey = {
+    .SecureBootKeyName = L"Dummy Key"
+  };
+
+  mSecureBootKeys      = &SBKey;
+  mSecureBootKeysCount = 1;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_NONE);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -594,9 +508,75 @@ ConfAppSetupConfSelectUsb (
   will_return (MockSetCursorPosition, EFI_SUCCESS);
 
   // Initial run
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '0';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  expect_value (SetSecureBootConfig, Index, 0);
+  will_return (SetSecureBootConfig, EFI_SUCCESS);
+
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootEnroll);
+
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootConfChange);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SecureBoot page when selecting secure boot options.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSecureBootSelectMore (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  SECURE_BOOT_PAYLOAD_INFO  SBKey[2] = {
+    { .SecureBootKeyName = L"Dummy Key 1" },
+    { .SecureBootKeyName = L"Dummy Key 2" },
+  };
+
+  mSecureBootKeys      = SBKey;
+  mSecureBootKeysCount = 2;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_NONE);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  // Initial run
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
@@ -604,33 +584,22 @@ ConfAppSetupConfSelectUsb (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  Status = SetupConfMgr ();
+  expect_value (SetSecureBootConfig, Index, 1);
+  will_return (SetSecureBootConfig, EFI_SUCCESS);
+
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateUsb);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootEnroll);
 
-  mSettingAccess = &MockSettingAccess;
-
-  will_return (BuildUsbRequest, L"Test");
-
-  expect_memory (DfciRequestJsonFromUSB, FileName, L"Test", sizeof (L"Test"));
-  will_return (DfciRequestJsonFromUSB, sizeof (KNOWN_GOOD_XML) - 1);
-  will_return (DfciRequestJsonFromUSB, KNOWN_GOOD_XML);
-
-  expect_string (MockSet, Id, DFCI_OEM_SETTING_ID__CONF);
-  expect_value (MockSet, ValueSize, sizeof (mKnown_Good_Config_Data));
-  expect_memory (MockSet, Value, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
-
-  will_return (ResetCold, &JumpBuf);
-
-  if (!SetJump (&JumpBuf)) {
-    SetupConfMgr ();
-  }
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootConfChange);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for SetupConf page when selecting configure from serial.
+  Unit test for SecureBoot page when selecting secure boot options after ready to boot.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
@@ -646,18 +615,92 @@ ConfAppSetupConfSelectUsb (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfSelectSerial (
+ConfAppSecureBootPostRTB (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  POLICY_LOCK_VAR           LockVar = PHASE_INDICATOR_SET;
+  EFI_KEY_DATA              KeyData1;
+  SECURE_BOOT_PAYLOAD_INFO  SBKey[2] = {
+    { .SecureBootKeyName = L"Dummy Key 1" },
+    { .SecureBootKeyName = L"Dummy Key 2" },
+  };
+
+  mSecureBootKeys      = SBKey;
+  mSecureBootKeysCount = 2;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_UNKNOWN);
+
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  // Initial run
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '1';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootError);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SecureBoot page when selecting new secure boot options.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSecureBootUpdateKeys (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS                Status;
   EFI_KEY_DATA              KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
-  UINTN                     Index;
-  CHAR8                     *KnowGoodXml;
+  SECURE_BOOT_PAYLOAD_INFO  SBKey[2] = {
+    { .SecureBootKeyName = L"Dummy Key 1" },
+    { .SecureBootKeyName = L"Dummy Key 2" },
+  };
+
+  mSecureBootKeys      = SBKey;
+  mSecureBootKeysCount = 2;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (GetCurrentSecureBootConfig, 0);
+
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -665,199 +708,28 @@ ConfAppSetupConfSelectSerial (
   will_return (MockSetCursorPosition, EFI_SUCCESS);
 
   // Initial run
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '1';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  Status = SetupConfMgr ();
+  expect_value (SetSecureBootConfig, Index, 1);
+  will_return (SetSecureBootConfig, EFI_SUCCESS);
+
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerialHint);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootEnroll);
 
-  mSettingAccess = &MockSettingAccess;
+  will_return (DeleteSecureBootVariables, EFI_SUCCESS);
 
-  Index       = 0;
-  KnowGoodXml = KNOWN_GOOD_XML;
-  while (KnowGoodXml[Index] != 0) {
-    KeyData1.Key.UnicodeChar = KnowGoodXml[Index];
-    KeyData1.Key.ScanCode    = SCAN_NULL;
-    will_return (MockReadKey, &KeyData1);
-    Status = SetupConfMgr ();
-    Index++;
-  }
-
-  KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
-  KeyData1.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData1);
-
-  expect_string (MockSet, Id, DFCI_OEM_SETTING_ID__CONF);
-  expect_value (MockSet, ValueSize, sizeof (mKnown_Good_Config_Data));
-  expect_memory (MockSet, Value, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
-
-  will_return (ResetCold, &JumpBuf);
-
-  if (!SetJump (&JumpBuf)) {
-    SetupConfMgr ();
-  }
-
-  return UNIT_TEST_PASSED;
-}
-
-/**
-  Unit test for SetupConf page when selecting configure from serial and return in the middle.
-
-  @param[in]  Context    [Optional] An optional parameter that enables:
-                         1) test-case reuse with varied parameters and
-                         2) test-case re-entry for Target tests that need a
-                         reboot.  This parameter is a VOID* and it is the
-                         responsibility of the test author to ensure that the
-                         contents are well understood by all test cases that may
-                         consume it.
-
-  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-                                        case was successful.
-  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-**/
-UNIT_TEST_STATUS
-EFIAPI
-ConfAppSetupConfSelectSerialEsc (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
-  UINTN         Index;
-  CHAR8         *KnowGoodXml;
-
-  will_return (MockClearScreen, EFI_SUCCESS);
-  will_return_always (MockSetAttribute, EFI_SUCCESS);
-
-  // Expect the prints twice
-  expect_any (MockSetCursorPosition, Column);
-  expect_any (MockSetCursorPosition, Row);
-  will_return (MockSetCursorPosition, EFI_SUCCESS);
-
-  // Initial run
-  Status = SetupConfMgr ();
+  Status = SecureBootMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
-
-  mSimpleTextInEx = &MockSimpleInput;
-
-  KeyData1.Key.UnicodeChar = '3';
-  KeyData1.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData1);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerialHint);
-
-  mSettingAccess = &MockSettingAccess;
-
-  Index       = 0;
-  KnowGoodXml = KNOWN_GOOD_XML;
-  while (KnowGoodXml[Index] != 0) {
-    KeyData1.Key.UnicodeChar = KnowGoodXml[Index];
-    KeyData1.Key.ScanCode    = SCAN_NULL;
-    will_return (MockReadKey, &KeyData1);
-    Status = SetupConfMgr ();
-    UT_ASSERT_NOT_EFI_ERROR (Status);
-    UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerial);
-    Index++;
-  }
-
-  KeyData1.Key.UnicodeChar = CHAR_NULL;
-  KeyData1.Key.ScanCode    = SCAN_ESC;
-  will_return (MockReadKey, &KeyData1);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfExit);
-
-  return UNIT_TEST_PASSED;
-}
-
-/**
-  Unit test for SetupConf page when selecting dumping configure from serial.
-
-  @param[in]  Context    [Optional] An optional parameter that enables:
-                         1) test-case reuse with varied parameters and
-                         2) test-case re-entry for Target tests that need a
-                         reboot.  This parameter is a VOID* and it is the
-                         responsibility of the test author to ensure that the
-                         contents are well understood by all test cases that may
-                         consume it.
-
-  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-                                        case was successful.
-  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-**/
-UNIT_TEST_STATUS
-EFIAPI
-ConfAppSetupConfDumpSerial (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
-  CHAR8         *ComparePtr[KNOWN_GOOD_TAG_COUNT];
-  UINTN         Index;
-
-  will_return_count (MockClearScreen, EFI_SUCCESS, 2);
-  will_return_always (MockSetAttribute, EFI_SUCCESS);
-
-  // Expect the prints twice
-  expect_any_count (MockSetCursorPosition, Column, 2);
-  expect_any_count (MockSetCursorPosition, Row, 2);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
-
-  // Initial run
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
-
-  mSimpleTextInEx = &MockSimpleInput;
-
-  KeyData1.Key.UnicodeChar = '4';
-  KeyData1.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData1);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpSerial);
-
-  mSettingAccess = &MockSettingAccess;
-
-  expect_string (MockGet, Id, DFCI_OEM_SETTING_ID__CONF);
-  will_return (MockGet, sizeof (mKnown_Good_Config_Data));
-  expect_string (MockGet, Id, DFCI_OEM_SETTING_ID__CONF);
-  will_return (MockGet, sizeof (mKnown_Good_Config_Data));
-  will_return (MockGet, mKnown_Good_Config_Data);
-
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
-    ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
-    AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
-    expect_string (MockGet, Id, ComparePtr[Index]);
-    will_return (MockGet, mKnownGoodTags[Index].DataSize);
-    expect_string (MockGet, Id, ComparePtr[Index]);
-    will_return (MockGet, mKnownGoodTags[Index].DataSize);
-    will_return (MockGet, mKnownGoodTags[Index].Data);
-  }
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpComplete);
-
-  Index = 0;
-  while (Index < KNOWN_GOOD_TAG_COUNT) {
-    FreePool (ComparePtr[Index]);
-    Index++;
-  }
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootConfChange);
 
   return UNIT_TEST_PASSED;
 }
@@ -907,13 +779,13 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (MiscTests, "Setup Configuration page should initialize properly", "NormalInit", ConfAppSetupConfInit, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page select Esc should go to previous menu", "SelectEsc", ConfAppSetupConfSelectEsc, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page select others should do nothing", "SelectOther", ConfAppSetupConfSelectOther, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from USB", "SelectUsb", ConfAppSetupConfSelectUsb, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerial", ConfAppSetupConfSelectSerial, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should return with ESC key during serial transport", "SelectSerial", ConfAppSetupConfSelectSerialEsc, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, NULL, SetupConfCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should initialize properly", "NormalInit", ConfAppSecureBootInit, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page select Esc should go to previous menu", "SelectEsc", ConfAppSecureBootSelectEsc, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page select others should do nothing", "SelectOther", SecureBootSelectOther, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should boot to single option", "SecureBootSingle", SecureBootSelectOne, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should boot to multiple options", "SecureBootMultiple", ConfAppSecureBootSelectMore, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should block selecting options post RTB", "PostRTB", ConfAppSecureBootPostRTB, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should success updating for selected options", "UpdateKey", ConfAppSecureBootUpdateKeys, NULL, SecureBootCleanup, NULL);
 
   //
   // Execute the tests.
