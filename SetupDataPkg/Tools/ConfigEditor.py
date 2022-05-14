@@ -670,6 +670,9 @@ class application(tkinter.Frame):
             gen_cfg_data.build_cfg_list()
             gen_cfg_data.build_var_dict()
             gen_cfg_data.update_def_value()
+        elif file_name.endswith('.xml'):
+            if gen_cfg_data.load_xml(file_name) != 0:
+                raise Exception(gen_cfg_data.get_last_error())
         else:
             raise Exception('Unsupported file "%s" !' % file_name)
         return gen_cfg_data

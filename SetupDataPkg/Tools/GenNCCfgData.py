@@ -18,8 +18,8 @@ import ast
 import binascii
 from   datetime    import date
 from   collections import OrderedDict
+from tokenize import Double
 import xml.etree.ElementTree as ET
-import xmltodict
 import xmlschema
 
 from CommonUtility import *
@@ -113,14 +113,19 @@ def expand_file_value (path, value_str):
     return result
 
 
+class DefTemplate(string.Template):
+    idpattern = '\([_A-Z][_A-Z0-9]*\)|[_A-Z][_A-Z0-9]*'
+
+
 class CGenNCCfgData:
     STRUCT         = '$STRUCT'
     bits_width     = {'b':1, 'B':8, 'W':16, 'D':32, 'Q':64}
     builtin_option = {'$EN_DIS' : [('0', 'Disable'), ('1', 'Enable')]}
     exclude_struct = ['Enums']
     include_tag    = ['GPIO_CFG_DATA']
-    keyword_set    = set(['@name', '@default', '@help', '@deprecated'])
-    config_list    = ['Knobs']
+    keyword_set    = set(['name', 'type', 'default', 'help', 'deprecated', 'enumtype'])
+    config_list    = ['KNOBS']
+    peripheral_list= ['ENUMS']
 
     def __init__(self):
         self.initialize ()
@@ -277,9 +282,8 @@ class CGenNCCfgData:
         return item['length']
 
     def get_cfg_item_value (self, item, array = False):
-        value_str = item['value']
         length    = item['length']
-        return  self.get_value (value_str, length, array)
+        return  self.get_value (item, length, array)
 
 
     def format_value_to_str (self, value, bit_length, old_value = ''):
@@ -324,8 +328,9 @@ class CGenNCCfgData:
         return new_value
 
 
-    def get_value (self, value_str, bit_length, array = True):
-        value_str = value_str.strip()
+    def get_value (self, item, bit_length, array = True):
+        value_str = item['value'].strip()
+        print (value_str)
         if len(value_str) == 0:
             return 0
         if value_str[0] == "'" and value_str[-1] == "'" or \
@@ -342,14 +347,21 @@ class CGenNCCfgData:
             if value_str[0] in '{' :
                 value_str = value_str[1:-1].strip()
             value = 0
+            if item['type'].upper() == 'FLOATKNOB':
+                bvalue = bytearray(struct.pack("f", float(value_str)))
+                return bytes_to_value (bvalue)
+            elif item['type'].upper() == 'DOUBLEKNOB':
+                bvalue = bytearray(struct.pack("d", float(value_str)))
+                return bytes_to_value (bvalue)
+            elif item['type'].upper() == 'BYTESKNOB':
+                bvalue = bytearray.fromhex(value_str)
+                return bytes_to_value (bvalue)
+
             for each in value_str.split(',')[::-1]:
                 each = each.strip()
                 value = (value << 8) | int(each, 0)
-            if array:
-                length = (bit_length + 7) // 8
-                return value_to_bytearray (value, length)
-            else:
-                return value
+
+            return value
 
 
     def parse_value (self, value_str, bit_length, array = True):
@@ -684,18 +696,23 @@ class CGenNCCfgData:
             line = line_after
         return line_after
 
-    def reformat_number_per_type (self, itype, value):
+    def look_up_enums (self, item, value):
+        enums = self._peri_tree['ENUMS']
+        enum = enums[item['enumtype']]
+        return enum[value]
+        # for each in enum:
+        #     if each == value:
+        #         return each.attrib['value']
+
+    def reformat_number_per_type (self, item, value):
+        itype = item['type']
         if check_quote(value) or value.startswith('{'):
             return value
-        parts = itype.split(',')
-        if len(parts) > 3 and parts[0] == 'EditNum':
-            num_fmt = parts[1].strip()
-        else:
-            num_fmt = ''
-        if num_fmt == 'HEX' and not value.startswith('0x'):
-            value = '0x%X' % int(value, 10)
-        elif num_fmt == 'DEC' and value.startswith('0x'):
-            value = '%d' % int(value, 16)
+        if itype.upper () == 'BOOLKNOB':
+            value = '0' if value.upper() == 'FALSE' else '1'
+        elif itype.upper () == 'ENUMKNOB':
+            # need to look up the peripheral dictionary
+            value = self.look_up_enums(item, value)
         return value
 
     def add_cfg_item(self, name, item, offset, path):
@@ -707,60 +724,43 @@ class CGenNCCfgData:
                 if each not in CGenNCCfgData.keyword_set:
                     raise Exception ("Invalid attribute '%s' for '%s'!" % (each, '.'.join(path)))
 
-        length = item.get('length', 0)
-        if type(length) is str:
-            match = re.match("^(\d+)([b|B|W|D|Q])([B|W|D|Q]?)\s*$", length)
-            if match:
-                unit_len = CGenNCCfgData.bits_width[match.group(2)]
-                length = int(match.group(1), 10) * unit_len
-            else:
-                try:
-                    length = int(length, 0) * 8
-                except:
-                    raise Exception ("Invalid length field '%s' for '%s' !" % (length, '.'.join(path)))
+        itype = str(item.get('type', 'Reserved'))
 
-                if offset % 8 > 0:
-                    raise Exception ("Invalid alignment for field '%s' for '%s' !" % (name, '.'.join(path)))
+        length = 0
+        if itype.upper () == 'BOOLKNOB':
+            length = 1
+        elif itype.upper () == 'ENUMKNOB':
+            length = 4
+        elif itype.upper () == 'FLOATKNOB':
+            length = 4
+        elif itype.upper () == 'DOUBLEKNOB':
+            length = 8
+        elif itype.upper () == 'INT32KNOB':
+            length = 4
+        elif itype.upper () == 'INT64KNOB':
+            length = 8
+        elif itype.upper () == 'BYTESKNOB':
+            b_arr = bytes.fromhex (str (item.get ('default')))
+            length = len (b_arr)
         else:
-            # define is length in bytes
-            length = length * 8
+            raise Exception ("Unrecognized type '%s' found!" % (itype))
 
         if not name.isidentifier():
             raise Exception ("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
 
-
-        itype = str(item.get('type', 'Reserved'))
-        value = str(item.get('value', ''))
+        value = str(item.get('default', ''))
         if value:
             if not (check_quote(value) or value.startswith('{')):
                 if ',' in value:
                     value = '{ %s }' % value
                 else:
-                    value = self.reformat_number_per_type (itype, value)
+                    value = self.reformat_number_per_type (item, value)
 
         help = str(item.get('help', ''))
         if '\n' in help:
             help = ' '.join ([i.strip() for i in help.splitlines()])
 
-        option = str(item.get('option', ''))
-        if '\n' in option:
-            option = ' '.join ([i.strip() for i in option.splitlines()])
-
-        # extend variables for value and condition
-        condition = str(item.get('condition', ''))
-        if condition:
-            condition = self.extend_variable (condition)
         value     = self.extend_variable (value)
-
-        order = str(item.get('order', ''))
-        if order:
-            if '.' in order:
-                (major, minor) = order.split('.')
-                order = int (major, 16)
-            else:
-                order = int (order, 16)
-        else:
-            order = offset
 
         cfg_item = dict()
         cfg_item['length'] = length
@@ -770,11 +770,8 @@ class CGenNCCfgData:
         cfg_item['cname']  = str(name)
         cfg_item['name']   = str(item.get('name', ''))
         cfg_item['help']   = help
-        cfg_item['option'] = option
         cfg_item['page']   = self._cur_page
-        cfg_item['order']  = order
         cfg_item['path']   = '.'.join(path)
-        cfg_item['condition']  = condition
         if 'struct' in item:
             cfg_item['struct'] = item['struct']
         self._cfg_list.append(cfg_item)
@@ -795,10 +792,6 @@ class CGenNCCfgData:
         if top is None:
             top = self._cfg_tree
 
-        if cfg_name in CGenNCCfgData.exclude_struct:
-            # skip peripheral nodes
-            return 0
-
         start = info['offset']
         is_leaf = True
         for key in top:
@@ -809,7 +802,6 @@ class CGenNCCfgData:
             path.pop()
 
         if is_leaf:
-            print (cfg_name)
             length = self.add_cfg_item(cfg_name, top, info['offset'], path)
             info['offset'] += length
         elif cfg_name == '' or (cfg_name and cfg_name[0] != '$'):
@@ -839,7 +831,7 @@ class CGenNCCfgData:
                 act_cfg = self.get_item_by_index (cfgs['indx'])
                 if act_cfg['length'] == 0:
                     return
-                value = self.get_value (act_cfg['value'], act_cfg['length'], False)
+                value = self.get_value (act_cfg, act_cfg['length'], False)
                 set_bits_to_bytes (result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
 
         if top is None:
@@ -860,7 +852,7 @@ class CGenNCCfgData:
                 act_val = act_cfg['value']
                 if act_val == '':
                     act_val = '%d' % value
-                act_val = self.reformat_number_per_type (act_cfg['type'], act_val)
+                act_val = self.reformat_number_per_type (act_cfg, act_val)
                 act_cfg['value'] = self.format_value_to_str (value, act_cfg['length'], act_val)
 
         if 'indx' in top:
@@ -894,12 +886,6 @@ class CGenNCCfgData:
                     self.set_field_value (cfgs, value_bytes)
 
         self.traverse_cfg_tree (_update_def_value, self._cfg_tree)
-
-
-    def evaluate_condition (self, item):
-        expr = item['condition']
-        result = self.parse_value (expr, 1, False)
-        return result
 
 
     def load_default_from_bin (self, bin_data):
@@ -1118,57 +1104,6 @@ class CGenNCCfgData:
         return name, array_num, var
 
 
-    def process_multilines (self, string, max_char_length):
-        multilines = ''
-        string_length = len(string)
-        current_string_start = 0
-        string_offset = 0
-        break_line_dict = []
-        if len(string) <= max_char_length:
-            while (string_offset < string_length):
-                if string_offset >= 1:
-                    if string[string_offset - 1] == '\\' and string[string_offset] == 'n':
-                        break_line_dict.append (string_offset + 1)
-                string_offset += 1
-            if break_line_dict != []:
-                for each in break_line_dict:
-                    multilines += "  %s\n" % string[current_string_start:each].lstrip()
-                    current_string_start = each
-                if string_length - current_string_start > 0:
-                    multilines += "  %s\n" % string[current_string_start:].lstrip()
-            else:
-                multilines = "  %s\n" % string
-        else:
-            new_line_start = 0
-            new_line_count = 0
-            found_space_char = False
-            while (string_offset < string_length):
-                if string_offset >= 1:
-                    if new_line_count >= max_char_length - 1:
-                        if string[string_offset] == ' ' and string_length - string_offset > 10:
-                            break_line_dict.append (new_line_start + new_line_count)
-                            new_line_start = new_line_start + new_line_count
-                            new_line_count = 0
-                            found_space_char = True
-                        elif string_offset == string_length - 1 and found_space_char == False:
-                            break_line_dict.append (0)
-                    if string[string_offset - 1] == '\\' and string[string_offset] == 'n':
-                        break_line_dict.append (string_offset + 1)
-                        new_line_start = string_offset + 1
-                        new_line_count = 0
-                string_offset += 1
-                new_line_count += 1
-            if break_line_dict != []:
-                break_line_dict.sort ()
-                for each in break_line_dict:
-                    if each > 0:
-                        multilines += "  %s\n" % string[current_string_start:each].lstrip()
-                    current_string_start = each
-                if string_length - current_string_start > 0:
-                    multilines += "  %s\n" % string[current_string_start:].lstrip()
-        return multilines
-
-
     def load_xml (self, cfg_file):
         self.initialize ()
         # TODO: Remove hard coded path
@@ -1180,12 +1115,34 @@ class CGenNCCfgData:
         #     print (self._cfg_tree)
         tree = ET.parse (cfg_file)
         self.root = tree.getroot()
+        self._cfg_tree = OrderedDict ({})
+        self._peri_tree = OrderedDict ({})
+
         for node in self.root:
-            print (node)
-            if node.tag in CGenNCCfgData.config_list:
+            if node.tag.upper () in CGenNCCfgData.peripheral_list:
                 # really process the fields
-                print (node.tag)
-        # self.build_cfg_list()
+                if node.tag.upper() == 'ENUMS':
+                    self._peri_tree['ENUMS'] = OrderedDict ({})
+                    for enum in node:
+                        self._peri_tree['ENUMS'][enum.attrib['name']] = OrderedDict ({})
+                        for each in enum:
+                            self._peri_tree['ENUMS'][enum.attrib['name']][each.attrib['name']] = str (each.attrib['value'])
+
+        for node in self.root:
+            if node.tag.upper () in CGenNCCfgData.config_list:
+                # really process the fields
+                if node.tag.upper() == 'KNOBS':
+                    knobs_name = node.tag + node.attrib['namespace']
+                    self._cfg_tree[knobs_name] = OrderedDict ({})
+                    knobs = self._cfg_tree[knobs_name]
+
+                    for knob in node:
+                        knobs[knob.attrib['name']] = OrderedDict ({})
+                        knobs[knob.attrib['name']]['type'] = knob.tag
+                        for each in knob.attrib:
+                            knobs[knob.attrib['name']][each] = knob.attrib[each]
+
+        self.build_cfg_list()
         # self.build_var_dict()
         # self.update_def_value()
         return 0
