@@ -136,7 +136,8 @@ class CGenNCCfgData:
         self._tmp_tree  = {}
         self._cfg_list  = []
         self._cfg_page  = {'root': {'title': '', 'child': []}}
-        self._cur_page  = ''
+        self._cur_page  = 'Non-core'
+        self._cfg_page['root']['child'].append ({self._cur_page: {'title': self._cur_page, 'child': []}})
         self._var_dict  = {}
         self._def_dict  = {}
         self._yaml_path = ''
@@ -328,8 +329,9 @@ class CGenNCCfgData:
         return new_value
 
 
-    def get_value (self, item, bit_length, array = True):
-        value_str = item['value'].strip()
+    def get_value (self, item, bit_length, array = True, value_str = None):
+        if value_str == None:
+            value_str = item['value'].strip()
         if len(value_str) == 0:
             return 0
         if value_str[0] == "'" and value_str[-1] == "'" or \
@@ -354,6 +356,18 @@ class CGenNCCfgData:
                 return bytes_to_value (bvalue)
             elif item['type'].upper() == 'BYTESKNOB':
                 bvalue = bytearray.fromhex(value_str)
+                if array:
+                    return  bvalue
+                else:
+                    return  bytes_to_value (bvalue)
+            elif item['type'].upper () == 'BOOLKNOB':
+                value = 0 if value_str.upper() == 'FALSE' else 1
+                bvalue = bytearray(struct.pack("B", value))
+                return bytes_to_value (bvalue)
+            elif item['type'].upper () == 'ENUMKNOB':
+                # need to look up the peripheral dictionary
+                value = self.look_up_enums(item, value_str)
+                bvalue = bytearray(struct.pack("I", value))
                 return bytes_to_value (bvalue)
 
             for each in value_str.split(',')[::-1]:
@@ -432,19 +446,10 @@ class CGenNCCfgData:
 
     def get_cfg_item_options (self, item):
         tmp_list = []
-        if  item['type'] == "Combo":
-            if item['option'] in CGenNCCfgData.builtin_option:
-                for op_val, op_str in CGenNCCfgData.builtin_option[item['option']]:
-                    tmp_list.append((op_val, op_str))
-            else:
-                opt_list = item['option'].split(',')
-                for option in opt_list:
-                    option = option.strip()
-                    try:
-                        (op_val, op_str) = option.split(':')
-                    except:
-                        raise SystemExit ("Exception: Invalid option format '%s' for item '%s' !" % (option, item['cname']))
-                    tmp_list.append((op_val, op_str))
+        if  item['type'].upper() == "ENUMKNOB":
+            tmp_list = self.fetch_available_enums(item)
+        elif item['type'].upper() == "BOOLKNOB":
+            tmp_list = ['True', 'False']
         return  tmp_list
 
 
@@ -638,7 +643,7 @@ class CGenNCCfgData:
         return 0
 
 
-    def add_cfg_page(self, child, parent, title=''):
+    def add_cfg_page(self, child, parent='Non-core', title=''):
         def _add_cfg_page(cfg_page, child, parent):
             key = next(iter(cfg_page))
             if parent == key:
@@ -660,26 +665,8 @@ class CGenNCCfgData:
         if not page_str:
             return
 
-        if ',' in page_str:
-            page_list = page_str.split(',')
-        else:
-            page_list = [page_str]
-        for page_str in page_list:
-            parts = page_str.split(':')
-            if len(parts) in [1, 3]:
-                page = parts[0].strip()
-                if len(parts) == 3:
-                    # it is a new page definition, add it into tree
-                    parent = parts[1] if parts[1] else 'root'
-                    parent = parent.strip()
-                    if parts[2][0] == '"' and parts[2][-1] == '"':
-                        parts[2] = parts[2][1:-1]
-
-                    if not self.add_cfg_page(page, parent, parts[2]):
-                        raise SystemExit("Error: Cannot find parent page '%s'!" % parent)
-            else:
-                raise SystemExit("Error: Invalid page format '%s' !" % page_str)
-            self._cur_page = page
+        if not self.add_cfg_page(child=page_str, title=page_str):
+            raise SystemExit("Error: Cannot find parent page!")
 
 
     def extend_variable (self, line):
@@ -698,25 +685,21 @@ class CGenNCCfgData:
     def look_up_enums (self, item, value):
         enums = self._peri_tree['ENUMS']
         enum = enums[item['enumtype']]
-        return enum[value]
-        # for each in enum:
-        #     if each == value:
-        #         return each.attrib['value']
+        return int(enum[value])
+
+    def fetch_available_enums (self, item):
+        enums = self._peri_tree['ENUMS']
+        enum = enums[item['enumtype']]
+        return enum.keys()
 
     def reformat_number_per_type (self, item, value):
-        itype = item['type']
         if check_quote(value) or value.startswith('{'):
             return value
-        if itype.upper () == 'BOOLKNOB':
-            value = '0' if value.upper() == 'FALSE' else '1'
-        elif itype.upper () == 'ENUMKNOB':
-            # need to look up the peripheral dictionary
-            value = self.look_up_enums(item, value)
         return value
 
     def add_cfg_item(self, name, item, offset, path):
 
-        self.set_cur_page (item.get('page', ''))
+        # self.set_cur_page (name)
 
         if not set(item).issubset(CGenNCCfgData.keyword_set):
             for each in list(item):
@@ -771,8 +754,11 @@ class CGenNCCfgData:
         cfg_item['help']   = help
         cfg_item['page']   = self._cur_page
         cfg_item['path']   = '.'.join(path)
-        if 'struct' in item:
-            cfg_item['struct'] = item['struct']
+        cfg_item['order']  = 0
+        if 'deprecated' in item:
+            cfg_item['deprecated'] = item['deprecated']
+        if 'enumtype' in item:
+            cfg_item['enumtype'] = item['enumtype']
         self._cfg_list.append(cfg_item)
 
         item['indx']       = len(self._cfg_list) - 1

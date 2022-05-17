@@ -22,6 +22,7 @@ from SettingSupport.SettingsXMLLib import SettingsXMLLib
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib
 
 from GenCfgData import CGenCfgData, bytes_to_value, bytes_to_bracket_str, value_to_bytes, array_str_to_value
+from GenNCCfgData import CGenNCCfgData
 
 class create_tool_tip(object):
     '''
@@ -430,8 +431,8 @@ class application(tkinter.Frame):
 
         menubar = tkinter.Menu(root)
         file_menu = tkinter.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Open Config YAML file...",
-                             command=self.load_from_yaml)
+        file_menu.add_command(label="Open Config file...",
+                             command=self.load_from_ml)
         file_menu.add_command(label=self.menu_string[0],
                              command=self.save_to_bin,
                              state='disabled')
@@ -464,7 +465,7 @@ class application(tkinter.Frame):
 
         if len(sys.argv) > 1:
             path = sys.argv[1]
-            if not path.endswith('.yaml') and not path.endswith('.pkl'):
+            if not path.endswith('.yaml') and not path.endswith('.pkl') and not path.endswith('.xml'):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
@@ -521,7 +522,7 @@ class application(tkinter.Frame):
             return visible
 
         result = 1
-        if item['condition']:
+        if 'condition' in item and item['condition']:
             result = self.evaluate_condition(item)
             if result == 2:
                 # Gray
@@ -671,6 +672,7 @@ class application(tkinter.Frame):
             gen_cfg_data.build_var_dict()
             gen_cfg_data.update_def_value()
         elif file_name.endswith('.xml'):
+            gen_cfg_data = CGenNCCfgData()
             if gen_cfg_data.load_xml(file_name) != 0:
                 raise Exception(gen_cfg_data.get_last_error())
         else:
@@ -697,7 +699,7 @@ class application(tkinter.Frame):
                 question = 'All configuration will be reloaded from BIN file, continue ?'
             elif ftype == 'svd':
                 question = ''
-            elif ftype == 'yaml':
+            elif 'yaml' in ftype or 'xml' in ftype:
                 question = ''
             else:
                 raise Exception('Unsupported file type !')
@@ -706,17 +708,24 @@ class application(tkinter.Frame):
                 if reply == 'no':
                     return None
 
-        if ftype == 'yaml':
-            file_type = 'YAML or PKL'
-            file_ext  = 'pkl *Def.yaml'
-        else:
+        file_type = ''
+        file_ext = ''
+        if 'yaml' in ftype:
+            file_type = 'YAML PKL'
+            file_ext  = 'pkl Def.yaml'
+        if 'xml' in ftype:
+            file_type += ' XML'
+            file_ext  += ' xml'
+        if 'xml' not in ftype and 'yaml' not in ftype:
             file_type = ftype.upper()
             file_ext  = ftype
 
+        file_ext = file_ext.split(' ')
+        file_ext_opt = ['*.' + i for i in file_ext]
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
             title="Load file",
-            filetypes=(("%s files" % file_type, "*.%s" % file_ext), (
+            filetypes=(("%s files" % file_type, file_ext_opt), (
                 "all files", "*.*")))
         if path:
             self.update_last_dir (path)
@@ -792,8 +801,8 @@ class application(tkinter.Frame):
 
         return 0
 
-    def load_from_yaml(self):
-        path = self.get_open_file_name('yaml')
+    def load_from_ml(self):
+        path = self.get_open_file_name('yaml,xml')
         if not path:
             return
 
@@ -960,6 +969,16 @@ class application(tkinter.Frame):
         elif itype in ["Table"]:
             new_value = bytes_to_bracket_str(widget.get())
             self.set_config_item_value(item, new_value)
+        elif itype.upper() in ['ENUMKNOB', 'BOOLKNOB']:
+            opt_list = self.cfg_data_obj.get_cfg_item_options (item)
+            tmp_list = [opt[0] for opt in opt_list]
+            idx = widget.current()
+            self.set_config_item_value(item, tmp_list[idx])
+        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB']:
+            self.set_config_item_value(item, widget.get())
+        elif itype in ["BYTESKNOB"]:
+            new_value = bytes_to_bracket_str(widget.get())
+            self.set_config_item_value(item, new_value)
 
 
     def evaluate_condition(self, item):
@@ -1025,6 +1044,47 @@ class application(tkinter.Frame):
         elif itype in ["Table"]:
             bins = self.cfg_data_obj.get_cfg_item_value(item, True)
             col_hdr = item['option'].split(',')
+            widget = custom_table(parent, col_hdr, bins)
+
+        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB']:
+            txt_val = tkinter.StringVar()
+            widget = tkinter.Entry(parent, textvariable=txt_val)
+            value = item['value'].strip("{").strip("}").strip()
+            widget.bind("<FocusOut>", self.edit_num_finished)
+            txt_val.set(value)
+
+        elif itype.upper() in ['ENUMKNOB', 'BOOLKNOB']:
+            # Build
+            opt_list = self.cfg_data_obj.get_cfg_item_options (item)
+            current_value = self.cfg_data_obj.get_cfg_item_value (item, False)
+            option_list = []
+            current = None
+
+            for idx, option in enumerate(opt_list):
+                option_str   = option
+                try:
+                    option_value = self.cfg_data_obj.get_value(item, len(option_str), False, option_str)
+                except:
+                    option_value = 0
+                    print('WARNING: Option "%s" has invalid format for "%s" !' % (option_str, item['path']))
+                if option_value == current_value:
+                    current = idx
+                option_list.append(option)
+
+            widget = ttk.Combobox(parent, value=option_list, state="readonly")
+            widget.bind("<<ComboboxSelected>>", self.combo_select_changed)
+            widget.unbind_class("TCombobox", "<MouseWheel>")
+
+            if current is None:
+                print('WARNING: Value "%s" is an invalid option for "%s" !' %
+                      (current_value, item['path']))
+            else:
+                widget.current(current)
+
+        elif itype.upper() in ["BYTESKNOB"]:
+            bins = self.cfg_data_obj.get_cfg_item_value(item, True)
+            col_hdr = ['%i:1:HEX' % i for i in range(item['length'])]
+            print (bins)
             widget = custom_table(parent, col_hdr, bins)
 
         else:
