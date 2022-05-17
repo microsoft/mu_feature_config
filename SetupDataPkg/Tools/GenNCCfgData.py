@@ -330,7 +330,6 @@ class CGenNCCfgData:
 
     def get_value (self, item, bit_length, array = True):
         value_str = item['value'].strip()
-        print (value_str)
         if len(value_str) == 0:
             return 0
         if value_str[0] == "'" and value_str[-1] == "'" or \
@@ -1106,13 +1105,10 @@ class CGenNCCfgData:
 
     def load_xml (self, cfg_file):
         self.initialize ()
-        # TODO: Remove hard coded path
-        xsd = xmlschema.XMLSchema('SetupDataPkg/Tools/configschema.xsd')
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
         if not xsd.is_valid(cfg_file):
             raise Exception ("Input xml does not meet corresponding schema")
-        # with open (cfg_file, 'rb') as file:
-        #     self._cfg_tree = xmltodict.parse(file)
-        #     print (self._cfg_tree)
         tree = ET.parse (cfg_file)
         self.root = tree.getroot()
         self._cfg_tree = OrderedDict ({})
