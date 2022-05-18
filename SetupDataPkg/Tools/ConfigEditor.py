@@ -920,6 +920,14 @@ class application(tkinter.Frame):
             new_value = value_str[:length]
             if item['value'].startswith("'"):
                 new_value = "'%s'" % new_value
+        elif itype.upper() in ['BYTESKNOB']:
+            new_value = value_str
+        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB', 'ENUMKNOB', 'BOOLKNOB']:
+            try:
+                new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item=item)
+            except:
+                print("WARNING: Failed to format value string '%s' for '%s' !" % (value_str, item['path']))
+                new_value = item['value']
         else:
             try:
                 new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item['value'])
@@ -971,7 +979,7 @@ class application(tkinter.Frame):
             self.set_config_item_value(item, new_value)
         elif itype.upper() in ['ENUMKNOB', 'BOOLKNOB']:
             opt_list = self.cfg_data_obj.get_cfg_item_options (item)
-            tmp_list = [opt[0] for opt in opt_list]
+            tmp_list = [opt for opt in opt_list]
             idx = widget.current()
             self.set_config_item_value(item, tmp_list[idx])
         elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB']:

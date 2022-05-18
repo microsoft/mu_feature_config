@@ -287,8 +287,7 @@ class CGenNCCfgData:
         return  self.get_value (item, length, array)
 
 
-    def format_value_to_str (self, value, bit_length, old_value = ''):
-        # value is always int
+    def format_value_to_str (self, value, bit_length, old_value = '', item=None):
         length    = (bit_length + 7) // 8
         fmt = ''
         if old_value.startswith ('0x'):
@@ -297,6 +296,18 @@ class CGenNCCfgData:
             fmt = old_value[0]
         else:
             fmt = ''
+
+        if item != None and item['type'].upper() == 'BOOLKNOB':
+            return 'False' if value == 0 else 'True'
+        elif item != None and item['type'].upper() == 'ENUMKNOB':
+            dict = self._peri_tree['ENUMS'][item['enumtype']]
+            for key in dict:
+                if dict[key] == str(value):
+                    return key
+        elif item != None and item['type'].upper() in ['FLOATKNOB', 'DOUBLEKNOB']:
+            return str(value)
+        elif item != None and item['type'].upper() in ['INT32KNOB', 'INT64KNOB']:
+            return str(value)
 
         bvalue = value_to_bytearray (value, length)
         if fmt in ['"', "'"]:
@@ -321,11 +332,11 @@ class CGenNCCfgData:
         return value_str
 
 
-    def reformat_value_str (self, value_str, bit_length, old_value = None):
-        value = self.parse_value (value_str, bit_length, False)
+    def reformat_value_str (self, value_str, bit_length, old_value = None, item=None):
+        value = self.parse_value (value_str, bit_length, False, item=item)
         if old_value is None:
             old_value = value_str
-        new_value = self.format_value_to_str (value, bit_length, old_value)
+        new_value = self.format_value_to_str (value, bit_length, old_value, item=item)
         return new_value
 
 
@@ -377,7 +388,7 @@ class CGenNCCfgData:
             return value
 
 
-    def parse_value (self, value_str, bit_length, array = True):
+    def parse_value (self, value_str, bit_length, array = True, item=None):
         length = (bit_length + 7) // 8
         if check_quote(value_str):
             value_str = bytes_to_bracket_str(value_str[1:-1].encode())
@@ -428,6 +439,8 @@ class CGenNCCfgData:
 
         elif check_quote (value_str):
             result = bytearray(value_str[1:-1], 'utf-8')  # Excluding quotes
+        elif item != None:
+            return self.get_value(item, bit_length, array, value_str)
         else:
             result = value_to_bytearray (self.eval(value_str), length)
 
