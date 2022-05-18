@@ -740,6 +740,9 @@ class CGenNCCfgData:
         else:
             raise Exception ("Unrecognized type '%s' found!" % (itype))
 
+        # the expected value is length in bits
+        length *= 8
+
         if not name.isidentifier():
             raise Exception ("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
 
