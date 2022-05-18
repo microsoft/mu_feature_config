@@ -926,7 +926,7 @@ class application(tkinter.Frame):
             try:
                 new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item=item)
             except:
-                print("WARNING: Failed to format value string '%s' for '%s' !" % (value_str, item['path']))
+                print("WARNING: Failed to format knob value string '%s' for '%s' !" % (value_str, item['path']))
                 new_value = item['value']
         else:
             try:
@@ -1091,8 +1091,7 @@ class application(tkinter.Frame):
 
         elif itype.upper() in ["BYTESKNOB"]:
             bins = self.cfg_data_obj.get_cfg_item_value(item, True)
-            col_hdr = ['%i:1:HEX' % i for i in range(item['length'])]
-            print (bins)
+            col_hdr = ['%i:1:HEX' % i for i in range(item['length'] // 8)]
             widget = custom_table(parent, col_hdr, bins)
 
         else:

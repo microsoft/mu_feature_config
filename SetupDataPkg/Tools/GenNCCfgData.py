@@ -360,11 +360,19 @@ class CGenNCCfgData:
                 value_str = value_str[1:-1].strip()
             value = 0
             if item['type'].upper() == 'FLOATKNOB':
-                bvalue = bytearray(struct.pack("f", float(value_str)))
-                return bytes_to_value (bvalue)
+                value = float(value_str)
+                bvalue = bytearray(struct.pack("f", value))
+                if array:
+                    return  bvalue
+                else:
+                    return value
             elif item['type'].upper() == 'DOUBLEKNOB':
-                bvalue = bytearray(struct.pack("d", float(value_str)))
-                return bytes_to_value (bvalue)
+                value = float(value_str)
+                bvalue = bytearray(struct.pack("d", value))
+                if array:
+                    return  bvalue
+                else:
+                    return value
             elif item['type'].upper() == 'BYTESKNOB':
                 bvalue = bytearray.fromhex(value_str)
                 if array:
@@ -374,18 +382,28 @@ class CGenNCCfgData:
             elif item['type'].upper () == 'BOOLKNOB':
                 value = 0 if value_str.upper() == 'FALSE' else 1
                 bvalue = bytearray(struct.pack("B", value))
-                return bytes_to_value (bvalue)
+                if array:
+                    return  bvalue
+                else:
+                    return  bytes_to_value (bvalue)
             elif item['type'].upper () == 'ENUMKNOB':
                 # need to look up the peripheral dictionary
                 value = self.look_up_enums(item, value_str)
                 bvalue = bytearray(struct.pack("I", value))
-                return bytes_to_value (bvalue)
+                if array:
+                    return  bvalue
+                else:
+                    return  bytes_to_value (bvalue)
+            else:
+                for each in value_str.split(',')[::-1]:
+                    each = each.strip()
+                    value = (value << 8) | int(each, 0)
 
-            for each in value_str.split(',')[::-1]:
-                each = each.strip()
-                value = (value << 8) | int(each, 0)
-
-            return value
+                if array:
+                    length = (bit_length + 7) // 8
+                    return value_to_bytearray (value, length)
+                else:
+                    return value
 
 
     def parse_value (self, value_str, bit_length, array = True, item=None):
@@ -832,8 +850,8 @@ class CGenNCCfgData:
                 act_cfg = self.get_item_by_index (cfgs['indx'])
                 if act_cfg['length'] == 0:
                     return
-                value = self.get_value (act_cfg, act_cfg['length'], False)
-                set_bits_to_bytes (result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
+                val_bytes = self.get_value (act_cfg, act_cfg['length'], True)
+                set_bits_to_bytes (result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], bytes_to_value(val_bytes))
 
         if top is None:
             top = self._cfg_tree
