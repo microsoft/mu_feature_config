@@ -84,7 +84,8 @@ def main():
     (rc, err, errorstring) = UefiVar.SetUefiVar(DFCI_SETTINGS_APPLY_INPUT_VAR_NAME, DFCI_SETTINGS_GUID, var, DFCI_SECURED_SETTINGS_VAR_ATTRIBUTES)
     if rc == 0: # This is per function document...
       logging.error ('Failed to set mailbox settings into UEFI variable - %r' % errorstring)
-  return rc
+      return 1
+  return 0
 
 if __name__ == '__main__':
     #setup main console as logger
