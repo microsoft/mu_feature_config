@@ -79,10 +79,10 @@ def main():
     var = file.read()
     UefiVar = UefiVariable()
     (rc, buf, _) = UefiVar.GetUefiVar("Boot0000", "8BE4DF61-93CA-11D2-AA0D-00E098032B8C")
-    logging.error (rc)
-    logging.error (buf)
+    logging.critical (rc)
+    logging.critical (buf)
     (rc, err, errorstring) = UefiVar.SetUefiVar(DFCI_SETTINGS_APPLY_INPUT_VAR_NAME, DFCI_SETTINGS_GUID, var, DFCI_SECURED_SETTINGS_VAR_ATTRIBUTES)
-    if rc != 0:
+    if rc == 0: # This is per function document...
       logging.error ('Failed to set mailbox settings into UEFI variable - %r' % errorstring)
   return rc
 
