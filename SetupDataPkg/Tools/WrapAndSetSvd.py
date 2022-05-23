@@ -37,15 +37,15 @@ def path_parse():
         help = '''Specify the absolute path to SVD file intended to be set.'''
         )
     parser.add_argument (
-        '-m', '--Manufacturer', dest = 'Manufacturer', type=str, default="''",
+        '-m', '--Manufacturer', dest = 'Manufacturer', type=str, default='""',
         help = '''Specify the your manufacturer name.'''
         )
     parser.add_argument (
-        '-p', '--Product', dest = 'Product', type=str, default="''",
+        '-p', '--Product', dest = 'Product', type=str, default='""',
         help = '''Specify the your product name.'''
         )
     parser.add_argument (
-        '-s', '--SerialNum', dest = 'SerialNum', type=str, default="''",
+        '-s', '--SerialNum', dest = 'SerialNum', type=str, default='""',
         help = '''Specify the your targeted serial number.'''
         )
 
