@@ -37,15 +37,15 @@ def path_parse():
         help = '''Specify the absolute path to SVD file intended to be set.'''
         )
     parser.add_argument (
-        '-m', '--Manufacturer', dest = 'Manufacturer', type=str, default="",
+        '-m', '--Manufacturer', dest = 'Manufacturer', type=str, default="''",
         help = '''Specify the your manufacturer name.'''
         )
     parser.add_argument (
-        '-p', '--Product', dest = 'Product', type=str, default="",
+        '-p', '--Product', dest = 'Product', type=str, default="''",
         help = '''Specify the your product name.'''
         )
     parser.add_argument (
-        '-s', '--SerialNum', dest = 'SerialNum', type=str, default="",
+        '-s', '--SerialNum', dest = 'SerialNum', type=str, default="''",
         help = '''Specify the your targeted serial number.'''
         )
 
@@ -68,7 +68,10 @@ def main():
   params = ['--Step1Enable']
   params += ['--PrepResultFile', setting_file]
   params += ['--XmlFilePath', Paths.InputSVDFile]
-  params += ['--HdrVersion', '2', Paths.Manufacturer, Paths.Product, Paths.SerialNum]
+  params += ['--HdrVersion', '2']
+  params += ["--SMBIOSMfg", Paths.Manufacturer]
+  params += ["--SMBIOSProd", Paths.Product]
+  params += ["--SMBIOSSerial", Paths.SerialNum]
   ret = RunPythonScript (py_file, ' '.join(params), workingdir=sp, environ=os.environ.copy())
   if ret != 0:
     raise Exception ('Failed to generate package - %x' % ret)
