@@ -19,9 +19,49 @@ from   datetime    import date
 from   collections import OrderedDict
 from xml.dom.minidom import parse, Node
 
-from pyparsing import nestedExpr, delimitedList, Word, alphanums
-
 from CommonUtility import *
+
+class ParseError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+def split_braces(string_object):
+    segments = []
+    depth = 0
+    chars = []
+    complete = False
+    for c in string_object.strip():
+        if complete and c == ' ':
+            continue
+        elif complete:
+            raise ParseError("Unexpected character after '}}', found '{}'".format(c))
+
+        if c == '{':
+            if depth > 0:
+                chars.append(c)
+            depth += 1
+        elif c == ',':
+            if depth > 1:
+                chars.append(c)
+            else:
+                segments.append("".join(chars).strip())
+                chars = []
+        elif c == '}':
+            depth -= 1
+            if depth > 0:
+                chars.append(c)
+            elif depth == 0:
+                segments.append("".join(chars).strip())
+                chars = []
+                complete = True
+        elif depth > 0:
+            chars.append(c)
+        else:
+            raise ParseError("expected '{{', found '{}'".format(c))
+    if not complete:
+        ParseError("expected '}'")
+
+    return segments
 
 # A DataFormat defines how a variable element is serialized
 # * to/from strings (as in the XML attributes) as well as
@@ -39,7 +79,11 @@ class IntValueFormat(DataFormat):
         self.pack_format = pack_format
 
     def string_to_object(self, string_representation):
-        return int(string_representation)
+        try:
+            return int(string_representation)
+        except:
+            raise ParseError("Value '{}' is not a valid number".format(string_representation))
+
     def object_to_string(self, object_representation):
         return str(object_representation)
     def object_to_binary(self, object_representation):
@@ -145,7 +189,7 @@ class EnumFormat(DataFormat):
             for value in self.values:
                 if value.name == string_representation:
                     return value.number
-        raise Exception("Value '{}' is not a valid value of enum '{}'".format(string_representation, self.name))
+        raise ParseError("Value '{}' is not a valid value of enum '{}'".format(string_representation, self.name))
     def object_to_string(self, object_representation):
         for value in self.values:
             if value.number == object_representation:
@@ -162,7 +206,11 @@ class StructMember:
     def __init__(self, schema, xml_node):
         self.name = xml_node.getAttribute("name")
         self.help = xml_node.getAttribute("help")
-        self.count = xml_node.getAttribute("count")
+        count = xml_node.getAttribute("count")
+        if count == "":
+            self.count = 1
+        else:
+            self.count = int(count)
 
         data_type = xml_node.getAttribute("type")
         # Look up the format using the schema
@@ -179,9 +227,23 @@ class StructMember:
 
     # TODO: Handle arrays
     def string_to_object(self, string_representation):
-        return self.format.string_to_object(string_representation)
+        if self.count != 1:
+            segments = split_braces(string_representation)
+            object_array = []
+            for element in segments:
+                object_array.append(self.format.string_to_object(element))
+            return object_array
+        else:
+            return self.format.string_to_object(string_representation)
     def object_to_string(self, object_representation):
-        return self.format.object_to_string(object_representation)
+        if self.count == 1:
+            return self.format.object_to_string(object_representation)
+        else:
+            element_strings = []
+            for element in object_representation:
+                element_strings.append(self.format.object_to_string(element))
+            return "{{{}}}".format(",".join(element_strings))
+
     def object_to_binary(self, object_representation):
         return self.format.object_to_binary(object_representation)
     def binary_to_object(self, binary_representation):
@@ -214,17 +276,13 @@ class StructFormat(DataFormat):
 
     def string_to_object(self, string_representation):
         obj = OrderedDict()
-        pass
-        # If this is a list of strings, it is pre-parsed
-        #if isinstance(string_representation, str):
-        #    for (member, value) in zip(self.members, parsed_list):
-        #        pass
-        #else:
-        #    parsed_list = nestedExpr('{', '}', content=delimitedList(Word(alphanums + '_' + '-'), delim=',')).parseString(string_representation).asList()
-        #    return self.string_to_object(parsed_list)
+
+        segments = split_braces(string_representation)
+            
+        for (member, value) in zip(self.members, segments):
+            obj[member.name] = member.string_to_object(value)
+        return obj
         
-        #return self.format.string_to_object(string_representation)
-        #raise Exception("not implemented")
     def object_to_string(self, object_representation):
         member_strings = []
 
@@ -261,7 +319,12 @@ class Knob:
         self.format = schema.get_format(data_type)
 
         # Use the format to decode the default value from its string representation
-        self.default = self.format.string_to_object(xml_node.getAttribute("default"))
+        try:
+            self.default = self.format.string_to_object(xml_node.getAttribute("default"))
+        except ParseError as e:
+            raise Exception("Unable to parse default value of '{}': {}".format(self.name, e))
+
+        print("Knob '{}', default='{}'".format(self.name, self.format.object_to_string(self.default)))
         pass
 
 
