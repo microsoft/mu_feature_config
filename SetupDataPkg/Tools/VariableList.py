@@ -29,6 +29,8 @@ class InvalidKnobError(ParseError):
     def __init__(self, message):
         super().__init__(message)
 
+# Decodes a comma sepearated list within curly braces in to a list
+# "{1,2,3}" -> ["1", "2", "3"]
 def split_braces(string_object):
     segments = []
     depth = 0
@@ -72,7 +74,7 @@ def is_valid_name(token):
     matches = re.findall("^[a-zA-Z_][0-9a-zA-Z_]*$", token)
     return len(matches) == 1
 
-
+# This class can be used to modify the behavior of string formatting of variable values
 class StringFormatOptions:
     def __init__(self):
         pass
@@ -168,6 +170,7 @@ builtin_types = {
     'bool'     : (lambda: BoolFormat()),
 }
 
+# Represents a value in a user defined enum
 class EnumValue:
     def __init__(self, enum_name, xml_node):
         self.enum_name = enum_name
@@ -190,6 +193,7 @@ class EnumValue:
         else:
             out.write("    {}_{},\n".format(self.enum_name, self.name))
 
+# Represents a user defined enum
 class EnumFormat(DataFormat):
     def __init__(self, xml_node):
         self.name = xml_node.getAttribute("name")
@@ -239,11 +243,15 @@ class EnumFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize("<i")
 
+# Represents a member of a user defined struct
+# Each member may be of any type, and maay also have a count
+# value to treat it as an array
 class StructMember:
-    def __init__(self, schema, xml_node):
+    def __init__(self, schema, struct_name, xml_node):
         self.name = xml_node.getAttribute("name")
+        self.struct_name = struct_name
         if not is_valid_name(self.name):
-            raise InvalidNameError("Enum name '{}' is invalid".format(self.name))
+            raise InvalidNameError("Member name '{}' of struct '{}' is invalid".format(self.name, self.struct_name))
         self.help = xml_node.getAttribute("help")
         count = xml_node.getAttribute("count")
         if count == "":
@@ -267,6 +275,8 @@ class StructMember:
     def string_to_object(self, string_representation):
         if self.count != 1:
             segments = split_braces(string_representation)
+            if len(segments) != self.count:
+                raise ParseError("Member '{}' of struct '{}' should have {} elements, but {} were found".format(self.name, self.struct_name, self.count, len(segments)))
             object_array = []
             for element in segments:
                 object_array.append(self.format.string_to_object(element))
@@ -306,6 +316,7 @@ class StructMember:
     def size_in_bytes(self):
         return self.format.size_in_bytes() * self.count
 
+# Represents a user defined struct
 class StructFormat(DataFormat):
     def __init__(self, schema, xml_node):
         self.name = xml_node.getAttribute("name")
@@ -317,7 +328,7 @@ class StructFormat(DataFormat):
         super().__init__(ctype=self.name)
 
         for member in xml_node.getElementsByTagName('Member'):
-            self.members.append(StructMember(schema, member))
+            self.members.append(StructMember(schema, self.name, member))
 
         pass
 
@@ -335,7 +346,12 @@ class StructFormat(DataFormat):
         obj = OrderedDict()
 
         segments = split_braces(string_representation)
-            
+        
+        if len(self.members) > len(segments):
+            raise ParseError("Value '{}' does not have enough members for struct '{}'".format(string_representation, self.name))
+        if len(self.members) < len(segments):
+            raise ParseError("Value '{}' does has too many members for struct '{}'".format(string_representation, self.name))
+
         for (member, value) in zip(self.members, segments):
             obj[member.name] = member.string_to_object(value)
         return obj
@@ -372,6 +388,7 @@ class StructFormat(DataFormat):
             total_size += member.size_in_bytes()
         return total_size
 
+# Represents a "knob", a modifiable variable
 class Knob:
     def __init__(self, schema, xml_node, namespace):
         self.name = xml_node.getAttribute("name")
@@ -450,11 +467,15 @@ class Schema:
                 self.knobs.append(Knob(self, knob, namespace))
         pass
 
+    # Parse a schema given a path to a schema xml file
     def parse(path):
         return Schema(parse(path))
+    
+    # Parse a schema given a string representation of the xml content
     def parseString(string):
         return Schema(parseString(string))
 
+    # Get a knob by name
     def get_knob(self, knob_name):
         for knob in self.knobs:
             if knob.name == knob_name:
@@ -462,6 +483,7 @@ class Schema:
         
         raise InvalidKnobError("Knob '{}' is not defined".format(knob_name))
 
+    # Get a format by name
     def get_format(self, type_name):
 
         type_name = type_name.strip()
@@ -485,7 +507,7 @@ class Schema:
         raise InvalidTypeError("Data type '{}' is not defined".format(type_name))
 
 
-# Generates a C header with accessors for the knobs
+# Generates a C header with user defined types andd accessors for the knobs
 def generate_header(schema_path, header_path):
     
     schema = Schema.parse(schema_path)
@@ -509,12 +531,12 @@ def generate_header(schema_path, header_path):
             pass
         for knob in schema.knobs:
             knob.generate_header(out)
-            pass
-
-    
+            pass    
     pass
 
-
+# Represents a UEFI variable
+# Knobs are stored within UEFI variables and can be serialized to a
+# variable list file
 class UEFIVariable:
     def __init__(self, name, guid, data, attributes = 7):
         self.name = name
@@ -529,13 +551,13 @@ class UEFIVariable:
 def write_vlist_entry(file, variable):
 
     # Each entry has the following values
-    #  NameSize(int32, size of Name in bytes), 
-    #  DataSize(int32, size of Data in bytes), 
-    #  Name(null terminated UTF-16LE encoded name), 
-    #  Guid(16 Byte namespace Guid), 
-    #  Attributes(int32 UEFI attributes), 
-    #  Data(bytes), 
-    #  CRC32(int32 checksum of all bytyes from NameSize through Datta)
+    #   NameSize(int32, size of Name in bytes), 
+    #   DataSize(int32, size of Data in bytes), 
+    #   Name(null terminated UTF-16LE encoded name), 
+    #   Guid(16 Byte namespace Guid), 
+    #   Attributes(int32 UEFI attributes), 
+    #   Data(bytes), 
+    #   CRC32(int32 checksum of all bytyes from NameSize through Datta)
 
     # Null terminated UTF-16LE encoded name
     name = (variable.name + "\0").encode("utf-16le")
@@ -550,28 +572,39 @@ def write_vlist_entry(file, variable):
     file.write(struct.pack("<I", crc))
     pass
 
+# Read a set of UEFIVariables from a variable list file
 def read_vlist(file):
     variables = []
     while True:
+        # Try reading the first part
         name_size_bytes = file.read(4)
+
+        # If there are no more entries left, return
         if len(name_size_bytes) == 0:
             return variables
         
+        # Decode the name size and read the data size
         name_size = struct.unpack("<i", name_size_bytes)[0]
         data_size = struct.unpack("<i", file.read(4))[0]
 
+        # These portions are fixed size
         guid_size = 16
         attr_size = 4
 
+        # This is the number of bytes *after* the two size integers *until before* the CRC
         remaining_bytes = name_size + guid_size + attr_size + data_size
 
+        # Payload will now contain all of the bytes including the size bytes, but not the CRC
         payload = struct.pack("<ii", name_size, data_size) + file.read(remaining_bytes)
 
+        # Read the CRC separately
         crc = struct.unpack("<I", file.read(4))[0]
 
+        # Validate the CRC
         if crc != zlib.crc32(payload):
             raise Exception("CRC mismatch")
         
+        # Decode the elementes of the payload
         name = payload[8:(name_size+8)].decode(encoding="UTF-16LE").strip("\0")
         guid_bytes = payload[(name_size+8):(name_size+8+16)]
         guid = uuid.UUID(bytes=guid_bytes)
@@ -582,7 +615,7 @@ def read_vlist(file):
         variables.append(UEFIVariable(name, guid, data, attributes))
         
 
-# Generates a binary vlist file with the content of a set of knobs
+# Generates a binary vlist file with the knob values from the given csv file
 def write_vlist(schema_path, values_path, vlist_path):
 
     schema = Schema.parse(schema_path)
@@ -621,7 +654,7 @@ def write_default_vlist(schema_path, vlist_path):
             write_vlist_entry(vlist_file, variable)
     pass
 
-
+# Writes a CSV file containing all the default knob values from a schema
 def write_default_csv(schema_path, csv_path):
 
     schema = Schema.parse(schema_path)
@@ -635,7 +668,7 @@ def write_default_csv(schema_path, csv_path):
             
     pass
 
-
+# Writes a CSV file containing the knob values in the given variable list file
 def write_csv(schema_path, vlist_path, csv_path):
 
     schema = Schema.parse(schema_path)
@@ -715,8 +748,3 @@ if __name__ == '__main__':
     sys.exit(main())
 
 
-
-#  schema.xml values.xml -> blob.vl
-#  schema.xml blob.vl -> values.xml
-#  schema.xml -> config.h
-#  blob.vl -> partition.bin
