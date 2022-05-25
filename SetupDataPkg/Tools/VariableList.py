@@ -267,7 +267,7 @@ class StructMember:
     def generate_header(self, out):
         if self.help != "":
             out.write("    // {}\n".format(self.help))
-        if self.count == "":
+        if self.count == 1:
             out.write("    {} {};\n".format(self.format.ctype, self.name))
         else:
             out.write("    {} {}[{}];\n".format(self.format.ctype, self.name, self.count))
@@ -483,6 +483,8 @@ class Schema:
         
         raise InvalidKnobError("Knob '{}' is not defined".format(knob_name))
 
+    
+
     # Get a format by name
     def get_format(self, type_name):
 
@@ -557,7 +559,7 @@ def write_vlist_entry(file, variable):
     #   Guid(16 Byte namespace Guid), 
     #   Attributes(int32 UEFI attributes), 
     #   Data(bytes), 
-    #   CRC32(int32 checksum of all bytyes from NameSize through Datta)
+    #   CRC32(int32 checksum of all bytyes from NameSize through Data)
 
     # Null terminated UTF-16LE encoded name
     name = (variable.name + "\0").encode("utf-16le")
@@ -701,6 +703,10 @@ def usage():
     print("  generateheader <schema.xml> <header.h>")
     print("  writevl <schema.xml> [<values.csv>] <blob.vl>")
     print("  writecsv <schema.xml> [<blob.vl>] <values.csv>")
+    print("")
+    print("schema.xml : An XML with the definition of a set of known UEFI variables (\"knobs\") and types to interpret them")
+    print("blob.vl : file is a binary list of UEFI variables in the format used by the EFI 'dmpstore' command")
+    print("values.csv : file is a text list of knobs")
 
 def main():
     if len(sys.argv) < 2:
