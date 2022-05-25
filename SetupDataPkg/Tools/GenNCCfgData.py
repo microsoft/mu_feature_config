@@ -23,6 +23,7 @@ import xml.etree.ElementTree as ET
 import xmlschema
 
 from CommonUtility import *
+from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat
 
 # Generated file copyright header
 __copyright_tmp__ = """/** @file
@@ -269,217 +270,64 @@ class CGenNCCfgData:
     def get_cfg_list (self, page_id = None):
         if page_id is None:
             # return full list
-            return self._cfg_list
+            return self.knob_shim
         else:
             # build a new list for items under a page ID
-            cfgs =  [i for i in self._cfg_list if i['cname'] and (i['page'] == page_id)]
+            cfgs =  [i for i in self.knob_shim if (i['inst'].name == page_id)]
             return cfgs
-
 
     def get_cfg_page (self):
         return self._cfg_page
 
     def get_cfg_item_length (self, item):
-        return item['length']
+        return item['inst'].format.size_in_bytes()
 
     def get_cfg_item_value (self, item, array = False):
-        length    = item['length']
+        length = item['inst'].format.size_in_bytes()
         return  self.get_value (item, length, array)
 
-
     def format_value_to_str (self, value, bit_length, old_value = '', item=None):
-        length    = (bit_length + 7) // 8
-        fmt = ''
-        if old_value.startswith ('0x'):
-            fmt = '0x'
-        elif old_value and (old_value[0] in ['"', "'", '{']):
-            fmt = old_value[0]
+        if item != None:
+            obj = item['inst'].format.binary_to_object (value)
+            return item['inst'].format.object_to_string(obj)
         else:
-            fmt = ''
-
-        if item != None and item['type'].upper() == 'BOOLKNOB':
-            return 'False' if value == 0 else 'True'
-        elif item != None and item['type'].upper() == 'ENUMKNOB':
-            dict = self._peri_tree['ENUMS'][item['enumtype']]
-            for key in dict:
-                if dict[key] == str(value):
-                    return key
-        elif item != None and item['type'].upper() in ['FLOATKNOB', 'DOUBLEKNOB']:
-            return str(value)
-        elif item != None and item['type'].upper() in ['INT32KNOB', 'INT64KNOB']:
-            return str(value)
-
-        bvalue = value_to_bytearray (value, length)
-        if fmt in ['"', "'"]:
-            svalue = bvalue.rstrip(b'\x00').decode()
-            value_str = fmt + svalue + fmt
-        elif fmt == "{":
-            value_str = '{ ' + ', '.join(['0x%02x' % i for i in bvalue]) + ' }'
-        elif fmt == '0x':
-            hex_len = length * 2
-            if len(old_value) == hex_len + 2:
-                fstr = '0x%%0%dX' % hex_len
-            else:
-                fstr = '0x%X'
-            value_str = fstr % value
-        else:
-            if length <= 2:
-                value_str = '%d'   % value
-            elif length <= 8:
-                value_str = '0x%x' % value
-            else:
-                value_str = '{ ' + ', '.join(['0x%02x' % i for i in bvalue]) + ' }'
-        return value_str
+            raise Exception ("Cannot accept item being None for xml parser!!!")
 
 
     def reformat_value_str (self, value_str, bit_length, old_value = None, item=None):
-        value = self.parse_value (value_str, bit_length, False, item=item)
-        if old_value is None:
-            old_value = value_str
-        new_value = self.format_value_to_str (value, bit_length, old_value, item=item)
+        if item == None:
+            raise Exception ("Cannot accept item being None for xml parser!!!")
+        obj = item['inst'].format.string_to_object (value_str)
+        new_value = item['inst'].format.object_to_string (obj)
         return new_value
 
 
     def get_value (self, item, bit_length, array = True, value_str = None):
         if value_str == None:
             value_str = item['value'].strip()
+        data_inst = item['inst']
         if len(value_str) == 0:
             return 0
-        if value_str[0] == "'" and value_str[-1] == "'" or \
-           value_str[0] == '"' and value_str[-1] == '"':
-            value_str = value_str[1:-1]
-            bvalue = bytearray (value_str.encode())
-            if len(bvalue) == 0:
-                bvalue = bytearray(b'\x00')
-            if array:
-                return  bvalue
-            else:
-                return  bytes_to_value (bvalue)
+        obj = data_inst.format.string_to_object (value_str)
+        bvalue = data_inst.format.object_to_binary (obj)
+        if array:
+            return  bvalue
         else:
-            if value_str[0] in '{' :
-                value_str = value_str[1:-1].strip()
-            value = 0
-            if item['type'].upper() == 'FLOATKNOB':
-                value = float(value_str)
-                bvalue = bytearray(struct.pack("f", value))
-                if array:
-                    return  bvalue
-                else:
-                    return value
-            elif item['type'].upper() == 'DOUBLEKNOB':
-                value = float(value_str)
-                bvalue = bytearray(struct.pack("d", value))
-                if array:
-                    return  bvalue
-                else:
-                    return value
-            elif item['type'].upper() == 'BYTESKNOB':
-                bvalue = bytearray.fromhex(value_str)
-                if array:
-                    return  bvalue
-                else:
-                    return  bytes_to_value (bvalue)
-            elif item['type'].upper () == 'BOOLKNOB':
-                value = 0 if value_str.upper() == 'FALSE' else 1
-                bvalue = bytearray(struct.pack("B", value))
-                if array:
-                    return  bvalue
-                else:
-                    return  bytes_to_value (bvalue)
-            elif item['type'].upper () == 'ENUMKNOB':
-                # need to look up the peripheral dictionary
-                value = self.look_up_enums(item, value_str)
-                bvalue = bytearray(struct.pack("I", value))
-                if array:
-                    return  bvalue
-                else:
-                    return  bytes_to_value (bvalue)
-            else:
-                for each in value_str.split(',')[::-1]:
-                    each = each.strip()
-                    value = (value << 8) | int(each, 0)
-
-                if array:
-                    length = (bit_length + 7) // 8
-                    return value_to_bytearray (value, length)
-                else:
-                    return value
+            return  bytes_to_value (bvalue)
 
 
     def parse_value (self, value_str, bit_length, array = True, item=None):
-        length = (bit_length + 7) // 8
-        if check_quote(value_str):
-            value_str = bytes_to_bracket_str(value_str[1:-1].encode())
-        elif (',' in value_str) and (value_str[0] != '{'):
-            value_str = '{ %s }' % value_str
-        if value_str[0] == '{':
-            result = expand_file_value (self._yaml_path, value_str)
-            if len(result) == 0 :
-                bin_list = value_str[1:-1].split(',')
-                value            = 0
-                bit_len          = 0
-                unit_len         = 1
-                for idx, element in enumerate(bin_list):
-                    each = element.strip()
-                    if len(each) == 0:
-                        continue
-
-                    in_bit_field = False
-                    if each[0] in "'" + '"':
-                        each_value = bytearray(each[1:-1], 'utf-8')
-                    elif ':' in each:
-                        match    = re.match("^(.+):(\d+)([b|B|W|D|Q])$", each)
-                        if match is None:
-                            raise SystemExit("Exception: Invald value list format '%s' !" % each)
-                        if match.group(1) == '0' and match.group(2) == '0':
-                            unit_len = CGenNCCfgData.bits_width[match.group(3)] // 8
-                        cur_bit_len = int(match.group(2)) * CGenNCCfgData.bits_width[match.group(3)]
-                        value   += ((self.eval(match.group(1)) & (1<<cur_bit_len) - 1)) << bit_len
-                        bit_len += cur_bit_len
-                        each_value = bytearray()
-                        if idx + 1 < len(bin_list):
-                            in_bit_field = True
-                    else:
-                        try:
-                            each_value = value_to_bytearray(self.eval(each.strip()), unit_len)
-                        except:
-                            raise SystemExit("Exception: Value cannot fit into %s bytes !" % (each, unit_len))
-
-                    if not in_bit_field:
-                        if bit_len > 0:
-                            if bit_len % 8 != 0:
-                                raise SystemExit("Exception: Invalid bit field alignment '%s' !" % value_str)
-                            result.extend(value_to_bytes(value, bit_len // 8))
-                        value   = 0
-                        bit_len = 0
-
-                    result.extend(each_value)
-
-        elif check_quote (value_str):
-            result = bytearray(value_str[1:-1], 'utf-8')  # Excluding quotes
-        elif item != None:
-            return self.get_value(item, bit_length, array, value_str)
-        else:
-            result = value_to_bytearray (self.eval(value_str), length)
-
-        if len(result) < length:
-            result.extend(b'\x00' * (length - len(result)))
-        elif len(result) > length:
-            raise SystemExit ("Exception: Value '%s' is too big to fit into %d bytes !" % (value_str, length))
-
-        if array:
-            return result
-        else:
-            return bytes_to_value(result)
-
-        return result
-
+        return self.get_value(item, bit_length, array, value_str)
 
     def get_cfg_item_options (self, item):
         tmp_list = []
-        if  item['type'].upper() == "ENUMKNOB":
-            tmp_list = self.fetch_available_enums(item)
-        elif item['type'].upper() == "BOOLKNOB":
+        if  item['type'].upper() == "ENUM_KNOB":
+            if type(item['inst'].format) is not EnumFormat:
+                raise Exception ("The item is malformatted!!!")
+            tmp_list = [i.name for i in item['inst'].format.values]
+        elif item['type'].upper() == "BOOL_KNOB":
+            if type(item['inst'].format) is not BoolFormat:
+                raise Exception ("The item is malformatted!!!")
             tmp_list = ['True', 'False']
         return  tmp_list
 
@@ -514,11 +362,10 @@ class CGenNCCfgData:
 
 
     def get_item_by_path (self, path):
-        node = self.locate_cfg_item (path)
-        if node:
-            return self.get_item_by_index (node['indx'])
-        else:
-            return None
+        for each in self.knob_shim:
+            if each['inst'].name == path:
+                return each
+        return None
 
     def locate_cfg_path (self, item):
         def _locate_cfg_path (root, level = 0):
@@ -567,97 +414,6 @@ class CGenNCCfgData:
         if top is None:
             top = self._cfg_tree
         _traverse_cfg_tree (top)
-
-
-    def print_cfgs(self, root = None, short = True, print_level = 256):
-        def _print_cfgs (name, cfgs, level):
-
-            if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
-            else:
-                offset = 0
-                length = 0
-                value  = ''
-                path=''
-                if CGenNCCfgData.STRUCT in cfgs:
-                    cfg = cfgs[CGenNCCfgData.STRUCT]
-                    offset = int(cfg['offset'])
-                    length = int(cfg['length'])
-                    if 'value' in cfg:
-                        value = cfg['value']
-                if length == 0:
-                    return
-                act_cfg = dict({'value' : value, 'offset' : offset, 'length' : length})
-            value   = act_cfg['value']
-            bit_len = act_cfg['length']
-            offset  = (act_cfg['offset'] + 7) // 8
-            if value != '':
-                try:
-                    value = self.reformat_value_str (act_cfg['value'], act_cfg['length'])
-                except:
-                    value = act_cfg['value']
-            length  = bit_len // 8
-            bit_len = '(%db)' % bit_len if bit_len % 8 else '' * 4
-            if level <= print_level:
-                if short and len(value) > 40:
-                    value = '%s ... %s' % (value[:20] , value[-20:])
-                print('%04X:%04X%-6s %s%s : %s' % (offset, length, bit_len, '  ' * level, name, value))
-
-        self.traverse_cfg_tree (_print_cfgs)
-
-
-    def get_cfg_tree(self):
-        return self._cfg_tree
-
-
-    def set_cfg_tree(self, cfg_tree):
-        self._cfg_tree = cfg_tree
-
-
-    def merge_cfg_tree(self, root, other_root):
-        ret = OrderedDict ()
-        prev_key = None
-        for other_key in other_root:
-            if other_key not in root:
-                ret[other_key] = other_root[other_key]
-            else:
-                # this is a good time to check to see if we miss anything from previous root elements
-                found_last = False
-                for key in root:
-                    if key == prev_key:
-                        found_last = True
-                        continue
-                    if prev_key == None:
-                        found_last = True
-                    if found_last:
-                        ret[key] = root[key]
-                    if key == other_key:
-                        prev_key = other_key
-                        break
-
-                if type(root[other_key]) is OrderedDict and type(other_root[other_key]) is OrderedDict:
-                    # if they are both non-leaf, great, process recursively
-                    ret[other_key] = self.merge_cfg_tree (root[other_key], other_root[other_key])
-                elif type(root[other_key]) is OrderedDict or type(other_root[other_key]) is OrderedDict:
-                    raise Exception ("Two yamls files have hierachy mismatch!!!")
-                else:
-                    # this is duplicate value in from both roots, take original root as principal
-                    ret[other_key] = root[other_key]
-
-        # See if there is any leftovers
-        found_last = False
-        for key in root:
-            if key == prev_key:
-                found_last = True
-                continue
-            if prev_key == None:
-                found_last = True
-            if found_last:
-                ret[key] = root[key]
-            if key == other_key:
-                prev_key = other_key
-                break
-        return ret
 
 
     def build_var_dict (self):
@@ -713,152 +469,46 @@ class CGenNCCfgData:
             line = line_after
         return line_after
 
-    def look_up_enums (self, item, value):
-        enums = self._peri_tree['ENUMS']
-        enum = enums[item['enumtype']]
-        return int(enum[value])
-
-    def fetch_available_enums (self, item):
-        enums = self._peri_tree['ENUMS']
-        enum = enums[item['enumtype']]
-        return enum.keys()
-
     def reformat_number_per_type (self, item, value):
         if check_quote(value) or value.startswith('{'):
             return value
         return value
 
-    def add_cfg_item(self, name, item, offset, path):
-
-        # self.set_cur_page (name)
-
-        if not set(item).issubset(CGenNCCfgData.keyword_set):
-            for each in list(item):
-                if each not in CGenNCCfgData.keyword_set:
-                    raise Exception ("Invalid attribute '%s' for '%s'!" % (each, '.'.join(path)))
-
-        itype = str(item.get('type', 'Reserved'))
-
-        length = 0
-        if itype.upper () == 'BOOLKNOB':
-            length = 1
-        elif itype.upper () == 'ENUMKNOB':
-            length = 4
-        elif itype.upper () == 'FLOATKNOB':
-            length = 4
-        elif itype.upper () == 'DOUBLEKNOB':
-            length = 8
-        elif itype.upper () == 'INT32KNOB':
-            length = 4
-        elif itype.upper () == 'INT64KNOB':
-            length = 8
-        elif itype.upper () == 'BYTESKNOB':
-            b_arr = bytes.fromhex (str (item.get ('default')))
-            length = len (b_arr)
-        else:
-            raise Exception ("Unrecognized type '%s' found!" % (itype))
-
-        # the expected value is length in bits
-        length *= 8
-
-        if not name.isidentifier():
-            raise Exception ("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
-
-        value = str(item.get('default', ''))
-        if value:
-            if not (check_quote(value) or value.startswith('{')):
-                if ',' in value:
-                    value = '{ %s }' % value
-                else:
-                    value = self.reformat_number_per_type (item, value)
-
-        help = str(item.get('help', ''))
-        if '\n' in help:
-            help = ' '.join ([i.strip() for i in help.splitlines()])
-
-        value     = self.extend_variable (value)
-
-        cfg_item = dict()
-        cfg_item['length'] = length
-        cfg_item['offset'] = offset
-        cfg_item['value']  = value
-        cfg_item['type']   = itype
-        cfg_item['cname']  = str(name)
-        cfg_item['name']   = str(item.get('name', ''))
-        cfg_item['help']   = help
-        cfg_item['page']   = self._cur_page
-        cfg_item['path']   = '.'.join(path)
-        cfg_item['order']  = 0
-        if 'deprecated' in item:
-            cfg_item['deprecated'] = item['deprecated']
-        if 'enumtype' in item:
-            cfg_item['enumtype'] = item['enumtype']
-        self._cfg_list.append(cfg_item)
-
-        item['indx']       = len(self._cfg_list) - 1
-
-        # remove used info for reducing pkl size
-        item.pop('option', None)
-        item.pop('condition', None)
-        item.pop('help', None)
-        item.pop('name', None)
-        item.pop('page', None)
-
-        return length
-
 
     def build_cfg_list (self, cfg_name ='', top = None, path = [], info = {'offset': 0}):
-        if top is None:
-            top = self._cfg_tree
-
-        start = info['offset']
-        is_leaf = True
-        for key in top:
-            path.append(key)
-            if type(top[key]) is OrderedDict:
-                is_leaf = False
-                self.build_cfg_list(key, top[key], path, info)
-            path.pop()
-
-        if is_leaf:
-            length = self.add_cfg_item(cfg_name, top, info['offset'], path)
-            info['offset'] += length
-        elif cfg_name == '' or (cfg_name and cfg_name[0] != '$'):
-            # check first element for struct
-            first = next(iter(top))
-            struct_str = CGenNCCfgData.STRUCT
-            if first != struct_str:
-                struct_node = OrderedDict({})
-                top[struct_str] = struct_node
-                top.move_to_end (struct_str, False)
-            else:
-                struct_node = top[struct_str]
-            struct_node['offset'] = start
-            if len(path) == 1:
-                # Round up first layer tree to be 4 Byte aligned
-                info['offset'] = (info['offset'] + 31) & (~31)
-                struct_node['length'] = (info['offset'] - start + 31) & (~31)
-            else:
-                struct_node['length'] = info['offset'] - start
-            if struct_node['length'] % 8 != 0:
-                raise SystemExit("Error: Bits length not aligned for %s !" % str(path))
+        # below is a shim layer that connects the UI and data structure
+        self.knob_shim = []
+        for idx, knob in enumerate(self.schema.knobs):
+            ord_dict = OrderedDict()
+            # TODO: consider the name space?
+            self.add_cfg_page (child=knob.name, title=knob.name)
+            ord_dict['inst'] = knob
+            ord_dict['order'] = idx
+            ord_dict['name'] = knob.name
+            ord_dict['cname'] = knob.name
+            itype = type(knob.format)
+            if itype is IntValueFormat:
+                ord_dict['type'] = 'INTEGER_KNOB'
+            elif itype is FloatValueFormat:
+                ord_dict['type'] = 'FLOAT_KNOB'
+            elif itype is BoolFormat:
+                ord_dict['type'] = 'BOOL_KNOB'
+            elif itype is EnumFormat:
+                ord_dict['type'] = 'ENUM_KNOB'
+            ord_dict['value'] = knob.format.object_to_string(knob.default)
+            ord_dict['path'] = knob.name
+            ord_dict['help'] = knob.help
+            self.knob_shim.append(ord_dict)
 
 
     def get_field_value (self, top = None):
-        def _get_field_value (name, cfgs, level):
-            if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
-                if act_cfg['length'] == 0:
-                    return
-                val_bytes = self.get_value (act_cfg, act_cfg['length'], True)
-                set_bits_to_bytes (result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], bytes_to_value(val_bytes))
-
         if top is None:
-            top = self._cfg_tree
-        struct_info = top[CGenNCCfgData.STRUCT]
-        result = bytearray ((struct_info['length'] + 7) // 8)
-        self.traverse_cfg_tree (_get_field_value, top)
-        return  result
+            top = self.schema.knobs
+        bytes = b''
+        for each in top:
+            # TODO: This is not fully functional when with the structure fields
+            bytes += each.format.object_to_binary(each.default)
+        return bytes
 
 
     def set_field_value (self, top, value_bytes, force = False):
@@ -1096,67 +746,13 @@ class CGenNCCfgData:
         return self.generate_delta_file_from_bin (delta_file, old_data, new_data, full)
 
 
-    def prepare_marshal (self, is_save):
-        if is_save:
-            # Ordered dict is not marshallable, convert to list
-            self._cfg_tree = CGenNCCfgData.deep_convert_dict (self._cfg_tree)
-        else:
-            # Revert it back
-            self._cfg_tree = CGenNCCfgData.deep_convert_list (self._cfg_tree)
-
-
-    def get_struct_array_info (self, input):
-        parts = input.split(':')
-        if len(parts) > 1:
-           var   = parts[1]
-           input = parts[0]
-        else:
-           var = ''
-        array_str = input.split('[')
-        name     = array_str[0]
-        if len(array_str) > 1:
-            num_str = ''.join(c for c in array_str[-1] if c.isdigit())
-            num_str = '1000' if len(num_str) == 0 else num_str
-            array_num = int(num_str)
-        else:
-            array_num = 0
-        return name, array_num, var
-
-
     def load_xml (self, cfg_file):
         self.initialize ()
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
-        if not xsd.is_valid(cfg_file):
-            raise Exception ("Input xml does not meet corresponding schema")
-        tree = ET.parse (cfg_file)
-        self.root = tree.getroot()
-        self._cfg_tree = OrderedDict ({})
-        self._peri_tree = OrderedDict ({})
-
-        for node in self.root:
-            if node.tag.upper () in CGenNCCfgData.peripheral_list:
-                # really process the fields
-                if node.tag.upper() == 'ENUMS':
-                    self._peri_tree['ENUMS'] = OrderedDict ({})
-                    for enum in node:
-                        self._peri_tree['ENUMS'][enum.attrib['name']] = OrderedDict ({})
-                        for each in enum:
-                            self._peri_tree['ENUMS'][enum.attrib['name']][each.attrib['name']] = str (each.attrib['value'])
-
-        for node in self.root:
-            if node.tag.upper () in CGenNCCfgData.config_list:
-                # really process the fields
-                if node.tag.upper() == 'KNOBS':
-                    knobs_name = node.tag + node.attrib['namespace']
-                    self._cfg_tree[knobs_name] = OrderedDict ({})
-                    knobs = self._cfg_tree[knobs_name]
-
-                    for knob in node:
-                        knobs[knob.attrib['name']] = OrderedDict ({})
-                        knobs[knob.attrib['name']]['type'] = knob.tag
-                        for each in knob.attrib:
-                            knobs[knob.attrib['name']][each] = knob.attrib[each]
+        # dir_path = os.path.dirname(os.path.abspath(__file__))
+        # xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
+        # if not xsd.is_valid(cfg_file):
+        #     raise Exception ("Input xml does not meet corresponding schema")
+        self.schema = Schema (cfg_file)
 
         self.build_cfg_list()
         # self.build_var_dict()
@@ -1210,12 +806,7 @@ def main():
             if len(file_list) >= 3:
                 cfg_bin_file2 = file_list[2]
 
-    if xml_file.lower().endswith('.pkl'):
-        with open(xml_file, "rb") as pkl_file:
-            gen_cfg_data.__dict__ = marshal.load(pkl_file)
-        gen_cfg_data.prepare_marshal (False)
-    else:
-        gen_cfg_data.load_xml (xml_file)
+    gen_cfg_data.load_xml (xml_file)
 
     if dlt_file:
         gen_cfg_data.override_default_value(dlt_file)
@@ -1236,9 +827,6 @@ def main():
 
     elif command == "GENDLT":
         gen_cfg_data.generate_delta_file (out_file, cfg_bin_file, cfg_bin_file2)
-
-    elif command == "DEBUG":
-        gen_cfg_data.print_cfgs()
 
     else:
         raise Exception ("Unsuported command '%s' !" % command)

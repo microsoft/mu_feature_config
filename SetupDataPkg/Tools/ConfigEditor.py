@@ -922,7 +922,7 @@ class application(tkinter.Frame):
                 new_value = "'%s'" % new_value
         elif itype.upper() in ['BYTESKNOB']:
             new_value = value_str
-        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB', 'ENUMKNOB', 'BOOLKNOB']:
+        elif itype.upper() in ['FLOATK_NOB', 'INTEGER_KNOB', 'ENUM_KNOB', 'BOOL_KNOB']:
             try:
                 new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item=item)
             except:
@@ -977,12 +977,12 @@ class application(tkinter.Frame):
         elif itype in ["Table"]:
             new_value = bytes_to_bracket_str(widget.get())
             self.set_config_item_value(item, new_value)
-        elif itype.upper() in ['ENUMKNOB', 'BOOLKNOB']:
+        elif itype.upper() in ['ENUM_KNOB', 'BOOL_KNOB']:
             opt_list = self.cfg_data_obj.get_cfg_item_options (item)
             tmp_list = [opt for opt in opt_list]
             idx = widget.current()
             self.set_config_item_value(item, tmp_list[idx])
-        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB']:
+        elif itype.upper() in ['FLOAT_KNOB', 'INTEGER_KNOB']:
             self.set_config_item_value(item, widget.get())
         elif itype in ["BYTESKNOB"]:
             new_value = bytes_to_bracket_str(widget.get())
@@ -1054,14 +1054,14 @@ class application(tkinter.Frame):
             col_hdr = item['option'].split(',')
             widget = custom_table(parent, col_hdr, bins)
 
-        elif itype.upper() in ['FLOATKNOB', 'DOUBLEKNOB', 'INT32KNOB', 'INT64KNOB']:
+        elif itype.upper() in ['FLOAT_KNOB', 'INTEGER_KNOB']:
             txt_val = tkinter.StringVar()
             widget = tkinter.Entry(parent, textvariable=txt_val)
             value = item['value'].strip("{").strip("}").strip()
             widget.bind("<FocusOut>", self.edit_num_finished)
             txt_val.set(value)
 
-        elif itype.upper() in ['ENUMKNOB', 'BOOLKNOB']:
+        elif itype.upper() in ['ENUM_KNOB', 'BOOL_KNOB']:
             # Build
             opt_list = self.cfg_data_obj.get_cfg_item_options (item)
             current_value = self.cfg_data_obj.get_cfg_item_value (item, False)
