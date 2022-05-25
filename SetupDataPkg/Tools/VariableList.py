@@ -625,12 +625,21 @@ def write_vlist(schema_path, values_path, vlist_path):
             reader = csv.reader(csv_file)
             header = next(reader)
 
-            if len(header) < 2 or header[0] != "Knob" or header[1] != "Value":
-                raise ParseError("CSV is missing 'Knob' and 'Value' column headers")
+            knob_index = 0
+            value_index = 0
+            try:
+                knob_index = header.index('Knob')
+            except:
+                raise ParseError("CSV is missing 'Knob' column header")
+
+            try:
+                value_index = header.index('Value')
+            except:
+                raise ParseError("CSV is missing 'Value' column header")
 
             for row in reader:
-                knob_name = row[0]
-                knob_value_string = row[1]
+                knob_name = row[knob_index]
+                knob_value_string = row[value_index]
 
                 knob = schema.get_knob(knob_name)
                 value = knob.format.string_to_object(knob_value_string)
@@ -661,10 +670,10 @@ def write_default_csv(schema_path, csv_path):
 
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(['Knob', 'Value'])
+        writer.writerow(['Knob', 'Value', 'Help'])
 
         for knob in schema.knobs:
-            writer.writerow([knob.name, knob.format.object_to_string(knob.default)])
+            writer.writerow([knob.name, knob.format.object_to_string(knob.default), knob.help])
             
     pass
 
@@ -676,14 +685,14 @@ def write_csv(schema_path, vlist_path, csv_path):
     with open(vlist_path, 'rb') as vlist_file:
         with open(csv_path, 'w', newline='') as csv_file:
             writer = csv.writer(csv_file)
-            writer.writerow(['Knob', 'Value'])
+            writer.writerow(['Knob', 'Value', 'Help'])
 
             for variable in read_vlist(vlist_file):
 
                 knob = schema.get_knob(variable.name)
                 value = knob.format.binary_to_object(variable.data)
 
-                writer.writerow([knob.name, knob.format.object_to_string(value)])
+                writer.writerow([knob.name, knob.format.object_to_string(value), knob.help])
 
     pass
 
