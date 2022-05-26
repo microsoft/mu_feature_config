@@ -482,7 +482,7 @@ class CGenNCCfgData:
             itype = type(data.format)
             name = data.name
             for idx, ord_dict in enumerate(ret_dict):
-                name = '_'.join([name, idx])
+                name = "%s[%d]" % (name, idx)
                 if itype is IntValueFormat:
                     ord_dict['type'] = 'INTEGER_KNOB'
                 elif itype is FloatValueFormat:
