@@ -85,7 +85,7 @@ typedef struct {
   //
   UINT32    UsedLength;
   //
-  // The total space for configration data
+  // The total space for configuration data
   //
   UINT32    TotalLength;
 } CDATA_BLOB;

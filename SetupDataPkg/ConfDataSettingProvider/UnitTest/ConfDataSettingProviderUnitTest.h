@@ -15,7 +15,7 @@
   This getter will serialize default configuration setting
   to printable strings to be used in Config App.
 
-  @param This           Seting Provider
+  @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
   @param DefaultValue   Output parameter for the settings default value.
@@ -37,7 +37,7 @@ ConfDataGetDefault (
 /**
   Get the full setting in binary from FV.
 
-  @param This       Seting Provider
+  @param This       Setting Provider
   @param ValueSize  IN=Size of location to store value
                     OUT=Size of value stored
   @param Value      Output parameter for the setting value.
@@ -58,7 +58,7 @@ ConfDataGet (
 /**
   Set configuration to default value from UEFI FV.
 
-  @param This          Seting Provider protocol
+  @param This          Setting Provider protocol
 
   @retval EFI_SUCCESS  default set
   @retval ERROR        Error
@@ -94,7 +94,7 @@ ConfDataSet (
   This getter will serialize default configuration setting
   to printable strings to be used in Config App.
 
-  @param This           Seting Provider
+  @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
   @param DefaultValue   Output parameter for the settings default value.
@@ -135,7 +135,7 @@ SingleConfDataGet (
 /**
   Set configuration to default value from UEFI FV.
 
-  @param This          Seting Provider protocol
+  @param This          Setting Provider protocol
 
   @retval EFI_SUCCESS  default set
   @retval ERROR        Error
@@ -169,7 +169,7 @@ SingleConfDataSet (
 /*
   Helper function extract tag ID from single setting provider ID.
 
-  @param IdString       Seting Provider ID, should be in the format
+  @param IdString       Setting Provider ID, should be in the format
                         SINGLE_SETTING_PROVIDER_TEMPLATE
   @param TagId          Pointer to hold extracted TagId value in the
                         IdString.

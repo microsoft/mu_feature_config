@@ -379,7 +379,7 @@ MockLocateProtocol (
   // Check that this is the right protocol being located
   check_expected_ptr (Protocol);
 
-  // Set the protcol to one of our mock protocols
+  // Set the protocol to one of our mock protocols
   *Interface = (VOID *)mock ();
 
   return EFI_SUCCESS;

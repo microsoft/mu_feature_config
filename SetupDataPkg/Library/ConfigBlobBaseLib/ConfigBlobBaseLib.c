@@ -104,7 +104,7 @@ FindConfigHdrByTag (
 }
 
 /**
-  Find configuration data by its tag and PlatforID.
+  Find configuration data by its tag and PlatformID.
 
   @param[in] ConfBlob       Pointer to configuration data blob to be looked at.
   @param[in] PlatformId     Platform ID.
