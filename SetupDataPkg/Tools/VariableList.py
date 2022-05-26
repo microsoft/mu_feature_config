@@ -244,6 +244,50 @@ class EnumFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize("<i")
 
+
+# Represents a user defined struct
+class ArrayFormat(DataFormat):
+    def __init__(self, child_format, struct_name, member_name, count):
+        self.format = child_format
+        self.count = count
+        self.struct_name = struct_name
+        self.member_name = member_name
+
+        super().__init__(ctype="{}[{}]".format(child_format.ctype, count))
+        pass
+
+    def string_to_object(self, string_representation):
+        segments = split_braces(string_representation)
+        if len(segments) != self.count:
+            raise ParseError("Member '{}' of struct '{}' should have {} elements, but {} were found".format(self.member_name, self.struct_name, self.count, len(segments)))
+        object_array = []
+        for element in segments:
+            object_array.append(self.format.string_to_object(element))
+        return object_array
+        
+    def object_to_string(self, object_representation, options=StringFormatOptions()):
+        element_strings = []
+        for element in object_representation:
+            element_strings.append(self.format.object_to_string(element, options))
+        return "{{{}}}".format(",".join(element_strings))
+
+    def object_to_binary(self, object_representation):
+        binary = b''
+        for element in object_representation:
+            binary += self.format.object_to_binary(element)
+        return binary
+
+    def binary_to_object(self, binary_representation):
+        values = []
+        element_size = self.format.size_in_bytes()
+        for i in range(self.count):
+            element_binary = binary_representation[(i * element_size):((i+1) * element_size)]
+            values.append(self.format.binary_to_object(element_binary))
+        return values
+
+    def size_in_bytes(self):
+        return self.format.size_in_bytes() * self.count
+
 # Represents a member of a user defined struct
 # Each member may be of any type, and maay also have a count
 # value to treat it as an array
@@ -263,59 +307,33 @@ class StructMember:
         data_type = xml_node.getAttribute("type")
         # Look up the format using the schema
         #  The format may be a built-in format (e.g. 'uint32_t') or a user defined enum or struct
-        self.format = schema.get_format(data_type)
+        format = schema.get_format(data_type)
+
+        if self.count != 1:
+            self.format = ArrayFormat(format, struct_name, self.name, self.count)
+        else:
+            self.format = format
 
     def generate_header(self, out):
         if self.help != "":
             out.write("    // {}\n".format(self.help))
-        if self.count == 1:
-            out.write("    {} {};\n".format(self.format.ctype, self.name))
-        else:
-            out.write("    {} {}[{}];\n".format(self.format.ctype, self.name, self.count))
+        out.write("    {} {};\n".format(self.format.ctype, self.name))
 
     def string_to_object(self, string_representation):
-        if self.count != 1:
-            segments = split_braces(string_representation)
-            if len(segments) != self.count:
-                raise ParseError("Member '{}' of struct '{}' should have {} elements, but {} were found".format(self.name, self.struct_name, self.count, len(segments)))
-            object_array = []
-            for element in segments:
-                object_array.append(self.format.string_to_object(element))
-            return object_array
-        else:
-            return self.format.string_to_object(string_representation)
-    def object_to_string(self, object_representation, options=StringFormatOptions()):
-        if self.count == 1:
-            return self.format.object_to_string(object_representation, options)
-        else:
-            element_strings = []
-            for element in object_representation:
-                element_strings.append(self.format.object_to_string(element, options))
-            return "{{{}}}".format(",".join(element_strings))
+        return self.format.string_to_object(string_representation)
 
+    def object_to_string(self, object_representation, options=StringFormatOptions()):
+        return self.format.object_to_string(object_representation, options)
     
     def object_to_binary(self, object_representation):
-        if self.count == 1:
-            return self.format.object_to_binary(object_representation)
-        else:
-            binary = b''
-            for element in object_representation:
-                binary += self.format.object_to_binary(element)
-            return binary
+        return self.format.object_to_binary(object_representation)
 
     def binary_to_object(self, binary_representation):
-        if self.count == 1:
-            return self.format.binary_to_object(binary_representation)
-        else:
-            values = []
-            element_size = self.format.size_in_bytes()
-            for i in range(self.count):
-                element_binary = binary_representation[(i * element_size):((i+1) * element_size)]
-                values.append(self.format.binary_to_object(element_binary))
-            return values
+        return self.format.binary_to_object(binary_representation)
 
     def size_in_bytes(self):
-        return self.format.size_in_bytes() * self.count
+        return self.format.size_in_bytes()
+
 
 # Represents a user defined struct
 class StructFormat(DataFormat):
@@ -337,19 +355,20 @@ class StructFormat(DataFormat):
         subknobs = []
         subknobs.append(SubKnob(knob, path, self, self.help))
         for member in self.members:
+            subpath = "{}.{}".format(path, member.name)
             if member.count == 1:
-                subpath = "{}.{}".format(path, member.name)
                 if isinstance(member.format, StructFormat):
                     subknobs += member.format.create_subknobs(knob, subpath)
                 else:
                     subknobs.append(SubKnob(knob, subpath, member.format, member.help, True))
             else:
+                subknobs.append(SubKnob(knob, subpath, member.format, member.help, False))
                 for i in range(member.count):
-                    subpath = "{}.{}[{}]".format(path, member.name, i)
-                    if isinstance(member.format, StructFormat):
-                        subknobs += member.format.create_subknobs(knob, subpath)
+                    indexed_subpath = "{}.{}[{}]".format(path, member.name, i)
+                    if isinstance(member.format.format, StructFormat):
+                        subknobs += member.format.format.create_subknobs(knob, indexed_subpath)
                     else:
-                        subknobs.append(SubKnob(knob, subpath, member.format, member.help, True))
+                        subknobs.append(SubKnob(knob, indexed_subpath, member.format.format, member.help, True))
         return subknobs
 
     def generate_header(self, out):
