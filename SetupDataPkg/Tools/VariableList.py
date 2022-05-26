@@ -12,6 +12,7 @@ import csv
 from   collections import OrderedDict
 import uuid
 import zlib
+import copy
 from xml.dom.minidom import parse, parseString
 
 from CommonUtility import *
@@ -332,6 +333,25 @@ class StructFormat(DataFormat):
 
         pass
 
+    def create_subknobs(self, knob, path):
+        subknobs = []
+        subknobs.append(SubKnob(knob, path, self, self.help))
+        for member in self.members:
+            if member.count == 1:
+                subpath = "{}.{}".format(path, member.name)
+                if isinstance(member.format, StructFormat):
+                    subknobs += member.format.create_subknobs(knob, subpath)
+                else:
+                    subknobs.append(SubKnob(knob, subpath, member.format, member.help, True))
+            else:
+                for i in range(member.count):
+                    subpath = "{}.{}[{}]".format(path, member.name, i)
+                    if isinstance(member.format, StructFormat):
+                        subknobs += member.format.create_subknobs(knob, subpath)
+                    else:
+                        subknobs.append(SubKnob(knob, subpath, member.format, member.help, True))
+        return subknobs
+
     def generate_header(self, out):
         if self.help != "":
             out.write("// {}\n".format(self.help))
@@ -402,15 +422,33 @@ class Knob:
         #  The format may be a built-in format (e.g. 'uint32_t') or a user defined enum or struct
         self.format = schema.get_format(data_type)
 
+        self.value = None
+
+
         # Use the format to decode the default value from its string representation
         try:
-            self.default = self.format.string_to_object(xml_node.getAttribute("default"))
+            self._default = self.format.string_to_object(xml_node.getAttribute("default"))
         except ParseError as e:
             # Capture the ParseError and create a more specific error message
             raise ParseError("Unable to parse default value of '{}': {}".format(self.name, e))
 
+        
+        self.subknobs = []
+        if isinstance(self.format, StructFormat):
+            self.subknobs.append(SubKnob(self, self.name, self.format, self.help))
+            self.subknobs += self.format.create_subknobs(self, self.name)
+        else:
+            self.subknobs.append(SubKnob(self, self.name, self.format, self.help, True))
+
         print("Knob '{}', default='{}'".format(self.name, self.format.object_to_string(self.default)))
         pass
+
+    # Get the default value for this knob
+    @property
+    def default(self):
+        # Return as deep copy so that modifications to the returned object don't affect the
+        # default value of the knob
+        return copy.deepcopy(self._default)
 
     def generate_header(self, out):
         out.write("// {} knob\n".format(self.name))
@@ -447,6 +485,91 @@ class Knob:
         out.write("#endif\n")
         out.write("\n\n");
 
+    def _get_child_value(self, child_path, base_value):
+        path_elements = child_path.split(".")
+        child_object = base_value
+
+        first_element = path_elements[0]
+        if first_element != self.name:
+            raise Exception("Path '{}' is not a member of knob '{}'", child_path, self.name)
+
+        for element in path_elements[1:]:
+            (name, index) = self._decode_subpath(element)
+            if index == None:
+                child_object = child_object[name]
+            else:
+                child_object = child_object[name][index]
+        return child_object
+    
+    def _set_child_value(self, child_path, value):
+        if child_path == self.name:
+            self.value = value
+        else:
+            path_elements = child_path.split(".")
+            child_object = self.value
+
+            if child_object == None:
+                child_object = self.default
+
+            first_element = path_elements[0]
+            if first_element != self.name:
+                raise Exception("Path '{}' is not a member of knob '{}'", child_path, self.name)
+
+            # The final element will reference a value type, not an object, so it needs to be handled differently
+            final_element = path_elements[-1]
+
+            # Iterate the path until we find the object
+            for element in path_elements[1:-1]:
+                (name, index) = self._decode_subpath(element)
+                if index == None:
+                    child_object = child_object[name]
+                else:
+                    child_object = child_object[name][index]
+            
+            (name, index) = self._decode_subpath(final_element)
+            if index == None:
+                child_object[name] = value
+            else:
+                child_object[name][index] = value            
+
+    def _decode_subpath(self, subpath_segment):
+        match = re.match(r'^(?P<name>[a-zA-Z_][0-9a-zA-Z_]*)(\[(?P<index>[0-9]+)\])?$', subpath_segment)
+        if match == None:
+            raise ParseError("'{}' is not a valid sub-path of knob '{}'".format(subpath_segment, self.name))
+        if match.group('index') != None: # An index was included
+            name = match.group('name')
+            index = int(match.group('index'))
+            return (name, index)
+        else:
+            name = match.group('name')
+            return (name, None)
+
+
+
+class SubKnob:
+    
+    def __init__(self, knob, path, format, help, leaf = False):
+        self.knob = knob
+        self.name = path
+        self.format = format
+        self.help = help
+        self.leaf = leaf
+        pass
+
+    @property
+    def value(self):
+        return self.knob._get_child_value(self.name, self.knob.value)
+
+    @value.setter
+    def value(self, value):
+        self.knob._set_child_value(self.name, value)
+        pass
+
+    @property
+    def default(self):
+        return self.knob._get_child_value(self.name, self.knob.default)
+ 
+
 class Schema:
     def __init__(self, dom):
         self.enums = []
@@ -465,25 +588,28 @@ class Schema:
             namespace = section.getAttribute('namespace')
             for knob in section.getElementsByTagName('Knob'):
                 self.knobs.append(Knob(self, knob, namespace))
+
+        self.subknobs = []
+        for knob in self.knobs:
+            self.subknobs += knob.subknobs
+
         pass
 
-    # Parse a schema given a path to a schema xml file
-    def parse(path):
+    # Load a schema given a path to a schema xml file
+    def load(path):
         return Schema(parse(path))
     
     # Parse a schema given a string representation of the xml content
-    def parseString(string):
+    def parse(string):
         return Schema(parseString(string))
 
     # Get a knob by name
     def get_knob(self, knob_name):
-        for knob in self.knobs:
+        for knob in self.subknobs:
             if knob.name == knob_name:
                 return knob
         
         raise InvalidKnobError("Knob '{}' is not defined".format(knob_name))
-
-    
 
     # Get a format by name
     def get_format(self, type_name):
@@ -615,88 +741,61 @@ def read_vlist(file):
         data = payload[(name_size+8+16+4):]
 
         variables.append(UEFIVariable(name, guid, data, attributes))
-        
-
-# Generates a binary vlist file with the knob values from the given csv file
-def write_vlist(schema_path, values_path, vlist_path):
-
-    schema = Schema.parse(schema_path)
-
-    with open(values_path, 'r') as csv_file:
-        with open(vlist_path, 'wb') as vlist_file:
-            reader = csv.reader(csv_file)
-            header = next(reader)
-
-            knob_index = 0
-            value_index = 0
-            try:
-                knob_index = header.index('Knob')
-            except:
-                raise ParseError("CSV is missing 'Knob' column header")
-
-            try:
-                value_index = header.index('Value')
-            except:
-                raise ParseError("CSV is missing 'Value' column header")
-
-            for row in reader:
-                knob_name = row[knob_index]
-                knob_value_string = row[value_index]
-
-                knob = schema.get_knob(knob_name)
-                value = knob.format.string_to_object(knob_value_string)
-                value_bytes = knob.format.object_to_binary(value)
-
-                variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
-                write_vlist_entry(vlist_file, variable)
-    pass
-
-# Generates a binary vlist file with the defaults from a schema
-def write_default_vlist(schema_path, vlist_path):
-
-    schema = Schema.parse(schema_path)
-
-    with open(vlist_path, 'wb') as vlist_file:
     
-        for knob in schema.knobs:
-            value_bytes = knob.format.object_to_binary(knob.default)
+def uefi_variables_to_knobs(schema, variables):
+    for variable in variables:
+        knob = schema.get_knob(variable.name)
+        knob.value = knob.format.binary_to_object(variable.data)
 
-            variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
-            write_vlist_entry(vlist_file, variable)
-    pass
+def read_csv(schema, csv_path):
+    with open(csv_path, 'r') as csv_file:
+        reader = csv.reader(csv_file)
+        header = next(reader)
 
-# Writes a CSV file containing all the default knob values from a schema
-def write_default_csv(schema_path, csv_path):
+        knob_index = 0
+        value_index = 0
+        try:
+            knob_index = header.index('Knob')
+        except:
+            raise ParseError("CSV is missing 'Knob' column header")
 
-    schema = Schema.parse(schema_path)
+        try:
+            value_index = header.index('Value')
+        except:
+            raise ParseError("CSV is missing 'Value' column header")
 
+        for row in reader:
+            knob_name = row[knob_index]
+            knob_value_string = row[value_index]
+
+            knob = schema.get_knob(knob_name)
+            knob.value = knob.format.string_to_object(knob_value_string)
+
+def write_csv(schema, csv_path, subknobs = True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(['Knob', 'Value', 'Help'])
+        
 
-        for knob in schema.knobs:
-            writer.writerow([knob.name, knob.format.object_to_string(knob.default), knob.help])
-            
-    pass
-
-# Writes a CSV file containing the knob values in the given variable list file
-def write_csv(schema_path, vlist_path, csv_path):
-
-    schema = Schema.parse(schema_path)
-
-    with open(vlist_path, 'rb') as vlist_file:
-        with open(csv_path, 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
+        if subknobs:
             writer.writerow(['Knob', 'Value', 'Help'])
+            for subknob in schema.subknobs:
+                writer.writerow([
+                    subknob.name, 
+                    subknob.format.object_to_string(subknob.default),
+                    subknob.help])
+        else:
+            writer.writerow(['Knob', 'Value', 'Help'])
+            for knob in schema.knobs:
+                writer.writerow([knob.name, knob.format.object_to_string(knob.default), knob.help])
 
-            for variable in read_vlist(vlist_file):
+def write_vlist(schema, vlist_path):
+    with open(vlist_path, 'wb') as vlist_file:
+        for knob in schema.knobs:
+            if knob.value != None:
+                value_bytes = knob.format.object_to_binary(knob.value)
 
-                knob = schema.get_knob(variable.name)
-                value = knob.format.binary_to_object(variable.data)
-
-                writer.writerow([knob.name, knob.format.object_to_string(value), knob.help])
-
-    pass
+                variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
+                write_vlist_entry(vlist_file, variable)          
 
 def usage():
     print("Commands:\n")
@@ -730,12 +829,29 @@ def main():
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
-            write_default_vlist(schema_path, vlist_path)
+            
+            # Load the schema
+            schema = Schema.load(schema_path)
+
+            # Assign all values to their defaults
+            for knob in schema.knobs:
+                knob.value = knob.default
+            
+            # Write the vlist
+            write_vlist(schema, vlist_path)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             values_path = sys.argv[3]
             vlist_path = sys.argv[4]
-            write_vlist(schema_path, values_path, vlist_path)
+
+            # Load the schema
+            schema = Schema.load(schema_path)
+
+            # Read values from the CSV
+            read_csv(schema, values_path)
+
+            # Write the vlist
+            write_vlist(schema, vlist_path)
         else:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
@@ -746,12 +862,28 @@ def main():
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             csv_path = sys.argv[3]
-            write_default_csv(schema_path, csv_path)
+            # Load the schema
+            schema = Schema.load(schema_path)
+
+            # Assign all values to their defaults
+            for knob in schema.knobs:
+                knob.value = knob.default
+            
+            # Write the vlist
+            write_csv(schema, csv_path)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
             csv_path = sys.argv[4]
-            write_csv(schema_path, vlist_path, csv_path)
+
+            # Load the schema
+            schema = Schema.load(schema_path)
+
+            # Read values from the vlist
+            read_vlist(schema, vlist_path)
+
+            # Write the CSV
+            write_csv(schema, csv_path)
         else:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
