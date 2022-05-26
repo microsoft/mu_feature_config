@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 import xmlschema
 
 from CommonUtility import *
-from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat
+from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, StructMember
 
 # Generated file copyright header
 __copyright_tmp__ = """/** @file
@@ -141,7 +141,6 @@ class CGenNCCfgData:
         self._cfg_page['root']['child'].append ({self._cur_page: {'title': self._cur_page, 'child': []}})
         self._var_dict  = {}
         self._def_dict  = {}
-        self._yaml_path = ''
 
 
     @staticmethod
@@ -273,7 +272,7 @@ class CGenNCCfgData:
             return self.knob_shim
         else:
             # build a new list for items under a page ID
-            cfgs =  [i for i in self.knob_shim if (i['inst'].name == page_id)]
+            cfgs =  [i for i in self.knob_shim if (i['path'].split('.')[0] == page_id)]
             return cfgs
 
     def get_cfg_page (self):
@@ -330,7 +329,6 @@ class CGenNCCfgData:
                 raise Exception ("The item is malformatted!!!")
             tmp_list = ['True', 'False']
         return  tmp_list
-
 
     def get_page_title(self, page_id, top = None):
         if top is None:
@@ -474,31 +472,57 @@ class CGenNCCfgData:
             return value
         return value
 
+    def build_cfg_list (self, top=None, path = []):
 
-    def build_cfg_list (self, cfg_name ='', top = None, path = [], info = {'offset': 0}):
+        def create_list_obj (idx, data, path):
+            if type(data) == StructMember:
+                ret_dict = [OrderedDict() for _ in range(data.count)]
+            else:
+                ret_dict = [OrderedDict()]
+            itype = type(data.format)
+            name = data.name
+            for idx, ord_dict in enumerate(ret_dict):
+                name = '_'.join([name, idx])
+                if itype is IntValueFormat:
+                    ord_dict['type'] = 'INTEGER_KNOB'
+                elif itype is FloatValueFormat:
+                    ord_dict['type'] = 'FLOAT_KNOB'
+                elif itype is BoolFormat:
+                    ord_dict['type'] = 'BOOL_KNOB'
+                elif itype is EnumFormat:
+                    ord_dict['type'] = 'ENUM_KNOB'
+                elif itype is StructFormat:
+                    ord_dict['type'] = 'STRUCT_KNOB'
+                    # Simply expand the struct knob recursively
+                    ret_list = self.build_cfg_list(top=data.format.members, path=path)
+                    return ret_list
+                ord_dict['inst'] = data # TODO: this is not right
+                ord_dict['order'] = idx
+                ord_dict['name'] = name
+                ord_dict['cname'] = name
+                try:
+                    ord_dict['value'] = data.format.object_to_string(data.default)
+                except:
+                    ord_dict['value'] = ''
+                ord_dict['path'] = '.'.join(path)
+                ord_dict['help'] = data.help
+            return ret_dict
+
+        if top == None:
+            top = self.schema.knobs
+
+        ret_list = []
         # below is a shim layer that connects the UI and data structure
-        self.knob_shim = []
-        for idx, knob in enumerate(self.schema.knobs):
-            ord_dict = OrderedDict()
+        for idx, data in enumerate(top):
             # TODO: consider the name space?
-            self.add_cfg_page (child=knob.name, title=knob.name)
-            ord_dict['inst'] = knob
-            ord_dict['order'] = idx
-            ord_dict['name'] = knob.name
-            ord_dict['cname'] = knob.name
-            itype = type(knob.format)
-            if itype is IntValueFormat:
-                ord_dict['type'] = 'INTEGER_KNOB'
-            elif itype is FloatValueFormat:
-                ord_dict['type'] = 'FLOAT_KNOB'
-            elif itype is BoolFormat:
-                ord_dict['type'] = 'BOOL_KNOB'
-            elif itype is EnumFormat:
-                ord_dict['type'] = 'ENUM_KNOB'
-            ord_dict['value'] = knob.format.object_to_string(knob.default)
-            ord_dict['path'] = knob.name
-            ord_dict['help'] = knob.help
-            self.knob_shim.append(ord_dict)
+            if top == self.schema.knobs:
+                self.add_cfg_page (child=data.name, title=data.name)
+            path.append (data.name)
+            ret = create_list_obj(idx, data, path)
+            path.pop ()
+            ret_list += ret
+
+        return ret_list
 
 
     def get_field_value (self, top = None):
@@ -752,9 +776,9 @@ class CGenNCCfgData:
         # xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
         # if not xsd.is_valid(cfg_file):
         #     raise Exception ("Input xml does not meet corresponding schema")
-        self.schema = Schema (cfg_file)
+        self.schema = Schema.parse (cfg_file)
 
-        self.build_cfg_list()
+        self.knob_shim = self.build_cfg_list()
         # self.build_var_dict()
         # self.update_def_value()
         return 0

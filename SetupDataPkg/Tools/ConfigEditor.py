@@ -920,8 +920,6 @@ class application(tkinter.Frame):
             new_value = value_str[:length]
             if item['value'].startswith("'"):
                 new_value = "'%s'" % new_value
-        elif itype.upper() in ['BYTESKNOB']:
-            new_value = value_str
         elif itype.upper() in ['FLOATK_NOB', 'INTEGER_KNOB', 'ENUM_KNOB', 'BOOL_KNOB']:
             try:
                 new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item=item)
@@ -984,9 +982,6 @@ class application(tkinter.Frame):
             self.set_config_item_value(item, tmp_list[idx])
         elif itype.upper() in ['FLOAT_KNOB', 'INTEGER_KNOB']:
             self.set_config_item_value(item, widget.get())
-        elif itype in ["BYTESKNOB"]:
-            new_value = bytes_to_bracket_str(widget.get())
-            self.set_config_item_value(item, new_value)
 
 
     def evaluate_condition(self, item):
@@ -1088,11 +1083,6 @@ class application(tkinter.Frame):
                       (current_value, item['path']))
             else:
                 widget.current(current)
-
-        elif itype.upper() in ["BYTESKNOB"]:
-            bins = self.cfg_data_obj.get_cfg_item_value(item, True)
-            col_hdr = ['%i:1:HEX' % i for i in range(item['length'] // 8)]
-            widget = custom_table(parent, col_hdr, bins)
 
         else:
             if itype and itype not in ["Reserved"]:
