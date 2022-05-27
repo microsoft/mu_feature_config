@@ -32,10 +32,14 @@
     <!-- <Knob name="STRUCT_KNOB1" type="simple_t" default="{{1,2}}" help="Complex type" />
     <Knob name="STRUCT_KNOB2" type="simple_t" default="{{1,0}}" help="Complex type" /> -->
 
-    <Knob name="COMPLEX_KNOB1" type="child_t" default="{{1,2,3, 4,5 },FIRST }" help="Complex type" />
-    <!-- <Knob name="COMPLEX_KNOB" type="sample_t" default="{2,{{" help="Complex type" /> -->
+    <Knob name="COMPLEX_KNOB1a" type="child_t" default="{{1,2,3, 4,5 },FIRST }" help="Complex knob" />
+    
+    <Knob name="COMPLEX_KNOB1b" type="child_t" default="{{1,2,3, 4,5 },SECOND }" help="Complex type" />
+
+    <Knob name="COMPLEX_KNOB2" type="sample_t" default="{2,{{{1,2,3, 4,5 },FIRST },{{6,7,8, 9,10 },SECOND }}}" help="Complex type" />
 
     <Knob name="INTEGER_KNOB" type="uint32_t" default="100" help="Integer type" />
+    
   
   </Knobs>
   
