@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 import xmlschema
 
 from CommonUtility import *
-from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, StructMember
+from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, ArrayFormat
 
 # Generated file copyright header
 __copyright_tmp__ = """/** @file
@@ -272,7 +272,7 @@ class CGenNCCfgData:
             return self.knob_shim
         else:
             # build a new list for items under a page ID
-            cfgs =  [i for i in self.knob_shim if (i['path'].split('.')[0] == page_id)]
+            cfgs =  [i for i in self.knob_shim if ('.'.join(i['path'].split('.')[:2]) == page_id)]
             return cfgs
 
     def get_cfg_page (self):
@@ -414,20 +414,6 @@ class CGenNCCfgData:
         _traverse_cfg_tree (top)
 
 
-    def build_var_dict (self):
-        def _build_var_dict (name, cfgs, level):
-            if level <= 2:
-                if CGenNCCfgData.STRUCT in cfgs:
-                    struct_info = cfgs[CGenNCCfgData.STRUCT]
-                    self._var_dict['_LENGTH_%s_' % name] = struct_info['length'] // 8
-                    self._var_dict['_OFFSET_%s_' % name] = struct_info['offset'] // 8
-
-        self._var_dict  = {}
-        self.traverse_cfg_tree (_build_var_dict)
-        self._var_dict['_LENGTH_'] = self._cfg_tree[CGenNCCfgData.STRUCT]['length'] // 8
-        return 0
-
-
     def add_cfg_page(self, child, parent='Non-core', title=''):
         def _add_cfg_page(cfg_page, child, parent):
             key = next(iter(cfg_page))
@@ -444,14 +430,6 @@ class CGenNCCfgData:
                 return result
 
         return _add_cfg_page(self._cfg_page, child, parent)
-
-
-    def set_cur_page(self, page_str):
-        if not page_str:
-            return
-
-        if not self.add_cfg_page(child=page_str, title=page_str):
-            raise SystemExit("Error: Cannot find parent page!")
 
 
     def extend_variable (self, line):
@@ -472,55 +450,44 @@ class CGenNCCfgData:
             return value
         return value
 
-    def build_cfg_list (self, top=None, path = []):
+    def build_cfg_list (self):
 
-        def create_list_obj (idx, data, path):
-            if type(data) == StructMember:
-                ret_dict = [OrderedDict() for _ in range(data.count)]
-            else:
-                ret_dict = [OrderedDict()]
-            itype = type(data.format)
-            name = data.name
-            for idx, ord_dict in enumerate(ret_dict):
-                name = "%s[%d]" % (name, idx)
-                if itype is IntValueFormat:
-                    ord_dict['type'] = 'INTEGER_KNOB'
-                elif itype is FloatValueFormat:
-                    ord_dict['type'] = 'FLOAT_KNOB'
-                elif itype is BoolFormat:
-                    ord_dict['type'] = 'BOOL_KNOB'
-                elif itype is EnumFormat:
-                    ord_dict['type'] = 'ENUM_KNOB'
-                elif itype is StructFormat:
-                    ord_dict['type'] = 'STRUCT_KNOB'
-                    # Simply expand the struct knob recursively
-                    ret_list = self.build_cfg_list(top=data.format.members, path=path)
-                    return ret_list
-                ord_dict['inst'] = data # TODO: this is not right
-                ord_dict['order'] = idx
-                ord_dict['name'] = name
-                ord_dict['cname'] = name
-                try:
-                    ord_dict['value'] = data.format.object_to_string(data.default)
-                except:
-                    ord_dict['value'] = ''
-                ord_dict['path'] = '.'.join(path)
-                ord_dict['help'] = data.help
-            return ret_dict
-
-        if top == None:
-            top = self.schema.knobs
+        # Add the pages for each root knob
+        for knob in self.schema.knobs:
+            if not self.add_cfg_page(child='.'.join([knob.namespace, knob.name]), parent=knob.namespace, title=knob.name):
+                # The parent page may not exist yet
+                self.add_cfg_page(child=knob.namespace, title=knob.namespace)
+                if not self.add_cfg_page(child='.'.join([knob.namespace, knob.name]), parent=knob.namespace, title=knob.name):
+                    raise Exception ("Failed to add page for knob %s" % knob.name)
 
         ret_list = []
         # below is a shim layer that connects the UI and data structure
-        for idx, data in enumerate(top):
-            # TODO: consider the name space?
-            if top == self.schema.knobs:
-                self.add_cfg_page (child=data.name, title=data.name)
-            path.append (data.name)
-            ret = create_list_obj(idx, data, path)
-            path.pop ()
-            ret_list += ret
+        for idx, data in enumerate(self.schema.subknobs):
+            itype = type(data.format)
+            name = data.name
+            ord_dict = OrderedDict()
+            if itype is IntValueFormat:
+                ord_dict['type'] = 'INTEGER_KNOB'
+            elif itype is FloatValueFormat:
+                ord_dict['type'] = 'FLOAT_KNOB'
+            elif itype is BoolFormat:
+                ord_dict['type'] = 'BOOL_KNOB'
+            elif itype is EnumFormat:
+                ord_dict['type'] = 'ENUM_KNOB'
+            elif itype is StructFormat:
+                ord_dict['type'] = 'STRUCT_KNOB'
+            elif itype is ArrayFormat:
+                ord_dict['type'] = 'ARRAY_KNOB'
+            else:
+                raise Exception("Unrecognized data format %s!" % str(itype))
+            ord_dict['inst'] = data # TODO: this is not right
+            ord_dict['order'] = idx
+            ord_dict['name'] = name
+            ord_dict['cname'] = name
+            ord_dict['value'] = data.format.object_to_string(data.default)
+            ord_dict['path'] = '.'.join([data.knob.namespace, name])
+            ord_dict['help'] = data.help
+            ret_list.append(ord_dict)
 
         return ret_list
 
@@ -561,24 +528,6 @@ class CGenNCCfgData:
             if len(full_bytes) < length:
                 full_bytes.extend(bytearray(length - len(value_bytes)))
             self.traverse_cfg_tree (_set_field_value, top)
-
-
-    def update_def_value (self):
-        def _update_def_value (name, cfgs, level):
-            if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
-                if act_cfg['value'] != '' and act_cfg['length'] > 0:
-                    try:
-                        act_cfg['value'] = self.reformat_value_str (act_cfg['value'], act_cfg['length'])
-                    except:
-                        raise Exception ("Invalid value expression '%s' for '%s' !" % (act_cfg['value'], act_cfg['path']))
-            else:
-                if CGenNCCfgData.STRUCT in cfgs and 'value' in cfgs[CGenNCCfgData.STRUCT]:
-                    curr = cfgs[CGenNCCfgData.STRUCT]
-                    value_bytes = value_to_bytearray (self.eval(curr['value']), (curr['length'] + 7) // 8)
-                    self.set_field_value (cfgs, value_bytes)
-
-        self.traverse_cfg_tree (_update_def_value, self._cfg_tree)
 
 
     def load_default_from_bin (self, bin_data):
@@ -776,11 +725,9 @@ class CGenNCCfgData:
         # xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
         # if not xsd.is_valid(cfg_file):
         #     raise Exception ("Input xml does not meet corresponding schema")
-        self.schema = Schema.parse (cfg_file)
+        self.schema = Schema.load (cfg_file)
 
         self.knob_shim = self.build_cfg_list()
-        # self.build_var_dict()
-        # self.update_def_value()
         return 0
 
 

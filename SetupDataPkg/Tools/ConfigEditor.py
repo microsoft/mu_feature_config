@@ -1056,6 +1056,16 @@ class application(tkinter.Frame):
             widget.bind("<FocusOut>", self.edit_num_finished)
             txt_val.set(value)
 
+        elif itype.upper() in ['STRUCT_KNOB']:
+            # These are only displayed as labels and show helper tags
+            ttp = create_tool_tip(name, item['help'])
+            self.set_object_name(name,   'LABEL_' + item['path'])
+            name.grid(row=row, column=0, padx=10, pady=5, sticky="nsew")
+
+        elif itype.upper() in ['ARRAY_KNOB']:
+            # Do nothing, as the array members is flattened and come next
+            widget = None
+
         elif itype.upper() in ['ENUM_KNOB', 'BOOL_KNOB']:
             # Build
             opt_list = self.cfg_data_obj.get_cfg_item_options (item)
