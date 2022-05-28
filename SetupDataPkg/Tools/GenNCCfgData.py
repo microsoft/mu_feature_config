@@ -314,6 +314,13 @@ class CGenNCCfgData:
         else:
             return  bytes_to_value (bvalue)
 
+    def set_item_value (self, value_str, item):
+        if item == None:
+            raise Exception ("Cannot accept item being None for xml parser!!!")
+        subknob = item['inst']
+        subknob.value = subknob.format.string_to_object (value_str)
+        new_value = subknob.format.object_to_string (subknob.value)
+        return new_value
 
     def parse_value (self, value_str, bit_length, array = True, item=None):
         return self.get_value(item, bit_length, array, value_str)
@@ -361,7 +368,12 @@ class CGenNCCfgData:
 
     def get_item_by_path (self, path):
         for each in self.knob_shim:
-            if each['inst'].name == path:
+            path_list = path.split('.')
+            namespace = path_list[0]
+            var_path = '.'.join(path_list[1:])
+            if each['inst'].knob.namespace == namespace and\
+              each['inst'].name == var_path and\
+              each['inst'].leaf == True:
                 return each
         return None
 

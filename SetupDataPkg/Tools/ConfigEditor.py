@@ -920,8 +920,9 @@ class application(tkinter.Frame):
             new_value = value_str[:length]
             if item['value'].startswith("'"):
                 new_value = "'%s'" % new_value
-        elif itype.upper() in ['FLOATK_NOB', 'INTEGER_KNOB', 'ENUM_KNOB', 'BOOL_KNOB']:
+        elif itype.upper() in ['FLOAT_KNOB', 'INTEGER_KNOB', 'ENUM_KNOB', 'BOOL_KNOB']:
             try:
+                self.cfg_data_obj.set_item_value (value_str, item)
                 new_value = self.cfg_data_obj.reformat_value_str (value_str, self.cfg_data_obj.get_cfg_item_length(item), item=item)
             except:
                 print("WARNING: Failed to format knob value string '%s' for '%s' !" % (value_str, item['path']))
