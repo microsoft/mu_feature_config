@@ -812,7 +812,8 @@ class application(tkinter.Frame):
         path = filedialog.asksaveasfilename(
                   initialdir=self.last_dir,
                   title="Save file",
-                  defaultextension=extension)
+                  defaultextension=extension,
+                  filetypes=((extension + " file", "*"+extension),("All Files", "*.*")))
         if path:
             self.last_dir = os.path.dirname(path)
             return path
