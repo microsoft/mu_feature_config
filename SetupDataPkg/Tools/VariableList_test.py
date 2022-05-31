@@ -1,14 +1,15 @@
-## @ GenCfgData.py
+# @ GenCfgData.py
 #
 # Copyright (c) 2022, Microsoft Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
-##
+#
 
 import unittest
-from xml.dom.minidom import parse, parseString, Node
+from xml.dom.minidom import parseString
 
 from VariableList import Schema, ParseError, InvalidNameError
+
 
 class SchemaParseUnitTests(unittest.TestCase):
     schemaTemplate = """<ConfigSchema>
@@ -93,8 +94,6 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Enums>""")
         self.assertRaises(ParseError, Schema, dom)
 
-    
-
     def test_invalid_enum_value_name(self):
         dom = self.insert_xml("""
 <Enums>
@@ -121,15 +120,14 @@ class SchemaParseUnitTests(unittest.TestCase):
         # The initial value will be None
         self.assertEqual(knob.value, None)
         # The default value should be valid
-        self.assertEqual(knob.default['value'], [1,2,3,4])
+        self.assertEqual(knob.default['value'], [1, 2, 3, 4])
 
         # Get the a subknob and modify a single element
         subknob = schema.get_knob("k1.value[1]")
         subknob.value = 10
 
-        # The value will now be initialized from default, with the single value modified
-        self.assertEqual(knob.value['value'], [1,10,3,4])
+        # The value will now be initialized from default,
+        # with the single value modified
+        self.assertEqual(knob.value['value'], [1, 10, 3, 4])
         # Verify the default hasn't changed
-        self.assertEqual(knob.default['value'], [1,2,3,4])
-
-        pass
+        self.assertEqual(knob.default['value'], [1, 2, 3, 4])
