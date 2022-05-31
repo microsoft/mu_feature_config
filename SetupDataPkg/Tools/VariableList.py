@@ -437,6 +437,9 @@ class Knob:
         self.namespace = namespace
 
         data_type = xml_node.getAttribute("type")
+        if data_type == "":
+            raise ParseError("Knob '{}' does not have a type".format(self.name))
+
         # Look up the format using the schema
         #  The format may be a built-in format (e.g. 'uint32_t') or a user defined enum or struct
         self.format = schema.get_format(data_type)
@@ -444,9 +447,13 @@ class Knob:
         self.value = None
 
 
+        default_string = xml_node.getAttribute("default")
+        if default_string == "":
+            raise ParseError("Knob '{}' does not have a default value".format(self.name))
+
         # Use the format to decode the default value from its string representation
-        try:
-            self._default = self.format.string_to_object(xml_node.getAttribute("default"))
+        try:    
+            self._default = self.format.string_to_object(default_string)
         except ParseError as e:
             # Capture the ParseError and create a more specific error message
             raise ParseError("Unable to parse default value of '{}': {}".format(self.name, e))
@@ -581,6 +588,9 @@ class SubKnob:
 
     @value.setter
     def value(self, value):
+        if self.knob.value == None:
+            self.knob.value = self.knob.default
+
         self.knob._set_child_value(self.name, value)
         pass
 
