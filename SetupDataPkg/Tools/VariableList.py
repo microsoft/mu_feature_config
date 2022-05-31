@@ -870,7 +870,7 @@ class UEFIVariable:
 
 
 # Writes a vlist entry to the vlist file
-def write_vlist_entry(file, variable):
+def create_vlist_buffer(variable):
 
     # Each entry has the following values
     #   NameSize(int32, size of Name in bytes),
@@ -895,9 +895,21 @@ def write_vlist_entry(file, variable):
 
     crc = zlib.crc32(payload)
 
-    file.write(payload)
-    file.write(struct.pack("<I", crc))
-    pass
+    return payload + struct.pack("<I", crc)
+
+
+# Create a byte array for all the knobs in this schema
+def binarize_vlist(schema):
+
+    ret = b''
+    for knob in schema.knobs:
+        if knob.value is not None:
+            value_bytes = knob.format.object_to_binary(knob.value)
+
+            variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
+            ret += create_vlist_buffer(variable)
+
+    return ret
 
 
 # Read a set of UEFIVariables from a variable list file
@@ -999,12 +1011,8 @@ def write_csv(schema, csv_path, subknobs=True):
 
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
-        for knob in schema.knobs:
-            if knob.value is not None:
-                value_bytes = knob.format.object_to_binary(knob.value)
-
-                variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
-                write_vlist_entry(vlist_file, variable)
+        buf = binarize_vlist (schema)
+        vlist_file.write(buf)
 
 
 def usage():
