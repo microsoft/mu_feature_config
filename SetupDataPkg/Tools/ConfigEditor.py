@@ -11,6 +11,7 @@ import sys
 import marshal
 import base64
 from pathlib import Path
+from tkinter import font
 
 sys.dont_write_bytecode = True
 
@@ -350,6 +351,7 @@ class application(tkinter.Frame):
         self.org_cfg_data_bin = None
         self.in_left  = state()
         self.in_right = state()
+        self.config_type = ''
 
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is easier to locate *BoardPkg\CfgData\*Def.yaml files
@@ -363,13 +365,19 @@ class application(tkinter.Frame):
 
         self.menu_string = [
             'Save Config Data to Binary',
-            'Load Config Data from Binary',
-            'Load Config Changes from Delta File',
+            'Load Config Data from Binary Blob',
+            'Update Config from Change File',
             'Save Full Config Data to SVD File',
             'Save Config Changes to SVD File',
             'Load Config Data from SVD File',
-            'Save Config Changes to Delta File',
-            'Save Full Config Data to Delta File'
+            'Save Config Updates to Change File',
+            'Save Full Config Data to Change File'
+        ]
+
+        self.yaml_specific_setting = [
+            'Save Full Config Data to SVD File',
+            'Save Config Changes to SVD File',
+            'Load Config Data from SVD File'
         ]
 
         root.geometry("1200x800")
@@ -696,7 +704,7 @@ class application(tkinter.Frame):
             if ftype == 'dlt':
                 question = ''
             elif ftype == 'bin':
-                question = 'All configuration will be reloaded from BIN file, continue ?'
+                question = 'All configuration will be reloaded from binary blob, continue ?'
             elif ftype == 'svd':
                 question = ''
             elif 'yaml' in ftype or 'xml' in ftype:
@@ -786,6 +794,12 @@ class application(tkinter.Frame):
             return
 
     def load_cfg_file(self, path):
+        # Set up the config type to begin with
+        if path.lower().endswith ('.xml'):
+            self.config_type = 'xml'
+        else:
+            self.config_type = 'yml'
+
         # Save current values in widget and clear  database
         self.clear_widgets_inLayout()
         self.left.delete(*self.left.get_children())
@@ -797,7 +811,11 @@ class application(tkinter.Frame):
         self.build_config_page_tree(self.cfg_data_obj.get_cfg_page()['root'], '')
 
         for menu in self.menu_string:
-            self.file_menu.entryconfig(menu, state="normal")
+            if self.config_type == 'xml' and menu in self.yaml_specific_setting:
+                # Block out the yaml options for loading for now
+                self.file_menu.entryconfig(menu, state="disabled")
+            else:
+                self.file_menu.entryconfig(menu, state="normal")
 
         return 0
 
@@ -1062,6 +1080,7 @@ class application(tkinter.Frame):
             # These are only displayed as labels and show helper tags
             ttp = create_tool_tip(name, item['help'])
             self.set_object_name(name,   'LABEL_' + item['path'])
+            name.config(font=('calibri', 12, 'bold'))
             name.grid(row=row, column=0, padx=10, pady=5, sticky="nsew")
 
         elif itype.upper() in ['ARRAY_KNOB']:
