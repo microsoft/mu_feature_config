@@ -6,48 +6,48 @@
 #
 ##
 
-import os
 import sys
-from   collections import OrderedDict
-import xmlschema
+from collections import OrderedDict
+# import xmlschema
 
-from CommonUtility import *
-from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, ArrayFormat, binarize_vlist, read_vlist_from_buffer, uefi_variables_to_knobs, write_csv, read_csv
+from CommonUtility import bytes_to_value
+from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, ArrayFormat,\
+    binarize_vlist, read_vlist_from_buffer, uefi_variables_to_knobs, write_csv, read_csv
 
 
 class CGenNCCfgData:
 
     def __init__(self):
-        self.initialize ()
+        self.initialize()
 
-    def initialize (self):
-        self._cfg_page  = {'root': {'title': '', 'child': []}}
-        self._cur_page  = 'Non-core'
-        self._cfg_page['root']['child'].append ({self._cur_page: {'title': self._cur_page, 'child': []}})
+    def initialize(self):
+        self._cfg_page = {'root': {'title': '', 'child': []}}
+        self._cur_page = 'Non-core'
+        self._cfg_page['root']['child'].append({self._cur_page: {'title': self._cur_page, 'child': []}})
 
-    def get_last_error (self):
+    def get_last_error(self):
         return ''
 
-    def get_cfg_list (self, page_id = None):
+    def get_cfg_list(self, page_id=None):
         if page_id is None:
             # return full list
             return self.knob_shim
         else:
             # build a new list for items under a page ID
-            cfgs =  [i for i in self.knob_shim if ('.'.join(i['path'].split('.')[:2]) == page_id)]
+            cfgs = [i for i in self.knob_shim if ('.'.join(i['path'].split('.')[:2]) == page_id)]
             return cfgs
 
-    def get_cfg_page (self):
+    def get_cfg_page(self):
         return self._cfg_page
 
-    def get_cfg_item_length (self, item):
+    def get_cfg_item_length(self, item):
         return item['inst'].format.size_in_bytes()
 
-    def get_cfg_item_value (self, item, array = False):
+    def get_cfg_item_value(self, item, array = False):
         length = item['inst'].format.size_in_bytes()
-        return  self.get_value (item, length, array)
+        return self.get_value(item, length, array)
 
-    def format_value_to_str (self, value, bit_length, old_value = '', item=None):
+    def format_value_to_str(self, value, bit_length, old_value = '', item=None):
         if item != None:
             obj = item['inst'].format.binary_to_object (value)
             return item['inst'].format.object_to_string(obj)
@@ -165,7 +165,7 @@ class CGenNCCfgData:
                 ord_dict['type'] = 'ARRAY_KNOB'
             else:
                 raise Exception("Unrecognized data format %s!" % str(itype))
-            ord_dict['inst'] = data # TODO: this is not right
+            ord_dict['inst'] = data
             ord_dict['order'] = idx
             ord_dict['name'] = name
             ord_dict['cname'] = name
