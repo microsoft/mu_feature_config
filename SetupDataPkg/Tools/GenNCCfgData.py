@@ -8,18 +8,7 @@
 
 import os
 import sys
-import re
-import struct
-import marshal
-import pprint
-import string
-import operator as op
-import ast
-import binascii
-from   datetime    import date
 from   collections import OrderedDict
-from tokenize import Double
-import xml.etree.ElementTree as ET
 import xmlschema
 
 from CommonUtility import *
@@ -32,14 +21,9 @@ class CGenNCCfgData:
         self.initialize ()
 
     def initialize (self):
-        self._cfg_tree  = {}
-        self._tmp_tree  = {}
-        self._cfg_list  = []
         self._cfg_page  = {'root': {'title': '', 'child': []}}
         self._cur_page  = 'Non-core'
         self._cfg_page['root']['child'].append ({self._cur_page: {'title': self._cur_page, 'child': []}})
-        self._var_dict  = {}
-        self._def_dict  = {}
 
     def get_last_error (self):
         return ''
@@ -238,6 +222,7 @@ class CGenNCCfgData:
 
     def load_xml (self, cfg_file):
         self.initialize ()
+        # TODO: re-enable the xsd validation once updated
         # dir_path = os.path.dirname(os.path.abspath(__file__))
         # xsd = xmlschema.XMLSchema(os.path.join(dir_path, 'configschema.xsd'))
         # if not xsd.is_valid(cfg_file):
