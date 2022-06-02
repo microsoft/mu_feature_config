@@ -24,7 +24,7 @@
       <Member name="children" type="child_t" count="2" help="Child data" />
     </Struct>
   </Structs>
-  
+
   <!-- namespace indicates the GUID namespace the values are stored in -->
   <Knobs namespace="{FE3ED49F-B173-41ED-9076-356661D46A42}">
     <!-- Example knobs of different types -->
@@ -39,9 +39,10 @@
     <Knob name="COMPLEX_KNOB2" type="sample_t" default="{2,{{{1,2,3, 4,5 },FIRST },{{6,7,8, 9,10 },SECOND }}}" help="Complex type" />
 
     <Knob name="INTEGER_KNOB" type="uint32_t" default="100" help="Integer type" />
-    
-  
+    <Knob name="BOOLEAN_KNOB" type="bool" default="true" help="Boolean type" />
+    <Knob name="DOUBLE_KNOB" type="double" default="3.1415926" help="Double type" />
+    <Knob name="FLOAT_KNOB" type="float" default="1.414" help="Float type" />
+
   </Knobs>
-  
-  
+
 </ConfigSchema>
