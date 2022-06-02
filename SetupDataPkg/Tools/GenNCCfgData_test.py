@@ -116,19 +116,30 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Run on an interger knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
-        int_str = '1234'
-        ret_str = cdata.reformat_value_str(int_str, cdata.get_cfg_item_length(ret), item=ret)
-        self.assertEqual(int_str, ret_str)
+        val_str = '1234'
+        ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
+        self.assertEqual(val_str, ret_str)
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
-        int_str = 'THIRD'
+        val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
-        ret_str = cdata.reformat_value_str(int_str, cdata.get_cfg_item_length(ret), item=ret)
-        self.assertEqual(int_str, ret_str)
+        ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
+        self.assertEqual(val_str, ret_str)
 
-        # TODO: Run on a boolean knob
-        # TODO: Run on a float knob
+        # Run on a boolean knob
+        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        val_str = 'false'
+        self.assertEqual(ret['type'], 'BOOL_KNOB')
+        ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
+        self.assertEqual(val_str, ret_str)
+
+        # Run on a float knob
+        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
+        val_str = '0.618'
+        self.assertEqual(ret['type'], 'FLOAT_KNOB')
+        ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
+        self.assertEqual(val_str, ret_str)
 
     # Get value should return subknob value, matching the corresponding shim entry
     def test_xml_get_value(self):
@@ -147,21 +158,34 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Run on an interger knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
-        int_str = '1234'
-        ret_str = cdata.set_item_value(int_str, item=ret)
-        self.assertEqual(ret_str, int_str)
+        val_str = '1234'
+        ret_str = cdata.set_item_value(val_str, item=ret)
+        self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 1234)
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
-        int_str = 'THIRD'
+        val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
-        ret_str = cdata.set_item_value(int_str, item=ret)
-        self.assertEqual(ret_str, int_str)
+        ret_str = cdata.set_item_value(val_str, item=ret)
+        self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 2)
 
-        # TODO: Run on a boolean knob
-        # TODO: Run on a float knob
+        # Run on a boolean knob
+        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        val_str = 'false'
+        self.assertEqual(ret['type'], 'BOOL_KNOB')
+        ret_str = cdata.set_item_value(val_str, item=ret)
+        self.assertEqual(ret_str, val_str)
+        self.assertEqual(ret['inst'].value, 0)
+
+        # Run on a float knob
+        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
+        val_str = '0.618'
+        self.assertEqual(ret['type'], 'FLOAT_KNOB')
+        ret_str = cdata.set_item_value(val_str, item=ret)
+        self.assertEqual(ret_str, val_str)
+        self.assertEqual(ret['inst'].value, 0.618)
 
     # Get item options should reflect the available enum or boolean options
     def test_xml_get_cfg_item_options(self):
@@ -174,7 +198,11 @@ class UncoreCfgUnitTests(unittest.TestCase):
         ret_list = cdata.get_cfg_item_options(item=ret)
         self.assertEqual(ret_list, ["FIRST", "SECOND", "THIRD"])
 
-        # TODO: Run on a boolean knob
+        # Run on a boolean knob
+        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        self.assertEqual(ret['type'], 'BOOL_KNOB')
+        ret_list = cdata.get_cfg_item_options(item=ret)
+        self.assertEqual(ret_list, ["true", "false"])
 
     # Sync function should sync up the value for shim and underlying knobs
     def test_xml_sync_shim_and_schema(self):

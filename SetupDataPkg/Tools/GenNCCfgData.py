@@ -84,7 +84,7 @@ class CGenNCCfgData:
         elif item['type'].upper() == "BOOL_KNOB":
             if type(item['inst'].format) is not BoolFormat:
                 raise Exception ("The item is malformatted!!!")
-            tmp_list = ['True', 'False']
+            tmp_list = ['true', 'false']
         return  tmp_list
 
     def get_page_title(self, page_id, top = None):
