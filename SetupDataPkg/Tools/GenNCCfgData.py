@@ -47,13 +47,6 @@ class CGenNCCfgData:
         length = item['inst'].format.size_in_bytes()
         return self.get_value(item, length, array)
 
-    def format_value_to_str(self, value, bit_length, old_value = '', item=None):
-        if item != None:
-            obj = item['inst'].format.binary_to_object (value)
-            return item['inst'].format.object_to_string(obj)
-        else:
-            raise Exception ("Cannot accept item being None for xml parser!!!")
-
     def reformat_value_str (self, value_str, bit_length, old_value = None, item=None):
         if item == None:
             raise Exception ("Cannot accept item being None for xml parser!!!")
@@ -197,6 +190,7 @@ class CGenNCCfgData:
 
     def override_default_value(self, csv_file):
         read_csv (self.schema, csv_file)
+        self.sync_shim_and_schema ()
         return 0
 
     def generate_delta_file_from_bin (self, delta_file, old_data, new_data, full=False):
