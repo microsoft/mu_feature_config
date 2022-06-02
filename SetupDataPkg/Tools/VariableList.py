@@ -159,7 +159,10 @@ class FloatValueFormat(DataFormat):
             self,
             object_representation,
             options=StringFormatOptions()):
-        return "{}{}".format(object_representation, self.csuffix)
+        if options.cformat:
+            return "{}{}".format(object_representation, self.csuffix)
+        else:
+            return str(object_representation)
 
     def object_to_binary(self, object_representation):
         return struct.pack(self.pack_format, object_representation)
@@ -207,7 +210,7 @@ builtin_types = {
     'int32_t'  : (lambda: IntValueFormat(ctype='int32_t', pack_format='<i', csuffix="l")),      # noqa: E203, E501
     'uint64_t' : (lambda: IntValueFormat(ctype='uint64_t', pack_format='<Q', csuffix="ull")),   # noqa: E203, E501
     'int64_t'  : (lambda: IntValueFormat(ctype='int64_t', pack_format='<q', csuffix="ll")),     # noqa: E203, E501
-    'float'    : (lambda: FloatValueFormat(ctype='float', pack_format='<f')),                   # noqa: E203, E501
+    'float'    : (lambda: FloatValueFormat(ctype='float', pack_format='<f', csuffix="f")),      # noqa: E203, E501
     'double'   : (lambda: FloatValueFormat(ctype='double', pack_format='<d')),                  # noqa: E203, E501
     'bool'     : (lambda: BoolFormat()),                                                        # noqa: E203, E501
 }
