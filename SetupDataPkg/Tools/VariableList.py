@@ -159,7 +159,10 @@ class FloatValueFormat(DataFormat):
             self,
             object_representation,
             options=StringFormatOptions()):
-        return "{}{}".format(object_representation, self.csuffix)
+        if options.cformat:
+            return "{}{}".format(object_representation, self.csuffix)
+        else:
+            return str(object_representation)
 
     def object_to_binary(self, object_representation):
         return struct.pack(self.pack_format, object_representation)
