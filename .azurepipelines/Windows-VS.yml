@@ -26,3 +26,10 @@ jobs:
     tool_chain_tag: 'VS2022'
     vm_image: 'windows-2022'
     arch_list: "IA32,X64"
+
+- template: python_templates/build-test-job.yml
+  parameters:
+    vm_image: 'windows-2022'
+    root_package_folder: "SetupDataPkg/Tools"
+    name: 'windows'
+    codecov_enabled: true
