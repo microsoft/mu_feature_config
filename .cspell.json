@@ -1,0 +1,18 @@
+{
+  "version": "0.1",
+  "language": "en",
+  "dictionaries": [
+      "companies ",
+      "softwareTerms",
+      "python",
+      "cpp"
+  ],
+  "ignorePaths": [
+      "*.exe"
+  ],
+  "ignoreWords": [],
+  "words": [
+      "DFCI",
+      "UEFI"
+  ]
+}
