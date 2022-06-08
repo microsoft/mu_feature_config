@@ -10,26 +10,26 @@
 ##
 ##
 
-import sys
 import struct
-from edk2toollib.uefi.wincert import *
+from edk2toollib.uefi.wincert import WinCert
 from edk2toollib.uefi.status_codes import UefiStatusCode
 from edk2toollib.utility_functions import PrintByteList
+
 
 ##
 ## SEM Cert Provisioning Apply Variable Data
 ##
 class CertProvisioningApplyVariable(object):
-    STATIC_STRUCT_SIZE_V1=20
-    STATIC_STRUCT_SIZE_V2=32
+
+    STATIC_STRUCT_SIZE_V1 = 20
+    STATIC_STRUCT_SIZE_V2 = 32
     HEADER_SIG_VALUE = "MSPA"
     VERSION_V1 = 1
     VERSION_V2 = 2
     IDENTITY_MAP = ["NONE", "OWNER CERT", "USER CERT", "USER1 CERT", "USER2 CERT", "ZTC CERT"]
 
     def __init__(self, filestream=None, HdrVersion=1):
-        if (HdrVersion != self.VERSION_V1 and
-            HdrVersion != self.VERSION_V2):
+        if (HdrVersion != self.VERSION_V1 and HdrVersion != self.VERSION_V2):
             raise Exception("Invalid version specified")
 
         self.TestSignature = None
@@ -55,22 +55,24 @@ class CertProvisioningApplyVariable(object):
         self.SerialOffset = 0
         self.TrustedCertOffset = 0
 
-        if(filestream != None):
+        if(filestream is not None):
             self.PopulateFromFileStream(filestream)
+
     #
     # Method to un-serialize from a filestream
     #
     def PopulateFromFileStream(self, fs):
-        if(fs == None):
+        if(fs is None):
             raise Exception("Invalid File stream")
 
-        #only populate from file stream those parts that are complete in the file stream
+        # only populate from file stream those parts that are complete in the file stream
         offset = fs.tell()
-        fs.seek(0,2)
+        fs.seek(0, 2)
         end = fs.tell()
         fs.seek(offset)
 
-        if((end - offset) < self.STATIC_STRUCT_SIZE_V1): #size of the static header data
+        # size of the static header data
+        if((end - offset) < self.STATIC_STRUCT_SIZE_V1):
             raise Exception("Invalid file stream size")
 
         self.HeaderSignature = fs.read(4).decode()
@@ -109,12 +111,12 @@ class CertProvisioningApplyVariable(object):
             if self.Version < self.Lsv:
                 raise Exception("Invalid Lsv - must not be > Version")
 
-            if ((self.MfgOffset >= self.ProductOffset) or
-                (self.ProductOffset >= self.SerialOffset) or
-                (self.SerialOffset >= self.TrustedCertOffset)):
+            if ((self.MfgOffset >= self.ProductOffset)
+               or (self.ProductOffset >= self.SerialOffset)
+               or (self.SerialOffset >= self.TrustedCertOffset)):
                 raise Exception("Invalid Offset Structure")
 
-            Temp =  fs.tell()
+            Temp = fs.tell()
             if Temp != self.MfgOffset:
                 raise Exception("Invalid Mfg Offset")
             self.Manufacturer = fs.read(self.ProductOffset - self.MfgOffset - 1).decode()
@@ -122,7 +124,7 @@ class CertProvisioningApplyVariable(object):
             if Temp != 0:
                 raise Exception("Invalid NULL in Mfg")
 
-            Temp =  fs.tell()
+            Temp = fs.tell()
             if Temp != self.ProductOffset:
                 raise Exception("Invalid Product Offset")
             self.ProductName = fs.read(self.SerialOffset - self.ProductOffset - 1).decode()
@@ -130,7 +132,7 @@ class CertProvisioningApplyVariable(object):
             if Temp != 0:
                 raise Exception("Invalid NULL in ProductName")
 
-            Temp =  fs.tell()
+            Temp = fs.tell()
             if Temp != self.SerialOffset:
                 raise Exception("Invalid SerialOffset Offset")
             self.SerialNumber = fs.read(self.TrustedCertOffset - self.SerialOffset - 1).decode()
@@ -139,7 +141,7 @@ class CertProvisioningApplyVariable(object):
                 raise Exception("Invalid NULL in SerialNumber")
 
             if self.TrustedCertSize != 0:
-                Temp =  fs.tell()
+                Temp = fs.tell()
                 if Temp != self.TrustedCertOffset:
                     raise Exception("Invalid TrustedCertOffset Offset")
         else:
@@ -162,36 +164,35 @@ class CertProvisioningApplyVariable(object):
     # Method to Print CertProvisioningApplyVariable to stdout
     #
     def Print(self):
-        print ("CertProvisioningVariable")
-        print ("  HeaderSignature:  %s" % self.HeaderSignature)
-        print ("  HeaderVersion:    0x%X" % self.HeaderVersion)
-        print ("  Identity:         0x%X (%s)" % (self.Identity, self.IDENTITY_MAP[self.Identity]))
-        print ("  SessionId:        0x%X" % self.SessionId)
+        print("CertProvisioningVariable")
+        print("  HeaderSignature:  %s" % self.HeaderSignature)
+        print("  HeaderVersion:    0x%X" % self.HeaderVersion)
+        print("  Identity:         0x%X (%s)" % (self.Identity, self.IDENTITY_MAP[self.Identity]))
+        print("  SessionId:        0x%X" % self.SessionId)
         if (self.HeaderVersion == self.VERSION_V1):
-            print ("  SN Target:        %d" % self.SNTarget)
+            print("  SN Target:        %d" % self.SNTarget)
         elif (self.HeaderVersion == self.VERSION_V2):
-            print ("  Version:          %s" % self.Version)
-            print ("  Lsv:              %s" % self.Lsv)
-            print ("  Manufacturer:     %s" % self.Manufacturer)
-            print ("  Product Name:     %s" % self.ProductName)
-            print ("  SerialNumber:     %s" % self.SerialNumber)
+            print("  Version:          %s" % self.Version)
+            print("  Lsv:              %s" % self.Lsv)
+            print("  Manufacturer:     %s" % self.Manufacturer)
+            print("  Product Name:     %s" % self.ProductName)
+            print("  SerialNumber:     %s" % self.SerialNumber)
         else:
             raise Exception("Invalid header version")
 
-        print ("  TrustedCertSize:  0x%X" % self.TrustedCertSize)
-        print ("  TrustedCert:    ")
-        if(self.TrustedCert != None):
+        print("  TrustedCertSize:  0x%X" % self.TrustedCertSize)
+        print("  TrustedCert:    ")
+        if(self.TrustedCert is not None):
             ndbl = self.TrustedCert.tolist()
             PrintByteList(ndbl)
 
-        if(self.TrustedCertSize > 0) and (self.TestSignature != None):
-            print ("  TestSignature:   ")
+        if(self.TrustedCertSize > 0) and (self.TestSignature is not None):
+            print("  TestSignature:   ")
             self.TestSignature.Print()
 
-        if(self.Signature != None):
-            print ("  Signature:   ")
+        if(self.Signature is not None):
+            print("  Signature:   ")
             self.Signature.Print()
-
 
     def Write(self, fs):
         fs.write(self.HeaderSignature.encode('utf-8'))
@@ -228,11 +229,10 @@ class CertProvisioningApplyVariable(object):
 
         if(self.TrustedCertSize != 0):
             fs.write(self.TrustedCert)
-        if(self.TestSignature != None):
+        if(self.TestSignature is not None):
             self.TestSignature.Write(fs)
-        if(self.Signature != None):
+        if(self.Signature is not None):
             self.Signature.Write(fs)
-
 
     def VerifyComplete(self):
         if(self.TrustedCertSize > 0):
@@ -250,16 +250,18 @@ class CertProvisioningApplyVariable(object):
         if(self.TrustedCertSize != 0):
             fs.write(self.TrustedCert)
 
+
 ##
 ##  SEM Cert Provision Result Variable Data
 ##
 class CertProvisioningResultVariable(object):
-    STATIC_STRUCT_SIZE=18
+
+    STATIC_STRUCT_SIZE = 18
     HEADER_SIG_VALUE = "MSPR"
     VERSION = 1
 
     def __init__(self, filestream=None):
-        if(filestream == None):
+        if(filestream is None):
             self.HeaderSignature = self.HEADER_SIG_VALUE
             self.HeaderVersion = self.VERSION
             self.Status = 0
@@ -267,20 +269,22 @@ class CertProvisioningResultVariable(object):
             self.SessionId = 0
         else:
             self.PopulateFromFileStream(filestream)
+
     #
     # Method to un-serialize from a filestream
     #
     def PopulateFromFileStream(self, fs):
-        if(fs == None):
+        if(fs is None):
             raise Exception("Invalid File stream")
 
-        #only populate from file stream those parts that are complete in the file stream
+        # only populate from file stream those parts that are complete in the file stream
         offset = fs.tell()
-        fs.seek(0,2)
+        fs.seek(0, 2)
         end = fs.tell()
         fs.seek(offset)
 
-        if((end - offset) < self.STATIC_STRUCT_SIZE): #size of the static header data
+        # size of the static header data
+        if((end - offset) < self.STATIC_STRUCT_SIZE):
             raise Exception("Invalid file stream size")
 
         self.HeaderSignature = fs.read(4).decode()
@@ -297,13 +301,13 @@ class CertProvisioningResultVariable(object):
     # Method to Print SEM var to stdout
     #
     def Print(self):
-        print ("CertProvisioningResultVariable")
-        print ("  HeaderSignature:  %s" % self.HeaderSignature)
-        print ("  HeaderVersion:    0x%X" % self.HeaderVersion)
-        print ("  Identity:         0x%X (%s)" % (self.Identity, CertProvisioningApplyVariable.IDENTITY_MAP[self.Identity]))
-        print ("  SessionId:        0x%X" % self.SessionId)
-        print ("  Status:           %s (0x%X)" % (UefiStatusCode().Convert64BitToString(self.Status), self.Status))
-
+        print("CertProvisioningResultVariable")
+        print("  HeaderSignature:  %s" % self.HeaderSignature)
+        print("  HeaderVersion:    0x%X" % self.HeaderVersion)
+        print("  Identity:         0x%X (%s)" % (self.Identity,
+              CertProvisioningApplyVariable.IDENTITY_MAP[self.Identity]))
+        print("  SessionId:        0x%X" % self.SessionId)
+        print("  Status:           %s (0x%X)" % (UefiStatusCode().Convert64BitToString(self.Status), self.Status))
 
     def Write(self, fs):
         fs.write(self.HeaderSignature.encode('utf-8'))
@@ -311,4 +315,3 @@ class CertProvisioningResultVariable(object):
         fs.write(struct.pack("=B", self.Identity))
         fs.write(struct.pack("=I", self.SessionId))
         fs.write(struct.pack("=Q", self.Status))
-

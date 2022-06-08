@@ -60,7 +60,7 @@ class UefiRemoteTesting(object):
         if (var is not None) and (trim == 'trim'):
             varlen = len(var)
             if varlen > 1:
-                var2 = var[0:varlen-1]
+                var2 = var[0: varlen - 1]
         return (rc, var2, errorstring)
 
     def SetUefiVariable(self, name, guid, attrs=None, contents=None):
