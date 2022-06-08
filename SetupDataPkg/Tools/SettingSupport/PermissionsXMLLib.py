@@ -5,11 +5,9 @@
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 
-import os, sys
-import traceback
-import argparse
 import datetime
 from DFCI_SupportLib import DFCI_SupportLib
+
 
 class PermissionsXMLLib(object):
 
@@ -30,7 +28,7 @@ class PermissionsXMLLib(object):
 
         f.write('</CreatedOn>\n')
         f.write('    <Version>')
-        print (version, end='', file=f)
+        print(version, end='', file=f)
         f.write('</Version>\n')
         f.write('    <LowestSupportedVersion>2</LowestSupportedVersion>\n')
         f.write('    <Permissions')
@@ -47,14 +45,14 @@ class PermissionsXMLLib(object):
         for permission in permissionslist:
             f.write('        <Permission>\n')
             f.write('            <Id>')
-            print (permission[0], end='', file=f)
+            print(permission[0], end='', file=f)
             f.write('</Id>\n')
             f.write('            <PMask>')
-            print (permission[1], end='', file=f)
+            print(permission[1], end='', file=f)
             f.write('</PMask>\n')
             if (permission[2] is not None):
                 f.write('            <DMask>')
-                print (permission[2], end='', file=f)
+                print(permission[2], end='', file=f)
                 f.write('</DMask>\n')
             f.write('        </Permission>\n')
 
@@ -79,13 +77,13 @@ class PermissionsXMLLib(object):
             PMask, DMask = a.get_current_permission_value(currentPermissionsXmlFile, item[0])
 
             if (PMask != item[1]):
-                print ('PMask Mismatch for %s, was=%s, Should be=%s' % (item[0], PMask, item[1]))
+                print('PMask Mismatch for %s, was=%s, Should be=%s' % (item[0], PMask, item[1]))
                 return False
 
             if (PMask is not None):
                 if (DMask != item[2]):
-                    print ('DMask Mismatch for %s, was=%s, Should be=%s' % (item[0], DMask, item[2]))
-                    return False;
+                    print('DMask Mismatch for %s, was=%s, Should be=%s' % (item[0], DMask, item[2]))
+                    return False
 
         return True
 
@@ -102,11 +100,11 @@ class PermissionsXMLLib(object):
         Default, Delegated = a.get_current_permission_defaults(currentPermissionsXmlFile)
 
         if (Default != CheckDefault):
-            print ('PMask Mismatch was %s should be %s' % (Default, CheckDefault))
+            print('PMask Mismatch was %s should be %s' % (Default, CheckDefault))
             return False
 
         if (Delegated != CheckDelegated):
-            print ('DMask Mismatch was %s should be %s' % (Delegated, CheckDelegated))
-            return False;
+            print('DMask Mismatch was %s should be %s' % (Delegated, CheckDelegated))
+            return False
 
         return True

@@ -8,17 +8,14 @@
 import os
 import sys
 import re
-import struct
 import marshal
-import pprint
 import string
 import operator as op
 import ast
-import binascii
-from   datetime    import date
-from   collections import OrderedDict
+from datetime import date
+from collections import OrderedDict
 
-from CommonUtility import *
+from CommonUtility import value_to_bytearray, value_to_bytes, bytes_to_value, set_bits_to_bytes, get_bits_from_bytes
 
 # Generated file copyright header
 __copyright_tmp__ = """/** @file
@@ -33,12 +30,13 @@ __copyright_tmp__ = """/** @file
 **/
 """
 
-def get_copyright_header (file_type, allow_modify = False):
+
+def get_copyright_header(file_type, allow_modify=False):
     file_description = {
         'yaml': 'Boot Setting',
-        'dlt' : 'Delta',
-        'inc' : 'C Binary Blob',
-        'h'   : 'C Struct Header'
+        'dlt': 'Delta',
+        'inc': 'C Binary Blob',
+        'h': 'C Struct Header'
     }
     if file_type in ['yaml', 'dlt']:
         comment_char = '#'
@@ -46,59 +44,67 @@ def get_copyright_header (file_type, allow_modify = False):
         comment_char = ''
     lines = __copyright_tmp__.split('\n')
     if allow_modify:
-      lines = [line for line in lines if 'Please do NOT modify' not in line]
+        lines = [line for line in lines if 'Please do NOT modify' not in line]
     copyright_hdr = '\n'.join('%s%s' % (comment_char, line) for line in lines)[:-1] + '\n'
     return copyright_hdr % (file_description[file_type], date.today().year)
 
-def check_quote (text):
+
+def check_quote(text):
     if (text[0] == "'" and text[-1] == "'") or (text[0] == '"' and text[-1] == '"'):
         return True
     return False
 
-def strip_quote (text):
+
+def strip_quote(text):
     new_text = text.strip()
-    if check_quote (new_text):
+    if check_quote(new_text):
         return new_text[1:-1]
     return text
 
-def strip_delimiter (text, delim):
+
+def strip_delimiter(text, delim):
     new_text = text.strip()
     if new_text:
         if new_text[0] == delim[0] and new_text[-1] == delim[-1]:
             return new_text[1:-1]
     return text
 
-def bytes_to_bracket_str (bytes):
+
+def bytes_to_bracket_str(bytes):
     return '{ %s }' % (', '.join('0x%02x' % i for i in bytes))
 
-def array_str_to_value (val_str):
+
+def array_str_to_value(val_str):
     val_str = val_str.strip()
-    val_str = strip_delimiter (val_str, '{}')
-    val_str = strip_quote (val_str)
+    val_str = strip_delimiter(val_str, '{}')
+    val_str = strip_quote(val_str)
     value = 0
     for each in val_str.split(',')[::-1]:
         each = each.strip()
         value = (value << 8) | int(each, 0)
     return value
 
-def write_lines (lines, file):
-    fo = open(file, "w")
-    fo.write (''.join ([x[0] for x in lines]))
-    fo.close ()
 
-def read_lines (file):
+def write_lines(lines, file):
+    fo = open(file, "w")
+    fo.write(''.join([x[0] for x in lines]))
+    fo.close()
+
+
+def read_lines(file):
     if not os.path.exists(file):
         test_file = os.path.basename(file)
         if os.path.exists(test_file):
             file = test_file
-    fi = open (file, 'r')
-    lines = fi.readlines ()
-    fi.close ()
+    fi = open(file, 'r')
+    lines = fi.readlines()
+    fi.close()
     return lines
 
-def expand_file_value (path, value_str):
+
+def expand_file_value(path, value_str):
     result = bytearray()
-    match  = re.match("\{\s*FILE:(.+)\}", value_str)
+    match = re.match("\{\s*FILE:(.+)\}", value_str)     # noqa: W605
     if match:
         file_list = match.group(1).split(',')
         for file in file_list:
@@ -107,26 +113,26 @@ def expand_file_value (path, value_str):
             result.extend(bytearray(open(bin_path, 'rb').read()))
     return result
 
+
 class ExpressionEval(ast.NodeVisitor):
     operators = {
-        ast.Add:    op.add,
-        ast.Sub:    op.sub,
-        ast.Mult:   op.mul,
-        ast.Div:    op.floordiv,
-        ast.Mod:    op.mod,
-        ast.Eq:     op.eq,
-        ast.NotEq:  op.ne,
-        ast.Gt:     op.gt,
-        ast.Lt:     op.lt,
-        ast.GtE:    op.ge,
-        ast.LtE:    op.le,
+        ast.Add: op.add,
+        ast.Sub: op.sub,
+        ast.Mult: op.mul,
+        ast.Div: op.floordiv,
+        ast.Mod: op.mod,
+        ast.Eq: op.eq,
+        ast.NotEq: op.ne,
+        ast.Gt: op.gt,
+        ast.Lt: op.lt,
+        ast.GtE: op.ge,
+        ast.LtE: op.le,
         ast.BitXor: op.xor,
         ast.BitAnd: op.and_,
-        ast.BitOr:  op.or_,
+        ast.BitOr: op.or_,
         ast.Invert: op.invert,
-        ast.USub:   op.neg
+        ast.USub: op.neg
     }
-
 
     def __init__(self):
         self._debug = False
@@ -137,7 +143,7 @@ class ExpressionEval(ast.NodeVisitor):
     def eval(self, expr, vars={}):
         self._expression = expr
         if type(vars) is dict:
-            self._namespace    = vars
+            self._namespace = vars
             self._get_variable = None
         else:
             self._namespace = {}
@@ -145,7 +151,7 @@ class ExpressionEval(ast.NodeVisitor):
         node = ast.parse(self._expression, mode='eval')
         result = self.visit(node.body)
         if self._debug:
-            print ('EVAL [ %s ] = %s' % (expr, str(result)))
+            print('EVAL [ %s ] = %s' % (expr, str(result)))
         return result
 
     def visit_Name(self, node):
@@ -176,7 +182,7 @@ class ExpressionEval(ast.NodeVisitor):
 
     def visit_UnaryOp(self, node):
         val = self.visit(node.operand)
-        return operators[type(node.op)](val)
+        return ExpressionEval.operators[type(node.op)](val)
 
     def visit_BinOp(self, node):
         lhs = self.visit(node.left)
@@ -196,9 +202,9 @@ class ExpressionEval(ast.NodeVisitor):
 
     def visit_Call(self, node):
         if node.func.id in ['ternary']:
-            condition = self.visit (node.args[0])
-            val_true  = self.visit (node.args[1])
-            val_false = self.visit (node.args[2])
+            condition = self.visit(node.args[0])
+            val_true = self.visit(node.args[1])
+            val_false = self.visit(node.args[2])
             return val_true if condition else val_false
         elif node.func.id in ['offset', 'length']:
             if self._get_variable is not None:
@@ -212,43 +218,43 @@ class ExpressionEval(ast.NodeVisitor):
 
 class CFG_YAML():
     TEMPLATE = 'template'
-    CONFIGS  = 'configs'
+    CONFIGS = 'configs'
     VARIABLE = 'variable'
 
-    def __init__ (self):
-        self.log_line        = False
-        self.allow_template  = False
-        self.cfg_tree        = None
-        self.tmp_tree        = None
-        self.var_dict        = None
-        self.def_dict        = {}
-        self.yaml_path       = ''
-        self.lines           = []
-        self.full_lines      = []
-        self.index           = 0
-        self.re_expand  = re.compile (r'(.+:\s+|\s*\-\s*)!expand\s+\{\s*(\w+_TMPL)\s*:\s*\[(.+)]\s*\}')
-        self.re_include = re.compile (r'(.+:\s+|\s*\-\s*)!include\s+(.+)')
+    def __init__(self):
+        self.log_line = False
+        self.allow_template = False
+        self.cfg_tree = None
+        self.tmp_tree = None
+        self.var_dict = None
+        self.def_dict = {}
+        self.yaml_path = ''
+        self.lines = []
+        self.full_lines = []
+        self.index = 0
+        self.re_expand = re.compile(r'(.+:\s+|\s*\-\s*)!expand\s+\{\s*(\w+_TMPL)\s*:\s*\[(.+)]\s*\}')
+        self.re_include = re.compile(r'(.+:\s+|\s*\-\s*)!include\s+(.+)')
 
     @staticmethod
-    def count_indent (line):
+    def count_indent(line):
         return next((i for i, c in enumerate(line) if not c.isspace()), len(line))
 
     @staticmethod
-    def substitue_args (text, arg_dict):
+    def substitue_args(text, arg_dict):
         for arg in arg_dict:
-            text = text.replace ('$' + arg, arg_dict[arg])
+            text = text.replace('$' + arg, arg_dict[arg])
         return text
 
     @staticmethod
-    def dprint (*args):
+    def dprint(*args):
         pass
 
-    def process_include (self, line, insert = True):
-        match = self.re_include.match (line)
+    def process_include(self, line, insert=True):
+        match = self.re_include.match(line)
         if not match:
-            raise Exception ("Invalid !include format '%s' !" % line.strip())
+            raise Exception("Invalid !include format '%s' !" % line.strip())
 
-        prefix  = match.group(1)
+        prefix = match.group(1)
         include = match.group(2)
         if prefix.strip() == '-':
             prefix = ''
@@ -256,27 +262,27 @@ class CFG_YAML():
         else:
             adjust = 2
 
-        include = strip_quote (include)
-        request = CFG_YAML.count_indent (line) + adjust
+        include = strip_quote(include)
+        request = CFG_YAML.count_indent(line) + adjust
 
         if self.log_line:
             # remove the include line itself
-            del  self.full_lines[-1]
+            del self.full_lines[-1]
 
-        inc_path = os.path.join (self.yaml_path, include)
+        inc_path = os.path.join(self.yaml_path, include)
         if not os.path.exists(inc_path):
             # try relative path to project root
-            try_path = os.path.join(os.path.dirname (os.path.realpath(__file__)), "../..", include)
+            try_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..", include)
             if os.path.exists(try_path):
                 inc_path = try_path
             else:
-                raise Exception ("ERROR: Cannot open file '%s'." % inc_path)
+                raise Exception("ERROR: Cannot open file '%s'." % inc_path)
 
-        lines = read_lines (inc_path)
+        lines = read_lines(inc_path)
 
-        current   = 0
+        current = 0
         same_line = False
-        for idx, each in enumerate (lines):
+        for idx, each in enumerate(lines):
             start = each.lstrip()
             if start == '' or start[0] == '#':
                 continue
@@ -285,11 +291,11 @@ class CFG_YAML():
                 # append the content directly at the same line
                 same_line = True
 
-            start   = idx
-            current = CFG_YAML.count_indent (each)
+            start = idx
+            current = CFG_YAML.count_indent(each)
             break
 
-        lines = lines[start+1:] if same_line else lines[start:]
+        lines = lines[start + 1:] if same_line else lines[start:]
         leading = ''
         if same_line:
             request = len(prefix)
@@ -301,36 +307,35 @@ class CFG_YAML():
 
         return lines
 
-    def process_expand (self, line):
+    def process_expand(self, line):
         match = self.re_expand.match(line)
         if not match:
-            raise Exception ("Invalid !expand format '%s' !" % line.strip())
-        lines      = []
-        prefix     = match.group(1)
-        temp_name  = match.group(2)
-        args       = match.group(3)
+            raise Exception("Invalid !expand format '%s' !" % line.strip())
+        lines = []
+        prefix = match.group(1)
+        temp_name = match.group(2)
+        args = match.group(3)
 
         if prefix.strip() == '-':
             indent = 0
         else:
             indent = 2
-        lines      = self.process_expand_template (temp_name, prefix, args, indent)
+        lines = self.process_expand_template(temp_name, prefix, args, indent)
         self.lines = lines + self.lines
 
-
-    def process_expand_template (self, temp_name, prefix, args, indent = 2):
+    def process_expand_template(self, temp_name, prefix, args, indent=2):
         # expand text with arg substitution
         if temp_name not in self.tmp_tree:
-            raise Exception ("Could not find template '%s' !" % temp_name)
+            raise Exception("Could not find template '%s' !" % temp_name)
         parts = args.split(',')
         parts = [i.strip() for i in parts]
         num = len(parts)
-        arg_dict = dict(zip( ['(%d)' % (i + 1) for i in range(num)], parts))
+        arg_dict = dict(zip(['(%d)' % (i + 1) for i in range(num)], parts))
         str_data = self.tmp_tree[temp_name]
         text = DefTemplate(str_data).safe_substitute(self.def_dict)
-        text = CFG_YAML.substitue_args (text, arg_dict)
-        target  = CFG_YAML.count_indent (prefix) + indent
-        current = CFG_YAML.count_indent (text)
+        text = CFG_YAML.substitue_args(text, arg_dict)
+        target = CFG_YAML.count_indent(prefix) + indent
+        current = CFG_YAML.count_indent(text)
         padding = target * ' '
         if indent == 0:
             leading = []
@@ -339,40 +344,35 @@ class CFG_YAML():
         text = leading + [(padding + i + '\n')[current:] for i in text.splitlines()]
         return text
 
+    def load_file(self, yaml_file):
+        self.index = 0
+        self.lines = read_lines(yaml_file)
 
-    def load_file (self, yaml_file):
-        self.index  = 0
-        self.lines = read_lines (yaml_file)
-
-
-    def peek_line (self):
+    def peek_line(self):
         if len(self.lines) == 0:
             return None
         else:
             return self.lines[0]
 
-
-    def put_line (self, line):
-        self.lines.insert (0, line)
+    def put_line(self, line):
+        self.lines.insert(0, line)
         if self.log_line:
             del self.full_lines[-1]
 
-
-    def get_line (self):
+    def get_line(self):
         if len(self.lines) == 0:
             return None
         else:
             line = self.lines.pop(0)
             if self.log_line:
-                self.full_lines.append (line.rstrip())
+                self.full_lines.append(line.rstrip())
             return line
 
-
-    def get_multiple_line (self, indent):
-        text   = ''
+    def get_multiple_line(self, indent):
+        text = ''
         newind = indent + 1
         while True:
-            line   = self.peek_line ()
+            line = self.peek_line()
             if line is None:
                 break
             sline = line.strip()
@@ -380,39 +380,37 @@ class CFG_YAML():
                 newind = CFG_YAML.count_indent(line)
                 if newind <= indent:
                     break
-            self.get_line ()
+            self.get_line()
             if sline != '':
                 text = text + line
         return text
 
-
-    def traverse_cfg_tree (self, handler):
-        def _traverse_cfg_tree (root, level = 0):
+    def traverse_cfg_tree(self, handler):
+        def _traverse_cfg_tree(root, level=0):
             # config structure
             for key in root:
                 if type(root[key]) is OrderedDict:
                     level += 1
-                    handler (key, root[key], level)
-                    _traverse_cfg_tree (root[key], level)
+                    handler(key, root[key], level)
+                    _traverse_cfg_tree(root[key], level)
                     level -= 1
-        _traverse_cfg_tree (self.cfg_tree)
+        _traverse_cfg_tree(self.cfg_tree)
 
-
-    def count (self):
-        def _count (name, cfgs, level):
+    def count(self):
+        def _count(name, cfgs, level):
             num[0] += 1
         num = [0]
-        self.traverse_cfg_tree (_count)
-        return  num[0]
+        self.traverse_cfg_tree(_count)
+        return num[0]
 
+    def parse(self, parent_name='', curr=None, level=0):
 
-    def parse (self, parent_name = '', curr = None, level = 0):
         child = None
         last_indent = None
         temp_chk = {}
 
         while True:
-            line = self.get_line ()
+            line = self.get_line()
             if line is None:
                 break
 
@@ -420,47 +418,47 @@ class CFG_YAML():
             if curr_line == '' or curr_line[0] == '#':
                 continue
 
-            indent  = CFG_YAML.count_indent(line)
+            indent = CFG_YAML.count_indent(line)
             if last_indent is None:
                 last_indent = indent
 
             if indent != last_indent:
                 # outside of current block,  put the line back to queue
-                self.put_line (' ' * indent + curr_line)
+                self.put_line(' ' * indent + curr_line)
 
-            if curr_line.endswith (': >'):
+            if curr_line.endswith(': >'):
                 # multiline marker
                 old_count = len(self.full_lines)
-                line = self.get_multiple_line (indent)
+                line = self.get_multiple_line(indent)
                 if self.log_line and not self.allow_template and '!include ' in line:
                     # expand include in template
                     new_lines = []
                     lines = line.splitlines()
                     for idx, each in enumerate(lines):
                         if '!include ' in each:
-                            new_line = ''.join(self.process_include (each, False))
+                            new_line = ''.join(self.process_include(each, False))
                             new_lines.append(new_line)
                         else:
                             new_lines.append(each)
                     self.full_lines = self.full_lines[:old_count] + new_lines
-                curr_line = curr_line  + line
+                curr_line = curr_line + line
 
             if indent > last_indent:
                 # child nodes
                 if child is None:
-                    raise Exception ('Unexpected format at line: %s' % (curr_line))
+                    raise Exception('Unexpected format at line: %s' % (curr_line))
 
                 level += 1
-                self.parse (key, child, level)
+                self.parse(parent_name, child, level)
                 level -= 1
 
-                line = self.peek_line ()
+                line = self.peek_line()
                 if line is not None:
                     curr_line = line.strip()
-                    indent  = CFG_YAML.count_indent(line)
+                    indent = CFG_YAML.count_indent(line)
                     if indent >= last_indent:
                         # consume the line
-                        self.get_line ()
+                        self.get_line()
                 else:
                     # end of file
                     indent = -1
@@ -483,17 +481,19 @@ class CFG_YAML():
                 else:
                     # XXXX: !include / !expand
                     if '!include ' in curr_line:
-                        self.process_include (line)
+                        self.process_include(line)
                     elif '!expand ' in curr_line:
                         if self.allow_template and not self.log_line:
-                            self.process_expand (line)
+                            self.process_expand(line)
                     else:
                         value_str = curr_line[pos + 2:].strip()
                         if key == "IdTag" or key == "ArrayIdTag":
-                            # Insert the headers corresponds to this ID tag from here, most contents are hardcoded for now
+                            # Insert the headers corresponds to this ID tag from here, most contents are hardcoded
+                            # for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x04'
-                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_/4):10b, %d:4b, 0:4b, %s:12b}' % (parent_name, 0 if key == "IdTag" else 1, value_str)
+                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_/4):10b, %d:4b, 0:4b, %s:12b}' %\
+                                               (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
                             cnd_val = OrderedDict()
@@ -505,8 +505,8 @@ class CFG_YAML():
                             if self.log_line and value_str[0] == '{':
                                 # expand {FILE: xxxx} format in the log line
                                 if value_str[1:].rstrip().startswith('FILE:'):
-                                    value_bytes = expand_file_value (self.yaml_path, value_str)
-                                    value_str = bytes_to_bracket_str (value_bytes)
+                                    value_bytes = expand_file_value(self.yaml_path, value_str)
+                                    value_str = bytes_to_bracket_str(value_bytes)
                                     self.full_lines[-1] = line[:indent] + curr_line[:pos + 2] + value_str
 
             elif marker2 == ':':
@@ -521,7 +521,7 @@ class CFG_YAML():
                         # check for duplicated keys at same level
                         temp_chk[key] = 1
                     else:
-                        raise Exception ("Duplicated item '%s:%s' found !" % (parent_name, key))
+                        raise Exception("Duplicated item '%s:%s' found !" % (parent_name, key))
 
                 curr[key] = child
                 if self.var_dict is None and key == CFG_YAML.VARIABLE:
@@ -560,72 +560,67 @@ class CFG_YAML():
                 child = None
                 # - !include cfg_opt.yaml
                 if '!include ' in curr_line:
-                    self.process_include (line)
+                    self.process_include(line)
 
         return curr
 
-
-    def load_yaml (self, opt_file):
-        self.var_dict  = None
-        self.yaml_path = os.path.dirname (opt_file)
-        self.load_file (opt_file)
-        yaml_tree     = self.parse ()
+    def load_yaml(self, opt_file):
+        self.var_dict = None
+        self.yaml_path = os.path.dirname(opt_file)
+        self.load_file(opt_file)
+        yaml_tree = self.parse()
         self.tmp_tree = yaml_tree[CFG_YAML.TEMPLATE]
         self.cfg_tree = yaml_tree[CFG_YAML.CONFIGS]
         return self.cfg_tree
 
-
-    def expand_yaml (self, opt_file):
+    def expand_yaml(self, opt_file):
         self.log_line = True
-        self.load_yaml (opt_file)
+        self.load_yaml(opt_file)
         self.log_line = False
-        text = '\n'.join (self.full_lines)
+        text = '\n'.join(self.full_lines)
         self.full_lines = []
         return text
 
 
 class DefTemplate(string.Template):
-    idpattern = '\([_A-Z][_A-Z0-9]*\)|[_A-Z][_A-Z0-9]*'
+    idpattern = '\([_A-Z][_A-Z0-9]*\)|[_A-Z][_A-Z0-9]*'     # noqa: W605
 
 
 class CGenCfgData:
-    STRUCT         = '$STRUCT'
-    bits_width     = {'b':1, 'B':8, 'W':16, 'D':32, 'Q':64}
-    builtin_option = {'$EN_DIS' : [('0', 'Disable'), ('1', 'Enable')]}
-    exclude_struct = ['GPIO_GPP_*', 'GPIO_CFG_DATA', 'GpioConfPad*',  'GpioPinConfig',
-                      'BOOT_OPTION*', 'PLATFORMID_CFG_DATA', '\w+_Half[01]']
-    include_tag    = ['GPIO_CFG_DATA']
-    keyword_set    = set(['name', 'type', 'option', 'help', 'length', 'value', 'order', 'struct', 'condition'])
+    STRUCT = '$STRUCT'
+    bits_width = {'b': 1, 'B': 8, 'W': 16, 'D': 32, 'Q': 64}
+    builtin_option = {'$EN_DIS': [('0', 'Disable'), ('1', 'Enable')]}
+    exclude_struct = ['GPIO_GPP_*', 'GPIO_CFG_DATA', 'GpioConfPad*', 'GpioPinConfig',
+                      'BOOT_OPTION*', 'PLATFORMID_CFG_DATA', '\w+_Half[01]']    # noqa: W605
+    include_tag = ['GPIO_CFG_DATA']
+    keyword_set = set(['name', 'type', 'option', 'help', 'length', 'value', 'order', 'struct', 'condition'])
 
     def __init__(self):
-        self.initialize ()
+        self.initialize()
 
-
-    def initialize (self):
-        self._cfg_tree  = {}
-        self._tmp_tree  = {}
-        self._cfg_list  = []
-        self._cfg_page  = {'root': {'title': '', 'child': []}}
-        self._cur_page  = ''
-        self._var_dict  = {}
-        self._def_dict  = {}
+    def initialize(self):
+        self._cfg_tree = {}
+        self._tmp_tree = {}
+        self._cfg_list = []
+        self._cfg_page = {'root': {'title': '', 'child': []}}
+        self._cur_page = ''
+        self._var_dict = {}
+        self._def_dict = {}
         self._yaml_path = ''
 
-
     @staticmethod
-    def deep_convert_dict (layer):
+    def deep_convert_dict(layer):
         # convert OrderedDict to list + dict
         new_list = layer
         if isinstance(layer, OrderedDict):
-            new_list = list (layer.items())
-            for idx, pair in enumerate (new_list):
-                new_node = CGenCfgData.deep_convert_dict (pair[1])
-                new_list[idx] = dict({pair[0] : new_node})
+            new_list = list(layer.items())
+            for idx, pair in enumerate(new_list):
+                new_node = CGenCfgData.deep_convert_dict(pair[1])
+                new_list[idx] = dict({pair[0]: new_node})
         return new_list
 
-
     @staticmethod
-    def deep_convert_list (layer):
+    def deep_convert_list(layer):
         if isinstance(layer, list):
             od = OrderedDict({})
             for each in layer:
@@ -636,89 +631,85 @@ class CGenCfgData:
         else:
             return layer
 
-
     @staticmethod
-    def expand_include_files (file_path, cur_dir = ''):
+    def expand_include_files(file_path, cur_dir=''):
         if cur_dir == '':
-            cur_dir   = os.path.dirname(file_path)
+            cur_dir = os.path.dirname(file_path)
             file_path = os.path.basename(file_path)
 
         input_file_path = os.path.join(cur_dir, file_path)
-        file  = open(input_file_path, "r")
+        file = open(input_file_path, "r")
         lines = file.readlines()
         file.close()
 
         new_lines = []
         for line_num, line in enumerate(lines):
-            match = re.match("^!include\s*(.+)?$", line.strip())
+            match = re.match("^!include\s*(.+)?$", line.strip())    # noqa: W605
             if match:
                 inc_path = match.group(1)
                 tmp_path = os.path.join(cur_dir, inc_path)
                 org_path = tmp_path
                 if not os.path.exists(tmp_path):
-                    cur_dir = os.path.join(os.path.dirname (os.path.realpath(__file__)), "..", "..")
+                    cur_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")
                 tmp_path = os.path.join(cur_dir, inc_path)
                 if not os.path.exists(tmp_path):
-                    raise Exception ("ERROR: Cannot open include file '%s'." % org_path)
+                    raise Exception("ERROR: Cannot open include file '%s'." % org_path)
                 else:
-                    new_lines.append (('# Included from file: %s\n' % inc_path, tmp_path, 0))
-                    new_lines.append (('# %s\n' % ('=' * 80), tmp_path, 0))
-                    new_lines.extend (CGenCfgData.expand_include_files (inc_path, cur_dir))
+                    new_lines.append(('# Included from file: %s\n' % inc_path, tmp_path, 0))
+                    new_lines.append(('# %s\n' % ('=' * 80), tmp_path, 0))
+                    new_lines.extend(CGenCfgData.expand_include_files(inc_path, cur_dir))
             else:
-                new_lines.append ((line, input_file_path, line_num))
+                new_lines.append((line, input_file_path, line_num))
 
         return new_lines
 
-
     @staticmethod
-    def format_struct_field_name (input, count = 0):
+    def format_struct_field_name(input, count=0):
         name = ''
-        cap  = True
+        cap = True
         if '_' in input:
             input = input.lower()
         for each in input:
-          if each == '_':
-              cap = True
-              continue
-          elif cap:
-              each = each.upper()
-              cap  = False
-          name = name + each
+            if each == '_':
+                cap = True
+                continue
+            elif cap:
+                each = each.upper()
+                cap = False
+            name = name + each
 
         if count > 1:
             name = '%s[%d]' % (name, count)
 
         return name
 
-    def get_last_error (self):
+    def get_last_error(self):
         return ''
 
-
-    def get_variable (self, var, attr = 'value'):
+    def get_variable(self, var, attr='value'):
         if var in self._var_dict:
             var = self._var_dict[var]
             return var
 
-        item = self.locate_cfg_item (var, False)
+        item = self.locate_cfg_item(var, False)
         if item is None:
-            raise ValueError ("Cannot find variable '%s' !" % var)
+            raise ValueError("Cannot find variable '%s' !" % var)
 
         if item:
             if 'indx' in item:
-                item = self.get_item_by_index (item['indx'])
+                item = self.get_item_by_index(item['indx'])
             if attr == 'offset':
-                var  = item['offset']
+                var = item['offset']
             elif attr == 'length':
-                var  = item['length']
+                var = item['length']
             elif attr == 'value':
-                var  = self.get_cfg_item_value (item)
+                var = self.get_cfg_item_value(item)
             else:
-                raise ValueError ("Unsupported variable attribute '%s' !" % attr)
+                raise ValueError("Unsupported variable attribute '%s' !" % attr)
         return var
 
-
-    def eval (self, expr):
-        def _handler (pattern):
+    def eval(self, expr):
+        def _handler(pattern):
             if pattern.group(1):
                 target = 1
             else:
@@ -728,47 +719,44 @@ class CGenCfgData:
                 raise ValueError('Unknown variable $(%s) !' % pattern.group(target))
             return hex(result)
 
-        expr_eval = ExpressionEval ()
+        expr_eval = ExpressionEval()
         if '$' in expr:
             # replace known variable first
             expr = re.sub(r'\$\(([_a-zA-Z][\w\.]*)\)|\$([_a-zA-Z][\w\.]*)', _handler, expr)
         return expr_eval.eval(expr, self.get_variable)
 
-
-    def get_cfg_list (self, page_id = None):
+    def get_cfg_list(self, page_id=None):
         if page_id is None:
             # return full list
             return self._cfg_list
         else:
             # build a new list for items under a page ID
-            cfgs =  [i for i in self._cfg_list if i['cname'] and (i['page'] == page_id)]
+            cfgs = [i for i in self._cfg_list if i['cname'] and (i['page'] == page_id)]
             return cfgs
 
-
-    def get_cfg_page (self):
+    def get_cfg_page(self):
         return self._cfg_page
 
-    def get_cfg_item_length (self, item):
+    def get_cfg_item_length(self, item):
         return item['length']
 
-    def get_cfg_item_value (self, item, array = False):
+    def get_cfg_item_value(self, item, array=False):
         value_str = item['value']
-        length    = item['length']
-        return  self.get_value (value_str, length, array)
+        length = item['length']
+        return self.get_value(value_str, length, array)
 
-
-    def format_value_to_str (self, value, bit_length, old_value = ''):
+    def format_value_to_str(self, value, bit_length, old_value=''):
         # value is always int
-        length    = (bit_length + 7) // 8
+        length = (bit_length + 7) // 8
         fmt = ''
-        if old_value.startswith ('0x'):
+        if old_value.startswith('0x'):
             fmt = '0x'
         elif old_value and (old_value[0] in ['"', "'", '{']):
             fmt = old_value[0]
         else:
             fmt = ''
 
-        bvalue = value_to_bytearray (value, length)
+        bvalue = value_to_bytearray(value, length)
         if fmt in ['"', "'"]:
             svalue = bvalue.rstrip(b'\x00').decode()
             value_str = fmt + svalue + fmt
@@ -783,38 +771,36 @@ class CGenCfgData:
             value_str = fstr % value
         else:
             if length <= 2:
-                value_str = '%d'   % value
+                value_str = '%d' % value
             elif length <= 8:
                 value_str = '0x%x' % value
             else:
                 value_str = '{ ' + ', '.join(['0x%02x' % i for i in bvalue]) + ' }'
         return value_str
 
-
-    def reformat_value_str (self, value_str, bit_length, old_value = None):
-        value = self.parse_value (value_str, bit_length, False)
+    def reformat_value_str(self, value_str, bit_length, old_value=None):
+        value = self.parse_value(value_str, bit_length, False)
         if old_value is None:
             old_value = value_str
-        new_value = self.format_value_to_str (value, bit_length, old_value)
+        new_value = self.format_value_to_str(value, bit_length, old_value)
         return new_value
 
-
-    def get_value (self, value_str, bit_length, array = True):
+    def get_value(self, value_str, bit_length, array=True):
         value_str = value_str.strip()
         if len(value_str) == 0:
             return 0
         if value_str[0] == "'" and value_str[-1] == "'" or \
            value_str[0] == '"' and value_str[-1] == '"':
             value_str = value_str[1:-1]
-            bvalue = bytearray (value_str.encode())
+            bvalue = bytearray(value_str.encode())
             if len(bvalue) == 0:
                 bvalue = bytearray(b'\x00')
             if array:
-                return  bvalue
+                return bvalue
             else:
-                return  bytes_to_value (bvalue)
+                return bytes_to_value(bvalue)
         else:
-            if value_str[0] in '{' :
+            if value_str[0] in '{':
                 value_str = value_str[1:-1].strip()
             value = 0
             for each in value_str.split(',')[::-1]:
@@ -822,24 +808,23 @@ class CGenCfgData:
                 value = (value << 8) | int(each, 0)
             if array:
                 length = (bit_length + 7) // 8
-                return value_to_bytearray (value, length)
+                return value_to_bytearray(value, length)
             else:
                 return value
 
-
-    def parse_value (self, value_str, bit_length, array = True):
+    def parse_value(self, value_str, bit_length, array=True):
         length = (bit_length + 7) // 8
         if check_quote(value_str):
             value_str = bytes_to_bracket_str(value_str[1:-1].encode())
         elif (',' in value_str) and (value_str[0] != '{'):
             value_str = '{ %s }' % value_str
         if value_str[0] == '{':
-            result = expand_file_value (self._yaml_path, value_str)
-            if len(result) == 0 :
+            result = expand_file_value(self._yaml_path, value_str)
+            if len(result) == 0:
                 bin_list = value_str[1:-1].split(',')
-                value            = 0
-                bit_len          = 0
-                unit_len         = 1
+                value = 0
+                bit_len = 0
+                unit_len = 1
                 for idx, element in enumerate(bin_list):
                     each = element.strip()
                     if len(each) == 0:
@@ -849,13 +834,13 @@ class CGenCfgData:
                     if each[0] in "'" + '"':
                         each_value = bytearray(each[1:-1], 'utf-8')
                     elif ':' in each:
-                        match    = re.match("^(.+):(\d+)([b|B|W|D|Q])$", each)
+                        match = re.match("^(.+):(\d+)([b|B|W|D|Q])$", each)     # noqa: W605
                         if match is None:
                             raise SystemExit("Exception: Invald value list format '%s' !" % each)
                         if match.group(1) == '0' and match.group(2) == '0':
                             unit_len = CGenCfgData.bits_width[match.group(3)] // 8
                         cur_bit_len = int(match.group(2)) * CGenCfgData.bits_width[match.group(3)]
-                        value   += ((self.eval(match.group(1)) & (1<<cur_bit_len) - 1)) << bit_len
+                        value += ((self.eval(match.group(1)) & (1 << cur_bit_len) - 1)) << bit_len
                         bit_len += cur_bit_len
                         each_value = bytearray()
                         if idx + 1 < len(bin_list):
@@ -864,27 +849,27 @@ class CGenCfgData:
                         try:
                             each_value = value_to_bytearray(self.eval(each.strip()), unit_len)
                         except:
-                            raise SystemExit("Exception: Value cannot fit into %s bytes !" % (each, unit_len))
+                            raise SystemExit("Exception: Value %s cannot fit into %d bytes !" % (each, unit_len))
 
                     if not in_bit_field:
                         if bit_len > 0:
                             if bit_len % 8 != 0:
                                 raise SystemExit("Exception: Invalid bit field alignment '%s' !" % value_str)
                             result.extend(value_to_bytes(value, bit_len // 8))
-                        value   = 0
+                        value = 0
                         bit_len = 0
 
                     result.extend(each_value)
 
-        elif check_quote (value_str):
+        elif check_quote(value_str):
             result = bytearray(value_str[1:-1], 'utf-8')  # Excluding quotes
         else:
-            result = value_to_bytearray (self.eval(value_str), length)
+            result = value_to_bytearray(self.eval(value_str), length)
 
         if len(result) < length:
             result.extend(b'\x00' * (length - len(result)))
         elif len(result) > length:
-            raise SystemExit ("Exception: Value '%s' is too big to fit into %d bytes !" % (value_str, length))
+            raise SystemExit("Exception: Value '%s' is too big to fit into %d bytes !" % (value_str, length))
 
         if array:
             return result
@@ -893,10 +878,9 @@ class CGenCfgData:
 
         return result
 
-
-    def get_cfg_item_options (self, item):
+    def get_cfg_item_options(self, item):
         tmp_list = []
-        if  item['type'] == "Combo":
+        if item['type'] == "Combo":
             if item['option'] in CGenCfgData.builtin_option:
                 for op_val, op_str in CGenCfgData.builtin_option[item['option']]:
                     tmp_list.append((op_val, op_str))
@@ -907,12 +891,12 @@ class CGenCfgData:
                     try:
                         (op_val, op_str) = option.split(':')
                     except:
-                        raise SystemExit ("Exception: Invalid option format '%s' for item '%s' !" % (option, item['cname']))
+                        raise SystemExit("Exception: Invalid option format '%s' for item '%s' !" %
+                                         (option, item['cname']))
                     tmp_list.append((op_val, op_str))
-        return  tmp_list
+        return tmp_list
 
-
-    def get_page_title(self, page_id, top = None):
+    def get_page_title(self, page_id, top=None):
         if top is None:
             top = self.get_cfg_page()['root']
         for node in top['child']:
@@ -920,11 +904,10 @@ class CGenCfgData:
             if page_id == page_key:
                 return node[page_key]['title']
             else:
-                result = self.get_page_title (page_id, node[page_key])
+                result = self.get_page_title(page_id, node[page_key])
                 if result is not None:
                     return result
         return None
-
 
     def print_pages(self, top=None, level=0):
         if top is None:
@@ -936,20 +919,18 @@ class CGenCfgData:
             self.print_pages(node[page_id], level)
             level -= 1
 
-
-    def get_item_by_index (self, index):
+    def get_item_by_index(self, index):
         return self._cfg_list[index]
 
-
-    def get_item_by_path (self, path):
-        node = self.locate_cfg_item (path)
+    def get_item_by_path(self, path):
+        node = self.locate_cfg_item(path)
         if node:
-            return self.get_item_by_index (node['indx'])
+            return self.get_item_by_index(node['indx'])
         else:
             return None
 
-    def locate_cfg_path (self, item):
-        def _locate_cfg_path (root, level = 0):
+    def locate_cfg_path(self, item):
+        def _locate_cfg_path(root, level=0):
             # config structure
             if item is root:
                 return path
@@ -957,56 +938,52 @@ class CGenCfgData:
                 if type(root[key]) is OrderedDict:
                     level += 1
                     path.append(key)
-                    ret = _locate_cfg_path (root[key], level)
+                    ret = _locate_cfg_path(root[key], level)
                     if ret:
                         return ret
                     path.pop()
             return None
         path = []
-        return _locate_cfg_path (self._cfg_tree)
+        return _locate_cfg_path(self._cfg_tree)
 
-
-    def locate_cfg_item (self, path, allow_exp = True):
-        def _locate_cfg_item (root, path, level = 0):
+    def locate_cfg_item(self, path, allow_exp=True):
+        def _locate_cfg_item(root, path, level=0):
             if len(path) == level:
                 return root
             next_root = root.get(path[level], None)
             if next_root is None:
                 if allow_exp:
-                    raise Exception ('Not a valid CFG config option path: %s' % '.'.join(path[:level+1]))
+                    raise Exception('Not a valid CFG config option path: %s' % '.'.join(path[: level + 1]))
                 else:
                     return None
-            return _locate_cfg_item (next_root, path, level + 1)
+            return _locate_cfg_item(next_root, path, level + 1)
 
         path_nodes = path.split('.')
-        return _locate_cfg_item (self._cfg_tree, path_nodes)
+        return _locate_cfg_item(self._cfg_tree, path_nodes)
 
-
-    def traverse_cfg_tree (self, handler, top = None):
-        def _traverse_cfg_tree (root, level = 0):
+    def traverse_cfg_tree(self, handler, top=None):
+        def _traverse_cfg_tree(root, level=0):
             # config structure
             for key in root:
                 if type(root[key]) is OrderedDict:
                     level += 1
-                    handler (key, root[key], level)
-                    _traverse_cfg_tree (root[key], level)
+                    handler(key, root[key], level)
+                    _traverse_cfg_tree(root[key], level)
                     level -= 1
 
         if top is None:
             top = self._cfg_tree
-        _traverse_cfg_tree (top)
+        _traverse_cfg_tree(top)
 
-
-    def print_cfgs(self, root = None, short = True, print_level = 256):
-        def _print_cfgs (name, cfgs, level):
+    def print_cfgs(self, root=None, short=True, print_level=256):
+        def _print_cfgs(name, cfgs, level):
 
             if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
+                act_cfg = self.get_item_by_index(cfgs['indx'])
             else:
                 offset = 0
                 length = 0
-                value  = ''
-                path=''
+                value = ''
                 if CGenCfgData.STRUCT in cfgs:
                     cfg = cfgs[CGenCfgData.STRUCT]
                     offset = int(cfg['offset'])
@@ -1015,35 +992,32 @@ class CGenCfgData:
                         value = cfg['value']
                 if length == 0:
                     return
-                act_cfg = dict({'value' : value, 'offset' : offset, 'length' : length})
-            value   = act_cfg['value']
+                act_cfg = dict({'value': value, 'offset': offset, 'length': length})
+            value = act_cfg['value']
             bit_len = act_cfg['length']
-            offset  = (act_cfg['offset'] + 7) // 8
+            offset = (act_cfg['offset'] + 7) // 8
             if value != '':
                 try:
-                    value = self.reformat_value_str (act_cfg['value'], act_cfg['length'])
+                    value = self.reformat_value_str(act_cfg['value'], act_cfg['length'])
                 except:
                     value = act_cfg['value']
-            length  = bit_len // 8
+            length = bit_len // 8
             bit_len = '(%db)' % bit_len if bit_len % 8 else '' * 4
             if level <= print_level:
                 if short and len(value) > 40:
-                    value = '%s ... %s' % (value[:20] , value[-20:])
+                    value = '%s ... %s' % (value[:20], value[-20:])
                 print('%04X:%04X%-6s %s%s : %s' % (offset, length, bit_len, '  ' * level, name, value))
 
-        self.traverse_cfg_tree (_print_cfgs)
-
+        self.traverse_cfg_tree(_print_cfgs)
 
     def get_cfg_tree(self):
         return self._cfg_tree
 
-
     def set_cfg_tree(self, cfg_tree):
         self._cfg_tree = cfg_tree
 
-
     def merge_cfg_tree(self, root, other_root):
-        ret = OrderedDict ()
+        ret = OrderedDict()
         prev_key = None
         for other_key in other_root:
             if other_key not in root:
@@ -1055,7 +1029,7 @@ class CGenCfgData:
                     if key == prev_key:
                         found_last = True
                         continue
-                    if prev_key == None:
+                    if prev_key is None:
                         found_last = True
                     if found_last:
                         ret[key] = root[key]
@@ -1065,9 +1039,9 @@ class CGenCfgData:
 
                 if type(root[other_key]) is OrderedDict and type(other_root[other_key]) is OrderedDict:
                     # if they are both non-leaf, great, process recursively
-                    ret[other_key] = self.merge_cfg_tree (root[other_key], other_root[other_key])
+                    ret[other_key] = self.merge_cfg_tree(root[other_key], other_root[other_key])
                 elif type(root[other_key]) is OrderedDict or type(other_root[other_key]) is OrderedDict:
-                    raise Exception ("Two yamls files have hierachy mismatch!!!")
+                    raise Exception("Two yamls files have hierachy mismatch!!!")
                 else:
                     # this is duplicate value in from both roots, take original root as principal
                     ret[other_key] = root[other_key]
@@ -1078,7 +1052,7 @@ class CGenCfgData:
             if key == prev_key:
                 found_last = True
                 continue
-            if prev_key == None:
+            if prev_key is None:
                 found_last = True
             if found_last:
                 ret[key] = root[key]
@@ -1087,20 +1061,18 @@ class CGenCfgData:
                 break
         return ret
 
-
-    def build_var_dict (self):
-        def _build_var_dict (name, cfgs, level):
+    def build_var_dict(self):
+        def _build_var_dict(name, cfgs, level):
             if level <= 2:
                 if CGenCfgData.STRUCT in cfgs:
                     struct_info = cfgs[CGenCfgData.STRUCT]
                     self._var_dict['_LENGTH_%s_' % name] = struct_info['length'] // 8
                     self._var_dict['_OFFSET_%s_' % name] = struct_info['offset'] // 8
 
-        self._var_dict  = {}
-        self.traverse_cfg_tree (_build_var_dict)
+        self._var_dict = {}
+        self.traverse_cfg_tree(_build_var_dict)
         self._var_dict['_LENGTH_'] = self._cfg_tree[CGenCfgData.STRUCT]['length'] // 8
         return 0
-
 
     def add_cfg_page(self, child, parent, title=''):
         def _add_cfg_page(cfg_page, child, parent):
@@ -1118,7 +1090,6 @@ class CGenCfgData:
                 return result
 
         return _add_cfg_page(self._cfg_page, child, parent)
-
 
     def set_cur_page(self, page_str):
         if not page_str:
@@ -1145,8 +1116,7 @@ class CGenCfgData:
                 raise SystemExit("Error: Invalid page format '%s' !" % page_str)
             self._cur_page = page
 
-
-    def extend_variable (self, line):
+    def extend_variable(self, line):
         # replace all variables
         if line == '':
             return line
@@ -1159,7 +1129,7 @@ class CGenCfgData:
             line = line_after
         return line_after
 
-    def reformat_number_per_type (self, itype, value):
+    def reformat_number_per_type(self, itype, value):
         if check_quote(value) or value.startswith('{'):
             return value
         parts = itype.split(',')
@@ -1175,21 +1145,20 @@ class CGenCfgData:
 
     def add_cfg_item(self, name, item, offset, path):
 
-        self.set_cur_page (item.get('page', ''))
+        self.set_cur_page(item.get('page', ''))
 
         if name[0] == '$':
             # skip all virtual node
             return 0
 
-
         if not set(item).issubset(CGenCfgData.keyword_set):
             for each in list(item):
                 if each not in CGenCfgData.keyword_set:
-                    raise Exception ("Invalid attribute '%s' for '%s'!" % (each, '.'.join(path)))
+                    raise Exception("Invalid attribute '%s' for '%s'!" % (each, '.'.join(path)))
 
         length = item.get('length', 0)
         if type(length) is str:
-            match = re.match("^(\d+)([b|B|W|D|Q])([B|W|D|Q]?)\s*$", length)
+            match = re.match("^(\d+)([b|B|W|D|Q])([B|W|D|Q]?)\s*$", length)     # noqa: W605
             if match:
                 unit_len = CGenCfgData.bits_width[match.group(2)]
                 length = int(match.group(1), 10) * unit_len
@@ -1197,17 +1166,16 @@ class CGenCfgData:
                 try:
                     length = int(length, 0) * 8
                 except:
-                    raise Exception ("Invalid length field '%s' for '%s' !" % (length, '.'.join(path)))
+                    raise Exception("Invalid length field '%s' for '%s' !" % (length, '.'.join(path)))
 
                 if offset % 8 > 0:
-                    raise Exception ("Invalid alignment for field '%s' for '%s' !" % (name, '.'.join(path)))
+                    raise Exception("Invalid alignment for field '%s' for '%s' !" % (name, '.'.join(path)))
         else:
             # define is length in bytes
             length = length * 8
 
         if not name.isidentifier():
-            raise Exception ("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
-
+            raise Exception("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
 
         itype = str(item.get('type', 'Reserved'))
         value = str(item.get('value', ''))
@@ -1216,50 +1184,50 @@ class CGenCfgData:
                 if ',' in value:
                     value = '{ %s }' % value
                 else:
-                    value = self.reformat_number_per_type (itype, value)
+                    value = self.reformat_number_per_type(itype, value)
 
         help = str(item.get('help', ''))
         if '\n' in help:
-            help = ' '.join ([i.strip() for i in help.splitlines()])
+            help = ' '.join([i.strip() for i in help.splitlines()])
 
         option = str(item.get('option', ''))
         if '\n' in option:
-            option = ' '.join ([i.strip() for i in option.splitlines()])
+            option = ' '.join([i.strip() for i in option.splitlines()])
 
         # extend variables for value and condition
         condition = str(item.get('condition', ''))
         if condition:
-            condition = self.extend_variable (condition)
-        value     = self.extend_variable (value)
+            condition = self.extend_variable(condition)
+        value = self.extend_variable(value)
 
         order = str(item.get('order', ''))
         if order:
             if '.' in order:
                 (major, minor) = order.split('.')
-                order = int (major, 16)
+                order = int(major, 16)
             else:
-                order = int (order, 16)
+                order = int(order, 16)
         else:
             order = offset
 
         cfg_item = dict()
         cfg_item['length'] = length
         cfg_item['offset'] = offset
-        cfg_item['value']  = value
-        cfg_item['type']   = itype
-        cfg_item['cname']  = str(name)
-        cfg_item['name']   = str(item.get('name', ''))
-        cfg_item['help']   = help
+        cfg_item['value'] = value
+        cfg_item['type'] = itype
+        cfg_item['cname'] = str(name)
+        cfg_item['name'] = str(item.get('name', ''))
+        cfg_item['help'] = help
         cfg_item['option'] = option
-        cfg_item['page']   = self._cur_page
-        cfg_item['order']  = order
-        cfg_item['path']   = '.'.join(path)
-        cfg_item['condition']  = condition
+        cfg_item['page'] = self._cur_page
+        cfg_item['order'] = order
+        cfg_item['path'] = '.'.join(path)
+        cfg_item['condition'] = condition
         if 'struct' in item:
             cfg_item['struct'] = item['struct']
         self._cfg_list.append(cfg_item)
 
-        item['indx']       = len(self._cfg_list) - 1
+        item['indx'] = len(self._cfg_list) - 1
 
         # remove used info for reducing pkl size
         item.pop('option', None)
@@ -1270,8 +1238,7 @@ class CGenCfgData:
 
         return length
 
-
-    def build_cfg_list (self, cfg_name ='', top = None, path = [], info = {'offset': 0}):
+    def build_cfg_list(self, cfg_name='', top=None, path=[], info={'offset': 0}):
         if top is None:
             top = self._cfg_tree
 
@@ -1294,7 +1261,7 @@ class CGenCfgData:
             if first != struct_str:
                 struct_node = OrderedDict({})
                 top[struct_str] = struct_node
-                top.move_to_end (struct_str, False)
+                top.move_to_end(struct_str, False)
             else:
                 struct_node = top[struct_str]
             struct_node['offset'] = start
@@ -1307,42 +1274,40 @@ class CGenCfgData:
             if struct_node['length'] % 8 != 0:
                 raise SystemExit("Error: Bits length not aligned for %s !" % str(path))
 
-
-    def get_field_value (self, top = None):
-        def _get_field_value (name, cfgs, level):
+    def get_field_value(self, top=None):
+        def _get_field_value(name, cfgs, level):
             if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
+                act_cfg = self.get_item_by_index(cfgs['indx'])
                 if act_cfg['length'] == 0:
                     return
-                value = self.get_value (act_cfg['value'], act_cfg['length'], False)
-                set_bits_to_bytes (result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
+                value = self.get_value(act_cfg['value'], act_cfg['length'], False)
+                set_bits_to_bytes(result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
 
         if top is None:
             top = self._cfg_tree
         struct_info = top[CGenCfgData.STRUCT]
-        result = bytearray ((struct_info['length'] + 7) // 8)
-        self.traverse_cfg_tree (_get_field_value, top)
-        return  result
+        result = bytearray((struct_info['length'] + 7) // 8)
+        self.traverse_cfg_tree(_get_field_value, top)
+        return result
 
-
-    def set_field_value (self, top, value_bytes, force = False):
-        def _set_field_value (name, cfgs, level):
+    def set_field_value(self, top, value_bytes, force=False):
+        def _set_field_value(name, cfgs, level):
             if 'indx' not in cfgs:
                 return
-            act_cfg = self.get_item_by_index (cfgs['indx'])
+            act_cfg = self.get_item_by_index(cfgs['indx'])
             if force or act_cfg['value'] == '':
-                value = get_bits_from_bytes (full_bytes, act_cfg['offset'] - struct_info['offset'], act_cfg['length'])
+                value = get_bits_from_bytes(full_bytes, act_cfg['offset'] - struct_info['offset'], act_cfg['length'])
                 act_val = act_cfg['value']
                 if act_val == '':
                     act_val = '%d' % value
-                act_val = self.reformat_number_per_type (act_cfg['type'], act_val)
-                act_cfg['value'] = self.format_value_to_str (value, act_cfg['length'], act_val)
+                act_val = self.reformat_number_per_type(act_cfg['type'], act_val)
+                act_cfg['value'] = self.format_value_to_str(value, act_cfg['length'], act_val)
 
         if 'indx' in top:
             # it is config option
-            value   = bytes_to_value (value_bytes)
-            act_cfg = self.get_item_by_index (top['indx'])
-            act_cfg['value'] = self.format_value_to_str (value, act_cfg['length'], act_cfg['value'])
+            value = bytes_to_value(value_bytes)
+            act_cfg = self.get_item_by_index(top['indx'])
+            act_cfg['value'] = self.format_value_to_str(value, act_cfg['length'], act_cfg['value'])
         else:
             # it is structure
             struct_info = top[CGenCfgData.STRUCT]
@@ -1350,56 +1315,52 @@ class CGenCfgData:
             full_bytes = bytearray(value_bytes[:length])
             if len(full_bytes) < length:
                 full_bytes.extend(bytearray(length - len(value_bytes)))
-            self.traverse_cfg_tree (_set_field_value, top)
+            self.traverse_cfg_tree(_set_field_value, top)
 
-
-    def update_def_value (self):
-        def _update_def_value (name, cfgs, level):
+    def update_def_value(self):
+        def _update_def_value(name, cfgs, level):
             if 'indx' in cfgs:
-                act_cfg = self.get_item_by_index (cfgs['indx'])
+                act_cfg = self.get_item_by_index(cfgs['indx'])
                 if act_cfg['value'] != '' and act_cfg['length'] > 0:
                     try:
-                        act_cfg['value'] = self.reformat_value_str (act_cfg['value'], act_cfg['length'])
+                        act_cfg['value'] = self.reformat_value_str(act_cfg['value'], act_cfg['length'])
                     except:
-                        raise Exception ("Invalid value expression '%s' for '%s' !" % (act_cfg['value'], act_cfg['path']))
+                        raise Exception("Invalid value expression '%s' for '%s' !" % (act_cfg['value'],
+                                        act_cfg['path']))
             else:
                 if CGenCfgData.STRUCT in cfgs and 'value' in cfgs[CGenCfgData.STRUCT]:
                     curr = cfgs[CGenCfgData.STRUCT]
-                    value_bytes = value_to_bytearray (self.eval(curr['value']), (curr['length'] + 7) // 8)
-                    self.set_field_value (cfgs, value_bytes)
+                    value_bytes = value_to_bytearray(self.eval(curr['value']), (curr['length'] + 7) // 8)
+                    self.set_field_value(cfgs, value_bytes)
 
-        self.traverse_cfg_tree (_update_def_value, self._cfg_tree)
+        self.traverse_cfg_tree(_update_def_value, self._cfg_tree)
 
-
-    def evaluate_condition (self, item):
+    def evaluate_condition(self, item):
         expr = item['condition']
-        result = self.parse_value (expr, 1, False)
+        result = self.parse_value(expr, 1, False)
         return result
 
-
-    def load_default_from_bin (self, bin_data):
+    def load_default_from_bin(self, bin_data):
         self.set_field_value(self._cfg_tree, bin_data, True)
 
-
-    def generate_binary_array (self):
+    def generate_binary_array(self):
         return self.get_field_value()
 
-    def generate_binary (self, bin_file_name):
+    def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
-        bin_file.write (self.generate_binary_array ())
+        bin_file.write(self.generate_binary_array())
         bin_file.close()
         return 0
 
-    def write_delta_file (self, out_file, platform_id, out_lines):
-        dlt_fd = open (out_file, "w")
-        dlt_fd.write ("%s\n"   % get_copyright_header('dlt', True))
-        dlt_fd.write ('#\n')
-        dlt_fd.write ('# Delta configuration values for platform ID 0x%04X\n' % platform_id)
-        dlt_fd.write ('#\n\n')
+    def write_delta_file(self, out_file, platform_id, out_lines):
+        dlt_fd = open(out_file, "w")
+        dlt_fd.write("%s\n" % get_copyright_header('dlt', True))
+        dlt_fd.write('#\n')
+        dlt_fd.write('# Delta configuration values for platform ID 0x%04X\n' % platform_id)
+        dlt_fd.write('#\n\n')
         for line in out_lines:
-            dlt_fd.write ('%s\n' % line)
+            dlt_fd.write('%s\n' % line)
         dlt_fd.close()
-
 
     def override_default_value(self, dlt_file):
         error = 0
@@ -1410,28 +1371,28 @@ class CGenCfgData:
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            match = re.match("\s*([\w\.]+)\s*\|\s*(.+)", line)
+            match = re.match("\s*([\w\.]+)\s*\|\s*(.+)", line)  # noqa: W605
             if not match:
                 raise Exception("Unrecognized line '%s' (File:'%s' Line:%d) !" %
                                 (line, file_path, line_num + 1))
 
-            path      = match.group(1)
+            path = match.group(1)
             value_str = match.group(2)
-            top  = self.locate_cfg_item (path)
+            top = self.locate_cfg_item(path)
             if not top:
                 raise Exception(
                     "Invalid configuration '%s' (File:'%s' Line:%d) !" %
                     (path, file_path, line_num + 1))
 
             if 'indx' in top:
-                act_cfg = self.get_item_by_index (top['indx'])
+                act_cfg = self.get_item_by_index(top['indx'])
                 bit_len = act_cfg['length']
             else:
                 struct_info = top[CGenCfgData.STRUCT]
-                bit_len     = struct_info['length']
+                bit_len = struct_info['length']
 
-            value_bytes = self.parse_value (value_str, bit_len)
-            self.set_field_value (top, value_bytes, True)
+            value_bytes = self.parse_value(value_str, bit_len)
+            self.set_field_value(top, value_bytes, True)
 
             if path == 'PLATFORMID_CFG_DATA.PlatformId':
                 platform_id = value_str
@@ -1442,25 +1403,22 @@ class CGenCfgData:
 
         return error
 
-
-    def generate_delta_file_from_bin (self, delta_file, old_data, new_data, full=False):
-        self.load_default_from_bin (new_data)
+    def generate_delta_file_from_bin(self, delta_file, old_data, new_data, full=False):
+        self.load_default_from_bin(new_data)
         lines = []
-        tag_name = ''
-        level = 0
         platform_id = None
         def_platform_id = 0
 
         for item in self._cfg_list:
-            old_val = get_bits_from_bytes (old_data, item['offset'],  item['length'])
-            new_val = get_bits_from_bytes (new_data, item['offset'],  item['length'])
+            old_val = get_bits_from_bytes(old_data, item['offset'], item['length'])
+            new_val = get_bits_from_bytes(new_data, item['offset'], item['length'])
 
             full_name = item['path']
             if 'PLATFORMID_CFG_DATA.PlatformId' == full_name:
                 def_platform_id = old_val
-                platform_id     = new_val
+                platform_id = new_val
             elif item['type'] != 'Reserved' and ((new_val != old_val) or full):
-                val_str = self.reformat_value_str (item['value'], item['length'])
+                val_str = self.reformat_value_str(item['value'], item['length'])
                 text = '%-40s | %s' % (full_name, val_str)
                 lines.append(text)
 
@@ -1468,90 +1426,78 @@ class CGenCfgData:
             platform_id = def_platform_id
 
             lines.insert(0, '%-40s | %s\n\n' %
-                        ('PLATFORMID_CFG_DATA.PlatformId', '0x%04X' % platform_id))
+                         ('PLATFORMID_CFG_DATA.PlatformId', '0x%04X' % platform_id))
 
         if platform_id is None:
-            print ("Platform ID is not set and will be configured to 0")
+            print("Platform ID is not set and will be configured to 0")
             platform_id = 0
 
-        self.write_delta_file (delta_file, platform_id, lines)
+        self.write_delta_file(delta_file, platform_id, lines)
         return 0
 
-
-    def generate_delta_svd_from_bin (self, old_data, new_data):
-        self.load_default_from_bin (new_data)
-        lines = []
-        tag_name = ''
-        level = 0
-        platform_id = None
-        def_platform_id = 0
+    def generate_delta_svd_from_bin(self, old_data, new_data):
+        self.load_default_from_bin(new_data)
         items = []
 
         for item in self._cfg_list:
-            old_val = get_bits_from_bytes (old_data, item['offset'],  item['length'])
-            new_val = get_bits_from_bytes (new_data, item['offset'],  item['length'])
+            old_val = get_bits_from_bytes(old_data, item['offset'], item['length'])
+            new_val = get_bits_from_bytes(new_data, item['offset'], item['length'])
 
-            full_name = item['path']
-            if 'PLATFORMID_CFG_DATA.PlatformId' == full_name:
-                def_platform_id = old_val
-                platform_id     = new_val
-            elif item['type'] != 'Reserved' and (new_val != old_val):
-                val_str = self.reformat_value_str (item['value'], item['length'])
-                text = '%-40s | %s' % (full_name, val_str)
+            if item['type'] != 'Reserved' and (new_val != old_val):
                 item = self.locate_cfg_item(item['path'])
                 if item is None:
-                    raise Exception ("Failed to locate item from path: %s" % item['path'])
+                    raise Exception("Failed to locate item from path: %s" % item['path'])
                 items.append(item)
 
         execs = []
         # The idea is that the 1st level tag content will be regenerated if changed
         for item in items:
-            exec = self.locate_exec_from_item (item)
-            if exec == None:
-                raise Exception ("Failed to find the immediate executive tree for an item")
+            exec = self.locate_exec_from_item(item)
+            if exec is None:
+                raise Exception("Failed to find the immediate executive tree for an item")
             if exec not in execs:
-                execs.append (exec)
+                execs.append(exec)
 
         bytes_array = []
         for exec in execs:
-            bytes = self.get_field_value (exec)
+            bytes = self.get_field_value(exec)
             offset = 0
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
-            bytes_array.append (bytes[offset:])
+            bytes_array.append(bytes[offset:])
 
         # self.write_delta_file (delta_file, platform_id, lines)
         return (execs, bytes_array)
 
-    def locate_exec_from_item (self, item):
+    def locate_exec_from_item(self, item):
 
-        def _locate_exec_from_item (name, cfgs, level):
+        def _locate_exec_from_item(name, cfgs, level):
             if level == 1:
                 exec[0] = cfgs
             elif cfgs == item:
                 exec[1] = exec[0]
 
         exec = [None, None]
-        self.traverse_cfg_tree (_locate_exec_from_item, self._cfg_tree)
+        self.traverse_cfg_tree(_locate_exec_from_item, self._cfg_tree)
         return exec[1]
 
-    def locate_exec_from_tag (self, tag):
+    def locate_exec_from_tag(self, tag):
 
-        def _locate_exec_from_tag (name, cfgs, level):
+        def _locate_exec_from_tag(name, cfgs, level):
             if level == 1:
                 exec[0] = cfgs
                 if CGenCfgData.STRUCT in cfgs:
-                    cfghdr  = self.get_item_by_index (cfgs['CfgHeader']['indx'])
+                    cfghdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
                     tag_val = array_str_to_value(cfghdr['value']) >> 20
                     if tag_val == tag:
                         exec[1] = exec[0]
 
         exec = [None, None]
-        self.traverse_cfg_tree (_locate_exec_from_tag, self._cfg_tree)
+        self.traverse_cfg_tree(_locate_exec_from_tag, self._cfg_tree)
         return exec[1]
 
     def generate_delta_file(self, delta_file, bin_file, bin_file2, full=False):
-        fd = open (bin_file, 'rb')
+        fd = open(bin_file, 'rb')
         new_data = bytearray(fd.read())
         fd.close()
 
@@ -1559,131 +1505,125 @@ class CGenCfgData:
             old_data = self.generate_binary_array()
         else:
             old_data = new_data
-            fd = open (bin_file2, 'rb')
+            fd = open(bin_file2, 'rb')
             new_data = bytearray(fd.read())
             fd.close()
 
-        return self.generate_delta_file_from_bin (delta_file, old_data, new_data, full)
+        return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full)
 
-
-    def prepare_marshal (self, is_save):
+    def prepare_marshal(self, is_save):
         if is_save:
             # Ordered dict is not marshallable, convert to list
-            self._cfg_tree = CGenCfgData.deep_convert_dict (self._cfg_tree)
+            self._cfg_tree = CGenCfgData.deep_convert_dict(self._cfg_tree)
         else:
             # Revert it back
-            self._cfg_tree = CGenCfgData.deep_convert_list (self._cfg_tree)
+            self._cfg_tree = CGenCfgData.deep_convert_list(self._cfg_tree)
 
-    def generate_yml_file (self, in_file, out_file):
+    def generate_yml_file(self, in_file, out_file):
         cfg_yaml = CFG_YAML()
-        text = cfg_yaml.expand_yaml (in_file)
+        text = cfg_yaml.expand_yaml(in_file)
         yml_fd = open(out_file, "w")
-        yml_fd.write (text)
-        yml_fd.close ()
+        yml_fd.write(text)
+        yml_fd.close()
         return 0
 
-
-    def write_cfg_header_file (self, hdr_file_name, tag_mode, tag_dict, struct_list):
+    def write_cfg_header_file(self, hdr_file_name, tag_mode, tag_dict, struct_list):
         lines = []
-        lines.append ('\n\n')
+        lines.append('\n\n')
         tag_list = sorted(list(tag_dict.items()), key=lambda x: x[1])
         for tagname, tagval in tag_list:
             if (tag_mode == 0 and tagval >= 0x100) or (tag_mode == 1 and tagval < 0x100):
                 continue
-            lines.append ('#define    %-30s 0x%03X\n' % ('CDATA_%s_TAG' % tagname[:-9], tagval))
-        lines.append ('\n\n')
+            lines.append('#define    %-30s 0x%03X\n' % ('CDATA_%s_TAG' % tagname[:-9], tagval))
+        lines.append('\n\n')
 
         name_dict = {}
-        new_dict  = {}
+        new_dict = {}
         for each in struct_list:
             if (tag_mode == 0 and each['tag'] >= 0x100) or (tag_mode == 1 and each['tag'] < 0x100):
                 continue
-            new_dict[each['name']]  = (each['alias'], each['count'])
+            new_dict[each['name']] = (each['alias'], each['count'])
             if each['alias'] not in name_dict:
                 name_dict[each['alias']] = 1
-                lines.extend(self.create_struct (each['alias'], each['node'], new_dict))
+                lines.extend(self.create_struct(each['alias'], each['node'], new_dict))
 
+        self.write_header_file(lines, hdr_file_name)
 
-        self.write_header_file (lines, hdr_file_name)
-
-
-    def write_header_file (self, txt_body, file_name, type = 'h'):
-        file_name_def = os.path.basename(file_name).replace ('.', '_')
+    def write_header_file(self, txt_body, file_name, type='h'):
+        file_name_def = os.path.basename(file_name).replace('.', '_')
         file_name_def = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', file_name_def)
         file_name_def = re.sub('([a-z0-9])([A-Z])', r'\1_\2', file_name_def).upper()
 
         lines = []
-        lines.append ("%s\n"   % get_copyright_header(type))
-        lines.append ("#ifndef __%s__\n"   % file_name_def)
-        lines.append ("#define __%s__\n\n" % file_name_def)
+        lines.append("%s\n" % get_copyright_header(type))
+        lines.append("#ifndef __%s__\n" % file_name_def)
+        lines.append("#define __%s__\n\n" % file_name_def)
         if type == 'h':
-            lines.append ("#pragma pack(1)\n\n")
-        lines.extend (txt_body)
+            lines.append("#pragma pack(1)\n\n")
+        lines.extend(txt_body)
         if type == 'h':
-            lines.append ("#pragma pack()\n\n")
-        lines.append ("#endif\n")
+            lines.append("#pragma pack()\n\n")
+        lines.append("#endif\n")
 
         # Don't rewrite if the contents are the same
         create = True
         if os.path.exists(file_name):
-            hdr_file  = open(file_name, "r")
-            org_txt   = hdr_file.read()
+            hdr_file = open(file_name, "r")
+            org_txt = hdr_file.read()
             hdr_file.close()
 
-            new_txt   = ''.join(lines)
+            new_txt = ''.join(lines)
             if org_txt == new_txt:
                 create = False
 
         if create:
-            hdr_file  = open(file_name, "w")
-            hdr_file.write (''.join(lines))
+            hdr_file = open(file_name, "w")
+            hdr_file.write(''.join(lines))
             hdr_file.close()
 
-
-    def generate_data_inc_file (self, dat_inc_file_name, bin_file = None):
+    def generate_data_inc_file(self, dat_inc_file_name, bin_file=None):
         # Put a prefix GUID before CFGDATA so that it can be located later on
-        prefix   = b'\xa7\xbd\x7f\x73\x20\x1e\x46\xd6\xbe\x8f\x64\x12\x05\x8d\x0a\xa8'
+        prefix = b'\xa7\xbd\x7f\x73\x20\x1e\x46\xd6\xbe\x8f\x64\x12\x05\x8d\x0a\xa8'
         if bin_file:
-            fin = open (bin_file, 'rb')
+            fin = open(bin_file, 'rb')
             bin_dat = prefix + bytearray(fin.read())
             fin.close()
         else:
-            bin_dat = prefix + self.generate_binary_array ()
+            bin_dat = prefix + self.generate_binary_array()
 
         file_name = os.path.basename(dat_inc_file_name).upper()
         file_name = file_name.replace('.', '_')
 
         txt_lines = []
 
-        txt_lines.append ("UINT8  mConfigDataBlob[%d] = {\n" % len(bin_dat))
+        txt_lines.append("UINT8  mConfigDataBlob[%d] = {\n" % len(bin_dat))
         count = 0
-        line  = ['  ']
+        line = ['  ']
         for each in bin_dat:
             line.append('0x%02X, ' % each)
             count = count + 1
             if (count & 0x0F) == 0:
                 line.append('\n')
-                txt_lines.append (''.join(line))
-                line  = ['  ']
+                txt_lines.append(''.join(line))
+                line = ['  ']
         if len(line) > 1:
-            txt_lines.append (''.join(line) + '\n')
+            txt_lines.append(''.join(line) + '\n')
 
-        txt_lines.append ("};\n\n")
+        txt_lines.append("};\n\n")
 
-        self.write_header_file (txt_lines, dat_inc_file_name, 'inc')
+        self.write_header_file(txt_lines, dat_inc_file_name, 'inc')
 
         return 0
 
-
-    def get_struct_array_info (self, input):
+    def get_struct_array_info(self, input):
         parts = input.split(':')
         if len(parts) > 1:
-           var   = parts[1]
-           input = parts[0]
+            var = parts[1]
+            input = parts[0]
         else:
-           var = ''
+            var = ''
         array_str = input.split('[')
-        name     = array_str[0]
+        name = array_str[0]
         if len(array_str) > 1:
             num_str = ''.join(c for c in array_str[-1] if c.isdigit())
             num_str = '1000' if len(num_str) == 0 else num_str
@@ -1692,8 +1632,7 @@ class CGenCfgData:
             array_num = 0
         return name, array_num, var
 
-
-    def process_multilines (self, string, max_char_length):
+    def process_multilines(self, string, max_char_length):
         multilines = ''
         string_length = len(string)
         current_string_start = 0
@@ -1703,7 +1642,7 @@ class CGenCfgData:
             while (string_offset < string_length):
                 if string_offset >= 1:
                     if string[string_offset - 1] == '\\' and string[string_offset] == 'n':
-                        break_line_dict.append (string_offset + 1)
+                        break_line_dict.append(string_offset + 1)
                 string_offset += 1
             if break_line_dict != []:
                 for each in break_line_dict:
@@ -1721,20 +1660,20 @@ class CGenCfgData:
                 if string_offset >= 1:
                     if new_line_count >= max_char_length - 1:
                         if string[string_offset] == ' ' and string_length - string_offset > 10:
-                            break_line_dict.append (new_line_start + new_line_count)
+                            break_line_dict.append(new_line_start + new_line_count)
                             new_line_start = new_line_start + new_line_count
                             new_line_count = 0
                             found_space_char = True
-                        elif string_offset == string_length - 1 and found_space_char == False:
-                            break_line_dict.append (0)
+                        elif string_offset == string_length - 1 and found_space_char is False:
+                            break_line_dict.append(0)
                     if string[string_offset - 1] == '\\' and string[string_offset] == 'n':
-                        break_line_dict.append (string_offset + 1)
+                        break_line_dict.append(string_offset + 1)
                         new_line_start = string_offset + 1
                         new_line_count = 0
                 string_offset += 1
                 new_line_count += 1
             if break_line_dict != []:
-                break_line_dict.sort ()
+                break_line_dict.sort()
                 for each in break_line_dict:
                     if each > 0:
                         multilines += "  %s\n" % string[current_string_start:each].lstrip()
@@ -1743,13 +1682,9 @@ class CGenCfgData:
                     multilines += "  %s\n" % string[current_string_start:].lstrip()
         return multilines
 
-
-    def create_field (self, item, name, length, offset, struct, bsf_name, help, option, bits_length = None):
-        pos_name    = 28
-        pos_comment = 30
-        name_line=''
-        help_line=''
-        option_line=''
+    def create_field(self, item, name, length, offset, struct, bsf_name, help, option, bits_length=None):
+        pos_name = 28
+        name_line = ''
 
         if length == 0 and name == 'dummy':
             return '\n'
@@ -1758,7 +1693,7 @@ class CGenCfgData:
             return '\n'
 
         is_array = False
-        if length in [1,2,4,8]:
+        if length in [1, 2, 4, 8]:
             type = "UINT%d" % (length * 8)
         else:
             is_array = True
@@ -1772,8 +1707,8 @@ class CGenCfgData:
             struct_base = struct.rstrip('*')
             name = '*' * (len(struct) - len(struct_base)) + name
             struct = struct_base
-            type  = struct
-            if struct in ['UINT8','UINT16','UINT32','UINT64']:
+            type = struct
+            if struct in ['UINT8', 'UINT16', 'UINT32', 'UINT64']:
                 is_array = True
                 unit = int(type[4:]) // 8
                 length = length / unit
@@ -1789,35 +1724,33 @@ class CGenCfgData:
             space1 = 1
 
         if bsf_name != '':
-            name_line=" %s\n" % bsf_name
+            name_line = " %s\n" % bsf_name
         else:
-            name_line="N/A\n"
+            name_line = "N/A\n"
 
         if help != '':
-            help_line = self.process_multilines (help, 80)
+            self.process_multilines(help, 80)
 
         if option != '':
-            option_line = self.process_multilines (option, 80)
+            self.process_multilines(option, 80)
 
-        if offset is None:
-            offset_str = '????'
-        else:
-            offset_str = '0x%04X' % offset
+        # if offset is None:
+        #     offset_str = '????'
+        # else:
+        #     offset_str = '0x%04X' % offset
 
         if bits_length is None:
             bits_length = ''
         else:
             bits_length = ' : %d' % bits_length
 
-        #return "\n/** %s%s%s**/\n  %s%s%s%s;\n" % (name_line, help_line, option_line, type, ' ' * space1, name, bits_length)
         return "\n  /* %s */\n  %s%s%s%s;\n" % (name_line.strip(), type, ' ' * space1, name, bits_length)
 
-
-    def create_struct (self, cname, top, struct_dict):
+    def create_struct(self, cname, top, struct_dict):
         index = 0
-        last  = ''
+        last = ''
         lines = []
-        lines.append ('\ntypedef struct {\n')
+        lines.append('\ntypedef struct {\n')
         for field in top:
             if field[0] == '$':
                 continue
@@ -1832,36 +1765,36 @@ class CGenCfgData:
                 if struct_dict[field][1] == 0:
                     continue
 
-                append  = True
+                append = True
                 struct_info = top[field][CGenCfgData.STRUCT]
 
                 if 'struct' in struct_info:
-                    struct, array_num, var = self.get_struct_array_info (struct_info['struct'])
+                    struct, array_num, var = self.get_struct_array_info(struct_info['struct'])
                     if array_num > 0:
                         if last == struct:
-                            append  = False
+                            append = False
                             last = struct
                         if var == '':
                             var = field
 
-                        field  = CGenCfgData.format_struct_field_name (var, struct_dict[field][1])
+                        field = CGenCfgData.format_struct_field_name(var, struct_dict[field][1])
                 else:
                     struct = struct_dict[field][0]
-                    field  = CGenCfgData.format_struct_field_name (field, struct_dict[field][1])
+                    field = CGenCfgData.format_struct_field_name(field, struct_dict[field][1])
 
                 if append:
-                    line = self.create_field (None, field, 0, 0, struct, '', '', '')
-                    lines.append ('  %s' % line)
+                    line = self.create_field(None, field, 0, 0, struct, '', '', '')
+                    lines.append('  %s' % line)
                     last = struct
                 continue
 
-            item   = self.get_item_by_index (t_item['indx'])
-            if item['cname'] == 'CfgHeader' and index == 1  or (item['cname'] == 'CondValue' and index == 2):
+            item = self.get_item_by_index(t_item['indx'])
+            if item['cname'] == 'CfgHeader' and index == 1 or (item['cname'] == 'CondValue' and index == 2):
                 continue
 
             bit_length = None
             length = (item['length'] + 7) // 8
-            match  = re.match("^(\d+)([b|B|W|D|Q])([B|W|D|Q]?)", t_item['length'])
+            match = re.match("^(\d+)([b|B|W|D|Q])([B|W|D|Q]?)", t_item['length'])   # noqa: W605
             if match and match.group(2) == 'b':
                 bit_length = int(match.group(1))
                 if match.group(3) != '':
@@ -1870,35 +1803,34 @@ class CGenCfgData:
                     length = 4
             offset = item['offset'] // 8
             struct = item.get('struct', '')
-            name   = field
+            name = field
             prompt = item['name']
-            help   = item['help']
+            help = item['help']
             option = item['option']
-            line = self.create_field (item, name, length, offset, struct, prompt, help, option, bit_length)
-            lines.append ('  %s' % line)
+            line = self.create_field(item, name, length, offset, struct, prompt, help, option, bit_length)
+            lines.append('  %s' % line)
             last = struct
 
-        lines.append ('\n} %s;\n\n' % cname)
+        lines.append('\n} %s;\n\n' % cname)
 
         return lines
 
-
-    def create_header_file (self, hdr_file_name, com_hdr_file_name = ''):
-        def _build_header_struct (name, cfgs, level):
+    def create_header_file(self, hdr_file_name, com_hdr_file_name=''):
+        def _build_header_struct(name, cfgs, level):
             if CGenCfgData.STRUCT in cfgs:
                 if 'CfgHeader' in cfgs:
                     # collect CFGDATA TAG IDs
-                    cfghdr  = self.get_item_by_index (cfgs['CfgHeader']['indx'])
+                    cfghdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
                     tag_val = array_str_to_value(cfghdr['value']) >> 20
                     tag_dict[name] = tag_val
                     if level == 1:
                         tag_curr[0] = tag_val
                 struct_dict[name] = (level, tag_curr[0], cfgs)
 
-        tag_curr      = [0]
-        tag_dict      = {}
-        struct_dict   = {}
-        self.traverse_cfg_tree (_build_header_struct)
+        tag_curr = [0]
+        tag_dict = {}
+        struct_dict = {}
+        self.traverse_cfg_tree(_build_header_struct)
 
         if tag_curr[0] == 0:
             hdr_mode = 2
@@ -1910,15 +1842,15 @@ class CGenCfgData:
         for each in struct_dict:
             match = False
             for check in CGenCfgData.exclude_struct:
-                if re.match (check, each):
+                if re.match(check, each):
                     match = True
                     if each in tag_dict:
                         if each not in CGenCfgData.include_tag:
                             del tag_dict[each]
                     break
             if not match:
-                struct_list.append ({'name':each, 'alias':'', 'count' : 0, 'level':struct_dict[each][0],
-                                     'tag':struct_dict[each][1], 'node':struct_dict[each][2]})
+                struct_list.append({'name': each, 'alias': '', 'count': 0, 'level': struct_dict[each][0],
+                                   'tag': struct_dict[each][1], 'node': struct_dict[each][2]})
 
         # sort by level so that the bottom level struct will be build first to satisfy dependencies
         struct_list = sorted(struct_list, key=lambda x: x['level'], reverse=True)
@@ -1927,9 +1859,9 @@ class CGenCfgData:
         for each in struct_list:
             cfgs = each['node']
             if 'struct' in cfgs['$STRUCT']:
-                each['alias'], array_num, var = self.get_struct_array_info (cfgs['$STRUCT']['struct'])
+                each['alias'], array_num, var = self.get_struct_array_info(cfgs['$STRUCT']['struct'])
             else:
-                match = re.match('(\w+)(_\d+)', each['name'])
+                match = re.match('(\w+)(_\d+)', each['name'])   # noqa: W605
                 if match:
                     each['alias'] = match.group(1)
                 else:
@@ -1938,33 +1870,32 @@ class CGenCfgData:
         # count items for array build
         for idx, each in enumerate(struct_list):
             if idx > 0:
-                last_struct = struct_list[idx-1]['node']['$STRUCT']
+                last_struct = struct_list[idx - 1]['node']['$STRUCT']
                 curr_struct = each['node']['$STRUCT']
-                if struct_list[idx-1]['alias'] == each['alias'] and \
+                if struct_list[idx - 1]['alias'] == each['alias'] and \
                    curr_struct['length'] == last_struct['length'] and \
                    curr_struct['offset'] == last_struct['offset'] + last_struct['length']:
-                   for idx2 in range (idx-1, -1, -1):
+                    for idx2 in range(idx - 1, -1, -1):
                         if struct_list[idx2]['count'] > 0:
                             struct_list[idx2]['count'] += 1
                             break
-                   continue
+                    continue
             each['count'] = 1
 
         # generate common header
         if com_hdr_file_name:
-            self.write_cfg_header_file (com_hdr_file_name, 0, tag_dict, struct_list)
+            self.write_cfg_header_file(com_hdr_file_name, 0, tag_dict, struct_list)
 
         # generate platform header
-        self.write_cfg_header_file (hdr_file_name, hdr_mode, tag_dict, struct_list)
+        self.write_cfg_header_file(hdr_file_name, hdr_mode, tag_dict, struct_list)
 
         return 0
 
-
-    def load_yaml (self, cfg_file, shallow_load=False):
+    def load_yaml(self, cfg_file, shallow_load=False):
         cfg_yaml = CFG_YAML()
-        self.initialize ()
-        self._cfg_tree  = cfg_yaml.load_yaml (cfg_file)
-        self._def_dict  = cfg_yaml.def_dict
+        self.initialize()
+        self._cfg_tree = cfg_yaml.load_yaml(cfg_file)
+        self._def_dict = cfg_yaml.def_dict
         self._yaml_path = os.path.dirname(cfg_file)
         if not shallow_load:
             self.build_cfg_list()
@@ -1974,7 +1905,7 @@ class CGenCfgData:
 
 
 def usage():
-    print ('\n'.join([
+    print('\n'.join([
           "GenCfgData Version 0.50",
           "Usage:",
           "    GenCfgData  GENINC  BinFile              IncOutFile",
@@ -1994,29 +1925,29 @@ def main():
         return 1
 
     gen_cfg_data = CGenCfgData()
-    command   = sys.argv[1].upper()
-    out_file  = sys.argv[3]
+    command = sys.argv[1].upper()
+    out_file = sys.argv[3]
 
-    file_list  = sys.argv[2].split(';')
+    file_list = sys.argv[2].split(';')
     if len(file_list) >= 2:
-        yml_file   = file_list[0]
-        dlt_file   = file_list[1]
+        yml_file = file_list[0]
+        dlt_file = file_list[1]
     elif len(file_list) == 1:
-        yml_file   = file_list[0]
-        dlt_file   = ''
+        yml_file = file_list[0]
+        dlt_file = ''
     else:
-        raise Exception ("ERROR: Invalid parameter '%s' !" % sys.argv[2])
+        raise Exception("ERROR: Invalid parameter '%s' !" % sys.argv[2])
 
     if command == "GENDLT" and yml_file.endswith('.dlt'):
         # It needs to expand an existing DLT file
         dlt_file = yml_file
-        lines  = gen_cfg_data.expand_include_files (dlt_file)
-        write_lines (lines, out_file)
+        lines = gen_cfg_data.expand_include_files(dlt_file)
+        write_lines(lines, out_file)
         return 0
 
     if command == "GENYML":
         if not yml_file.lower().endswith('.yaml'):
-            raise Exception ('Only YAML file is supported !')
+            raise Exception('Only YAML file is supported !')
         gen_cfg_data.generate_yml_file(yml_file, out_file)
         return 0
 
@@ -2030,33 +1961,33 @@ def main():
         gen_cfg_data.generate_data_inc_file(out_file, bin_file)
         return 0
 
-    cfg_bin_file  = ''
+    cfg_bin_file = ''
     cfg_bin_file2 = ''
     if dlt_file:
         if command == "GENDLT":
             cfg_bin_file = dlt_file
-            dlt_file  = ''
+            dlt_file = ''
             if len(file_list) >= 3:
                 cfg_bin_file2 = file_list[2]
 
     if yml_file.lower().endswith('.pkl'):
         with open(yml_file, "rb") as pkl_file:
             gen_cfg_data.__dict__ = marshal.load(pkl_file)
-        gen_cfg_data.prepare_marshal (False)
+        gen_cfg_data.prepare_marshal(False)
     else:
-        gen_cfg_data.load_yaml (yml_file)
+        gen_cfg_data.load_yaml(yml_file)
         if command == 'GENPKL':
-            gen_cfg_data.prepare_marshal (True)
+            gen_cfg_data.prepare_marshal(True)
             with open(out_file, "wb") as pkl_file:
                 marshal.dump(gen_cfg_data.__dict__, pkl_file)
             json_file = os.path.splitext(out_file)[0] + '.json'
-            fo = open (json_file, 'w')
+            fo = open(json_file, 'w')
             path_list = []
-            cfgs = {'_cfg_page' : gen_cfg_data._cfg_page, '_cfg_list':gen_cfg_data._cfg_list, '_path_list' : path_list}
+            cfgs = {'_cfg_page': gen_cfg_data._cfg_page, '_cfg_list': gen_cfg_data._cfg_list, '_path_list': path_list}
             # optimize to reduce size
             path = None
             for each in cfgs['_cfg_list']:
-                new_path = each['path'][:-len(each['cname'])-1]
+                new_path = each['path'][:-len(each['cname']) - 1]
                 if path != new_path:
                     path = new_path
                     each['path'] = path
@@ -2069,7 +2000,7 @@ def main():
 
                 # value is just used to indicate display type
                 value = each['value']
-                if value.startswith ('0x'):
+                if value.startswith('0x'):
                     hex_len = ((each['length'] + 7) // 8) * 2
                     if len(value) == hex_len:
                         value = 'x%d' % hex_len
@@ -2082,28 +2013,28 @@ def main():
                     del each['value']
 
             fo.write(repr(cfgs))
-            fo.close ()
+            fo.close()
             return 0
 
     if dlt_file:
         gen_cfg_data.override_default_value(dlt_file)
 
-    if   command == "GENBIN":
+    if command == "GENBIN":
         if len(file_list) == 3:
             old_data = gen_cfg_data.generate_binary_array()
-            fi   = open (file_list[2], 'rb')
-            new_data = bytearray (fi.read ())
-            fi.close ()
+            fi = open(file_list[2], 'rb')
+            new_data = bytearray(fi.read())
+            fi.close()
             if len(new_data) != len(old_data):
-                raise Exception ("Binary file '%s' length does not match, ignored !" % file_list[2])
+                raise Exception("Binary file '%s' length does not match, ignored !" % file_list[2])
             else:
-                gen_cfg_data.load_default_from_bin (new_data)
+                gen_cfg_data.load_default_from_bin(new_data)
                 gen_cfg_data.override_default_value(dlt_file)
 
         gen_cfg_data.generate_binary(out_file)
 
     elif command == "GENDLT":
-        gen_cfg_data.generate_delta_file (out_file, cfg_bin_file, cfg_bin_file2)
+        gen_cfg_data.generate_delta_file(out_file, cfg_bin_file, cfg_bin_file2)
 
     elif command == "GENHDR":
         out_files = out_file.strip("'").split(';')
@@ -2121,11 +2052,10 @@ def main():
         gen_cfg_data.print_cfgs()
 
     else:
-        raise Exception ("Unsuported command '%s' !" % command)
+        raise Exception("Unsuported command '%s' !" % command)
 
     return 0
 
 
 if __name__ == '__main__':
     sys.exit(main())
-
