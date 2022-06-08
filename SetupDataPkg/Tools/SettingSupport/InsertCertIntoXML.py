@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 
-import os, sys
+import sys
 
 import argparse
 import logging
@@ -15,7 +15,7 @@ import binascii
 
 
 #
-#main script function
+# main script function
 #
 def main():
     parser = argparse.ArgumentParser(description='Create SEM Provisioning Cert CSP XML')
@@ -29,14 +29,14 @@ def main():
     with open(options.BinFilePath, "rb") as binfile:
         bindata = binfile.read()
 
-    if bindata == None:
-        raise Exception ("Invalid binary data")
+    if bindata is None:
+        raise Exception("Invalid binary data")
 
     b64data = binascii.b2a_base64(bindata).decode("utf-8")
 
     FoundXYZZY = False
     with open(options.OutputFilePath, "w") as outfile:
-        with  open(options.PatternFilePath, "r") as patternfile:
+        with open(options.PatternFilePath, "r") as patternfile:
             for pl in patternfile:
                 if pl.strip() == "XYZZY":
                     FoundXYZZY = True
@@ -44,14 +44,13 @@ def main():
                 else:
                     outfile.write(pl)
             if not FoundXYZZY:
-                raise Exception ("Invalid pattern data")
+                raise Exception("Invalid pattern data")
     logging.critical("Successfully created XML pkt")
     return 0
 
 
-
 if __name__ == '__main__':
-    #setup main console as logger
+    # setup main console as logger
     logger = logging.getLogger('')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(levelname)s - %(message)s")
@@ -60,12 +59,11 @@ if __name__ == '__main__':
     console.setFormatter(formatter)
     logger.addHandler(console)
 
-    #call main worker function
+    # call main worker function
     retcode = main()
 
     if retcode != 0:
         logging.critical("Failed.  Return Code: %i" % retcode)
-    #end logging
+    # end logging
     logging.shutdown()
     sys.exit(retcode)
-
