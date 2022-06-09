@@ -55,17 +55,17 @@ class UefiRemoteTesting(object):
     def GetUefiVariable(self, name, guid, trim):
         UefiVar = UefiVariable()
         logging.info("Calling GetUefiVar(name='%s', GUID='%s')" % (name, "{%s}" % guid))
-        (rc, var, errorstring) = UefiVar.GetUefiVar(name, guid)
+        (rc, var, error_string) = UefiVar.GetUefiVar(name, guid)
         var2 = var
         if (var is not None) and (trim == 'trim'):
             varlen = len(var)
             if varlen > 1:
                 var2 = var[0: varlen - 1]
-        return (rc, var2, errorstring)
+        return (rc, var2, error_string)
 
     def SetUefiVariable(self, name, guid, attrs=None, contents=None):
         UefiVar = UefiVariable()
-        (rc, err, errorstring) = UefiVar.SetUefiVar(name, guid, contents, attrs)
+        (rc, err, error_string) = UefiVar.SetUefiVar(name, guid, contents, attrs)
         return rc
 
     def remote_ack(self):

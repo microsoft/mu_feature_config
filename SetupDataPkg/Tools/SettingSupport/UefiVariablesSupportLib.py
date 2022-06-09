@@ -81,12 +81,12 @@ class UefiVariable(object):
 
     #
     # Function to set variable
-    # return a tuple of boolean status, errorcode, errorstring (None if not error)
+    # return a tuple of boolean status, error_code, error_string (None if not error)
     #
     def SetUefiVar(self, name, guid, var=None, attrs=None):
         var_len = 0
         err = 0
-        errorstring = None
+        error_string = None
         if var is None:
             var = bytes(0)
         else:
@@ -109,5 +109,5 @@ class UefiVariable(object):
             err = kernel32.GetLastError()
             logging.error('SetFirmwareEnvironmentVariable failed (GetLastError = 0x%x)' % err)
             logging.error(WinError())
-            errorstring = WinError(err)
-        return (success, err, errorstring)
+            error_string = WinError(err)
+        return (success, err, error_string)

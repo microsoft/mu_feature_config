@@ -240,7 +240,7 @@ class CFG_YAML():
         return next((i for i, c in enumerate(line) if not c.isspace()), len(line))
 
     @staticmethod
-    def substitue_args(text, arg_dict):
+    def substitute_args(text, arg_dict):
         for arg in arg_dict:
             text = text.replace('$' + arg, arg_dict[arg])
         return text
@@ -333,7 +333,7 @@ class CFG_YAML():
         arg_dict = dict(zip(['(%d)' % (i + 1) for i in range(num)], parts))
         str_data = self.tmp_tree[temp_name]
         text = DefTemplate(str_data).safe_substitute(self.def_dict)
-        text = CFG_YAML.substitue_args(text, arg_dict)
+        text = CFG_YAML.substitute_args(text, arg_dict)
         target = CFG_YAML.count_indent(prefix) + indent
         current = CFG_YAML.count_indent(text)
         padding = target * ' '
@@ -370,15 +370,15 @@ class CFG_YAML():
 
     def get_multiple_line(self, indent):
         text = ''
-        newind = indent + 1
+        new_indent = indent + 1
         while True:
             line = self.peek_line()
             if line is None:
                 break
             sline = line.strip()
             if sline != '':
-                newind = CFG_YAML.count_indent(line)
-                if newind <= indent:
+                new_indent = CFG_YAML.count_indent(line)
+                if new_indent <= indent:
                     break
             self.get_line()
             if sline != '':
@@ -758,17 +758,17 @@ class CGenCfgData:
 
         bvalue = value_to_bytearray(value, length)
         if fmt in ['"', "'"]:
-            svalue = bvalue.rstrip(b'\x00').decode()
-            value_str = fmt + svalue + fmt
+            s_value = bvalue.rstrip(b'\x00').decode()
+            value_str = fmt + s_value + fmt
         elif fmt == "{":
             value_str = '{ ' + ', '.join(['0x%02x' % i for i in bvalue]) + ' }'
         elif fmt == '0x':
             hex_len = length * 2
             if len(old_value) == hex_len + 2:
-                fstr = '0x%%0%dX' % hex_len
+                f_str = '0x%%0%dX' % hex_len
             else:
-                fstr = '0x%X'
-            value_str = fstr % value
+                f_str = '0x%X'
+            value_str = f_str % value
         else:
             if length <= 2:
                 value_str = '%d' % value
@@ -836,7 +836,7 @@ class CGenCfgData:
                     elif ':' in each:
                         match = re.match("^(.+):(\d+)([b|B|W|D|Q])$", each)     # noqa: W605
                         if match is None:
-                            raise SystemExit("Exception: Invald value list format '%s' !" % each)
+                            raise SystemExit("Exception: Invalid value list format '%s' !" % each)
                         if match.group(1) == '0' and match.group(2) == '0':
                             unit_len = CGenCfgData.bits_width[match.group(3)] // 8
                         cur_bit_len = int(match.group(2)) * CGenCfgData.bits_width[match.group(3)]
@@ -1041,7 +1041,7 @@ class CGenCfgData:
                     # if they are both non-leaf, great, process recursively
                     ret[other_key] = self.merge_cfg_tree(root[other_key], other_root[other_key])
                 elif type(root[other_key]) is OrderedDict or type(other_root[other_key]) is OrderedDict:
-                    raise Exception("Two yamls files have hierachy mismatch!!!")
+                    raise Exception("Two yamls files have hierarchy mismatch!!!")
                 else:
                     # this is duplicate value in from both roots, take original root as principal
                     ret[other_key] = root[other_key]
@@ -1487,8 +1487,8 @@ class CGenCfgData:
             if level == 1:
                 exec[0] = cfgs
                 if CGenCfgData.STRUCT in cfgs:
-                    cfghdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = array_str_to_value(cfghdr['value']) >> 20
+                    cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
+                    tag_val = array_str_to_value(cfg_hdr['value']) >> 20
                     if tag_val == tag:
                         exec[1] = exec[0]
 
@@ -1531,10 +1531,10 @@ class CGenCfgData:
         lines = []
         lines.append('\n\n')
         tag_list = sorted(list(tag_dict.items()), key=lambda x: x[1])
-        for tagname, tagval in tag_list:
-            if (tag_mode == 0 and tagval >= 0x100) or (tag_mode == 1 and tagval < 0x100):
+        for tagname, tag_val in tag_list:
+            if (tag_mode == 0 and tag_val >= 0x100) or (tag_mode == 1 and tag_val < 0x100):
                 continue
-            lines.append('#define    %-30s 0x%03X\n' % ('CDATA_%s_TAG' % tagname[:-9], tagval))
+            lines.append('#define    %-30s 0x%03X\n' % ('CDATA_%s_TAG' % tagname[:-9], tag_val))
         lines.append('\n\n')
 
         name_dict = {}
@@ -1820,8 +1820,8 @@ class CGenCfgData:
             if CGenCfgData.STRUCT in cfgs:
                 if 'CfgHeader' in cfgs:
                     # collect CFGDATA TAG IDs
-                    cfghdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = array_str_to_value(cfghdr['value']) >> 20
+                    cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
+                    tag_val = array_str_to_value(cfg_hdr['value']) >> 20
                     tag_dict[name] = tag_val
                     if level == 1:
                         tag_curr[0] = tag_val
@@ -2052,7 +2052,7 @@ def main():
         gen_cfg_data.print_cfgs()
 
     else:
-        raise Exception("Unsuported command '%s' !" % command)
+        raise Exception("Unsupported command '%s' !" % command)
 
     return 0
 

@@ -16,7 +16,7 @@ class UpdateSetupDataHdr(IUefiBuildPlugin):
 
     # Attempt to run GenCfgData to generate C header files
     #
-    # Consumes build environement variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
+    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
     # "CONF_DATA_STRUCT_FOLDER" and "UPDATE_CONF_HDR"
     def do_pre_build(self, thebuilder):
         need_update = thebuilder.env.GetValue("UPDATE_CONF_HDR")
