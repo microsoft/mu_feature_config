@@ -36,7 +36,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
-    # Consumes build environement variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
+    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
     # "DELTA_CONF_POLICY" (optional), "CONF_POLICY_GUID_REGISTRY" and "MSFT_PLATFORM_PACKAGE"
     def do_pre_build(self, thebuilder):
         # Set up a playground
@@ -99,7 +99,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
-    # Consumes build environement variables: "MSFT_PLATFORM_PACKAGE"
+    # Consumes build environment variables: "MSFT_PLATFORM_PACKAGE"
     def do_post_build(self, thebuilder):
         if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
             os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"),

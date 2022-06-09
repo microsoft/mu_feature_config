@@ -1,13 +1,13 @@
 ﻿# @file
 #
-# Script to Generate a Device Firmware Configuration Interface Permission Provisiong Blob
+# Script to Generate a Device Firmware Configuration Interface Permission Provision Blob
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 
 ##
-## Script to Generate a Device Firmware Configuration Interface Permission Provisiong Blob
+## Script to Generate a Device Firmware Configuration Interface Permission Provision Blob
 ## This tool takes in a XML file in PermissionPacket format, packages it in a
 ## DFCI_PERMISSION_POLICY_APPLY_VAR structure, signs it with the
 ## requested key, and then attaches the signature data in WIN_CERTIFICATE_UEFI_GUID format.
@@ -73,9 +73,9 @@ def PrintSEMResults(filepath):
 
 def PrintSEMCurrent(filepath):
     if filepath and os.path.isfile(filepath):
-        outfilename = os.path.basename(filepath) + "_Current" + ".xml"
+        out_file_name = os.path.basename(filepath) + "_Current" + ".xml"
         a = DFCI_SupportLib()
-        a.extract_payload_from_current(filepath, outfilename)
+        a.extract_payload_from_current(filepath, out_file_name)
 
 
 def SignSEMData(options):
@@ -267,14 +267,14 @@ def main():
             return -2
         else:
             # setup file based logging
-            filelogger = logging.FileHandler(filename=options.OutputLog, mode="w")
+            file_logger = logging.FileHandler(filename=options.OutputLog, mode="w")
             if options.debug:
-                filelogger.setLevel(logging.DEBUG)
+                file_logger.setLevel(logging.DEBUG)
             else:
-                filelogger.setLevel(logging.INFO)
+                file_logger.setLevel(logging.INFO)
 
-            filelogger.setFormatter(formatter)
-            logging.getLogger("").addHandler(filelogger)
+            file_logger.setFormatter(formatter)
+            logging.getLogger("").addHandler(file_logger)
 
     logging.info(
         "Log Started: "
@@ -424,7 +424,7 @@ def main():
     # STEP 2 - Local sign
     if options.Step2Enable:
         logging.critical("Step2 Started")
-        # copy signinginputfile into temp dir
+        # copy SigningInputFile into temp dir
         FileToSign = os.path.join(tempdir, "Step2In.bin")
         shutil.copy(options.SigningInputFile, FileToSign)
         options.SigningInputFile = FileToSign

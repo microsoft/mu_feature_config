@@ -28,8 +28,8 @@ def AddSection(outFile, sectionName, sectionFileName):
         return
 
     try:
-        with open(sectionFileName, "rb") as binfile:
-            bindata = binfile.read()
+        with open(sectionFileName, "rb") as bin_file:
+            bindata = bin_file.read()
 
     except FileNotFoundError:
         print("File %s not found" % sectionFileName)

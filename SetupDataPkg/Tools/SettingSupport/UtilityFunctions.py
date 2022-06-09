@@ -76,7 +76,7 @@ def filereader(filepath, stream):
 
 
 #
-# Run a shell commmand and print the output to the log file
+# Run a shell command and print the output to the log file
 #
 def RunCmd(cmd, capture=True, outfile=None):
     starttime = datetime.datetime.now()
@@ -87,12 +87,12 @@ def RunCmd(cmd, capture=True, outfile=None):
     c = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if(capture):
         if(outfile):
-            outr = threading.Thread(target=filereader, args=(outfile, c.stdout,))
+            out_r = threading.Thread(target=filereader, args=(outfile, c.stdout,))
         else:
-            outr = threading.Thread(target=reader, args=(c.stdout,))
-        outr.start()
+            out_r = threading.Thread(target=reader, args=(c.stdout,))
+        out_r.start()
         c.wait()
-        outr.join()
+        out_r.join()
     else:
         c.wait()
 
@@ -121,11 +121,11 @@ def SignWithSignTool(ToSignFilePath, DetachedSignatureOutputFilePath, PfxFile, P
     ret = RunCmd(cmd)
     if(ret != 0):
         raise Exception("Signtool error %d" % ret)
-    signedfile = os.path.join(OutputDir, os.path.basename(ToSignFilePath) + ".p7")
-    if(not os.path.isfile(signedfile)):
-        raise Exception("Output file doesn't eixst %s" % signedfile)
+    signed_file = os.path.join(OutputDir, os.path.basename(ToSignFilePath) + ".p7")
+    if(not os.path.isfile(signed_file)):
+        raise Exception("Output file doesn't exist %s" % signed_file)
 
-    shutil.move(signedfile, DetachedSignatureOutputFilePath)
+    shutil.move(signed_file, DetachedSignatureOutputFilePath)
     return ret
 
 
@@ -170,7 +170,7 @@ def PrintByteList(ByteList, IncludeAscii=True, IncludeOffset=True, IncludeHexSep
 
             while(index % 16 != 15):
                 print("     ", end='')
-                # acount for the - symbol in the hex dump
+                # account for the - symbol in the hex dump
                 if(index % 16 == 7):
                     if(IncludeOffset):
                         print("  ", end='')

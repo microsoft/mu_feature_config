@@ -1,6 +1,6 @@
 # @file
 #
-# Dependency Lib - Limited functionality to for a robot testcase to depende on a successful
+# Dependency Lib - Limited functionality to for a robot testcase to depend on a successful
 #                  completion of a previous testcase.
 #
 # Copyright (c), Microsoft Corporation

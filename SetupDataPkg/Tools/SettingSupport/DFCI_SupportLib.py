@@ -44,26 +44,26 @@ class DFCI_SupportLib(object):
         return int(InputString.partition(":")[2].strip(), base=0)
 
     def compare_session_id_match(self, resultfile, applyfile):
-        resultsid = 0
-        applysid = 1
+        result_s_id = 0
+        apply_s_id = 1
 
         r = open(resultfile, "r")
         for line in r.readlines():
             if("SessionId:" in line):
-                resultsid = self._ReturnSessionIdValue(line)
+                result_s_id = self._ReturnSessionIdValue(line)
                 break
         r.close()
 
         a = open(applyfile, "r")
         for line in a.readlines():
             if("SessionId:" in line):
-                applysid = self._ReturnSessionIdValue(line)
+                apply_s_id = self._ReturnSessionIdValue(line)
                 break
         a.close()
 
-        print("Apply Session Id: 0x%x" % applysid)
-        print("Result Session Id: 0x%x" % resultsid)
-        return resultsid == applysid
+        print("Apply Session Id: 0x%x" % apply_s_id)
+        print("Result Session Id: 0x%x" % result_s_id)
+        return result_s_id == apply_s_id
 
     def check_status(self, resultfile, code):
         t = -1
@@ -528,11 +528,11 @@ class DFCI_SupportLib(object):
     def get_uefistatus_string(self, StatusCode):
         print(type(StatusCode))
 
-        isint = False
+        is_int = False
         if isinstance(StatusCode, int):
-            isint = True
+            is_int = True
 
-        if isint is True:
+        if is_int is True:
             Ret = UefiStatusCode().Convert64BitToString(StatusCode)
         else:
             Ret = UefiStatusCode().ConvertHexString64ToString(StatusCode)

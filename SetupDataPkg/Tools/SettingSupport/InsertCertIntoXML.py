@@ -26,8 +26,8 @@ def main():
 
     options = parser.parse_args()
 
-    with open(options.BinFilePath, "rb") as binfile:
-        bindata = binfile.read()
+    with open(options.BinFilePath, "rb") as bin_file:
+        bindata = bin_file.read()
 
     if bindata is None:
         raise Exception("Invalid binary data")
@@ -36,8 +36,8 @@ def main():
 
     FoundXYZZY = False
     with open(options.OutputFilePath, "w") as outfile:
-        with open(options.PatternFilePath, "r") as patternfile:
-            for pl in patternfile:
+        with open(options.PatternFilePath, "r") as pattern_file:
+            for pl in pattern_file:
                 if pl.strip() == "XYZZY":
                     FoundXYZZY = True
                     outfile.write(b64data)
