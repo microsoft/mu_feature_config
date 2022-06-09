@@ -319,7 +319,7 @@ EFI_BOOT_SERVICES  MockBoot = {
   .CloseEvent   = MockCloseEvent,
 };
 
-EFI_FIRMWARE_IMAGE_DESCRIPTOR mMockFmpImageInfo = {
+EFI_FIRMWARE_IMAGE_DESCRIPTOR  mMockFmpImageInfo = {
   .ImageIdName = L"UEFI System",
   .VersionName = L"1.7788.414",
 };
@@ -330,14 +330,14 @@ EFI_FIRMWARE_IMAGE_DESCRIPTOR mMockFmpImageInfo = {
 EFI_STATUS
 EFIAPI
 MockGetImageInfo (
-  IN EFI_FIRMWARE_MANAGEMENT_PROTOCOL       *This,
-  IN OUT    UINTN                           *ImageInfoSize,
-  IN OUT    EFI_FIRMWARE_IMAGE_DESCRIPTOR   *ImageInfo,
-  OUT       UINT32                          *DescriptorVersion,
-  OUT       UINT8                           *DescriptorCount,
-  OUT       UINTN                           *DescriptorSize,
-  OUT       UINT32                          *PackageVersion,
-  OUT       CHAR16                          **PackageVersionName
+  IN EFI_FIRMWARE_MANAGEMENT_PROTOCOL      *This,
+  IN OUT    UINTN                          *ImageInfoSize,
+  IN OUT    EFI_FIRMWARE_IMAGE_DESCRIPTOR  *ImageInfo,
+  OUT       UINT32                         *DescriptorVersion,
+  OUT       UINT8                          *DescriptorCount,
+  OUT       UINTN                          *DescriptorSize,
+  OUT       UINT32                         *PackageVersion,
+  OUT       CHAR16                         **PackageVersionName
   )
 {
   assert_non_null (This);
@@ -353,6 +353,7 @@ MockGetImageInfo (
     *ImageInfoSize = sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR);
     CopyMem (ImageInfo, &mMockFmpImageInfo, sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR));
   }
+
   return EFI_SUCCESS;
 }
 
@@ -360,7 +361,7 @@ MockGetImageInfo (
 /// Mock version of FMP instance
 ///
 EFI_FIRMWARE_MANAGEMENT_PROTOCOL  MockFmp = {
-  .GetImageInfo   = MockGetImageInfo,
+  .GetImageInfo = MockGetImageInfo,
 };
 
 EFI_FIRMWARE_MANAGEMENT_PROTOCOL  *MockFmpArray[] = {
@@ -407,7 +408,7 @@ EfiLocateProtocolBuffer (
     *Buffer = NULL;
     return EFI_NOT_FOUND;
   } else {
-    *Buffer = (VOID**)mock ();
+    *Buffer = (VOID **)mock ();
   }
 
   return EFI_SUCCESS;
