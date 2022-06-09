@@ -37,6 +37,7 @@
   XmlSupportPkg/XmlSupportPkg.dec
   PolicyServicePkg/PolicyServicePkg.dec
   SecurityPkg/SecurityPkg.dec
+  FmpDevicePkg/FmpDevicePkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -46,7 +47,6 @@
   MemoryAllocationLib
   UefiLib
   ResetSystemLib
-  MuUefiVersionLib
   UefiBootManagerLib
   MuSecureBootKeySelectorLib
   SecureBootKeyStoreLib
@@ -75,6 +75,7 @@
   gDfciAuthenticationProtocolGuid
   gEfiBlockIoProtocolGuid
   gEfiUsbIoProtocolGuid
+  gEfiFirmwareManagementProtocolGuid
 
 [Depex]
   gEfiVariableWriteArchProtocolGuid
