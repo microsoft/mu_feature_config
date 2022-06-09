@@ -86,8 +86,12 @@ PrintVersion (
   // Get all FMP instances and then use the descriptor to get string name and version
   //
   Status = EfiLocateProtocolBuffer (&gEfiFirmwareManagementProtocolGuid, &FmpCount, (VOID *)&FmpList);
-  if (EFI_ERROR (Status)) {
+  if (EFI_ERROR (Status) && Status != EFI_NOT_FOUND) {
     DEBUG ((DEBUG_ERROR, "EfiLocateProtocolBuffer(gEfiFirmwareManagementProtocolGuid) returned error.  %r \n", Status));
+    goto Done;
+  } else if (Status != EFI_NOT_FOUND) {
+    Print (L"No Firmware Management Protocols Installed!\n");
+    Status = EFI_SUCCESS;
     goto Done;
   }
 
