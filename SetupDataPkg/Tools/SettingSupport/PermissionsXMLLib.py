@@ -70,7 +70,7 @@ class PermissionsXMLLib(object):
     #
     # Ensure the settings in the checklist have the proper value
     #
-    def validate_current_permissions(self, testname, currentPermissionsXmlFile, checklist):
+    def validate_current_permissions(self, test_name, currentPermissionsXmlFile, checklist):
 
         for item in checklist:
             a = DFCI_SupportLib()
@@ -94,7 +94,7 @@ class PermissionsXMLLib(object):
     #
     # Ensure the settings in the checklist have the proper value
     #
-    def validate_current_permission_defaults(self, testname, currentPermissionsXmlFile, CheckDefault, CheckDelegated):
+    def validate_current_permission_defaults(self, test_name, currentPermissionsXmlFile, CheckDefault, CheckDelegated):
 
         a = DFCI_SupportLib()
         Default, Delegated = a.get_current_permission_defaults(currentPermissionsXmlFile)

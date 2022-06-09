@@ -1,13 +1,13 @@
 ﻿# @file
 #
-# Script to Generate a Device Firmware Configuration Interface Provisiong Blob
+# Script to Generate a Device Firmware Configuration Interface Provision Blob
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 
 ##
-## Script to Generate a Device Firmware Configuration Interface Provisiong Blob
+## Script to Generate a Device Firmware Configuration Interface Provision Blob
 ## This tool takes in a CER file in binary encoding, packages it in a
 ## DFCI_SIGNER_PROVISION_APPLY_VAR structure, signs it with the
 ## requested key, and then attaches the signature data in WIN_CERTIFICATE_UEFI_GUID format.
@@ -70,11 +70,11 @@ def ExtractCert(filepath):
         # now write the certificate out.
         (certtype, a, b) = SEM.GetCertType().partition(" ")
 
-        certfilename = os.path.basename(filepath) + "_" + certtype + ".cer"
-        s = open(certfilename, "wb")
+        cert_filename = os.path.basename(filepath) + "_" + certtype + ".cer"
+        s = open(cert_filename, "wb")
         SEM.WriteCert(s)
         s.close()
-        s = open(certfilename, "rb")
+        s = open(cert_filename, "rb")
         m = hashlib.new("sha1", s.read())
         s.close()
 
@@ -84,9 +84,9 @@ def ExtractCert(filepath):
 
 def PrintSEMCurrent(filepath):
     if filepath and os.path.isfile(filepath):
-        outfilename = os.path.basename(filepath) + "_Current" + ".xml"
+        out_file_name = os.path.basename(filepath) + "_Current" + ".xml"
         a = DFCI_SupportLib()
-        a.extract_payload_from_current(filepath, outfilename)
+        a.extract_payload_from_current(filepath, out_file_name)
 
 
 def PrintSEMResults(filepath):
@@ -401,14 +401,14 @@ def main():
             return -2
         else:
             # setup file based logging
-            filelogger = logging.FileHandler(filename=options.OutputLog, mode="w")
+            file_logger = logging.FileHandler(filename=options.OutputLog, mode="w")
             if options.debug:
-                filelogger.setLevel(logging.DEBUG)
+                file_logger.setLevel(logging.DEBUG)
             else:
-                filelogger.setLevel(logging.INFO)
+                file_logger.setLevel(logging.INFO)
 
-            filelogger.setFormatter(formatter)
-            logging.getLogger("").addHandler(filelogger)
+            file_logger.setFormatter(formatter)
+            logging.getLogger("").addHandler(file_logger)
 
     logging.info(
         "Log Started: "
@@ -491,7 +491,7 @@ def main():
                 not os.path.isfile(options.CertProvisionBlobAfterStep1File)
             ):
                 logging.critical(
-                    "Step2B must have a Cert Priovision Blob when Step 1 is not enabled"
+                    "Step2B must have a Cert Provision Blob when Step 1 is not enabled"
                 )
                 return -8490
 
@@ -672,7 +672,7 @@ def main():
     # STEP 2 - Local sign
     if options.Step2Enable:
         logging.critical("Step2 Started")
-        # copy signinginputfile into temp dir
+        # copy SigningInputFile into temp dir
         FileToSign = os.path.join(tempdir, "Step2In.bin")
         shutil.copy(options.SigningInputFile, FileToSign)
         options.SigningInputFile = FileToSign
@@ -691,7 +691,7 @@ def main():
         options.FinalizeInputFile = options.SigningInputFile
         options.FinalizeInputDetachedSignatureFile = options.SigningOutputFile
 
-    # STEP 3 - Write Signature Structure and complete the KeyManifiest
+    # STEP 3 - Write Signature Structure and complete the KeyManifest
     if options.Step3Enable:
         logging.critical("Step3 Started")
         sstep1file = open(options.FinalizeInputFile, "rb")

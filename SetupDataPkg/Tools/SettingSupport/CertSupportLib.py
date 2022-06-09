@@ -1,6 +1,6 @@
 # @file
 #
-# Cert Supoport functions
+# Cert Support functions
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -30,7 +30,7 @@ class CertSupportLib(object):
             raise Exception("Pfx File Name is required")
         fp = tempfile.NamedTemporaryFile(delete=False)
 
-        tfile = fp.name
+        t_file = fp.name
         fp.close()
 
         try:
@@ -43,19 +43,19 @@ class CertSupportLib(object):
                 CertMgrPath = DFCI_SupportLib().get_certmgr_path()
 
             parameters = " /c " + pfxfilename
-            ret = RunCmd(CertMgrPath, parameters, outfile=tfile)
+            ret = RunCmd(CertMgrPath, parameters, outfile=t_file)
             if(ret != 0):
                 logging.critical("Failed to get cert info from Pfx file using CertMgr.exe")
                 return ret
-            f = open(tfile, "r")
+            f = open(t_file, "r")
 
-            pfxdetails = f.readlines()
+            pfx_details = f.readlines()
             f.close()
-            os.remove(tfile)
-            # 2 Parse the pfxdetails for the sha1 thumbprint
+            os.remove(t_file)
+            # 2 Parse the pfx_details for the sha1 thumbprint
             thumbprint = ""
             found = False
-            for a in pfxdetails:
+            for a in pfx_details:
                 a = a.strip()
                 if(len(a)):
                     if(found):

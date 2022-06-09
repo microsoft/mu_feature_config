@@ -159,10 +159,10 @@ class SecureSettingsApplyVariable(object):
             raise Exception("Can't Add an XML payload to an object already containing payload")
         # get rid of extra whitespace and new line chars. This changes newline to blank which i don't like but better
         # than before.  If replace with '' then xml attributes are messed up
-        xmlclean = ' '.join(xmlstring.split())
-        self.Payload = xmlclean
-        self._PayloadXml = xml.dom.minidom.parseString(xmlclean)
-        self.PayloadSize = len(xmlclean)
+        xml_clean = ' '.join(xmlstring.split())
+        self.Payload = xml_clean
+        self._PayloadXml = xml.dom.minidom.parseString(xml_clean)
+        self.PayloadSize = len(xml_clean)
 
     #
     # Method to Print SecureSettingsApplyVariable to stdout

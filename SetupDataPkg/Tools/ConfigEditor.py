@@ -871,10 +871,10 @@ class application(tkinter.Frame):
         for index in range(len(execs)):
             b64data = base64.b64encode(bytes_array[index])
             # This should start with SINGLE_SETTING_PROVIDER_TEMPLATE from SetupDataPkg/Include/Library/ConfigDataLib.h
-            cfghdr = self.cfg_data_obj.get_item_by_index(
+            cfg_hdr = self.cfg_data_obj.get_item_by_index(
                 execs[index]["CfgHeader"]["indx"]
             )
-            tag_val = array_str_to_value(cfghdr["value"]) >> 20
+            tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
             settings.append(
                 ("Device.ConfigData.TagID_%08x" % tag_val, b64data.decode("utf-8"))
             )
