@@ -13,7 +13,7 @@ import uuid
 import zlib
 import copy
 from xml.dom.minidom import parse, parseString
-
+import KnobService
 
 class ParseError(Exception):
     def __init__(self, message):
@@ -238,18 +238,6 @@ class EnumValue:
 
         self.help = xml_node.getAttribute("help")
 
-    def generate_header(self, out):
-        if self.help != "":
-            out.write("    // {}\n".format(self.help))
-        if self.number != "":
-            out.write("    {}_{} = {},\n".format(
-                            self.enum_name,
-                            self.name,
-                            self.number))
-        else:
-            out.write("    {}_{},\n".format(self.enum_name, self.name))
-
-
 # Represents a user defined enum
 class EnumFormat(DataFormat):
     def __init__(self, xml_node):
@@ -266,16 +254,6 @@ class EnumFormat(DataFormat):
         for value in xml_node.getElementsByTagName('Value'):
             self.values.append(EnumValue(self.name, value))
         pass
-
-    def generate_header(self, out):
-        if self.help != "":
-            out.write("// {}\n".format(self.help))
-
-        out.write("enum {} {{\n".format(self.name))
-        for value in self.values:
-            value.generate_header(out)
-        out.write("};\n")
-        out.write("\n")
 
     def string_to_object(self, string_representation):
         try:
@@ -319,7 +297,7 @@ class ArrayFormat(DataFormat):
         self.struct_name = struct_name
         self.member_name = member_name
 
-        super().__init__(ctype="{}[{}]".format(child_format.ctype, count))
+        super().__init__(ctype=child_format.ctype)
         pass
 
     def string_to_object(self, string_representation):
@@ -403,11 +381,6 @@ class StructMember:
         else:
             self.format = format
 
-    def generate_header(self, out):
-        if self.help != "":
-            out.write("    // {}\n".format(self.help))
-        out.write("    {} {};\n".format(self.format.ctype, self.name))
-
     def string_to_object(self, string_representation):
         return self.format.string_to_object(string_representation)
 
@@ -487,16 +460,6 @@ class StructFormat(DataFormat):
                                 True  # Leaf
                                 ))
         return subknobs
-
-    def generate_header(self, out):
-        if self.help != "":
-            out.write("// {}\n".format(self.help))
-
-        out.write("typedef struct {\n")
-        for member in self.members:
-            member.generate_header(out)
-        out.write("}} {};\n".format(self.name))
-        out.write("\n")
 
     def string_to_object(self, string_representation):
         obj = OrderedDict()
@@ -765,10 +728,11 @@ class SubKnob:
 
 
 class Schema:
-    def __init__(self, dom):
+    def __init__(self, dom, origin_path):
         self.enums = []
         self.structs = []
         self.knobs = []
+        self.path = origin_path
 
         for section in dom.getElementsByTagName('Enums'):
             for enum in section.getElementsByTagName('Enum'):
@@ -791,11 +755,11 @@ class Schema:
 
     # Load a schema given a path to a schema xml file
     def load(path):
-        return Schema(parse(path))
+        return Schema(parse(path), path)
 
     # Parse a schema given a string representation of the xml content
     def parse(string):
-        return Schema(parseString(string))
+        return Schema(parseString(string), path)
 
     # Get a knob by name
     def get_knob(self, knob_name):
@@ -827,36 +791,6 @@ class Schema:
 
         raise InvalidTypeError(
             "Data type '{}' is not defined".format(type_name))
-
-
-# Generates a C header with user defined types andd accessors for the knobs
-def generate_header(schema_path, header_path):
-    schema = Schema.parse(schema_path)
-
-    with open(header_path, 'w') as out:
-        out.write("#pragma once\n")
-        out.write("#include <stdint.h>\n")
-        out.write("// Generated Header\n")
-        out.write("// Script: {}\n".format(sys.argv[0]))
-        out.write("// Schema: {}\n".format(schema_path))
-        out.write("\n")
-        out.write("// config_common.h includes helper functions for the generated interfaces that\n")  # noqa: E501
-        out.write("// do not require code generation themselves\n")
-        out.write("#include \"config_common.h\"\n")
-        out.write("\n")
-        for enum in schema.enums:
-            enum.generate_header(out)
-            pass
-
-        for struct_definition in schema.structs:
-            struct_definition.generate_header(out)
-            pass
-
-        for knob in schema.knobs:
-            knob.generate_header(out)
-            pass
-    pass
-
 
 # Represents a UEFI variable
 # Knobs are stored within UEFI variables and can be serialized to a
@@ -1029,6 +963,10 @@ def write_vlist(schema, vlist_path):
         vlist_file.write(buf)
 
 
+def generate_sources(schema, public_header, service_header):
+    KnobService.generate_public_header(schema, public_header)
+    KnobService.generate_cached_implementation(schema, service_header)
+
 def usage():
     print("Commands:\n")
     print("  generateheader <schema.xml> <header.h>")
@@ -1050,7 +988,7 @@ def main():
         return
 
     if sys.argv[1].lower() == "generateheader":
-        if len(sys.argv) != 4:
+        if len(sys.argv) != 5:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
@@ -1058,8 +996,12 @@ def main():
 
         schema_path = sys.argv[2]
         header_path = sys.argv[3]
+        service_path = sys.argv[4]
 
-        generate_header(schema_path, header_path)
+        # Load the schema
+        schema = Schema.load(schema_path)
+        
+        generate_sources(schema, header_path, service_path)
     if sys.argv[1].lower() == "writevl":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
