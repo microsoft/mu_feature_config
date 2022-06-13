@@ -5,11 +5,9 @@
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 
-import os, sys
-import traceback
-import argparse
 import datetime
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib
+
 
 class SettingsXMLLib(object):
 
@@ -30,10 +28,10 @@ class SettingsXMLLib(object):
 
         f.write('</CreatedOn>\n')
         f.write('    <Version>')
-        print (version, end='', file=f)
+        print(version, end='', file=f)
         f.write('</Version>\n')
         f.write('    <LowestSupportedVersion>')
-        print (lsv, end='', file=f)
+        print(lsv, end='', file=f)
         f.write('</LowestSupportedVersion>\n')
         f.write('    <Settings>\n')
 
@@ -44,10 +42,10 @@ class SettingsXMLLib(object):
         for setting in settingslist:
             f.write('        <Setting>\n')
             f.write('            <Id>')
-            print (setting[0], end='', file=f)
+            print(setting[0], end='', file=f)
             f.write('</Id>\n')
             f.write('            <Value>')
-            print (setting[1], end='', file=f)
+            print(setting[1], end='', file=f)
             f.write('</Value>\n')
             f.write('        </Setting>\n')
 

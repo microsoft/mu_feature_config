@@ -53,15 +53,15 @@ any other dependency.
 
 ## Code of Conduct
 
-This project has adopted the Microsoft Open Source Code of Conduct https://opensource.microsoft.com/codeofconduct/
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/)
 
-For more information see the Code of Conduct FAQ https://opensource.microsoft.com/codeofconduct/faq/
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)
 or contact `opencode@microsoft.com <mailto:opencode@microsoft.com>`_. with any additional questions or comments.
 
 ## Contributions
 
 Contributions are always welcome and encouraged!
-Please open any issues in the Project Mu GitHub tracker and read https://microsoft.github.io/mu/How/contributing/
+Please open any issues in the Project Mu GitHub tracker and read [https://microsoft.github.io/mu/How/contributing/](https://microsoft.github.io/mu/How/contributing/)
 
 * [Code Requirements](https://microsoft.github.io/mu/CodeDevelopment/requirements/)
 * [Doc Requirements](https://microsoft.github.io/mu/DeveloperDocs/requirements/)
