@@ -579,10 +579,6 @@ class Knob:
                     True  # Leaf
                     ))
 
-        print("Knob '{}', default='{}'".format(
-            self.name,
-            self.format.object_to_string(self.default)))
-
         pass
 
     # Get the default value for this knob

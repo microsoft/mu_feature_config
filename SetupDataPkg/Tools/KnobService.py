@@ -22,7 +22,7 @@ def generate_public_header(schema, header_path):
         for enum in schema.enums:
             if enum.help != "":
                 out.write("// {}\n".format(enum.help))
-            out.write("enum {} {{\n".format(enum.name))
+            out.write("typedef enum {{\n".format(enum.name))
             for value in enum.values:
                 if value.help != "":
                     out.write("    {}_{} = {}, // {}\n".format(
@@ -37,7 +37,7 @@ def generate_public_header(schema, header_path):
                         value.name,
                         value.number
                     ))
-            out.write("};\n")
+            out.write("}} {};\n".format(enum.name))
             out.write("\n")
             pass
 
@@ -106,11 +106,11 @@ def generate_cached_implementation(schema, header_path):
         out.write("//  Schema: {}\n".format(schema.path))
         out.write("\n")
 
-        out.write("enum knob_t {\n")
+        out.write("typedef enum {\n")
         for knob in schema.knobs:
             out.write("    KNOB_{},\n".format(knob.name))
         out.write("    KNOB_MAX\n")
-        out.write("}\n")
+        out.write("} knob_t;\n")
 
         out.write("\n")
         out.write("typedef struct {\n")
@@ -140,12 +140,12 @@ def generate_cached_implementation(schema, header_path):
         out.write("#endif // CONFIG_INCLUDE_CACHE\n")
         out.write("\n\n")
 
-        out.write("typedef struct config_guid_t {\n")
+        out.write("typedef struct {\n")
         out.write("    unsigned long  Data1;\n")
         out.write("    unsigned short Data2;\n")
         out.write("    unsigned short Data3;\n")
         out.write("    unsigned char  Data4[8];\n")
-        out.write("}\n")
+        out.write("} config_guid_t;\n")
         out.write("\n")
         out.write("typedef struct {\n")
         out.write("    knob_t knob;\n")
@@ -153,7 +153,7 @@ def generate_cached_implementation(schema, header_path):
         out.write("    void* cache_value_address;\n")
         out.write("    size_t value_size;\n")        
         out.write("    const char* name;\n")
-        out.write("    config_guid_t namespace;\n")
+        out.write("    config_guid_t vendor_namespace;\n")
         out.write("    int attributes;\n")
         out.write("} knob_data_t;\n")
         
@@ -175,10 +175,10 @@ def generate_cached_implementation(schema, header_path):
         out.write("       NULL,\n")
         out.write("       0,\n")
         out.write("       NULL,\n")
-        out.write("       NULL,\n")
+        out.write("       {0,0,0,{0,0,0,0,0,0,0,0}},\n")
         out.write("       0\n")
         out.write("    }\n");
-        out.write("}\n\n")
+        out.write("};\n\n")
 
         out.write("\n")
         out.write("void* get_knob_value(knob_t knob);\n")
