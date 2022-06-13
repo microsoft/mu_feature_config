@@ -18,6 +18,7 @@
 #include <DfciSystemSettingTypes.h>
 #include <Protocol/VariablePolicy.h>
 #include <Protocol/DfciSettingsProvider.h>
+#include <Protocol/FirmwareManagement.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
@@ -113,43 +114,6 @@ EfiBootManagerConnectAll (
   )
 {
   return;
-}
-
-/**
-  Mocked version of GetBuildDateStringUnicode.
-
-  @param[out]       Buffer        The caller allocated buffer to hold the returned build
-                                  date Unicode string. May be NULL with a zero Length in
-                                  order to determine the length buffer needed.
-  @param[in, out]   Length        On input, the count of Unicode chars available in Buffer.
-                                  On output, the count of Unicode chars of data returned
-                                  in Buffer, including Null-terminator.
-
-  @retval EFI_SUCCESS             The function completed successfully.
-  @retval EFI_BUFFER_TOO_SMALL    The Length is too small for the result.
-  @retval EFI_INVALID_PARAMETER   Buffer is NULL.
-  @retval EFI_INVALID_PARAMETER   Length is NULL.
-  @retval EFI_INVALID_PARAMETER   The Length is not 0 and Buffer is NULL.
-  @retval Others                  Other implementation specific errors.
-**/
-EFI_STATUS
-EFIAPI
-GetBuildDateStringUnicode (
-  OUT CHAR16 *Buffer, OPTIONAL
-  IN  OUT UINTN   *Length
-  )
-{
-  assert_non_null (Length);
-  if (*Length < (sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16))) {
-    *Length = sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16);
-    return EFI_BUFFER_TOO_SMALL;
-  }
-
-  assert_non_null (Buffer);
-  CopyMem (Buffer, MOCK_BUILD_TIME, sizeof (MOCK_BUILD_TIME));
-  *Length = sizeof (MOCK_BUILD_TIME) / sizeof (CHAR16);
-
-  return (EFI_STATUS)mock ();
 }
 
 /**
@@ -355,6 +319,101 @@ EFI_BOOT_SERVICES  MockBoot = {
   .CloseEvent   = MockCloseEvent,
 };
 
+EFI_FIRMWARE_IMAGE_DESCRIPTOR  mMockFmpImageInfo = {
+  .ImageIdName = L"UEFI System",
+  .VersionName = L"1.7788.414",
+};
+
+/**
+  Mock version of FMP GetImageInfo function.
+**/
+EFI_STATUS
+EFIAPI
+MockGetImageInfo (
+  IN EFI_FIRMWARE_MANAGEMENT_PROTOCOL      *This,
+  IN OUT    UINTN                          *ImageInfoSize,
+  IN OUT    EFI_FIRMWARE_IMAGE_DESCRIPTOR  *ImageInfo,
+  OUT       UINT32                         *DescriptorVersion,
+  OUT       UINT8                          *DescriptorCount,
+  OUT       UINTN                          *DescriptorSize,
+  OUT       UINT32                         *PackageVersion,
+  OUT       CHAR16                         **PackageVersionName
+  )
+{
+  assert_non_null (This);
+  assert_non_null (ImageInfoSize);
+  assert_non_null (DescriptorCount);
+
+  *DescriptorCount = 1;
+
+  if (*ImageInfoSize < sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR)) {
+    *ImageInfoSize = sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR);
+    return EFI_BUFFER_TOO_SMALL;
+  } else {
+    *ImageInfoSize = sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR);
+    CopyMem (ImageInfo, &mMockFmpImageInfo, sizeof (EFI_FIRMWARE_IMAGE_DESCRIPTOR));
+  }
+
+  return EFI_SUCCESS;
+}
+
+///
+/// Mock version of FMP instance
+///
+EFI_FIRMWARE_MANAGEMENT_PROTOCOL  MockFmp = {
+  .GetImageInfo = MockGetImageInfo,
+};
+
+EFI_FIRMWARE_MANAGEMENT_PROTOCOL  *MockFmpArray[] = {
+  &MockFmp
+};
+
+/**
+  Mock version of EfiLocateProtocolBuffer.
+
+  @param[in]  Protocol      Provides the protocol to search for.
+  @param[out] NoProtocols   The number of protocols returned in Buffer.
+  @param[out] Buffer        A pointer to the buffer to return the requested
+                            array of protocol instances that match Protocol.
+                            The returned buffer is allocated using
+                            EFI_BOOT_SERVICES.AllocatePool().  The caller is
+                            responsible for freeing this buffer with
+                            EFI_BOOT_SERVICES.FreePool().
+
+  @retval EFI_SUCCESS            The array of protocols was returned in Buffer,
+                                 and the number of protocols in Buffer was
+                                 returned in NoProtocols.
+  @retval EFI_NOT_FOUND          No protocols found.
+  @retval EFI_OUT_OF_RESOURCES   There is not enough pool memory to store the
+                                 matching results.
+  @retval EFI_INVALID_PARAMETER  Protocol is NULL.
+  @retval EFI_INVALID_PARAMETER  NoProtocols is NULL.
+  @retval EFI_INVALID_PARAMETER  Buffer is NULL.
+
+**/
+EFI_STATUS
+EFIAPI
+EfiLocateProtocolBuffer (
+  IN  EFI_GUID  *Protocol,
+  OUT UINTN     *NoProtocols,
+  OUT VOID      ***Buffer
+  )
+{
+  assert_ptr_equal (Protocol, &gEfiFirmwareManagementProtocolGuid);
+  assert_non_null (NoProtocols);
+  assert_non_null (Buffer);
+
+  *NoProtocols = (UINTN)mock ();
+  if (*NoProtocols == 0) {
+    *Buffer = NULL;
+    return EFI_NOT_FOUND;
+  } else {
+    *Buffer = (VOID **)mock ();
+  }
+
+  return EFI_SUCCESS;
+}
+
 /**
   Clean up state machine for this page.
 
@@ -407,11 +466,50 @@ ConfAppSysInfoInit (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (EfiLocateProtocolBuffer, 1);
+  will_return (EfiLocateProtocolBuffer, MockFmpArray);
+
   expect_any_count (MockSetCursorPosition, Column, 2);
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
+  Status = SysInfoMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SystemInfo page when there is no FMP entry.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSysInfoNoFMP (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (EfiLocateProtocolBuffer, 0);
+
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -446,11 +544,12 @@ ConfAppSysInfoSelectEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (EfiLocateProtocolBuffer, 1);
+  will_return (EfiLocateProtocolBuffer, MockFmpArray);
+
   expect_any_count (MockSetCursorPosition, Column, 2);
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
-
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -500,11 +599,12 @@ ConfAppSysInfoSelectOther (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (EfiLocateProtocolBuffer, 1);
+  will_return (EfiLocateProtocolBuffer, MockFmpArray);
+
   expect_any_count (MockSetCursorPosition, Column, 2);
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
-
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
 
   Status = SysInfoMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -553,12 +653,13 @@ ConfAppSysInfoTimeRefresh (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (EfiLocateProtocolBuffer, 1);
+  will_return (EfiLocateProtocolBuffer, MockFmpArray);
+
   // Expect the prints twice
   expect_any_count (MockSetCursorPosition, Column, 4);
   expect_any_count (MockSetCursorPosition, Row, 4);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 4);
-
-  will_return (GetBuildDateStringUnicode, EFI_SUCCESS);
 
   // Initial run
   Status = SysInfoMgr ();
@@ -625,6 +726,7 @@ UnitTestingEntry (
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
   AddTestCase (MiscTests, "System Info page should initialize properly", "NormalInit", ConfAppSysInfoInit, NULL, SysInfoCleanup, NULL);
+  AddTestCase (MiscTests, "System Info page should handle properly when 0 FMP found", "ZeroFMPInit", ConfAppSysInfoNoFMP, NULL, SysInfoCleanup, NULL);
   AddTestCase (MiscTests, "System Info page select Esc should go to previous menu", "SelectEsc", ConfAppSysInfoSelectEsc, NULL, SysInfoCleanup, NULL);
   AddTestCase (MiscTests, "System Info page select others should do nothing", "SelectOther", ConfAppSysInfoSelectOther, NULL, SysInfoCleanup, NULL);
   AddTestCase (MiscTests, "System Info page should auto refresh time display", "TimeRefresh", ConfAppSysInfoTimeRefresh, NULL, SysInfoCleanup, NULL);
