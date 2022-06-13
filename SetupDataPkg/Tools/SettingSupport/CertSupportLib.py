@@ -1,6 +1,6 @@
 # @file
 #
-# Cert Supoport functions
+# Cert Support functions
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -10,15 +10,9 @@
 ## Obtain the SHA1 value from a .pfx file
 ##
 
-import os, sys
+import os
 import traceback
-import argparse
-import base64
-import datetime
 import logging
-import shutil
-import threading
-import subprocess
 import tempfile
 
 from DFCI_SupportLib import DFCI_SupportLib
@@ -26,16 +20,17 @@ from edk2toollib.utility_functions import RunCmd
 
 CertMgrPath = None
 
+
 class CertSupportLib(object):
 
     def get_thumbprint_from_pfx(self, pfxfilename=None):
         global CertMgrPath
 
-        if pfxfilename == None:
-            raise Exception ("Pfx File Name is required")
-        fp = tempfile.NamedTemporaryFile (delete=False);
+        if pfxfilename is None:
+            raise Exception("Pfx File Name is required")
+        fp = tempfile.NamedTemporaryFile(delete=False)
 
-        tfile = fp.name
+        t_file = fp.name
         fp.close()
 
         try:
@@ -43,24 +38,24 @@ class CertSupportLib(object):
             # Cert Manager is used for deleting the cert when add/removing certs
             #
 
-            #1 - use Certmgr to get the PFX sha1 thumbprint
+            # 1 - use Certmgr to get the PFX sha1 thumbprint
             if CertMgrPath is None:
                 CertMgrPath = DFCI_SupportLib().get_certmgr_path()
 
             parameters = " /c " + pfxfilename
-            ret = RunCmd (CertMgrPath, parameters, outfile=tfile)
+            ret = RunCmd(CertMgrPath, parameters, outfile=t_file)
             if(ret != 0):
                 logging.critical("Failed to get cert info from Pfx file using CertMgr.exe")
                 return ret
-            f = open(tfile, "r")
+            f = open(t_file, "r")
 
-            pfxdetails = f.readlines()
+            pfx_details = f.readlines()
             f.close()
-            os.remove(tfile)
-            #2 Parse the pfxdetails for the sha1 thumbprint
+            os.remove(t_file)
+            # 2 Parse the pfx_details for the sha1 thumbprint
             thumbprint = ""
             found = False
-            for a in pfxdetails:
+            for a in pfx_details:
                 a = a.strip()
                 if(len(a)):
                     if(found):
@@ -70,10 +65,10 @@ class CertSupportLib(object):
                         if(a == "SHA1 Thumbprint::"):
                             found = True
 
-            if(len(thumbprint) != 40) or (found == False):
+            if(len(thumbprint) != 40) or (found is False):
                 return 'No thumbprint'
 
-        except Exception as exp:
+        except:
             traceback.print_exc()
             return "Unable to read certificate"
 

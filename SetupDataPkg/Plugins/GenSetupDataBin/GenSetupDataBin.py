@@ -13,29 +13,30 @@ import xml.etree.ElementTree
 from edk2toolext.environment.plugintypes.uefi_build_plugin import IUefiBuildPlugin
 from edk2toollib.utility_functions import RunPythonScript
 
+
 class GenSetupDataBin(IUefiBuildPlugin):
 
     # Prettyprint formatter from https://stackoverflow.com/questions/749796/pretty-printing-xml-in-python
     @staticmethod
     def indent(elem, level=0):
-      i = "\n" + level*"  "
-      if len(elem):
-          if not elem.text or not elem.text.strip():
-              elem.text = i + "  "
-          if not elem.tail or not elem.tail.strip():
-              elem.tail = i
-          for elem in elem:
-              GenSetupDataBin.indent(elem, level+1)
-          if not elem.tail or not elem.tail.strip():
-              elem.tail = i
-      else:
-          if level and (not elem.tail or not elem.tail.strip()):
-              elem.tail = i
+        i = "\n" + level * "  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                GenSetupDataBin.indent(elem, level + 1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
-    # Consumes build environement variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
+    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
     # "DELTA_CONF_POLICY" (optional), "CONF_POLICY_GUID_REGISTRY" and "MSFT_PLATFORM_PACKAGE"
     def do_pre_build(self, thebuilder):
         # Set up a playground
@@ -49,7 +50,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
         if conf_file is None:
-            logging.warn ("YAML file not specified, system might not work as expected!!!")
+            logging.warn("YAML file not specified, system might not work as expected!!!")
             return 0
         if not os.path.isfile(conf_file):
             return -1
@@ -83,7 +84,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
             var_guid = xml.etree.ElementTree.SubElement(xml_var, "GUID")
             var_guid.text = thebuilder.env.GetBuildValue("CONF_POLICY_GUID_REGISTRY")
             var_attr = xml.etree.ElementTree.SubElement(xml_var, "Attributes")
-            var_attr.text = str(3) # BS|NV
+            # BS|NV
+            var_attr.text = str(3)
             var_data = xml.etree.ElementTree.SubElement(xml_var, "Data")
             var_data.set('type', "hex")
             var_data.text = bytes.hex()
@@ -97,8 +99,9 @@ class GenSetupDataBin(IUefiBuildPlugin):
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
-    # Consumes build environement variables: "MSFT_PLATFORM_PACKAGE"
+    # Consumes build environment variables: "MSFT_PLATFORM_PACKAGE"
     def do_post_build(self, thebuilder):
         if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
-            os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"), "BuiltInVars.xml"))
+            os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"),
+                                          "BuiltInVars.xml"))
         return 0
