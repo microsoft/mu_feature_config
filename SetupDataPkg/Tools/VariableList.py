@@ -112,10 +112,11 @@ class IntValueFormat(DataFormat):
         super().__init__(ctype)
         self.pack_format = pack_format
         self.csuffix = csuffix
+        self.default = 0
 
     def string_to_object(self, string_representation):
         try:
-            return int(string_representation)
+            return int(string_representation, 0)
         except ValueError:
             raise ParseError(
                 "Value '{}' is not a valid number".format(
@@ -151,6 +152,7 @@ class FloatValueFormat(DataFormat):
         super().__init__(ctype)
         self.pack_format = pack_format
         self.csuffix = csuffix
+        self.default = 0.0
 
     def string_to_object(self, string_representation):
         return float(string_representation)
@@ -178,6 +180,7 @@ class FloatValueFormat(DataFormat):
 class BoolFormat(DataFormat):
     def __init__(self):
         super().__init__(ctype='bool')
+        self.default = False
 
     def string_to_object(self, string_representation):
         return string_representation.strip().lower() in ['true', '1', 'yes']
@@ -298,6 +301,10 @@ class ArrayFormat(DataFormat):
         self.member_name = member_name
 
         super().__init__(ctype=child_format.ctype)
+
+        self.default = []
+        for i in range(self.count):
+            self.default.append(self.format.default)
         pass
 
     def string_to_object(self, string_representation):
@@ -380,6 +387,12 @@ class StructMember:
                 self.count)
         else:
             self.format = format
+
+        default_string = xml_node.getAttribute("default")
+        if default_string == "":
+            self.default = self.format.default
+        else:
+            self.default = self.format.string_to_object(default_string) 
 
     def string_to_object(self, string_representation):
         return self.format.string_to_object(string_representation)
@@ -465,6 +478,12 @@ class StructFormat(DataFormat):
         obj = OrderedDict()
 
         segments = split_braces(string_representation)
+
+        # Get the defaults from the member values
+        if len(segments) == 1 and segments[0] == "":
+            for member in self.members:
+                obj[member.name] = member.default
+            return obj
 
         if len(self.members) > len(segments):
             raise ParseError(

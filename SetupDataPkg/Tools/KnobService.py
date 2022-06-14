@@ -18,6 +18,11 @@ def generate_public_header(schema, header_path):
         out.write("//  Script: {}\n".format(sys.argv[0]))
         out.write("//  Schema: {}\n".format(schema.path))
         out.write("\n")
+        out.write("#ifndef C_ASSERT\n")
+        out.write("// Statically verify an expression\n")
+        out.write("#define C_ASSERT(e) typedef char __C_ASSERT__[(e)?1:-1]\n")
+        out.write("#endif\n")
+        out.write("\n")
         out.write("// Schema-defined enums\n\n")
         for enum in schema.enums:
             if enum.help != "":
@@ -37,6 +42,9 @@ def generate_public_header(schema, header_path):
                         value.name,
                         value.number
                     ))
+            out.write("    {}_MAX = 0xffffffff // Force packing to int size\n".format(
+                        enum.name,
+                    ))
             out.write("}} {};\n".format(enum.name))
             out.write("\n")
             pass
@@ -46,7 +54,7 @@ def generate_public_header(schema, header_path):
         for struct_definition in schema.structs:
             if struct_definition.help != "":
                 out.write("// {}\n".format(struct_definition.help))
-            out.write("typedef struct {\n")
+            out.write("typedef struct __attribute__((packed)) {\n")
             for member in struct_definition.members:
                 if member.help != "":
                     out.write("    // {}\n".format(member.help))
@@ -61,6 +69,8 @@ def generate_public_header(schema, header_path):
                         member.count))
 
             out.write("}} {};\n".format(struct_definition.name))
+            out.write("\n")
+            out.write("C_ASSERT(sizeof({}) == {});\n".format(struct_definition.name, struct_definition.size_in_bytes()))
             out.write("\n")
             pass
 
@@ -124,7 +134,7 @@ def generate_cached_implementation(schema, header_path):
         format_options = VariableList.StringFormatOptions()
         format_options.cformat = True
 
-        out.write("knob_values_t g_knob_default_values = {\n")
+        out.write("const knob_values_t g_knob_default_values = {\n")
         for knob in schema.knobs:
             out.write("    {},\n".format(knob.format.object_to_string(knob.default, format_options)))
         out.write("};\n\n")
@@ -149,7 +159,7 @@ def generate_cached_implementation(schema, header_path):
         out.write("\n")
         out.write("typedef struct {\n")
         out.write("    knob_t knob;\n")
-        out.write("    void* default_value_address;\n")
+        out.write("    const void* default_value_address;\n")
         out.write("    void* cache_value_address;\n")
         out.write("    size_t value_size;\n")        
         out.write("    const char* name;\n")
