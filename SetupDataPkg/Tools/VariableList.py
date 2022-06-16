@@ -428,6 +428,8 @@ class StructFormat(DataFormat):
         for member in xml_node.getElementsByTagName('Member'):
             self.members.append(StructMember(schema, self.name, member))
 
+        self.default = self.string_to_object(xml_node.getAttribute("default"))
+
         pass
 
     def create_subknobs(self, knob, path):
@@ -480,7 +482,7 @@ class StructFormat(DataFormat):
         segments = split_braces(string_representation)
 
         # Get the defaults from the member values
-        if len(segments) == 1 and segments[0] == "":
+        if len(segments) == 0 or (len(segments) == 1 and segments[0] == ""):
             for member in self.members:
                 obj[member.name] = member.default
             return obj
@@ -510,8 +512,11 @@ class StructFormat(DataFormat):
 
         for member in self.members:
             value = object_representation[member.name]
-            member_strings.append(member.object_to_string(value, options))
-
+            if options.cformat:
+                member_strings.append(".{}={}".format(member.name, member.object_to_string(value, options)))
+            else:
+                member_strings.append(member.object_to_string(value, options))
+    
         return "{{{}}}".format(",".join(member_strings))
 
     def object_to_binary(self, object_representation):
@@ -565,19 +570,18 @@ class Knob:
 
         default_string = xml_node.getAttribute("default")
         if default_string == "":
-            raise ParseError(
-                "Knob '{}' does not have a default value".format(self.name))
-
-        # Use the format to decode the default value from its
-        # string representation
-        try:
-            self._default = self.format.string_to_object(default_string)
-        except ParseError as e:
-            # Capture the ParseError and create a more specific error message
-            raise ParseError(
-                "Unable to parse default value of '{}': {}".format(
-                    self.name,
-                    e))
+            self._default = self.format.default
+        else:
+            # Use the format to decode the default value from its
+            # string representation
+            try:
+                self._default = self.format.string_to_object(default_string)
+            except ParseError as e:
+                # Capture the ParseError and create a more specific error message
+                raise ParseError(
+                    "Unable to parse default value of '{}': {}".format(
+                        self.name,
+                        e))
 
         self.subknobs = []
         if isinstance(self.format, StructFormat):

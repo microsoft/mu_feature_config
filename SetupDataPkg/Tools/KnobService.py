@@ -42,7 +42,7 @@ def generate_public_header(schema, header_path):
                         value.name,
                         value.number
                     ))
-            out.write("    {}_MAX = 0xffffffff // Force packing to int size\n".format(
+            out.write("    _{}_PADDING = 0xffffffff // Force packing to int size\n".format(
                         enum.name,
                     ))
             out.write("}} {};\n".format(enum.name))
