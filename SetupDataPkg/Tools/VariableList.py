@@ -745,7 +745,6 @@ class SubKnob:
     def default(self):
         return self.knob._get_child_value(self.name, self.knob.default)
 
-
 class Schema:
     def __init__(self, dom, origin_path):
         self.enums = []
