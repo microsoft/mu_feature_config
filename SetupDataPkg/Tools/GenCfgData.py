@@ -449,7 +449,7 @@ class CFG_YAML():
                     raise Exception('Unexpected format at line: %s' % (curr_line))
 
                 level += 1
-                self.parse(parent_name, child, level)
+                self.parse(self.current_key, child, level)
                 level -= 1
 
                 line = self.peek_line()
@@ -476,6 +476,7 @@ class CFG_YAML():
             if pos > 0:
                 child = None
                 key = curr_line[start:pos].strip()
+                self.current_key = key
                 if curr_line[pos + 2] == '>':
                     curr[key] = curr_line[pos + 3:]
                 else:
@@ -512,6 +513,7 @@ class CFG_YAML():
             elif marker2 == ':':
                 child = OrderedDict()
                 key = curr_line[start:-1].strip()
+                self.current_key = key
                 if key == '$ACTION':
                     # special virtual nodes, rename to ensure unique key
                     key = '$ACTION_%04X' % self.index
