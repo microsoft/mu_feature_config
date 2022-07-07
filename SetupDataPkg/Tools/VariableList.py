@@ -13,7 +13,6 @@ import uuid
 import zlib
 import copy
 from xml.dom.minidom import parse, parseString
-import KnobService
 
 class ParseError(Exception):
     def __init__(self, message):
@@ -980,14 +979,8 @@ def write_vlist(schema, vlist_path):
         buf = binarize_vlist (schema)
         vlist_file.write(buf)
 
-
-def generate_sources(schema, public_header, service_header):
-    KnobService.generate_public_header(schema, public_header)
-    KnobService.generate_cached_implementation(schema, service_header)
-
 def usage():
     print("Commands:\n")
-    print("  generateheader <schema.xml> <header.h>")
     print("  writevl <schema.xml> [<values.csv>] <blob.vl>")
     print("  writecsv <schema.xml> [<blob.vl>] <values.csv>")
     print("")
@@ -1005,21 +998,6 @@ def main():
         sys.exit(1)
         return
 
-    if sys.argv[1].lower() == "generateheader":
-        if len(sys.argv) != 5:
-            usage()
-            sys.stderr.write('Invalid number of arguments.\n')
-            sys.exit(1)
-            return
-
-        schema_path = sys.argv[2]
-        header_path = sys.argv[3]
-        service_path = sys.argv[4]
-
-        # Load the schema
-        schema = Schema.load(schema_path)
-        
-        generate_sources(schema, header_path, service_path)
     if sys.argv[1].lower() == "writevl":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
