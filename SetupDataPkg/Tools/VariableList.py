@@ -14,6 +14,7 @@ import zlib
 import copy
 from xml.dom.minidom import parse, parseString
 
+
 class ParseError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -240,6 +241,7 @@ class EnumValue:
 
         self.help = xml_node.getAttribute("help")
 
+
 # Represents a user defined enum
 class EnumFormat(DataFormat):
     def __init__(self, xml_node):
@@ -391,7 +393,7 @@ class StructMember:
         if default_string == "":
             self.default = self.format.default
         else:
-            self.default = self.format.string_to_object(default_string) 
+            self.default = self.format.string_to_object(default_string)
 
     def string_to_object(self, string_representation):
         return self.format.string_to_object(string_representation)
@@ -512,10 +514,12 @@ class StructFormat(DataFormat):
         for member in self.members:
             value = object_representation[member.name]
             if options.cformat:
-                member_strings.append(".{}={}".format(member.name, member.object_to_string(value, options)))
+                member_strings.append(".{}={}".format(
+                    member.name,
+                    member.object_to_string(value, options)))
             else:
                 member_strings.append(member.object_to_string(value, options))
-    
+
         return "{{{}}}".format(",".join(member_strings))
 
     def object_to_binary(self, object_representation):
@@ -576,7 +580,8 @@ class Knob:
             try:
                 self._default = self.format.string_to_object(default_string)
             except ParseError as e:
-                # Capture the ParseError and create a more specific error message
+                # Capture the ParseError and create a more specific error
+                # message
                 raise ParseError(
                     "Unable to parse default value of '{}': {}".format(
                         self.name,
@@ -744,6 +749,7 @@ class SubKnob:
     def default(self):
         return self.knob._get_child_value(self.name, self.knob.default)
 
+
 class Schema:
     def __init__(self, dom, origin_path):
         self.enums = []
@@ -776,7 +782,7 @@ class Schema:
 
     # Parse a schema given a string representation of the xml content
     def parse(string):
-        return Schema(parseString(string), path)
+        return Schema(parseString(string), "")
 
     # Get a knob by name
     def get_knob(self, knob_name):
@@ -808,6 +814,7 @@ class Schema:
 
         raise InvalidTypeError(
             "Data type '{}' is not defined".format(type_name))
+
 
 # Represents a UEFI variable
 # Knobs are stored within UEFI variables and can be serialized to a
@@ -869,9 +876,10 @@ def binarize_vlist(schema):
 # Read a set of UEFIVariables from a variable list file
 def read_vlist(file):
     with open(file, 'rb') as vl_file:
-        variables = read_vlist_from_buffer (vl_file.read())
+        variables = read_vlist_from_buffer(vl_file.read())
 
     return variables
+
 
 # Read a set of UEFIVariables from a variable list buffer
 def read_vlist_from_buffer(array):
@@ -976,8 +984,9 @@ def write_csv(schema, csv_path, subknobs=True):
 
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
-        buf = binarize_vlist (schema)
+        buf = binarize_vlist(schema)
         vlist_file.write(buf)
+
 
 def usage():
     print("Commands:\n")
