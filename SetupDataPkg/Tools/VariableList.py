@@ -751,7 +751,7 @@ class SubKnob:
 
 
 class Schema:
-    def __init__(self, dom, origin_path):
+    def __init__(self, dom, origin_path = ""):
         self.enums = []
         self.structs = []
         self.knobs = []
@@ -782,7 +782,7 @@ class Schema:
 
     # Parse a schema given a string representation of the xml content
     def parse(string):
-        return Schema(parseString(string), "")
+        return Schema(parseString(string))
 
     # Get a knob by name
     def get_knob(self, knob_name):
