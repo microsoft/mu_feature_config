@@ -347,7 +347,7 @@ class ArrayFormat(DataFormat):
         element_size = self.format.size_in_bytes()
         for i in range(self.count):
             element_binary = binary_representation[
-                (i * element_size):((i+1) * element_size)]
+                (i * element_size):((i + 1) * element_size)]
             values.append(self.format.binary_to_object(element_binary))
         return values
 
@@ -449,7 +449,7 @@ class StructFormat(DataFormat):
                             member.format,
                             member.help,
                             True  # Leaf
-                            ))
+                        ))
             else:
                 subknobs.append(
                     SubKnob(
@@ -458,7 +458,7 @@ class StructFormat(DataFormat):
                         member.format,
                         member.help,
                         False  # Leaf
-                        ))
+                    ))
 
                 for i in range(member.count):
                     indexed_subpath = "{}.{}[{}]".format(path, member.name, i)
@@ -474,7 +474,7 @@ class StructFormat(DataFormat):
                                 member.format.format,
                                 member.help,
                                 True  # Leaf
-                                ))
+                            ))
         return subknobs
 
     def string_to_object(self, string_representation):
@@ -536,7 +536,7 @@ class StructFormat(DataFormat):
         obj = OrderedDict()
         for member in self.members:
             member_binary = binary_representation[
-                position:(position+member.size_in_bytes())]
+                position:(position + member.size_in_bytes())]
             member_value = member.binary_to_object(member_binary)
             obj[member.name] = member_value
             position += member.size_in_bytes()
@@ -604,7 +604,7 @@ class Knob:
                     self.format,
                     self.help,
                     True  # Leaf
-                    ))
+                ))
 
         pass
 
@@ -751,7 +751,7 @@ class SubKnob:
 
 
 class Schema:
-    def __init__(self, dom, origin_path = ""):
+    def __init__(self, dom, origin_path=""):
         self.enums = []
         self.structs = []
         self.knobs = []
@@ -918,12 +918,12 @@ def read_vlist_from_buffer(array):
             raise Exception("CRC mismatch")
 
         # Decode the elementes of the payload
-        name = payload[8:(name_size+8)].decode(encoding="UTF-16LE").strip("\0")
-        guid_bytes = payload[(name_size+8):(name_size+8+16)]
+        name = payload[8:(name_size + 8)].decode(encoding="UTF-16LE").strip("\0")
+        guid_bytes = payload[(name_size + 8):(name_size + 8 + 16)]
         guid = uuid.UUID(bytes=guid_bytes)
-        attributes_bytes = payload[(name_size+8+16):(name_size+8+16+4)]
+        attributes_bytes = payload[(name_size + 8 + 16):(name_size + 8 + 16 + 4)]
         attributes = struct.unpack("<I", attributes_bytes)[0]
-        data = payload[(name_size+8+16+4):]
+        data = payload[(name_size + 8 + 16 + 4):]
 
         variables.append(UEFIVariable(name, guid, data, attributes))
 
