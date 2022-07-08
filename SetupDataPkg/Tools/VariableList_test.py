@@ -1,4 +1,4 @@
-# @ GenCfgData.py
+# @ VariabbleList_test.py
 #
 # Copyright (c) 2022, Microsoft Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
