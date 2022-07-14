@@ -28,7 +28,10 @@
   <!-- namespace indicates the GUID namespace the values are stored in -->
   <Knobs namespace="{FE3ED49F-B173-41ED-9076-356661D46A42}">
     <!-- Example knobs of different types -->
-    
+
+    <!-- <Knob name="STRUCT_KNOB1" type="simple_t" default="{{1,2}}" help="Complex type" />
+    <Knob name="STRUCT_KNOB2" type="simple_t" default="{{1,0}}" help="Complex type" /> -->
+
     <Knob name="COMPLEX_KNOB1a" type="child_t" default="{{1,2,3, 4,5 },FIRST }" help="Complex knob" />
     
     <Knob name="COMPLEX_KNOB1b" type="child_t" default="{{1,2,3, 4,5 },SECOND }" help="Complex type" />

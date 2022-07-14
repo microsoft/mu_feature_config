@@ -35,7 +35,7 @@ class InvalidKnobError(ParseError):
         super().__init__(message)
 
 
-# Decodes a comma separated list within curly braces in to a list
+# Decodes a comma sepearated list within curly braces in to a list
 # "{1,2, 3,{A, B}} " -> ["1", "2", "3", "{A, B}"]
 def split_braces(string_object):
     segments = []
@@ -92,7 +92,7 @@ class StringFormatOptions:
 
     # When true, format the values for use in "C"
     # When false, format the values for use in the XML
-    c_format = False
+    cformat = False
 
 
 # A DataFormat defines how a variable element is serialized
@@ -100,23 +100,22 @@ class StringFormatOptions:
 # * to/from binary (as in the variable list)
 # * to C data types
 class DataFormat:
-    def __init__(self, c_type):
-        self.c_type = c_type
+    def __init__(self, ctype):
+        self.ctype = ctype
         pass
 
 
 # Represents all data types that have an object representation as a
 # Python int
 class IntValueFormat(DataFormat):
-    def __init__(self, c_type, pack_format, c_suffix=""):
-        super().__init__(c_type)
+    def __init__(self, ctype, pack_format, csuffix=""):
+        super().__init__(ctype)
         self.pack_format = pack_format
-        self.c_suffix = c_suffix
-        self.default = 0
+        self.csuffix = csuffix
 
     def string_to_object(self, string_representation):
         try:
-            return int(string_representation, 0)
+            return int(string_representation)
         except ValueError:
             raise ParseError(
                 "Value '{}' is not a valid number".format(
@@ -126,8 +125,8 @@ class IntValueFormat(DataFormat):
             self,
             object_representation,
             options=StringFormatOptions()):
-        if options.c_format:
-            return "{}{}".format(object_representation, self.c_suffix)
+        if options.cformat:
+            return "{}{}".format(object_representation, self.csuffix)
         else:
             return str(object_representation)
 
@@ -146,13 +145,12 @@ class IntValueFormat(DataFormat):
 class FloatValueFormat(DataFormat):
     def __init__(
             self,
-            c_type,
+            ctype,
             pack_format,
-            c_suffix=""):
-        super().__init__(c_type)
+            csuffix=""):
+        super().__init__(ctype)
         self.pack_format = pack_format
-        self.c_suffix = c_suffix
-        self.default = 0.0
+        self.csuffix = csuffix
 
     def string_to_object(self, string_representation):
         return float(string_representation)
@@ -161,8 +159,8 @@ class FloatValueFormat(DataFormat):
             self,
             object_representation,
             options=StringFormatOptions()):
-        if options.c_format:
-            return "{}{}".format(object_representation, self.c_suffix)
+        if options.cformat:
+            return "{}{}".format(object_representation, self.csuffix)
         else:
             return str(object_representation)
 
@@ -179,8 +177,7 @@ class FloatValueFormat(DataFormat):
 # Represents all data types that have an object representation as a Python bool
 class BoolFormat(DataFormat):
     def __init__(self):
-        super().__init__(c_type='bool')
-        self.default = False
+        super().__init__(ctype='bool')
 
     def string_to_object(self, string_representation):
         return string_representation.strip().lower() in ['true', '1', 'yes']
@@ -205,16 +202,16 @@ class BoolFormat(DataFormat):
 
 
 builtin_types = {
-    'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', pack_format='<B')),                   # noqa: E203, E501
-    'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', pack_format='<b')),                    # noqa: E203, E501
-    'uint16_t' : (lambda: IntValueFormat(c_type='uint16_t', pack_format='<H')),                  # noqa: E203, E501
-    'int16_t'  : (lambda: IntValueFormat(c_type='int16_t', pack_format='<h')),                   # noqa: E203, E501
-    'uint32_t' : (lambda: IntValueFormat(c_type='uint32_t', pack_format='<I', c_suffix="ul")),    # noqa: E203, E501
-    'int32_t'  : (lambda: IntValueFormat(c_type='int32_t', pack_format='<i', c_suffix="l")),      # noqa: E203, E501
-    'uint64_t' : (lambda: IntValueFormat(c_type='uint64_t', pack_format='<Q', c_suffix="ull")),   # noqa: E203, E501
-    'int64_t'  : (lambda: IntValueFormat(c_type='int64_t', pack_format='<q', c_suffix="ll")),     # noqa: E203, E501
-    'float'    : (lambda: FloatValueFormat(c_type='float', pack_format='<f', c_suffix="f")),      # noqa: E203, E501
-    'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')),                  # noqa: E203, E501
+    'uint8_t'  : (lambda: IntValueFormat(ctype='uint8_t', pack_format='<B')),                   # noqa: E203, E501
+    'int8_t'   : (lambda: IntValueFormat(ctype='int8_t', pack_format='<b')),                    # noqa: E203, E501
+    'uint16_t' : (lambda: IntValueFormat(ctype='uint16_t', pack_format='<H')),                  # noqa: E203, E501
+    'int16_t'  : (lambda: IntValueFormat(ctype='int16_t', pack_format='<h')),                   # noqa: E203, E501
+    'uint32_t' : (lambda: IntValueFormat(ctype='uint32_t', pack_format='<I', csuffix="ul")),    # noqa: E203, E501
+    'int32_t'  : (lambda: IntValueFormat(ctype='int32_t', pack_format='<i', csuffix="l")),      # noqa: E203, E501
+    'uint64_t' : (lambda: IntValueFormat(ctype='uint64_t', pack_format='<Q', csuffix="ull")),   # noqa: E203, E501
+    'int64_t'  : (lambda: IntValueFormat(ctype='int64_t', pack_format='<q', csuffix="ll")),     # noqa: E203, E501
+    'float'    : (lambda: FloatValueFormat(ctype='float', pack_format='<f', csuffix="f")),      # noqa: E203, E501
+    'double'   : (lambda: FloatValueFormat(ctype='double', pack_format='<d')),                  # noqa: E203, E501
     'bool'     : (lambda: BoolFormat()),                                                        # noqa: E203, E501
 }
 
@@ -241,6 +238,17 @@ class EnumValue:
 
         self.help = xml_node.getAttribute("help")
 
+    def generate_header(self, out):
+        if self.help != "":
+            out.write("    // {}\n".format(self.help))
+        if self.number != "":
+            out.write("    {}_{} = {},\n".format(
+                            self.enum_name,
+                            self.name,
+                            self.number))
+        else:
+            out.write("    {}_{},\n".format(self.enum_name, self.name))
+
 
 # Represents a user defined enum
 class EnumFormat(DataFormat):
@@ -253,11 +261,21 @@ class EnumFormat(DataFormat):
         self.help = xml_node.getAttribute("help")
         self.values = []
 
-        super().__init__(c_type=self.name)
+        super().__init__(ctype=self.name)
 
         for value in xml_node.getElementsByTagName('Value'):
             self.values.append(EnumValue(self.name, value))
         pass
+
+    def generate_header(self, out):
+        if self.help != "":
+            out.write("// {}\n".format(self.help))
+
+        out.write("enum {} {{\n".format(self.name))
+        for value in self.values:
+            value.generate_header(out)
+        out.write("};\n")
+        out.write("\n")
 
     def string_to_object(self, string_representation):
         try:
@@ -277,7 +295,7 @@ class EnumFormat(DataFormat):
             options=StringFormatOptions()):
         for value in self.values:
             if value.number == object_representation:
-                if options.c_format:
+                if options.cformat:
                     return "{}_{}".format(self.name, value.name)
                 else:
                     return value.name
@@ -301,11 +319,7 @@ class ArrayFormat(DataFormat):
         self.struct_name = struct_name
         self.member_name = member_name
 
-        super().__init__(c_type=child_format.c_type)
-
-        self.default = []
-        for i in range(self.count):
-            self.default.append(self.format.default)
+        super().__init__(ctype="{}[{}]".format(child_format.ctype, count))
         pass
 
     def string_to_object(self, string_representation):
@@ -347,7 +361,7 @@ class ArrayFormat(DataFormat):
         element_size = self.format.size_in_bytes()
         for i in range(self.count):
             element_binary = binary_representation[
-                (i * element_size):((i + 1) * element_size)]
+                (i * element_size):((i+1) * element_size)]
             values.append(self.format.binary_to_object(element_binary))
         return values
 
@@ -356,7 +370,7 @@ class ArrayFormat(DataFormat):
 
 
 # Represents a member of a user defined struct
-# Each member may be of any type, and may also have a count
+# Each member may be of any type, and maay also have a count
 # value to treat it as an array
 class StructMember:
     def __init__(self, schema, struct_name, xml_node):
@@ -389,11 +403,10 @@ class StructMember:
         else:
             self.format = format
 
-        default_string = xml_node.getAttribute("default")
-        if default_string == "":
-            self.default = self.format.default
-        else:
-            self.default = self.format.string_to_object(default_string)
+    def generate_header(self, out):
+        if self.help != "":
+            out.write("    // {}\n".format(self.help))
+        out.write("    {} {};\n".format(self.format.ctype, self.name))
 
     def string_to_object(self, string_representation):
         return self.format.string_to_object(string_representation)
@@ -424,12 +437,10 @@ class StructFormat(DataFormat):
         self.help = xml_node.getAttribute("help")
         self.members = []
 
-        super().__init__(c_type=self.name)
+        super().__init__(ctype=self.name)
 
         for member in xml_node.getElementsByTagName('Member'):
             self.members.append(StructMember(schema, self.name, member))
-
-        self.default = self.string_to_object(xml_node.getAttribute("default"))
 
         pass
 
@@ -449,7 +460,7 @@ class StructFormat(DataFormat):
                             member.format,
                             member.help,
                             True  # Leaf
-                        ))
+                            ))
             else:
                 subknobs.append(
                     SubKnob(
@@ -458,7 +469,7 @@ class StructFormat(DataFormat):
                         member.format,
                         member.help,
                         False  # Leaf
-                    ))
+                        ))
 
                 for i in range(member.count):
                     indexed_subpath = "{}.{}[{}]".format(path, member.name, i)
@@ -474,19 +485,23 @@ class StructFormat(DataFormat):
                                 member.format.format,
                                 member.help,
                                 True  # Leaf
-                            ))
+                                ))
         return subknobs
+
+    def generate_header(self, out):
+        if self.help != "":
+            out.write("// {}\n".format(self.help))
+
+        out.write("typedef struct {\n")
+        for member in self.members:
+            member.generate_header(out)
+        out.write("}} {};\n".format(self.name))
+        out.write("\n")
 
     def string_to_object(self, string_representation):
         obj = OrderedDict()
 
         segments = split_braces(string_representation)
-
-        # Get the defaults from the member values
-        if len(segments) == 0 or (len(segments) == 1 and segments[0] == ""):
-            for member in self.members:
-                obj[member.name] = member.default
-            return obj
 
         if len(self.members) > len(segments):
             raise ParseError(
@@ -513,12 +528,7 @@ class StructFormat(DataFormat):
 
         for member in self.members:
             value = object_representation[member.name]
-            if options.c_format:
-                member_strings.append(".{}={}".format(
-                    member.name,
-                    member.object_to_string(value, options)))
-            else:
-                member_strings.append(member.object_to_string(value, options))
+            member_strings.append(member.object_to_string(value, options))
 
         return "{{{}}}".format(",".join(member_strings))
 
@@ -536,7 +546,7 @@ class StructFormat(DataFormat):
         obj = OrderedDict()
         for member in self.members:
             member_binary = binary_representation[
-                position:(position + member.size_in_bytes())]
+                position:(position+member.size_in_bytes())]
             member_value = member.binary_to_object(member_binary)
             obj[member.name] = member_value
             position += member.size_in_bytes()
@@ -573,19 +583,19 @@ class Knob:
 
         default_string = xml_node.getAttribute("default")
         if default_string == "":
-            self._default = self.format.default
-        else:
-            # Use the format to decode the default value from its
-            # string representation
-            try:
-                self._default = self.format.string_to_object(default_string)
-            except ParseError as e:
-                # Capture the ParseError and create a more specific error
-                # message
-                raise ParseError(
-                    "Unable to parse default value of '{}': {}".format(
-                        self.name,
-                        e))
+            raise ParseError(
+                "Knob '{}' does not have a default value".format(self.name))
+
+        # Use the format to decode the default value from its
+        # string representation
+        try:
+            self._default = self.format.string_to_object(default_string)
+        except ParseError as e:
+            # Capture the ParseError and create a more specific error message
+            raise ParseError(
+                "Unable to parse default value of '{}': {}".format(
+                    self.name,
+                    e))
 
         self.subknobs = []
         if isinstance(self.format, StructFormat):
@@ -604,7 +614,11 @@ class Knob:
                     self.format,
                     self.help,
                     True  # Leaf
-                ))
+                    ))
+
+        print("Knob '{}', default='{}'".format(
+            self.name,
+            self.format.object_to_string(self.default)))
 
         pass
 
@@ -621,18 +635,18 @@ class Knob:
             out.write("// {}\n".format(self.help))
 
         format_options = StringFormatOptions()
-        format_options.c_format = True
+        format_options.cformat = True
 
-        out.write("// Namespace GUID for {}\n".format(self.name))
+        out.write("// Namspace GUID for {}\n".format(self.name))
         out.write("#define CONFIG_NAMESPACE_{} \"{}\"\n\n".format(self.name, self.namespace))  # noqa: E501
 
         out.write("// Get the default value of {}\n".format(self.name))
-        out.write("inline {} config_get_default_{}() {{\n".format(self.format.c_type, self.name))  # noqa: E501
+        out.write("inline {} config_get_default_{}() {{\n".format(self.format.ctype, self.name))  # noqa: E501
         out.write("    return {};\n".format(self.format.object_to_string(self.default, format_options)))  # noqa: E501
         out.write("}\n")
         out.write("// Get the current value of {}\n".format(self.name))
-        out.write("inline {} config_get_{}() {{\n".format(self.format.c_type, self.name))  # noqa: E501
-        out.write("    {} result = config_get_default_{}();\n".format(self.format.c_type, self.name))  # noqa: E501
+        out.write("inline {} config_get_{}() {{\n".format(self.format.ctype, self.name))  # noqa: E501
+        out.write("    {} result = config_get_default_{}();\n".format(self.format.ctype, self.name))  # noqa: E501
         out.write("    size_t value_size = sizeof(result);\n")  # noqa: E501
         out.write("    config_result_t read_result = _config_get_knob_value_by_name(\"{}\", CONFIG_NAMESPACE_{}, &value_size, (unsigned char*)&result);\n".format(self.name, self.name))  # noqa: E501
         out.write("    // i.e. an enum may be stored as a single byte, or four bytes; it may use however many bytes are needed\n")  # noqa: E501
@@ -644,7 +658,7 @@ class Knob:
         out.write("}\n")
         out.write("#ifdef CONFIG_SET_VALUES\n")
         out.write("// Set the current value of {}\n".format(self.name))
-        out.write("inline config_result_t config_set_{}({} value) {{\n".format(self.name, self.format.c_type))  # noqa: E501
+        out.write("inline config_result_t config_set_{}({} value) {{\n".format(self.name, self.format.ctype))  # noqa: E501
         out.write("    return _config_set_knob_value_by_name(\"{}\", CONFIG_NAMESPACE_{}, sizeof(value), (unsigned char*)&value);\n".format(self.name, self.name))  # noqa: E501
         out.write("}\n")
         out.write("#endif\n")
@@ -751,19 +765,18 @@ class SubKnob:
 
 
 class Schema:
-    def __init__(self, dom, origin_path=""):
+    def __init__(self, dom):
         self.enums = []
         self.structs = []
         self.knobs = []
-        self.path = origin_path
 
         for section in dom.getElementsByTagName('Enums'):
             for enum in section.getElementsByTagName('Enum'):
                 self.enums.append(EnumFormat(enum))
 
         for section in dom.getElementsByTagName('Structs'):
-            for struct_node in section.getElementsByTagName('Struct'):
-                self.structs.append(StructFormat(self, struct_node))
+            for structnode in section.getElementsByTagName('Struct'):
+                self.structs.append(StructFormat(self, structnode))
 
         for section in dom.getElementsByTagName('Knobs'):
             namespace = section.getAttribute('namespace')
@@ -778,7 +791,7 @@ class Schema:
 
     # Load a schema given a path to a schema xml file
     def load(path):
-        return Schema(parse(path), path)
+        return Schema(parse(path))
 
     # Parse a schema given a string representation of the xml content
     def parse(string):
@@ -816,6 +829,35 @@ class Schema:
             "Data type '{}' is not defined".format(type_name))
 
 
+# Generates a C header with user defined types andd accessors for the knobs
+def generate_header(schema_path, header_path):
+    schema = Schema.parse(schema_path)
+
+    with open(header_path, 'w') as out:
+        out.write("#pragma once\n")
+        out.write("#include <stdint.h>\n")
+        out.write("// Generated Header\n")
+        out.write("// Script: {}\n".format(sys.argv[0]))
+        out.write("// Schema: {}\n".format(schema_path))
+        out.write("\n")
+        out.write("// config_common.h includes helper functions for the generated interfaces that\n")  # noqa: E501
+        out.write("// do not require code generation themselves\n")
+        out.write("#include \"config_common.h\"\n")
+        out.write("\n")
+        for enum in schema.enums:
+            enum.generate_header(out)
+            pass
+
+        for struct_definition in schema.structs:
+            struct_definition.generate_header(out)
+            pass
+
+        for knob in schema.knobs:
+            knob.generate_header(out)
+            pass
+    pass
+
+
 # Represents a UEFI variable
 # Knobs are stored within UEFI variables and can be serialized to a
 # variable list file
@@ -840,7 +882,7 @@ def create_vlist_buffer(variable):
     #   Guid(16 Byte namespace Guid),
     #   Attributes(int32 UEFI attributes),
     #   Data(bytes),
-    #   CRC32(int32 checksum of all bytes from NameSize through Data)
+    #   CRC32(int32 checksum of all bytyes from NameSize through Data)
 
     # Null terminated UTF-16LE encoded name
     name = (variable.name + "\0").encode("utf-16le")
@@ -860,7 +902,7 @@ def create_vlist_buffer(variable):
 
 
 # Create a byte array for all the knobs in this schema
-def vlist_to_binary(schema):
+def binarize_vlist(schema):
 
     ret = b''
     for knob in schema.knobs:
@@ -876,10 +918,9 @@ def vlist_to_binary(schema):
 # Read a set of UEFIVariables from a variable list file
 def read_vlist(file):
     with open(file, 'rb') as vl_file:
-        variables = read_vlist_from_buffer(vl_file.read())
+        variables = read_vlist_from_buffer (vl_file.read())
 
     return variables
-
 
 # Read a set of UEFIVariables from a variable list buffer
 def read_vlist_from_buffer(array):
@@ -917,13 +958,13 @@ def read_vlist_from_buffer(array):
         if crc != zlib.crc32(payload):
             raise Exception("CRC mismatch")
 
-        # Decode the elements of the payload
-        name = payload[8:(name_size + 8)].decode(encoding="UTF-16LE").strip("\0")
-        guid_bytes = payload[(name_size + 8):(name_size + 8 + 16)]
+        # Decode the elementes of the payload
+        name = payload[8:(name_size+8)].decode(encoding="UTF-16LE").strip("\0")
+        guid_bytes = payload[(name_size+8):(name_size+8+16)]
         guid = uuid.UUID(bytes=guid_bytes)
-        attributes_bytes = payload[(name_size + 8 + 16):(name_size + 8 + 16 + 4)]
+        attributes_bytes = payload[(name_size+8+16):(name_size+8+16+4)]
         attributes = struct.unpack("<I", attributes_bytes)[0]
-        data = payload[(name_size + 8 + 16 + 4):]
+        data = payload[(name_size+8+16+4):]
 
         variables.append(UEFIVariable(name, guid, data, attributes))
 
@@ -971,27 +1012,28 @@ def write_csv(schema, csv_path, subknobs=True):
             for subknob in schema.subknobs:
                 writer.writerow([
                     subknob.name,
-                    subknob.format.object_to_string(subknob.default),
+                    subknob.format.object_to_string(subknob.value),
                     subknob.help])
         else:
             writer.writerow(['Knob', 'Value', 'Help'])
             for knob in schema.knobs:
                 writer.writerow([
                     knob.name,
-                    knob.format.object_to_string(knob.default),
+                    knob.format.object_to_string(knob.value),
                     knob.help])
 
 
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
-        buf = vlist_to_binary(schema)
+        buf = binarize_vlist (schema)
         vlist_file.write(buf)
 
 
 def usage():
     print("Commands:\n")
-    print("  write_vl <schema.xml> [<values.csv>] <blob.vl>")
-    print("  write_csv <schema.xml> [<blob.vl>] <values.csv>")
+    print("  generateheader <schema.xml> <header.h>")
+    print("  writevl <schema.xml> [<values.csv>] <blob.vl>")
+    print("  writecsv <schema.xml> [<blob.vl>] <values.csv>")
     print("")
     print("schema.xml : An XML with the definition of a set of known")
     print("             UEFI variables ('knobs') and types to interpret them")
@@ -1007,7 +1049,18 @@ def main():
         sys.exit(1)
         return
 
-    if sys.argv[1].lower() == "write_vl":
+    if sys.argv[1].lower() == "generateheader":
+        if len(sys.argv) != 4:
+            usage()
+            sys.stderr.write('Invalid number of arguments.\n')
+            sys.exit(1)
+            return
+
+        schema_path = sys.argv[2]
+        header_path = sys.argv[3]
+
+        generate_header(schema_path, header_path)
+    if sys.argv[1].lower() == "writevl":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
@@ -1040,7 +1093,7 @@ def main():
             sys.exit(1)
             return
 
-    if sys.argv[1].lower() == "write_csv":
+    if sys.argv[1].lower() == "writecsv":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             csv_path = sys.argv[3]
