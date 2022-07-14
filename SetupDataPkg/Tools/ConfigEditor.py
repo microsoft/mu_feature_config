@@ -474,9 +474,6 @@ class application(tkinter.Frame):
         style = ttk.Style()
         style.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
 
-        for menu in self.menu_string:
-            print(menu)
-
         menubar = tkinter.Menu(root)
         file_menu = tkinter.Menu(menubar, tearoff=0)
         file_menu.add_command(

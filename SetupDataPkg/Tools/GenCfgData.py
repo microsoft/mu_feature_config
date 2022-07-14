@@ -1426,7 +1426,6 @@ class CGenCfgData:
                 item = self.get_item_by_index(exec[name]["indx"])
                 itype = item["type"].split(",")[0]
                 if itype == "Combo":
-                    print("bin_data decoded: ", str(int.from_bytes(bin_data, "little")))
                     # combo is an index into combo options
                     self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
                 elif itype in ["EditNum", "EditText"]:
@@ -1434,7 +1433,6 @@ class CGenCfgData:
                 elif itype in ["Table"]:
                     new_value = bytes_to_bracket_str(bin_data)
                     self.set_config_item_value(item, new_value)
-                print("updated item: ", item)
             elif id is not None and id.startswith("Device.ConfigData.ConfigData"):
                 # this is the full data, it is just the raw bin
                 base64_val = value.strip()
@@ -1448,14 +1446,12 @@ class CGenCfgData:
     def load_default_from_bin(self, bin_data, variable_list_format):
         # binary may be passed in variable list format or raw binary format
         # we only want to read the YAML variable to populate the cfg_tree
-        print("loading default from bin")
         if (not variable_list_format):
             self.set_field_value(self._cfg_tree, bin_data, True)
             return
         variables = read_vlist_from_buffer(bin_data)
         for var in variables:
           if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
-            print("got DFCI var`")
             # variable data is base64 encoded SVD
             svd = base64.b64decode(var.data)
             path = "varlist_svd.tmp"

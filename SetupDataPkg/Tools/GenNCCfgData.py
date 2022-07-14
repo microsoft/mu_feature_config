@@ -193,7 +193,6 @@ class CGenNCCfgData:
         var_list = read_vlist_from_buffer (bin_data)
         # YAML variable is included in list, XML tree should not contain it
         for var in var_list:
-          print(var.name, " value: ", var.data)
           if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
             # delete from variable list
             var_list.remove(var)
