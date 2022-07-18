@@ -1530,7 +1530,7 @@ class CGenCfgData:
             if 'PLATFORMID_CFG_DATA.PlatformId' == full_name:
                 def_platform_id = old_val
                 platform_id = new_val
-            elif item['type'] != 'Reserved' and ((new_val != old_val) or full):
+            elif (new_val != old_val or full):
                 val_str = self.reformat_value_str(item['value'], item['length'])
                 text = '%-40s | %s' % (full_name, val_str)
                 lines.append(text)
