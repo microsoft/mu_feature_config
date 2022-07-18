@@ -224,10 +224,6 @@ class ExpressionEval(ast.NodeVisitor):
     def generic_visit(self, node):
         raise ValueError("malformed node or string: " + repr(node))
 
-class Schema():
-  def __init__(self, knobs):
-    self.knobs = knobs
-
 class Format():
   def object_to_binary(self, object_representation):
         binary_representation = b''
@@ -241,13 +237,6 @@ class Format():
         binary_representation += struct.pack
         binary_representation += struct.pack(data_type, value)
         return binary_representation
-
-class Knob():
-  def __init__(self, name, length, type):
-    self.name = name
-    self.length = length
-    self.type = type
-    self.format = Format()
 
 class CFG_YAML():
     TEMPLATE = 'template'
@@ -627,7 +616,6 @@ class CGenCfgData:
                       'BOOT_OPTION*', 'PLATFORMID_CFG_DATA', '\w+_Half[01]']    # noqa: W605
     include_tag = ['GPIO_CFG_DATA']
     keyword_set = set(['name', 'type', 'option', 'help', 'length', 'value', 'order', 'struct', 'condition'])
-    knobs = {}
 
     def __init__(self):
         self.initialize()

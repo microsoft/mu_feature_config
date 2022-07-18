@@ -517,7 +517,7 @@ class application(tkinter.Frame):
 
         if len(sys.argv) > 1:
             path = sys.argv[1]
-            if not path.endswith('.yaml') and not path.endswith('.pkl') and not path.endswith('.xml'):
+            if not path.endswith('.yaml') and not path.endswith('.yml') and not path.endswith('.pkl') and not path.endswith('.xml'):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
@@ -665,6 +665,7 @@ class application(tkinter.Frame):
 
     def build_config_page_tree(self, cfg_page, parent, file_id):
         for page in cfg_page["child"]:
+            print('Printing child page: ', page)
             page_id = next(iter(page))
             # Put CFG items into related page list
             self.page_cfg_map[page_id] = file_id
@@ -711,7 +712,7 @@ class application(tkinter.Frame):
             with open(file_name, "rb") as pkl_file:
                 gen_cfg_data.__dict__ = marshal.load(pkl_file)
             gen_cfg_data.prepare_marshal(False)
-        elif file_name.endswith(".yaml"):
+        elif file_name.endswith(".yaml") or file_name.endswith('.yml'):
             if gen_cfg_data.load_yaml(file_name, shallow_load=True) != 0:
                 raise Exception(gen_cfg_data.get_last_error())
             nl = file_name.split(".")
@@ -759,7 +760,7 @@ class application(tkinter.Frame):
                 question = 'All configuration will be reloaded from binary blob, continue ?'
             elif ftype == 'svd':
                 question = ''
-            elif 'yaml' in ftype or 'xml' in ftype:
+            elif 'yaml' in ftype or 'yml' in ftype or 'xml' in ftype:
                 question = ''
             else:
                 raise Exception("Unsupported file type !")
@@ -770,13 +771,13 @@ class application(tkinter.Frame):
 
         file_type = ''
         file_ext = ''
-        if 'yaml' in ftype:
+        if 'yaml' in ftype or 'yml' in ftype:
             file_type = 'YAML PKL'
             file_ext  = 'pkl Def.yaml'
         if 'xml' in ftype:
             file_type += ' XML'
             file_ext  += ' xml'
-        if 'xml' not in ftype and 'yaml' not in ftype:
+        if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
             file_type = ftype.upper()
             file_ext = ftype
 
@@ -889,6 +890,7 @@ class application(tkinter.Frame):
           self.left.delete(*self.left.get_children())
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
+        print(self.cfg_data_list[file_id].cfg_data_obj)
 
         self.update_last_dir(path)
         self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array()
@@ -904,7 +906,7 @@ class application(tkinter.Frame):
         return 0
 
     def load_from_ml(self):
-        path = self.get_open_file_name('yaml,xml')
+        path = self.get_open_file_name('yaml,yml,xml')
         if not path:
             return
 
