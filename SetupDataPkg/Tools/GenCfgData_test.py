@@ -197,6 +197,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
       item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
       self.assertEqual("'Diff'", item['value'])
 
+      settings = []
       b64data = base64.b64encode(cdata.generate_binary_array())
       settings.append(("Device.ConfigData.ConfigData", b64data.decode("utf-8")))
       set_lib.create_settings_xml(
@@ -224,6 +225,89 @@ class UncoreCfgUnitTests(unittest.TestCase):
       item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
       self.assertEqual('0', item['value'])
 
+    def test_yml_generate_load_bin(self):
+      cdata = CGenCfgData()
+      cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+      ui_gen_cfg_data = CGenCfgData()
+      ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+      # Merge the UI cfg and data cfg objects
+      merged_cfg_tree = cdata.merge_cfg_tree(
+          cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
+        )
+      cdata.set_cfg_tree(merged_cfg_tree)
+      cdata.build_cfg_list({'offset': 0})
+      cdata.build_var_dict()
+      cdata.update_def_value()
+      path = 'CGenCfgData_test_bin.bin'
+
+      # change one config item
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      cdata.set_config_item_value(item, '0')
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('0', item['value'])
+
+      with open(path, "wb") as fd:
+            bins = b''
+            bins += cdata.generate_binary_array()
+            fd.write(bins)
+
+      cdata.set_config_item_value(item, '1')
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('1', item['value'])
+
+      with open(path, "rb") as fd:
+            bin_data = bytearray(fd.read())
+            cdata.load_default_from_bin(bin_data, False)
+      os.remove(path)
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('0', item['value'])
+
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'PlatName'", item['value'])
+
+      # Test VarList Bin
+      cdata.set_config_item_value(item, 'NewDiff')
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'NewDiff'", item['value'])
+
+      with open(path, "wb") as fd:
+            temp_file = path + '.tmp'
+            bins = b''
+            svd = ''
+            b64data = base64.b64encode(cdata.generate_binary_array())
+            settings = []
+            settings.append(("Device.ConfigData.ConfigData", b64data.decode("utf-8")))
+            set_lib = SettingsXMLLib()
+            set_lib.create_settings_xml(
+                filename=temp_file, version=1, lsv=1, settingslist=settings
+            )
+
+            # To remove the line ends and spaces
+            with open(temp_file, "r") as tf:
+                      for line in tf:
+                          svd += line.strip().rstrip("\n")
+
+            os.remove(temp_file)
+            bins += cdata.generate_var_list_from_svd(svd)
+            fd.write(bins)
+
+      cdata.set_config_item_value(item, 'DiffNew')
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'DiffNew'", item['value'])
+
+      with open(path, "rb") as fd:
+            bin_data = bytearray(fd.read())
+            cdata.load_default_from_bin(bin_data, True)
+      os.remove(path)
+
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'NewDiff'", item['value'])
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('0', item['value'])
 
 if __name__ == '__main__':
     unittest.main()
