@@ -169,7 +169,7 @@ class ExpressionEval(ast.NodeVisitor):
         else:
             return self._namespace[node.id]
 
-    def visit_Num(self, node):
+    def visit_Constant(self, node):
         return node.n
 
     def visit_NameConstant(self, node):

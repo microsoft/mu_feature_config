@@ -181,7 +181,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
       self.assertEqual('1', item['value'])
 
       cdata.load_from_svd(path)
-      #os.remove(path)
+      os.remove(path)
 
       # Check if value is changed
       item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
@@ -190,7 +190,39 @@ class UncoreCfgUnitTests(unittest.TestCase):
       item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
       self.assertEqual("'PlatName'", item['value'])
 
+      old_data = cdata.generate_binary_array()
+
       # Check Full SVD
+      cdata.set_config_item_value(item, "Diff")
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'Diff'", item['value'])
+
+      b64data = base64.b64encode(cdata.generate_binary_array())
+      settings.append(("Device.ConfigData.ConfigData", b64data.decode("utf-8")))
+      set_lib.create_settings_xml(
+          filename=temp_file, version=1, lsv=1, settingslist=settings
+      )
+
+      # To remove the line ends and spaces
+      with open(temp_file, "r") as tf:
+            with open(base64_path, "w") as ff:
+                for line in tf:
+                    line = line.strip().rstrip("\n")
+                    ff.write(line)
+      os.remove(temp_file)
+
+      cdata.set_config_item_value(item, "NewDiff")
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'NewDiff'", item['value'])
+
+      cdata.load_from_svd(path)
+      os.remove(path)
+
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'Diff'", item['value'])
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('0', item['value'])
 
 
 if __name__ == '__main__':
