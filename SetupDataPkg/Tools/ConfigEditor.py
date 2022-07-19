@@ -665,7 +665,6 @@ class application(tkinter.Frame):
 
     def build_config_page_tree(self, cfg_page, parent, file_id):
         for page in cfg_page["child"]:
-            print('Printing child page: ', page)
             page_id = next(iter(page))
             # Put CFG items into related page list
             self.page_cfg_map[page_id] = file_id
@@ -890,7 +889,6 @@ class application(tkinter.Frame):
           self.left.delete(*self.left.get_children())
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
-        print(self.cfg_data_list[file_id].cfg_data_obj)
 
         self.update_last_dir(path)
         self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array()
