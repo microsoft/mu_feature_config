@@ -1261,7 +1261,7 @@ class CGenCfgData:
 
         return length
 
-    def build_cfg_list(self, cfg_name='', top=None, path=[], info={'offset': 0}):
+    def build_cfg_list(self, info, cfg_name='', top=None, path=[]):
         if top is None:
             top = self._cfg_tree
 
@@ -1271,7 +1271,7 @@ class CGenCfgData:
             path.append(key)
             if type(top[key]) is OrderedDict:
                 is_leaf = False
-                self.build_cfg_list(key, top[key], path, info)
+                self.build_cfg_list(info, key, top[key], path)
             path.pop()
 
         if is_leaf:
@@ -2010,7 +2010,7 @@ class CGenCfgData:
         self._def_dict = cfg_yaml.def_dict
         self._yaml_path = os.path.dirname(cfg_file)
         if not shallow_load:
-            self.build_cfg_list()
+            self.build_cfg_list({'offset': 0})
             self.build_var_dict()
             self.update_def_value()
         return 0

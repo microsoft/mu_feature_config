@@ -726,7 +726,7 @@ class application(tkinter.Frame):
                     gen_cfg_data.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
                 )
                 gen_cfg_data.set_cfg_tree(merged_cfg_tree)
-            gen_cfg_data.build_cfg_list()
+            gen_cfg_data.build_cfg_list({'offset': 0})
             gen_cfg_data.build_var_dict()
             gen_cfg_data.update_def_value()
         elif file_name.endswith('.xml'):

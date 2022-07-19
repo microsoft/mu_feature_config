@@ -7,8 +7,10 @@
 
 import unittest
 import os
+import base64
 
-from GenCfgData import CGenCfgData
+from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
+from GenCfgData import CGenCfgData, array_str_to_value
 
 
 class UncoreCfgUnitTests(unittest.TestCase):
@@ -24,7 +26,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
           cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
         )
       cdata.set_cfg_tree(merged_cfg_tree)
-      cdata.build_cfg_list()
+      cdata.build_cfg_list({'offset': 0})
       cdata.build_var_dict()
       cdata.update_def_value()
 
@@ -41,7 +43,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
     # test to load yml, change config, generate a delta file, and load it again
     def test_yml_generate_load_delta(self):
       cdata = CGenCfgData()
-      cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+      cdata.load_yaml("samplecfg.yaml", shallow_load=True) 
       ui_gen_cfg_data = CGenCfgData()
       ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
       # Merge the UI cfg and data cfg objects
@@ -49,7 +51,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
           cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
         )
       cdata.set_cfg_tree(merged_cfg_tree)
-      cdata.build_cfg_list()
+      cdata.build_cfg_list({'offset': 0})
       cdata.build_var_dict()
       cdata.update_def_value()
 
@@ -64,7 +66,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
       item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
       # Internally, EditText configs get ' ' added
       self.assertEqual("'New'", item['value'])
-
+      
       # generate delta only file
       cdata.generate_delta_file_from_bin(
                 path, old_data, cdata.generate_binary_array(), False
@@ -73,7 +75,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
       cdata.set_config_item_value(item, "NewNew")
       item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
       self.assertEqual("'NewNew'", item['value'])
-
+      
       try:
           cdata.override_default_value(path)
           os.remove(path)
@@ -113,7 +115,6 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
       item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
       self.assertEqual('0', item['value'])
-'''
 
     def test_yml_generate_load_svd(self):
       cdata = CGenCfgData()
@@ -125,11 +126,12 @@ class UncoreCfgUnitTests(unittest.TestCase):
           cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
         )
       cdata.set_cfg_tree(merged_cfg_tree)
-      cdata.build_cfg_list()
+      cdata.build_cfg_list({'offset': 0})
       cdata.build_var_dict()
       cdata.update_def_value()
       path = 'CGenCfgData_test_svd.svd'
 
+      # Generate delta SVD
       old_data = cdata.generate_binary_array()
 
       # change one config item
@@ -139,9 +141,57 @@ class UncoreCfgUnitTests(unittest.TestCase):
       item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
       self.assertEqual('0', item['value'])
 
-      cdata.
+      base64_path = path
+      temp_file = path + ".tmp"
 
-'''      
+      new_data = cdata.generate_binary_array()
+
+      (execs, bytes_array) = cdata.generate_delta_svd_from_bin(
+          old_data, new_data
+      )
+
+      settings = []
+      for index in range(len(execs)):
+          b64data = base64.b64encode(bytes_array[index])
+          cfg_hdr = cdata.get_item_by_index(
+              execs[index]["CfgHeader"]["indx"]
+          )
+          tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
+          settings.append(
+              ("Device.ConfigData.TagID_%08x" % tag_val, b64data.decode("utf-8"))
+          )
+      set_lib = SettingsXMLLib()
+      set_lib.create_settings_xml(
+          filename=temp_file, version=1, lsv=1, settingslist=settings
+      )
+
+      # To remove the line ends and spaces
+      with open(temp_file, "r") as tf:
+          with open(base64_path, "w") as ff:
+              for line in tf:
+                  line = line.strip().rstrip("\n")
+                  ff.write(line)
+      os.remove(temp_file)
+
+      # Change value before reloading SVD
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      cdata.set_config_item_value(item, '1')
+
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('1', item['value'])
+
+      cdata.load_from_svd(path)
+      #os.remove(path)
+
+      # Check if value is changed
+      item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+      self.assertEqual('0', item['value'])
+
+      item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
+      self.assertEqual("'PlatName'", item['value'])
+
+      # Check Full SVD
+
 
 if __name__ == '__main__':
     unittest.main()

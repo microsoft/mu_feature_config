@@ -29,6 +29,7 @@ def print_bytes(data, indent=0, offset=0, show_ascii=False):
 
 
 def get_bits_from_bytes(bytes, start, length):
+    #print("OSDDEBUG bits_from_bytes bytes: ", bytes, "\nstart: ", start, "\nlength: ", length)
     if length == 0:
         return 0
     byte_start = (start) // 8
