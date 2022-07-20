@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 
-from ctypes import sizeof
 import sys
 import re
 import struct
