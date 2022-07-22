@@ -22,6 +22,7 @@ This document is intended to describe the Setup Variable design on applicable pl
 | Revised by   | Date      | Changes           |
 | ------------ | --------- | ------------------|
 | Kun Qin   | 09/28/2021| First draft |
+| Oliver Smith-Denny | 7/22/2022 | Add Merged YAML/XML Support |
 
 ## Terms
 
@@ -68,11 +69,11 @@ in [References](#reference-documents)). This framework provides graphical user i
 flexibility to design and optimize configuration per platform usage.
 - [Configuration editor](../../../Common/MU_CONF_APPS/SetupDataPkg/Tools/ConfigEditor.py) is authored in Python which is
 host platform architecture independent and easy to update per proprietary requirements per projects need.
-- The configuration is driven by YAML file, which can be designed per platform usage. Per YAML specification, please reference
+- The configuration is driven by YAML and XML files, which can be designed per platform usage. Per YAML specification, please reference
 to Configuration YAML Spec in [References](#reference-documents).
 - The slim bootloader framework provides data structure conversion tooling from YAML to C header files, YAML to binary
-data blob out of the box. More extensions, such as output data signing, tooling servicing, will be added during development
-process.
+data blob out of the box. XML extensions have been added to support additional use cases. More extensions, such as output data signing,
+tooling servicing, will be added during the development process.
 
 ### OS Configuration Workflow
 
@@ -171,10 +172,10 @@ should all conform to policy setter and getter APIs.
 - **Silicon Drivers**: Silicon code needs to be updated to pull policy settings from silicon policy data when needed.
 - **Platform Policy Drivers**: Platform owners will first create PEI modules to populate default silicon policy into Policy
 managers provided by Project MU.
-- **Platform YAML Configurations**: Platform owners should then design the configuration YAML files. This would expose
+- **Platform YAML/XML Configurations**: Platform owners should then design the configuration YAML/XML files. This would expose
 certain configuration "knobs" from silicon policy to be configurable through setup variable flow.
 - **Platform Settings Providers**: Accordingly, platform owners will develop modules to parse the configuration data and
-translate the exposed configurations in YAML file to/from standard silicon policies through the interface of Settings
+translate the exposed configurations in YAML/XML file to/from standard silicon policies through the interface of Settings
 Provider (see example from [Project MU](../../../Common/MU/DfciPkg/Library/DfciSampleProvider/DfciSampleProvider.c)).
 
 ## Configuration Related UEFI Boot Flow
