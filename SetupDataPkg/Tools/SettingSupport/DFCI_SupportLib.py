@@ -138,9 +138,17 @@ class DFCI_SupportLib(object):
         # make an element tree from xml string
         r = None
         root = ET.fromstring(xmlstring)
+
+        # Process Settings produced by SettingsXMLLib.py
         for e in root.findall("./{urn:UefiSettings-Schema}Settings/{urn:UefiSettings-Schema}Setting"):
             i = e.find("{urn:UefiSettings-Schema}Id")
             r = e.find("{urn:UefiSettings-Schema}Value")
+            handler(i.text, r.text)
+
+        # Process SettingsCurrent from ConfApp output (from DFCI Libs)
+        for e in root.findall("./SettingsCurrent/SettingCurrent"):
+            i = e.find("Id")
+            r = e.find("Value")
             handler(i.text, r.text)
 
     def check_current_setting_value(self, resultfile, id, valuestring):
