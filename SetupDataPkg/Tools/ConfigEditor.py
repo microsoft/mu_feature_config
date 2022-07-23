@@ -10,7 +10,6 @@ import sys
 import marshal
 import base64
 from pathlib import Path
-from tkinter import font
 
 sys.dont_write_bytecode = True
 
@@ -384,8 +383,6 @@ class application(tkinter.Frame):
         # this maps page id to cfg_data index, needed for when user changes pages
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
-        # for a single yml file, do we use the old binary output or xml UEFI variable binary list
-        self.generate_different_bin_fmt_xml_yml = True
 
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
@@ -929,20 +926,8 @@ class application(tkinter.Frame):
 
         dlt_path = path
 
-        # expectation is that there is one yml file and this is a delta file
-        # from that yml file
-        #file_id = 0
-        #found_yml = False
-        #for idx in self.cfg_data_list:
-        #  if self.cfg_data_list[idx].config_type == 'yml':
-        #    found_yml = True
-        #    break
-        #  file_id += 1
-        
-        #if not found_yml:
-          # we didn't find a yml file, cannot apply delta file
-         # messagebox.showerror("LOADING ERROR", "Could not find YAML file to save delta")
-         # return
+        # assumption is there is one yaml file and one xml file
+        # yml changes get saved to dlt, xml changes get saved to csv
         for file_id in self.cfg_data_list:
             self.update_config_data_on_page()
 

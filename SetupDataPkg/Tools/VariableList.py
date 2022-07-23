@@ -35,7 +35,7 @@ class InvalidKnobError(ParseError):
         super().__init__(message)
 
 
-# Decodes a comma sepearated list within curly braces in to a list
+# Decodes a comma separated list within curly braces in to a list
 # "{1,2, 3,{A, B}} " -> ["1", "2", "3", "{A, B}"]
 def split_braces(string_object):
     segments = []
@@ -370,7 +370,7 @@ class ArrayFormat(DataFormat):
 
 
 # Represents a member of a user defined struct
-# Each member may be of any type, and maay also have a count
+# Each member may be of any type, and may also have a count
 # value to treat it as an array
 class StructMember:
     def __init__(self, schema, struct_name, xml_node):
@@ -882,7 +882,7 @@ def create_vlist_buffer(variable):
     #   Guid(16 Byte namespace Guid),
     #   Attributes(int32 UEFI attributes),
     #   Data(bytes),
-    #   CRC32(int32 checksum of all bytyes from NameSize through Data)
+    #   CRC32(int32 checksum of all bytes from NameSize through Data)
 
     # Null terminated UTF-16LE encoded name
     name = (variable.name + "\0").encode("utf-16le")
@@ -958,7 +958,7 @@ def read_vlist_from_buffer(array):
         if crc != zlib.crc32(payload):
             raise Exception("CRC mismatch")
 
-        # Decode the elementes of the payload
+        # Decode the elements of the payload
         name = payload[8:(name_size+8)].decode(encoding="UTF-16LE").strip("\0")
         guid_bytes = payload[(name_size+8):(name_size+8+16)]
         guid = uuid.UUID(bytes=guid_bytes)

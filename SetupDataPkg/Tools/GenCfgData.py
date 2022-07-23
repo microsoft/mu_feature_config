@@ -17,7 +17,6 @@ import ast
 import uuid
 from datetime import date
 from collections import OrderedDict
-from tkinter import W
 
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib      # noqa: E402
 from CommonUtility import value_to_bytearray, value_to_bytes, bytes_to_value, set_bits_to_bytes, get_bits_from_bytes
@@ -608,6 +607,8 @@ class CFG_YAML():
 
 class DefTemplate(string.Template):
     idpattern = '\([_A-Z][_A-Z0-9]*\)|[_A-Z][_A-Z0-9]*'     # noqa: W605
+
+
 class CGenCfgData:
     STRUCT = '$STRUCT'
     bits_width = {'b': 1, 'B': 8, 'W': 16, 'D': 32, 'Q': 64}
@@ -629,7 +630,6 @@ class CGenCfgData:
         self._var_dict = {}
         self._def_dict = {}
         self._yaml_path = ''
-        self.binary_array = b'' 
 
     @staticmethod
     def deep_convert_dict(layer):

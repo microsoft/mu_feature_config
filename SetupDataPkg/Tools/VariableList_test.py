@@ -47,14 +47,14 @@ class SchemaParseUnitTests(unittest.TestCase):
       <Member name="sub3" type="array_t" />
     </Struct>
   </Structs>
-  
+
   <!-- namespace indicates the GUID namespace the values are stored in -->
   <Knobs namespace="{FE3ED49F-B173-41ED-9076-356661D46A42}">
       <Knob name="k1" type="array_t" default="{{1,2,3,4}}" />
       <Knob name="k1" type="array_t" default="{{1,2,3,4}}" />
   </Knobs>
-  
-  
+ 
+
 </ConfigSchema>"""
 
     # Generates a dom with an xml snippet added to the template
@@ -103,7 +103,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Enums>""")
         self.assertRaises(InvalidNameError, Schema, dom)
 
-    def test_invalid_enum__name(self):
+    def test_invalid_enum_name(self):
         dom = self.insert_xml("""
 <Enums>
     <Enum name="1INVALID_NAME" help="Enum with invalid values">
