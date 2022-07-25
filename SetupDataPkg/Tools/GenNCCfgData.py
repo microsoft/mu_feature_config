@@ -194,7 +194,7 @@ class CGenNCCfgData:
 
         a.iterate_each_setting(path, handler)
 
-    def load_default_from_bin(self, bin_data, variable_list_format):
+    def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
         # YAML variable is included in list, XML tree should not contain it
         for var in var_list:

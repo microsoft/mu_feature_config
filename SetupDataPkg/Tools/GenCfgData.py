@@ -1434,10 +1434,10 @@ class CGenCfgData:
 
         a.iterate_each_setting(path, handler)
 
-    def load_default_from_bin(self, bin_data, variable_list_format):
+    def load_default_from_bin(self, bin_data, is_variable_list_format):
         # binary may be passed in variable list format or raw binary format
         # we only want to read the YAML variable to populate the cfg_tree
-        if (not variable_list_format):
+        if (not is_variable_list_format):
             self.set_field_value(self._cfg_tree, bin_data, True)
             return
         variables = read_vlist_from_buffer(bin_data)

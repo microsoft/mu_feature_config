@@ -805,7 +805,7 @@ class application(tkinter.Frame):
         file_id = -1
         yml_id = -1
         xml_id = -1
-        variable_list_format = True
+        is_variable_list_format = True
         for idx in self.cfg_data_list:
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
@@ -814,7 +814,7 @@ class application(tkinter.Frame):
 
         if path.endswith('.dlt'):
             file_id = yml_id
-            variable_list_format = False
+            is_variable_list_format = False
         elif path.endswith('.csv'):
             file_id = xml_id
         else:
@@ -824,7 +824,7 @@ class application(tkinter.Frame):
         # we didn't find a yml file, cannot apply delta file
         # messagebox.showerror("LOADING ERROR", "Could not find YAML file to apply delta to")
         # return
-        self.reload_config_data_from_bin(self.cfg_data_list[file_id].org_cfg_data_bin, file_id, variable_list_format)
+        self.reload_config_data_from_bin(self.cfg_data_list[file_id].org_cfg_data_bin, file_id, is_variable_list_format)
         try:
             self.cfg_data_list[file_id].cfg_data_obj.override_default_value(path)
         except Exception as e:
@@ -853,7 +853,7 @@ class application(tkinter.Frame):
             self.cfg_data_list[idx].cfg_data_obj.load_from_svd(path)
             self.refresh_config_data_page()
 
-    def load_bin_file(self, path, variable_list_format):
+    def load_bin_file(self, path, is_variable_list_format):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
         bin_len = 0
@@ -868,7 +868,7 @@ class application(tkinter.Frame):
 
         try:
             for idx in self.cfg_data_list:
-                self.reload_config_data_from_bin(bin_data, idx, variable_list_format)
+                self.reload_config_data_from_bin(bin_data, idx, is_variable_list_format)
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
@@ -994,7 +994,7 @@ class application(tkinter.Frame):
     def save_to_var_list_bin(self):
         self.save_to_bin(True)
 
-    def save_to_bin(self, variable_list_format):
+    def save_to_bin(self, is_variable_list_format):
         path = self.get_save_file_name(".bin")
         if not path:
             return
@@ -1004,7 +1004,7 @@ class application(tkinter.Frame):
             bins = b''
             for idx in self.cfg_data_list:
                 bin = None
-                if self.cfg_data_list[idx].config_type == 'yml' and variable_list_format:
+                if self.cfg_data_list[idx].config_type == 'yml' and is_variable_list_format:
                     # need to get the yml svd, base64 encode it, stuff it in UEFI Var
                     # add that to a buffer, then add that to the bin
                     svd = self.save_full_to_svd(True)
@@ -1075,8 +1075,8 @@ class application(tkinter.Frame):
         self.clear_widgets_inLayout()
         self.on_config_page_select_change(None)
 
-    def reload_config_data_from_bin(self, bin_dat, file_id, variable_list_format):
-        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat, variable_list_format)
+    def reload_config_data_from_bin(self, bin_dat, file_id, is_variable_list_format):
+        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat, is_variable_list_format)
         self.refresh_config_data_page()
 
     def set_config_item_value(self, item, value_str, file_id):
