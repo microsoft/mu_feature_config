@@ -39,6 +39,7 @@ DFCI_SETTINGS_REQUEST_NAME = 'DfciSettingsRequest'
 DFCI_SETTINGS_REQUEST_GUID = 'D41C8C24-3F5E-4EF4-8FDD-073E1866CD01'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
 
+
 def get_copyright_header(file_type, allow_modify=False):
     file_description = {
         'yaml': 'Boot Setting',
@@ -223,19 +224,21 @@ class ExpressionEval(ast.NodeVisitor):
     def generic_visit(self, node):
         raise ValueError("malformed node or string: " + repr(node))
 
+
 class Format():
-  def object_to_binary(self, object_representation):
+    def object_to_binary(self, object_representation):
         binary_representation = b''
         value = object_representation.value
         data_type = None
         # based on length, determine how to pack binary
         if object_representation.type == 'EditText':
-          data_type = "<s"
+            data_type = "<s"
         else:
-          data_type = "<I"
+            data_type = "<I"
         binary_representation += struct.pack
         binary_representation += struct.pack(data_type, value)
         return binary_representation
+
 
 class CFG_YAML():
     TEMPLATE = 'template'
@@ -1409,7 +1412,7 @@ class CGenCfgData:
                     if (key not in DICT_KEYS_KEYWORDS):
                         name = key
 
-                if name == None:
+                if name is None:
                     raise Exception("Can't find name of exec")
                 item = self.get_item_by_index(exec[name]["indx"])
                 itype = item["type"].split(",")[0]
@@ -1439,20 +1442,22 @@ class CGenCfgData:
             return
         variables = read_vlist_from_buffer(bin_data)
         for var in variables:
-          if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
-            # variable data is base64 encoded SVD
-            svd = base64.b64decode(var.data)
-            path = "varlist_svd.tmp"
-            with open(path, "w") as fd:
-                 fd.write(svd.decode('UTF-8'))
-            self.load_from_svd(path)
-            os.remove(path)
-            return
+            if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
+                # variable data is base64 encoded SVD
+                svd = base64.b64decode(var.data)
+                path = "varlist_svd.tmp"
+                with open(path, "w") as fd:
+                    fd.write(svd.decode('UTF-8'))
+                self.load_from_svd(path)
+                os.remove(path)
+                return
 
     def generate_var_list_from_svd(self, svd):
         # we need to base64 encode the entire SVD, stuff it in a UEFI var, then in a vlist buffer
         svd = base64.b64encode(bytes(svd, 'utf-8'))
-        return create_vlist_buffer(UEFIVariable(DFCI_SETTINGS_REQUEST_NAME, uuid.UUID(DFCI_SETTINGS_REQUEST_GUID), svd, attributes=7))
+        return create_vlist_buffer(
+            UEFIVariable(DFCI_SETTINGS_REQUEST_NAME, uuid.UUID(DFCI_SETTINGS_REQUEST_GUID), svd, attributes=7)
+            )
 
     def generate_binary_array(self):
         return self.get_field_value()

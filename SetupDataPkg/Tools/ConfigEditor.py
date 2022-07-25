@@ -18,6 +18,7 @@ import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
 from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
+from GenNCCfgData import CGenNCCfgData
 from GenCfgData import (                                        # noqa: E402
     CGenCfgData,
     bytes_to_value,
@@ -26,7 +27,6 @@ from GenCfgData import (                                        # noqa: E402
     array_str_to_value,
 )
 
-from GenNCCfgData import CGenNCCfgData
 
 class create_tool_tip(object):
     """
@@ -362,11 +362,12 @@ class state:
     def get(self):
         return self.state
 
+
 class cfg_data:
-  def __init__(self):
-    self.cfg_data_obj = None
-    self.org_cfg_data_bin = None
-    self.config_type = ''
+    def __init__(self):
+        self.cfg_data_obj = None
+        self.org_cfg_data_bin = None
+        self.config_type = ''
 
 
 class application(tkinter.Frame):
@@ -483,7 +484,7 @@ class application(tkinter.Frame):
             label=self.menu_string[9], command=self.load_from_raw_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[0], command=self.save_to_var_list_bin, state = "disabled"
+            label=self.menu_string[0], command=self.save_to_var_list_bin, state="disabled"
         )
         file_menu.add_command(
             label=self.menu_string[1], command=self.load_from_var_list_bin, state="disabled"
@@ -514,7 +515,8 @@ class application(tkinter.Frame):
 
         if len(sys.argv) > 1:
             path = sys.argv[1]
-            if not path.endswith('.yaml') and not path.endswith('.yml') and not path.endswith('.pkl') and not path.endswith('.xml'):
+            if not path.endswith('.yaml') and not path.endswith('.yml') \
+                and not path.endswith('.pkl') and not path.endswith('.xml'):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
@@ -529,7 +531,7 @@ class application(tkinter.Frame):
             elif path.endswith(".bin,varlist"):
                 self.load_bin_file(path, True)
             elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
-                self.load_cfg_file(path, 1)                
+                self.load_cfg_file(path, 1)
             else:
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
                 return
@@ -769,10 +771,10 @@ class application(tkinter.Frame):
         file_ext = ''
         if 'yaml' in ftype or 'yml' in ftype:
             file_type = 'YAML PKL'
-            file_ext  = 'pkl Def.yaml'
+            file_ext = 'pkl Def.yaml'
         if 'xml' in ftype:
             file_type += ' XML'
-            file_ext  += ' xml'
+            file_ext += ' xml'
         if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
             file_type = ftype.upper()
             file_ext = ftype
@@ -809,7 +811,7 @@ class application(tkinter.Frame):
                 yml_id = idx
             else:
                 xml_id = idx
-        
+
         if path.endswith('.dlt'):
             file_id = yml_id
             variable_list_format = False
@@ -818,10 +820,10 @@ class application(tkinter.Frame):
         else:
             raise Exception('Unsupported file "%s" !' % path)
 
-        #if not found_yml:
-          # we didn't find a yml file, cannot apply delta file
-        #  messagebox.showerror("LOADING ERROR", "Could not find YAML file to apply delta to")
-        #  return
+        # if not found_yml:
+        # we didn't find a yml file, cannot apply delta file
+        # messagebox.showerror("LOADING ERROR", "Could not find YAML file to apply delta to")
+        # return
         self.reload_config_data_from_bin(self.cfg_data_list[file_id].org_cfg_data_bin, file_id, variable_list_format)
         try:
             self.cfg_data_list[file_id].cfg_data_obj.override_default_value(path)
@@ -856,7 +858,7 @@ class application(tkinter.Frame):
             bin_data = bytearray(fd.read())
         bin_len = 0
         for idx in self.cfg_data_list:
-          bin_len += len(self.cfg_data_list[idx].org_cfg_data_bin)
+            bin_len += len(self.cfg_data_list[idx].org_cfg_data_bin)
 
         if len(bin_data) < bin_len:
             messagebox.showerror(
@@ -866,7 +868,7 @@ class application(tkinter.Frame):
 
         try:
             for idx in self.cfg_data_list:
-              self.reload_config_data_from_bin(bin_data, idx, variable_list_format)
+                self.reload_config_data_from_bin(bin_data, idx, variable_list_format)
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
@@ -875,15 +877,15 @@ class application(tkinter.Frame):
         self.cfg_data_list[file_id] = cfg_data()
 
         # Set up the config type to begin with
-        if path.lower().endswith ('.xml'):
+        if path.lower().endswith('.xml'):
             self.cfg_data_list[file_id].config_type = 'xml'
         else:
             self.cfg_data_list[file_id].config_type = 'yml'
 
         # If not first config file, save current values in widget and clear database
         if file_id == 0:
-          self.clear_widgets_inLayout()
-          self.left.delete(*self.left.get_children())
+            self.clear_widgets_inLayout()
+            self.left.delete(*self.left.get_children())
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
@@ -909,10 +911,10 @@ class application(tkinter.Frame):
 
     def get_save_file_name(self, extension):
         path = filedialog.asksaveasfilename(
-                  initialdir=self.last_dir,
-                  title="Save file",
-                  defaultextension=extension,
-                  filetypes=((extension + " file", "*"+extension),("All Files", "*.*")))
+            initialdir=self.last_dir,
+            title="Save file",
+            defaultextension=extension,
+            filetypes=((extension + " file", "*" + extension), ("All Files", "*.*")))
         if path:
             self.last_dir = os.path.dirname(path)
             return path
@@ -1043,7 +1045,7 @@ class application(tkinter.Frame):
             # This should match DFCI_OEM_SETTING_ID__CONF from SetupDataPkg/Include/Library/ConfigDataLib.h
             if self.cfg_data_list[file_id].config_type == 'yml':
                 settings.append(("Device.ConfigData.ConfigData", b64data.decode("utf-8")))
-            else :
+            else:
                 settings.append(("Device.RuntimeData.RuntimeData", b64data.decode("utf-8")))
 
             if gen_yml_svd:
@@ -1088,8 +1090,10 @@ class application(tkinter.Frame):
                 new_value = "'%s'" % new_value
         elif itype.upper() in ['FLOAT_KNOB', 'INTEGER_KNOB', 'ENUM_KNOB', 'BOOL_KNOB']:
             try:
-                self.cfg_data_list[file_id].cfg_data_obj.set_item_value (value_str, item)
-                new_value = self.cfg_data_list[file_id].cfg_data_obj.reformat_value_str (value_str, self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_length(item), item=item)
+                self.cfg_data_list[file_id].cfg_data_obj.set_item_value(value_str, item)
+                new_value = self.cfg_data_list[file_id].cfg_data_obj.reformat_value_str(
+                    value_str, self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_length(item), item=item
+                )
             except:
                 print("WARNING: Failed to format knob value string '%s' for '%s' !" % (value_str, item['path']))
                 new_value = item['value']
@@ -1154,7 +1158,7 @@ class application(tkinter.Frame):
             new_value = bytes_to_bracket_str(widget.get())
             self.set_config_item_value(item, new_value, file_id)
         elif itype.upper() in ['ENUM_KNOB', 'BOOL_KNOB']:
-            opt_list = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_options (item)
+            opt_list = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_options(item)
             tmp_list = [opt for opt in opt_list]
             idx = widget.current()
             self.set_config_item_value(item, tmp_list[idx], file_id)
@@ -1246,8 +1250,8 @@ class application(tkinter.Frame):
 
         elif itype.upper() in ['STRUCT_KNOB']:
             # These are only displayed as labels and show helper tags
-            ttp = create_tool_tip(name, item['help'])
-            self.set_object_name(name,   'LABEL_' + item['path'], file_id)
+            create_tool_tip(name, item['help'])
+            self.set_object_name(name, 'LABEL_' + item['path'], file_id)
             name.config(font=('calibri', 12, 'bold'))
             name.grid(row=row, column=0, padx=10, pady=5, sticky="nsew")
 
@@ -1257,15 +1261,17 @@ class application(tkinter.Frame):
 
         elif itype.upper() in ['ENUM_KNOB', 'BOOL_KNOB']:
             # Build
-            opt_list = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_options (item)
-            current_value = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_value (item, False)
+            opt_list = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_options(item)
+            current_value = self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_value(item, False)
             option_list = []
             current = None
 
             for idx, option in enumerate(opt_list):
-                option_str   = option
+                option_str = option
                 try:
-                    option_value = self.cfg_data_list[file_id].cfg_data_obj.get_value(item, len(option_str), False, option_str)
+                    option_value = self.cfg_data_list[file_id].cfg_data_obj.get_value(
+                        item, len(option_str), False, option_str
+                    )
                 except:
                     option_value = 0
                     print('WARNING: Option "%s" has invalid format for "%s" !' % (option_str, item['path']))

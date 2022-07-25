@@ -1,7 +1,7 @@
 ## @ GenNCCfgData.py
 #
-# Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
-# Copyright (c) Microsoft Corporation.
+# Copyright(c) 2020, Intel Corporation. All rights reserved.<BR>
+# Copyright(c) Microsoft Corporation.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
@@ -49,7 +49,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
                             knob_list.remove(knob)
 
         # make sure each top level knobs has a designated page
-        self.assertEqual (len(knob_list), 0)
+        self.assertEqual(len(knob_list), 0)
 
     # This is a test for loading xml file and make sure all subknobs have a shim instance for rendering
     def test_xml_subknob_to_shim(self):
@@ -71,7 +71,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             self.assertEqual(entry['help'], subknob.help)
 
         # make sure it is one-to-one mapping
-        self.assertEqual (len(subknob_list), 0)
+        self.assertEqual(len(subknob_list), 0)
 
     # Retrieving all items with a given page_id, should return all the subknobs under that id
     def test_xml_get_cfg_list(self):
@@ -107,7 +107,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         # Get only a struct knob
         for each in cdata.knob_shim:
             val = cdata.get_cfg_item_value(each, array=True)
-            self.assertEqual (val, each['inst'].format.object_to_binary(each['inst'].value))
+            self.assertEqual(val, each['inst'].format.object_to_binary(each['inst'].value))
 
     # Reformat a value string should return properly
     def test_xml_reformat_value_str(self):
@@ -149,7 +149,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         # Get only a struct knob
         for each in cdata.knob_shim:
             val = cdata.get_value(each, cdata.get_cfg_item_length(each), array=True)
-            self.assertEqual (val, each['inst'].format.object_to_binary(each['inst'].value))
+            self.assertEqual(val, each['inst'].format.object_to_binary(each['inst'].value))
 
     # Set item value should update the subknob value
     def test_xml_set_item_value(self):
@@ -213,18 +213,19 @@ class UncoreCfgUnitTests(unittest.TestCase):
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
         int_str = '1234'
         ret_str = cdata.set_item_value(int_str, item=ret)
-        self.assertNotEqual (ret_str, ret['value'])
+        self.assertNotEqual(ret_str, ret['value'])
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
         enum_str = 'THIRD'
         ret_str = cdata.set_item_value(enum_str, item=ret)
-        self.assertNotEqual (ret_str, ret['value'])
+        self.assertNotEqual(ret_str, ret['value'])
 
-        cdata.sync_shim_and_schema ()
+        cdata.sync_shim_and_schema()
 
         for each in cdata.knob_shim:
-            self.assertEqual (each['value'], each['inst'].format.object_to_string(each['inst'].value))
+            self.assertEqual(each['value'], each['inst'].format.object_to_string(each['inst'].value))
+
 
 if __name__ == '__main__':
     unittest.main()
