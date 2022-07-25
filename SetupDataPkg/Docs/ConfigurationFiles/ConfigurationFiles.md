@@ -145,3 +145,10 @@ only the YAML configurations, and then base64 encoded, as this is the format DFC
 
 The save to/load from raw bin option is for YAML only configurations and will save the raw binary
 as is used by the build process.
+
+The SVD is intended for use with the UEFI [Conf App](../../ConfApp/), which can take the SVD as input
+and give an SVD describing the current UEFI settings as an output. The SVD is formatted to be compatible
+with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
+
+The variable list output is intended for use with runtime configuration, to be consumed directly by
+components that deal with runtime configuration.

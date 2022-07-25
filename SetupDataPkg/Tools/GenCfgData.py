@@ -225,21 +225,6 @@ class ExpressionEval(ast.NodeVisitor):
         raise ValueError("malformed node or string: " + repr(node))
 
 
-class Format():
-    def object_to_binary(self, object_representation):
-        binary_representation = b''
-        value = object_representation.value
-        data_type = None
-        # based on length, determine how to pack binary
-        if object_representation.type == 'EditText':
-            data_type = "<s"
-        else:
-            data_type = "<I"
-        binary_representation += struct.pack
-        binary_representation += struct.pack(data_type, value)
-        return binary_representation
-
-
 class CFG_YAML():
     TEMPLATE = 'template'
     CONFIGS = 'configs'

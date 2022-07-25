@@ -3,13 +3,13 @@
   <xs:element name="ConfigSchema">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="Enums">
+        <xs:element name="Enums" maxOccurs="1">
           <xs:complexType>
             <xs:sequence>
-              <xs:element name="Enum">
+              <xs:element name="Enum" maxOccurs="unbounded">
                 <xs:complexType>
                   <xs:sequence>
-                    <xs:element name="EnumValue" maxOccurs="unbounded">
+                    <xs:element name="Value" maxOccurs="unbounded">
                       <xs:complexType>
                         <xs:attribute name="name" use="required" />
                         <xs:attribute name="value" type="xs:integer" use="required" />
@@ -25,67 +25,42 @@
             </xs:sequence>
           </xs:complexType>
         </xs:element>
+        <xs:element name="Structs" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Struct" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Member" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" use="required" />
+                        <xs:attribute name="type" use="required" />
+                        <xs:attribute name="count" type="xs:integer" use="optional" />
+                        <xs:attribute name="help" use="optional" />
+                        <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="name" use="required" />
+                  <xs:attribute name="help" use="optional" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
         <xs:element name="Knobs" maxOccurs="1">
           <xs:complexType>
             <xs:sequence>
               <xs:choice maxOccurs="unbounded">
-                <xs:element name="EnumKnob" maxOccurs="unbounded">
+                <xs:element name="Knob" maxOccurs="unbounded">
                   <xs:complexType>
                     <xs:attribute name="name" use="required" />
-                    <xs:attribute name="enumtype" use="required" />
+                    <xs:attribute name="type" use="required" />
                     <xs:attribute name="default" use="required" />
                     <xs:attribute name="help" use="optional" />
                     <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
                   </xs:complexType>
-                </xs:element>
-                <xs:element name="FloatKnob" maxOccurs="unbounded">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:decimal" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="DoubleKnob" maxOccurs="unbounded">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:decimal" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="Int32Knob">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:integer" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="Int64Knob">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:integer" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="BytesKnob">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:hexBinary" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="BoolKnob">
-                  <xs:complexType>
-                    <xs:attribute name="name" use="required" />
-                    <xs:attribute name="default" type="xs:boolean" use="required" />
-                    <xs:attribute name="help" use="optional" />
-                    <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
-                  </xs:complexType>
-                </xs:element>
+                </xs:element> 
               </xs:choice>
             </xs:sequence>
             <xs:attribute name="namespace" use="required" />

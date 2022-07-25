@@ -401,11 +401,11 @@ class application(tkinter.Frame):
         self.menu_string = [
             "Save Config Data to Var List Binary",
             "Load Config Data from Var List Binary",
-            'Update Config from Change File',
+            'Load Config from Change File',
             'Save Full Config Data to SVD File',
             'Save Config Changes to SVD File',
-            'Load Config Data from SVD File',
-            'Save Config Updates to Change File',
+            'Load Config Changes from SVD File',
+            'Save Config Changes to Change File',
             'Save Full Config Data to Change File',
             "Save Config Data to Raw Binary",
             "Load Config Data from Raw Binary"
