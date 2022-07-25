@@ -14,7 +14,7 @@ import base64
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib      # noqa: E402
 from CommonUtility import bytes_to_value
 from VariableList import Schema, IntValueFormat, FloatValueFormat, BoolFormat, EnumFormat, StructFormat, ArrayFormat,\
-    binarize_vlist, read_vlist_from_buffer, uefi_variables_to_knobs, write_csv, read_csv
+    vlist_to_binary, read_vlist_from_buffer, uefi_variables_to_knobs, write_csv, read_csv
 
 from GenCfgData import DFCI_SETTINGS_REQUEST_GUID
 
@@ -200,7 +200,7 @@ class CGenNCCfgData:
         self.sync_shim_and_schema ()
 
     def generate_binary_array (self):
-        return binarize_vlist (self.schema)
+        return vlist_to_binary (self.schema)
 
     def generate_binary (self, bin_file_name):
         bin_file = open(bin_file_name, "wb")

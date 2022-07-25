@@ -1,4 +1,4 @@
-# @ GenCfgData.py
+# @ VariableList_test.py
 #
 # Copyright (c) 2022, Microsoft Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -53,7 +53,7 @@ class SchemaParseUnitTests(unittest.TestCase):
       <Knob name="k1" type="array_t" default="{{1,2,3,4}}" />
       <Knob name="k1" type="array_t" default="{{1,2,3,4}}" />
   </Knobs>
- 
+
 
 </ConfigSchema>"""
 
