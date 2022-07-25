@@ -95,6 +95,10 @@
       "identityfile",
       "settingsfile",
       "resultsfile",
-      "INPUTPATH"
+      "INPUTPATH",
+      "subknob",
+      "subknobs",
+      "calcsize",
+      "dmpstore"
   ]
 }
