@@ -180,6 +180,8 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual(ret['inst'].value, 0)
 
         # Run on a float knob
+        # floats are by nature imprecise if this is read back again from cdata, it will
+        # likely show a different value, due to rounding errors. Doubles are recommended instead.
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
         val_str = '0.618'
         self.assertEqual(ret['type'], 'FLOAT_KNOB')
