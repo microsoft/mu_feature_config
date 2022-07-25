@@ -258,10 +258,10 @@ class CGenNCCfgData:
 
 def usage():
     print('\n'.join([
-                     "GenNCCfgData Version 0.1",
-                     "Usage:",
-                     "    GenNCCfgData  GENBIN  XmlFile[;CsvFile]   BinOutFile",
-                     "    GenNCCfgData  GENCSV  XmlFile[;BinFile]   CsvOutFile"
+        "GenNCCfgData Version 0.1",
+        "Usage:",
+        "    GenNCCfgData  GENBIN  XmlFile[;CsvFile]   BinOutFile",
+        "    GenNCCfgData  GENCSV  XmlFile[;BinFile]   CsvOutFile"
     ]))
 
 

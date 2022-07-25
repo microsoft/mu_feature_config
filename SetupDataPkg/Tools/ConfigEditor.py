@@ -18,7 +18,7 @@ import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
 from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
-from GenNCCfgData import CGenNCCfgData
+from GenNCCfgData import CGenNCCfgData                          # noqa: E402
 from GenCfgData import (                                        # noqa: E402
     CGenCfgData,
     bytes_to_value,
@@ -517,8 +517,8 @@ class application(tkinter.Frame):
             path = sys.argv[1]
             if not path.endswith('.yaml') and not path.endswith('.yml') \
                 and not path.endswith('.pkl') and not path.endswith('.xml'):
-                messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
-                return
+                    messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
+                    return
             else:
                 self.load_cfg_file(path, 0)
 

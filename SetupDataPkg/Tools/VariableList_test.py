@@ -132,5 +132,6 @@ class SchemaParseUnitTests(unittest.TestCase):
         # Verify the default hasn't changed
         self.assertEqual(knob.default['value'], [1, 2, 3, 4])
 
+
 if __name__ == '__main__':
     unittest.main()

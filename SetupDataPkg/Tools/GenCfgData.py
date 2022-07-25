@@ -11,7 +11,6 @@ import sys
 import re
 import marshal
 import string
-import struct
 import operator as op
 import ast
 import uuid
@@ -1442,7 +1441,7 @@ class CGenCfgData:
         svd = base64.b64encode(bytes(svd, 'utf-8'))
         return create_vlist_buffer(
             UEFIVariable(DFCI_SETTINGS_REQUEST_NAME, uuid.UUID(DFCI_SETTINGS_REQUEST_GUID), svd, attributes=7)
-            )
+        )
 
     def generate_binary_array(self):
         return self.get_field_value()

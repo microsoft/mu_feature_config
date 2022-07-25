@@ -38,8 +38,8 @@ class UncoreCfgUnitTests(unittest.TestCase):
             exec = cdata.locate_exec_from_item(cfg_item)
             # we only want to check the values that are in YML, not metadata
             if item['type'] != 'Reserved':
-            self.assertEqual(exec[item['cname']]['value'], item['value'])
-            self.assertEqual(item['value'], cfg_item['value'])
+                self.assertEqual(exec[item['cname']]['value'], item['value'])
+                self.assertEqual(item['value'], cfg_item['value'])
 
     # test to load yml, change config, generate a delta file, and load it again
     def test_yml_generate_load_delta(self):
@@ -118,7 +118,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         # Test to create and then load delta/full SVDs for YML only
-        def test_yml_generate_load_svd(self):
+    def test_yml_generate_load_svd(self):
         cdata = CGenCfgData()
         cdata.load_yaml("samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
