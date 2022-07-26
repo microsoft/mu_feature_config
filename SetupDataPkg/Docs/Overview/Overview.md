@@ -69,11 +69,11 @@ in [References](#reference-documents)). This framework provides graphical user i
 flexibility to design and optimize configuration per platform usage.
 - [Configuration editor](../../../Common/MU_CONF_APPS/SetupDataPkg/Tools/ConfigEditor.py) is authored in Python which is
 host platform architecture independent and easy to update per proprietary requirements per projects need.
-- The configuration is driven by YAML and XML files, which can be designed per platform usage. Per YAML specification, please reference
-to Configuration YAML Spec in [References](#reference-documents).
+- The configuration is driven by YAML and XML files, which can be designed per platform usage. Per YAML specification,
+please reference to Configuration YAML Spec in [References](#reference-documents).
 - The slim bootloader framework provides data structure conversion tooling from YAML to C header files, YAML to binary
-data blob out of the box. XML extensions have been added to support additional use cases. More extensions, such as output data signing,
-tooling servicing, will be added during the development process.
+data blob out of the box. XML extensions have been added to support additional use cases. More extensions,
+such as output data signing, tooling servicing, will be added during the development process.
 
 ### OS Configuration Workflow
 

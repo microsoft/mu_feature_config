@@ -6,7 +6,9 @@
 - [Revision History](#revision-history)
 - [Terms](#terms)
 - [Introduction](#introduction)
-- [Specification Differences](#specification-differences)
+- [YML Specification Differences](#yaml-specification-differences)
+- [XML Specification](#xml-specification)
+- [Merged YAML and XML Operations](#merged-yaml-and-xml-operations)
 
 ## Description
 
@@ -82,28 +84,31 @@ content to backend database and generate the same binary data blob.
 
 See [sampleschema.xml](../../Tools/sampleschema.xml) for an example XML schema.
 
-Configuration will be organized in namespaces, each consisting of various knobs. Knobs may be built of children knobs or be a leaf knob.
+Configuration will be organized in namespaces, each consisting of various knobs. Knobs may be built of children knobs
+or be a leaf knob.
 
 Supported data types are:
-  - uint8_t
-  - int8_t
-  - uint16_t
-  - int16_t
-  - uint32_t
-  - int32_t
-  - uint64_t
-  - int64_t
-  - float (note that floats are imprecise, doubles are recommend to avoid rounding errors)
-  - double
-  - bool
 
-## Merged YAML + XML Operations
+- uint8_t
+- int8_t
+- uint16_t
+- int16_t
+- uint32_t
+- int32_t
+- uint64_t
+- int64_t
+- float (note that floats are imprecise, doubles are recommend to avoid rounding errors)
+- double
+- bool
+
+## Merged YAML and XML Operations
 
 One YAML and one XML file may be loaded at the same time via the CLI as such:
 
-  ```bash
-  python ConfigEditor.py sampleschema.xml samplecfg.yaml
-  ```
+```bash
+python ConfigEditor.py sampleschema.xml samplecfg.yaml
+```
+
 When saving config changes to delta files, two files will be output: a .dlt file for the YAML
 config changes and a .csv file for the XML config changes. Either or both of these can be later
 loaded to modify the current config viewed in the ConfigEditor.
@@ -138,7 +143,6 @@ And YML Var List is:
 |      DFCI_SETTINGS_REQUEST_GUID     |
 |     Base64 Encoded YAML Only SVD    |
 |                 CRC                 |
-
 
 Where the Base64 Encoded YAML Only SVD is the Full SVD produced by the ConfigEditor app, containing
 only the YAML configurations, and then base64 encoded, as this is the format DFCI expects.
