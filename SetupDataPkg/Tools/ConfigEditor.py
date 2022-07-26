@@ -516,9 +516,9 @@ class application(tkinter.Frame):
         if len(sys.argv) > 1:
             path = sys.argv[1]
             if not path.endswith('.yaml') and not path.endswith('.yml') \
-                and not path.endswith('.pkl') and not path.endswith('.xml'):
-                    messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
-                    return
+                    and not path.endswith('.pkl') and not path.endswith('.xml'):
+                messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
+                return
             else:
                 self.load_cfg_file(path, 0)
 

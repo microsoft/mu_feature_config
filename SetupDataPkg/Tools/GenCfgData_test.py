@@ -44,7 +44,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
     # test to load yml, change config, generate a delta file, and load it again
     def test_yml_generate_load_delta(self):
         cdata = CGenCfgData()
-        cdata.load_yaml("samplecfg.yaml", shallow_load=True) 
+        cdata.load_yaml("samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
