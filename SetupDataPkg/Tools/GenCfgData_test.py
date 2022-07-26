@@ -29,7 +29,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = cdata.merge_cfg_tree(
             cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
@@ -62,7 +70,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = cdata.merge_cfg_tree(
             cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
@@ -146,7 +162,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = cdata.merge_cfg_tree(
             cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
@@ -264,7 +288,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = cdata.merge_cfg_tree(
             cdata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
@@ -358,7 +390,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             ydata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = ydata.merge_cfg_tree(
             ydata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
@@ -478,7 +518,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             ydata.load_yaml("SetupDataPkg\\Tools\\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
-        ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        if os.path.exists("samplecfg_UI.yaml"):
+            # Load for local testing
+            ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg_UI.yaml"):
+            # Load for Linux CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg/Tools/samplecfg_UI.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ui_gen_cfg_data.load_yaml("SetupDataPkg\\Tools\\samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
         merged_cfg_tree = ydata.merge_cfg_tree(
             ydata.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
