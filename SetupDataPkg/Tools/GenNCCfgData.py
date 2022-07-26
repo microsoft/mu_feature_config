@@ -84,11 +84,11 @@ class CGenNCCfgData:
         tmp_list = []
         if item['type'].upper() == "ENUM_KNOB":
             if type(item['inst'].format) is not EnumFormat:
-                raise Exception("The item is malformatted!!!")
+                raise Exception("The item is malformed!!!")
             tmp_list = [i.name for i in item['inst'].format.values]
         elif item['type'].upper() == "BOOL_KNOB":
             if type(item['inst'].format) is not BoolFormat:
-                raise Exception("The item is malformatted!!!")
+                raise Exception("The item is malformed!!!")
             tmp_list = ['true', 'false']
         return tmp_list
 
@@ -318,7 +318,7 @@ def main():
         gen_cfg_data.generate_csv_file(out_file, cfg_bin_file, cfg_bin_file2)
 
     else:
-        raise Exception("Unsuported command '%s' !" % command)
+        raise Exception("Unsupported command '%s' !" % command)
 
     return 0
 

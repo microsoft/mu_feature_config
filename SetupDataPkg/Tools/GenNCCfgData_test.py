@@ -155,7 +155,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
-        # Run on an interger knob
+        # Run on an integer knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
         val_str = '1234'
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
@@ -213,7 +213,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
-        # Run on an interger knob
+        # Run on an integer knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
         val_str = '1234'
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -284,7 +284,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             # Load for Windows CI
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
-        # Run on an interger knob
+        # Run on an integer knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
         int_str = '1234'
         ret_str = cdata.set_item_value(int_str, item=ret)

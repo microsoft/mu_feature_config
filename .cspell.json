@@ -102,6 +102,12 @@
       "calcsize",
       "dmpstore",
       "sampleschema",
-      "samplecfg"
+      "samplecfg",
+      "svdtemp",
+      "Uncore",
+      "ydata",
+      "xmlschema",
+      "configschema",
+      "GENCSV"
   ]
 }
