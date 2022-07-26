@@ -4,3 +4,7 @@ pytest-cov
 flake8
 pyopenssl
 pefile
+xmlschema
+edk2-pytool-library
+edk2-pytool-extensions
+edk2-basetools
