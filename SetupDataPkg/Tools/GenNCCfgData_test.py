@@ -26,7 +26,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         self.assertIsNotNone(cdata.schema)
         self.assertIsNotNone(cdata.schema.knobs)
@@ -71,7 +71,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         subknob_list = cdata.schema.subknobs
         for entry in cdata.knob_shim:
@@ -101,7 +101,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Get the whole set
         ret = cdata.get_cfg_list()
@@ -135,7 +135,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Get only a struct knob
         for each in cdata.knob_shim:
@@ -153,7 +153,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an interger knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
@@ -193,7 +193,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Get only a struct knob
         for each in cdata.knob_shim:
@@ -211,7 +211,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an interger knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
@@ -257,7 +257,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
@@ -282,7 +282,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
+            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an interger knob
         ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
