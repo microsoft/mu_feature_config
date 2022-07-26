@@ -19,7 +19,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
     # General test for loading yml file and making sure all config is there
     def test_yml_to_config(self):
         cdata = CGenCfgData()
-        cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            cdata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            cdata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -44,7 +52,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
     # test to load yml, change config, generate a delta file, and load it again
     def test_yml_generate_load_delta(self):
         cdata = CGenCfgData()
-        cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            cdata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            cdata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -120,7 +136,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
         # Test to create and then load delta/full SVDs for YML only
     def test_yml_generate_load_svd(self):
         cdata = CGenCfgData()
-        cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            cdata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            cdata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -230,7 +254,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
     # Test to create/load raw/varlist bins for YML only
     def test_yml_generate_load_bin(self):
         cdata = CGenCfgData()
-        cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            cdata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            cdata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            cdata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -316,7 +348,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
     def test_merged_yml_xml_generate_load_svd(self):
         # Create yml obj
         ydata = CGenCfgData()
-        ydata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            ydata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            ydata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ydata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -330,7 +370,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Create xml obj
         cdata = CGenNCCfgData()
-        cdata.load_xml('sampleschema.xml')
+        if os.path.exists("sampleschema.xml"):
+            # Load for local testing
+            cdata.load_xml("sampleschema.xml")
+        elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
+            # Load for Linux CI
+            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+        else:
+            # Load for Windows CI
+            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
 
         # Create Full SVD, Delta SVD is YML only
         item = ydata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
@@ -420,7 +468,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
     def test_merged_xml_yml_generate_load_bin(self):
         # Create yml obj
         ydata = CGenCfgData()
-        ydata.load_yaml("samplecfg.yaml", shallow_load=True)
+        if os.path.exists("samplecfg.yaml"):
+            # Load for local testing
+            ydata.load_yaml("samplecfg.yaml", shallow_load=True)
+        elif os.path.exists("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True):
+            # Load for Linux CI
+            ydata.load_yaml("SetupDataPkg/Tools/samplecfg.yaml", shallow_load=True)
+        else:
+            # Load for Windows CI
+            ydata.load_yaml("SetupDataPkg\Tools\samplecfg.yaml", shallow_load=True)
         ui_gen_cfg_data = CGenCfgData()
         ui_gen_cfg_data.load_yaml("samplecfg_UI.yaml", shallow_load=True)
         # Merge the UI cfg and data cfg objects
@@ -434,7 +490,15 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Create xml obj
         cdata = CGenNCCfgData()
-        cdata.load_xml('sampleschema.xml')
+        if os.path.exists("sampleschema.xml"):
+            # Load for local testing
+            cdata.load_xml("sampleschema.xml")
+        elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
+            # Load for Linux CI
+            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+        else:
+            # Load for Windows CI
+            cdata.load_xml("SetupDataPkg\Tools\sampleschema.xml")
 
         # Create VarList bin, raw bin is YML only
         item = ydata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
