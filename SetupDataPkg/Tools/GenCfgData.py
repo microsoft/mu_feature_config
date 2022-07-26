@@ -5,6 +5,7 @@
 #
 ##
 
+import base64
 import os
 import sys
 import re
@@ -12,10 +13,13 @@ import marshal
 import string
 import operator as op
 import ast
+import uuid
 from datetime import date
 from collections import OrderedDict
 
+from SettingSupport.DFCI_SupportLib import DFCI_SupportLib      # noqa: E402
 from CommonUtility import value_to_bytearray, value_to_bytes, bytes_to_value, set_bits_to_bytes, get_bits_from_bytes
+from VariableList import UEFIVariable, create_vlist_buffer, read_vlist_from_buffer
 
 # Generated file copyright header
 __copyright_tmp__ = """/** @file
@@ -29,6 +33,10 @@ __copyright_tmp__ = """/** @file
 
 **/
 """
+
+DFCI_SETTINGS_REQUEST_NAME = 'DfciSettingsRequest'
+DFCI_SETTINGS_REQUEST_GUID = 'D41C8C24-3F5E-4EF4-8FDD-073E1866CD01'
+DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
 
 
 def get_copyright_header(file_type, allow_modify=False):
@@ -160,7 +168,7 @@ class ExpressionEval(ast.NodeVisitor):
         else:
             return self._namespace[node.id]
 
-    def visit_Num(self, node):
+    def visit_Constant(self, node):
         return node.n
 
     def visit_NameConstant(self, node):
@@ -1240,7 +1248,7 @@ class CGenCfgData:
 
         return length
 
-    def build_cfg_list(self, cfg_name='', top=None, path=[], info={'offset': 0}):
+    def build_cfg_list(self, info, cfg_name='', top=None, path=[]):
         if top is None:
             top = self._cfg_tree
 
@@ -1250,7 +1258,7 @@ class CGenCfgData:
             path.append(key)
             if type(top[key]) is OrderedDict:
                 is_leaf = False
-                self.build_cfg_list(key, top[key], path, info)
+                self.build_cfg_list(info, key, top[key], path)
             path.pop()
 
         if is_leaf:
@@ -1342,14 +1350,105 @@ class CGenCfgData:
         result = self.parse_value(expr, 1, False)
         return result
 
-    def load_default_from_bin(self, bin_data):
-        self.set_field_value(self._cfg_tree, bin_data, True)
+    def set_config_item_value(self, item, value_str):
+        itype = item["type"].split(",")[0]
+        if itype == "Table":
+            new_value = value_str
+        elif itype == "EditText":
+            length = (self.get_cfg_item_length(item) + 7) // 8
+            new_value = value_str[:length]
+            if item["value"].startswith("'"):
+                new_value = "'%s'" % new_value
+        else:
+            try:
+                new_value = self.reformat_value_str(
+                    value_str,
+                    self.get_cfg_item_length(item),
+                    item["value"],
+                )
+            except:
+                print(
+                    "WARNING: Failed to format value string '%s' for '%s' !"
+                    % (value_str, item["path"])
+                )
+                new_value = item["value"]
+
+        if item["value"] != new_value:
+            item["value"] = new_value
+
+    def load_from_svd(self, path):
+        # this is in the config specific section as it gets called
+        # by load_default_from_bin
+        def handler(id, value):
+            if id is not None and id.startswith("Device.ConfigData.TagID_"):
+                # YML settings
+                base64_val = value.strip()
+                bin_data = base64.b64decode(base64_val)
+                tag_id = int(id.lstrip("Device.ConfigData.TagID_"), 16)
+                exec = self.locate_exec_from_tag(tag_id)
+                self.set_field_value(exec, bin_data)
+                name = None
+                # exec dict is organized into well known keys and one key that is the name of the exec
+                # we need to extract the index from this name key to find the item and change the
+                # object that is used to show updated info, as the exec only tracks the default
+                # info for generating a delta file/svd from
+                for key in exec.keys():
+                    if (key not in DICT_KEYS_KEYWORDS):
+                        name = key
+
+                if name is None:
+                    raise Exception("Can't find name of exec")
+                item = self.get_item_by_index(exec[name]["indx"])
+                itype = item["type"].split(",")[0]
+                if itype == "Combo":
+                    # combo is an index into combo options
+                    self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
+                elif itype in ["EditNum", "EditText"]:
+                    self.set_config_item_value(item, bin_data.decode())
+                elif itype in ["Table"]:
+                    new_value = bytes_to_bracket_str(bin_data)
+                    self.set_config_item_value(item, new_value)
+            elif id is not None and id.startswith("Device.ConfigData.ConfigData"):
+                # this is the full data, it is just the raw bin
+                base64_val = value.strip()
+                bin_data = base64.b64decode(base64_val)
+                self.load_default_from_bin(bin_data, False)
+
+        a = DFCI_SupportLib()
+
+        a.iterate_each_setting(path, handler)
+
+    def load_default_from_bin(self, bin_data, is_variable_list_format):
+        # binary may be passed in variable list format or raw binary format
+        # we only want to read the YAML variable to populate the cfg_tree
+        if (not is_variable_list_format):
+            self.set_field_value(self._cfg_tree, bin_data, True)
+            return
+        variables = read_vlist_from_buffer(bin_data)
+        for var in variables:
+            if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
+                # variable data is base64 encoded SVD
+                svd = base64.b64decode(var.data)
+                path = "varlist_svd.tmp"
+                with open(path, "w") as fd:
+                    fd.write(svd.decode('UTF-8'))
+                self.load_from_svd(path)
+                os.remove(path)
+                return
+
+    def generate_var_list_from_svd(self, svd):
+        # we need to base64 encode the entire SVD, stuff it in a UEFI var, then in a vlist buffer
+        svd = base64.b64encode(bytes(svd, 'utf-8'))
+        return create_vlist_buffer(
+            UEFIVariable(DFCI_SETTINGS_REQUEST_NAME, uuid.UUID(DFCI_SETTINGS_REQUEST_GUID), svd, attributes=7)
+        )
 
     def generate_binary_array(self):
         return self.get_field_value()
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
+        # called during build time, so only generate raw yml bin
         bin_file.write(self.generate_binary_array())
         bin_file.close()
         return 0
@@ -1406,7 +1505,7 @@ class CGenCfgData:
         return error
 
     def generate_delta_file_from_bin(self, delta_file, old_data, new_data, full=False):
-        self.load_default_from_bin(new_data)
+        self.load_default_from_bin(new_data, False)
         lines = []
         platform_id = None
         def_platform_id = 0
@@ -1438,7 +1537,7 @@ class CGenCfgData:
         return 0
 
     def generate_delta_svd_from_bin(self, old_data, new_data):
-        self.load_default_from_bin(new_data)
+        self.load_default_from_bin(new_data, False)
         items = []
 
         for item in self._cfg_list:
@@ -1900,7 +1999,7 @@ class CGenCfgData:
         self._def_dict = cfg_yaml.def_dict
         self._yaml_path = os.path.dirname(cfg_file)
         if not shallow_load:
-            self.build_cfg_list()
+            self.build_cfg_list({'offset': 0})
             self.build_var_dict()
             self.update_def_value()
         return 0
@@ -2023,6 +2122,7 @@ def main():
 
     if command == "GENBIN":
         if len(file_list) == 3:
+            # for the build time generated bin, store the yml data in raw bin format as FW expects
             old_data = gen_cfg_data.generate_binary_array()
             fi = open(file_list[2], 'rb')
             new_data = bytearray(fi.read())
@@ -2030,7 +2130,7 @@ def main():
             if len(new_data) != len(old_data):
                 raise Exception("Binary file '%s' length does not match, ignored !" % file_list[2])
             else:
-                gen_cfg_data.load_default_from_bin(new_data)
+                gen_cfg_data.load_default_from_bin(new_data, False)
                 gen_cfg_data.override_default_value(dlt_file)
 
         gen_cfg_data.generate_binary(out_file)

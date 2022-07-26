@@ -10,6 +10,7 @@
   "ignorePaths": [
       "*.exe",
       "SetupDataPkg/Tools/CommonUtility_test.py"
+
   ],
   "ignoreWords": [],
   "words": [
@@ -99,6 +100,14 @@
       "subknob",
       "subknobs",
       "calcsize",
-      "dmpstore"
+      "dmpstore",
+      "sampleschema",
+      "samplecfg",
+      "svdtmp",
+      "Uncore",
+      "ydata",
+      "xmlschema",
+      "configschema",
+      "GENCSV"
   ]
 }

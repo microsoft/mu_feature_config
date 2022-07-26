@@ -18,41 +18,39 @@ class SettingsXMLLib(object):
     #
     def create_settings_xml(self, filename, version, lsv, settingslist):
 
-        f = open(filename, "w")
-        f.write('<?xml version="1.0" encoding="utf-8"?>\n')
-        f.write('<SettingsPacket xmlns="urn:UefiSettings-Schema">\n')
-        f.write('    <CreatedBy>Dfci Testcase Libraries</CreatedBy>\n')
-        f.write('    <CreatedOn>')
+        with open(filename, "w") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write('<SettingsPacket xmlns="urn:UefiSettings-Schema">\n')
+            f.write('    <CreatedBy>Dfci Testcase Libraries</CreatedBy>\n')
+            f.write('    <CreatedOn>')
 
-        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), end='', file=f)
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), end='', file=f)
 
-        f.write('</CreatedOn>\n')
-        f.write('    <Version>')
-        print(version, end='', file=f)
-        f.write('</Version>\n')
-        f.write('    <LowestSupportedVersion>')
-        print(lsv, end='', file=f)
-        f.write('</LowestSupportedVersion>\n')
-        f.write('    <Settings>\n')
+            f.write('</CreatedOn>\n')
+            f.write('    <Version>')
+            print(version, end='', file=f)
+            f.write('</Version>\n')
+            f.write('    <LowestSupportedVersion>')
+            print(lsv, end='', file=f)
+            f.write('</LowestSupportedVersion>\n')
+            f.write('    <Settings>\n')
 
-        #
-        # The settings list is a list of a list.  The lowest level list is really a tuple of
-        # setting id and value
-        #
-        for setting in settingslist:
-            f.write('        <Setting>\n')
-            f.write('            <Id>')
-            print(setting[0], end='', file=f)
-            f.write('</Id>\n')
-            f.write('            <Value>')
-            print(setting[1], end='', file=f)
-            f.write('</Value>\n')
-            f.write('        </Setting>\n')
+            #
+            # The settings list is a list of a list.  The lowest level list is really a tuple of
+            # setting id and value
+            #
+            for setting in settingslist:
+                f.write('        <Setting>\n')
+                f.write('            <Id>')
+                print(setting[0], end='', file=f)
+                f.write('</Id>\n')
+                f.write('            <Value>')
+                print(setting[1], end='', file=f)
+                f.write('</Value>\n')
+                f.write('        </Setting>\n')
 
-        f.write('    </Settings>\n')
-        f.write('</SettingsPacket>\n')
-
-        f.close
+            f.write('    </Settings>\n')
+            f.write('</SettingsPacket>\n')
 
         return True
 

@@ -252,6 +252,7 @@ class EnumFormat(DataFormat):
 
         self.help = xml_node.getAttribute("help")
         self.values = []
+        self.default = 0
 
         super().__init__(c_type=self.name)
 
@@ -971,14 +972,14 @@ def write_csv(schema, csv_path, subknobs=True):
             for subknob in schema.subknobs:
                 writer.writerow([
                     subknob.name,
-                    subknob.format.object_to_string(subknob.default),
+                    subknob.format.object_to_string(subknob.value),
                     subknob.help])
         else:
             writer.writerow(['Knob', 'Value', 'Help'])
             for knob in schema.knobs:
                 writer.writerow([
                     knob.name,
-                    knob.format.object_to_string(knob.default),
+                    knob.format.object_to_string(knob.value),
                     knob.help])
 
 
