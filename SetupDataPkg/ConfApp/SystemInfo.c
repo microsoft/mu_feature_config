@@ -89,7 +89,7 @@ PrintVersion (
   if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
     DEBUG ((DEBUG_ERROR, "EfiLocateProtocolBuffer(gEfiFirmwareManagementProtocolGuid) returned error.  %r \n", Status));
     goto Done;
-  } else if (Status != EFI_NOT_FOUND) {
+  } else if (Status == EFI_NOT_FOUND) {
     Print (L"No Firmware Management Protocols Installed!\n");
     Status = EFI_SUCCESS;
     goto Done;
