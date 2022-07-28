@@ -146,7 +146,7 @@ class DFCI_SupportLib(object):
             handler(i.text, r.text)
 
         # Process SettingsCurrent from ConfApp output (from DFCI Libs)
-        for e in root.findall("./SettingsCurrent/SettingCurrent"):
+        for e in root.findall("./Settings/SettingCurrent"):
             i = e.find("Id")
             r = e.find("Value")
             handler(i.text, r.text)
