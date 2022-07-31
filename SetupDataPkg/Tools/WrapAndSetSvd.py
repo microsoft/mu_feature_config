@@ -76,8 +76,6 @@ def main():
   if ret != 0:
     raise Exception ('Failed to generate package - %x' % ret)
 
-  # We are not going to conver this Unsigned_Settings_apply.bin file into dfi file until being asked..
-
   with open (os.path.join(sp, setting_file), 'rb') as file:
     var = file.read()
     UefiVar = UefiVariable()
