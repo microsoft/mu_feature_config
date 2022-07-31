@@ -26,10 +26,17 @@ class CertProvisioningApplyVariable(object):
     HEADER_SIG_VALUE = "MSPA"
     VERSION_V1 = 1
     VERSION_V2 = 2
-    IDENTITY_MAP = ["NONE", "OWNER CERT", "USER CERT", "USER1 CERT", "USER2 CERT", "ZTC CERT"]
+    IDENTITY_MAP = [
+        "NONE",
+        "OWNER CERT",
+        "USER CERT",
+        "USER1 CERT",
+        "USER2 CERT",
+        "ZTC CERT",
+    ]
 
     def __init__(self, filestream=None, HdrVersion=1):
-        if (HdrVersion != self.VERSION_V1 and HdrVersion != self.VERSION_V2):
+        if HdrVersion != self.VERSION_V1 and HdrVersion != self.VERSION_V2:
             raise Exception("Invalid version specified")
 
         self.TestSignature = None
@@ -55,14 +62,14 @@ class CertProvisioningApplyVariable(object):
         self.SerialOffset = 0
         self.TrustedCertOffset = 0
 
-        if(filestream is not None):
+        if filestream is not None:
             self.PopulateFromFileStream(filestream)
 
     #
     # Method to un-serialize from a filestream
     #
     def PopulateFromFileStream(self, fs):
-        if(fs is None):
+        if fs is None:
             raise Exception("Invalid File stream")
 
         # only populate from file stream those parts that are complete in the file stream
@@ -72,7 +79,7 @@ class CertProvisioningApplyVariable(object):
         fs.seek(offset)
 
         # size of the static header data
-        if((end - offset) < self.STATIC_STRUCT_SIZE_V1):
+        if (end - offset) < self.STATIC_STRUCT_SIZE_V1:
             raise Exception("Invalid file stream size")
 
         self.HeaderSignature = fs.read(4).decode()
@@ -80,13 +87,13 @@ class CertProvisioningApplyVariable(object):
             raise Exception("Incorrect Header Signature")
         self.HeaderVersion = struct.unpack("=B", fs.read(1))[0]
 
-        if (self.HeaderVersion == self.VERSION_V1):
+        if self.HeaderVersion == self.VERSION_V1:
             self.Identity = struct.unpack("=B", fs.read(1))[0]
             self.SNTarget = struct.unpack("=Q", fs.read(8))[0]
             self.SessionId = struct.unpack("=I", fs.read(4))[0]
             self.TrustedCertSize = struct.unpack("=H", fs.read(2))[0]
             self.TrustedCert = None
-        elif (self.HeaderVersion == self.VERSION_V2):
+        elif self.HeaderVersion == self.VERSION_V2:
             self.Identity = struct.unpack("=B", fs.read(1))[0]
             Temp = struct.unpack("=B", fs.read(1))[0]
             if Temp != 0:
@@ -111,15 +118,19 @@ class CertProvisioningApplyVariable(object):
             if self.Version < self.Lsv:
                 raise Exception("Invalid Lsv - must not be > Version")
 
-            if ((self.MfgOffset >= self.ProductOffset)
-               or (self.ProductOffset >= self.SerialOffset)
-               or (self.SerialOffset >= self.TrustedCertOffset)):
+            if (
+                (self.MfgOffset >= self.ProductOffset)
+                or (self.ProductOffset >= self.SerialOffset)
+                or (self.SerialOffset >= self.TrustedCertOffset)
+            ):
                 raise Exception("Invalid Offset Structure")
 
             Temp = fs.tell()
             if Temp != self.MfgOffset:
                 raise Exception("Invalid Mfg Offset")
-            self.Manufacturer = fs.read(self.ProductOffset - self.MfgOffset - 1).decode()
+            self.Manufacturer = fs.read(
+                self.ProductOffset - self.MfgOffset - 1
+            ).decode()
             Temp = struct.unpack("=B", fs.read(1))[0]
             if Temp != 0:
                 raise Exception("Invalid NULL in Mfg")
@@ -127,7 +138,9 @@ class CertProvisioningApplyVariable(object):
             Temp = fs.tell()
             if Temp != self.ProductOffset:
                 raise Exception("Invalid Product Offset")
-            self.ProductName = fs.read(self.SerialOffset - self.ProductOffset - 1).decode()
+            self.ProductName = fs.read(
+                self.SerialOffset - self.ProductOffset - 1
+            ).decode()
             Temp = struct.unpack("=B", fs.read(1))[0]
             if Temp != 0:
                 raise Exception("Invalid NULL in ProductName")
@@ -135,7 +148,9 @@ class CertProvisioningApplyVariable(object):
             Temp = fs.tell()
             if Temp != self.SerialOffset:
                 raise Exception("Invalid SerialOffset Offset")
-            self.SerialNumber = fs.read(self.TrustedCertOffset - self.SerialOffset - 1).decode()
+            self.SerialNumber = fs.read(
+                self.TrustedCertOffset - self.SerialOffset - 1
+            ).decode()
             Temp = struct.unpack("=B", fs.read(1))[0]
             if Temp != 0:
                 raise Exception("Invalid NULL in SerialNumber")
@@ -147,17 +162,17 @@ class CertProvisioningApplyVariable(object):
         else:
             raise Exception("Invalid header version")
 
-        if((end - fs.tell()) < self.TrustedCertSize):
+        if (end - fs.tell()) < self.TrustedCertSize:
             raise Exception("Invalid file stream size (Trusted Cert Size)")
 
-        if(self.TrustedCertSize > 0):
+        if self.TrustedCertSize > 0:
             self.TrustedCert = memoryview(fs.read(self.TrustedCertSize))
 
-        if((end - fs.tell()) > 0):
-            if(self.TrustedCertSize > 0):
+        if (end - fs.tell()) > 0:
+            if self.TrustedCertSize > 0:
                 self.TestSignature = WinCert.Factory(fs)
 
-        if((end - fs.tell()) > 0):
+        if (end - fs.tell()) > 0:
             self.Signature = WinCert.Factory(fs)
 
     #
@@ -167,11 +182,14 @@ class CertProvisioningApplyVariable(object):
         print("CertProvisioningVariable")
         print("  HeaderSignature:  %s" % self.HeaderSignature)
         print("  HeaderVersion:    0x%X" % self.HeaderVersion)
-        print("  Identity:         0x%X (%s)" % (self.Identity, self.IDENTITY_MAP[self.Identity]))
+        print(
+            "  Identity:         0x%X (%s)"
+            % (self.Identity, self.IDENTITY_MAP[self.Identity])
+        )
         print("  SessionId:        0x%X" % self.SessionId)
-        if (self.HeaderVersion == self.VERSION_V1):
+        if self.HeaderVersion == self.VERSION_V1:
             print("  SN Target:        %d" % self.SNTarget)
-        elif (self.HeaderVersion == self.VERSION_V2):
+        elif self.HeaderVersion == self.VERSION_V2:
             print("  Version:          %s" % self.Version)
             print("  Lsv:              %s" % self.Lsv)
             print("  Manufacturer:     %s" % self.Manufacturer)
@@ -182,27 +200,27 @@ class CertProvisioningApplyVariable(object):
 
         print("  TrustedCertSize:  0x%X" % self.TrustedCertSize)
         print("  TrustedCert:    ")
-        if(self.TrustedCert is not None):
+        if self.TrustedCert is not None:
             ndbl = self.TrustedCert.tolist()
             PrintByteList(ndbl)
 
-        if(self.TrustedCertSize > 0) and (self.TestSignature is not None):
+        if (self.TrustedCertSize > 0) and (self.TestSignature is not None):
             print("  TestSignature:   ")
             self.TestSignature.Print()
 
-        if(self.Signature is not None):
+        if self.Signature is not None:
             print("  Signature:   ")
             self.Signature.Print()
 
     def Write(self, fs):
-        fs.write(self.HeaderSignature.encode('utf-8'))
+        fs.write(self.HeaderSignature.encode("utf-8"))
         fs.write(struct.pack("=B", self.HeaderVersion))
         fs.write(struct.pack("=B", self.Identity))
-        if (self.HeaderVersion == self.VERSION_V1):
+        if self.HeaderVersion == self.VERSION_V1:
             fs.write(struct.pack("=Q", self.SNTarget))
             fs.write(struct.pack("=I", self.SessionId))
             fs.write(struct.pack("=H", self.TrustedCertSize))
-        elif (self.HeaderVersion == self.VERSION_V2):
+        elif self.HeaderVersion == self.VERSION_V2:
             fs.write(struct.pack("=B", 0))
             fs.write(struct.pack("=B", 0))
             fs.write(struct.pack("=I", self.SessionId))
@@ -217,28 +235,28 @@ class CertProvisioningApplyVariable(object):
             fs.write(struct.pack("=H", 0))  # Alignment UINT16
             fs.write(struct.pack("=I", self.Version))
             fs.write(struct.pack("=I", self.Lsv))
-            fs.write(self.Manufacturer.encode('utf-8'))
+            fs.write(self.Manufacturer.encode("utf-8"))
             fs.write(struct.pack("=B", 0))  # NULL Terminator
-            fs.write(self.ProductName.encode('utf-8'))
+            fs.write(self.ProductName.encode("utf-8"))
             fs.write(struct.pack("=B", 0))  # NULL Terminator
-            fs.write(self.SerialNumber.encode('utf-8'))
+            fs.write(self.SerialNumber.encode("utf-8"))
             fs.write(struct.pack("=B", 0))  # NULL Terminator
 
         else:
             raise Exception("Invalid header version")
 
-        if(self.TrustedCertSize != 0):
+        if self.TrustedCertSize != 0:
             fs.write(self.TrustedCert)
-        if(self.TestSignature is not None):
+        if self.TestSignature is not None:
             self.TestSignature.Write(fs)
-        if(self.Signature is not None):
+        if self.Signature is not None:
             self.Signature.Write(fs)
 
     def VerifyComplete(self):
-        if(self.TrustedCertSize > 0):
-            if(not self.TestSignature):
+        if self.TrustedCertSize > 0:
+            if not self.TestSignature:
                 return False
-        if(not self.Signature):
+        if not self.Signature:
             return False
 
         return True
@@ -247,7 +265,7 @@ class CertProvisioningApplyVariable(object):
         return self.IDENTITY_MAP[self.Identity]
 
     def WriteCert(self, fs):
-        if(self.TrustedCertSize != 0):
+        if self.TrustedCertSize != 0:
             fs.write(self.TrustedCert)
 
 
@@ -261,7 +279,7 @@ class CertProvisioningResultVariable(object):
     VERSION = 1
 
     def __init__(self, filestream=None):
-        if(filestream is None):
+        if filestream is None:
             self.HeaderSignature = self.HEADER_SIG_VALUE
             self.HeaderVersion = self.VERSION
             self.Status = 0
@@ -274,7 +292,7 @@ class CertProvisioningResultVariable(object):
     # Method to un-serialize from a filestream
     #
     def PopulateFromFileStream(self, fs):
-        if(fs is None):
+        if fs is None:
             raise Exception("Invalid File stream")
 
         # only populate from file stream those parts that are complete in the file stream
@@ -284,14 +302,14 @@ class CertProvisioningResultVariable(object):
         fs.seek(offset)
 
         # size of the static header data
-        if((end - offset) < self.STATIC_STRUCT_SIZE):
+        if (end - offset) < self.STATIC_STRUCT_SIZE:
             raise Exception("Invalid file stream size")
 
         self.HeaderSignature = fs.read(4).decode()
         if self.HeaderSignature != self.HEADER_SIG_VALUE:
             raise Exception("Incorrect Header Signature")
         self.HeaderVersion = struct.unpack("=B", fs.read(1))[0]
-        if (self.HeaderVersion != self.VERSION):
+        if self.HeaderVersion != self.VERSION:
             raise Exception("Incorrect Header Version")
         self.Identity = struct.unpack("=B", fs.read(1))[0]
         self.SessionId = struct.unpack("=I", fs.read(4))[0]
@@ -304,13 +322,18 @@ class CertProvisioningResultVariable(object):
         print("CertProvisioningResultVariable")
         print("  HeaderSignature:  %s" % self.HeaderSignature)
         print("  HeaderVersion:    0x%X" % self.HeaderVersion)
-        print("  Identity:         0x%X (%s)" % (self.Identity,
-              CertProvisioningApplyVariable.IDENTITY_MAP[self.Identity]))
+        print(
+            "  Identity:         0x%X (%s)"
+            % (self.Identity, CertProvisioningApplyVariable.IDENTITY_MAP[self.Identity])
+        )
         print("  SessionId:        0x%X" % self.SessionId)
-        print("  Status:           %s (0x%X)" % (UefiStatusCode().Convert64BitToString(self.Status), self.Status))
+        print(
+            "  Status:           %s (0x%X)"
+            % (UefiStatusCode().Convert64BitToString(self.Status), self.Status)
+        )
 
     def Write(self, fs):
-        fs.write(self.HeaderSignature.encode('utf-8'))
+        fs.write(self.HeaderSignature.encode("utf-8"))
         fs.write(struct.pack("=B", self.HeaderVersion))
         fs.write(struct.pack("=B", self.Identity))
         fs.write(struct.pack("=I", self.SessionId))
