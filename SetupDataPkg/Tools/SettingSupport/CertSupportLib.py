@@ -22,7 +22,6 @@ CertMgrPath = None
 
 
 class CertSupportLib(object):
-
     def get_thumbprint_from_pfx(self, pfxfilename=None):
         global CertMgrPath
 
@@ -44,8 +43,10 @@ class CertSupportLib(object):
 
             parameters = " /c " + pfxfilename
             ret = RunCmd(CertMgrPath, parameters, outfile=t_file)
-            if(ret != 0):
-                logging.critical("Failed to get cert info from Pfx file using CertMgr.exe")
+            if ret != 0:
+                logging.critical(
+                    "Failed to get cert info from Pfx file using CertMgr.exe"
+                )
                 return ret
             f = open(t_file, "r")
 
@@ -57,16 +58,16 @@ class CertSupportLib(object):
             found = False
             for a in pfx_details:
                 a = a.strip()
-                if(len(a)):
-                    if(found):
-                        thumbprint = ''.join(a.split())
+                if len(a):
+                    if found:
+                        thumbprint = "".join(a.split())
                         break
                     else:
-                        if(a == "SHA1 Thumbprint::"):
+                        if a == "SHA1 Thumbprint::":
                             found = True
 
-            if(len(thumbprint) != 40) or (found is False):
-                return 'No thumbprint'
+            if (len(thumbprint) != 40) or (found is False):
+                return "No thumbprint"
 
         except:
             traceback.print_exc()
