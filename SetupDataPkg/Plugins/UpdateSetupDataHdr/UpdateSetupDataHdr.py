@@ -8,26 +8,25 @@
 
 import logging
 import os
-import shutil
-import xml.etree.ElementTree
 from edk2toolext.environment.plugintypes.uefi_build_plugin import IUefiBuildPlugin
 from edk2toollib.utility_functions import RunPythonScript
+
 
 class UpdateSetupDataHdr(IUefiBuildPlugin):
 
     # Attempt to run GenCfgData to generate C header files
     #
-    # Consumes build environement variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
+    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
     # "CONF_DATA_STRUCT_FOLDER" and "UPDATE_CONF_HDR"
     def do_pre_build(self, thebuilder):
         need_update = thebuilder.env.GetValue("UPDATE_CONF_HDR")
         if need_update is None or need_update.upper() != "TRUE":
-            logging.info ("YAML file not specified, system might not work as expected!!!")
+            logging.info("YAML file not specified, system might not work as expected!!!")
             return 0
 
         final_dir = thebuilder.env.GetValue("CONF_DATA_STRUCT_FOLDER")
         if final_dir is None or not os.path.isdir(final_dir):
-            logging.error ("Invalid CONF_DATA_STRUCT_FOLDER configured!!!")
+            logging.error("Invalid CONF_DATA_STRUCT_FOLDER configured!!!")
             return -1
 
         # Set up a playground first
@@ -41,10 +40,10 @@ class UpdateSetupDataHdr(IUefiBuildPlugin):
 
         conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
         if conf_file is None:
-            logging.warn ("YAML file not specified, system might not work as expected!!!")
+            logging.warn("YAML file not specified, system might not work as expected!!!")
             return 0
         if not os.path.isfile(conf_file):
-            logging.error ("YAML file specified is not found!!!")
+            logging.error("YAML file specified is not found!!!")
             return -1
         params.append(conf_file)
 

@@ -32,3 +32,9 @@ jobs:
     - script: sudo apt-get install mingw-w64
       displayName: Install Windows Resource Compiler for Linux
 
+- template: python_templates/build-test-job.yml
+  parameters:
+    vm_image: 'ubuntu-latest'
+    root_package_folder: "SetupDataPkg/Tools"
+    name: 'ubuntu'
+    codecov_enabled: true

@@ -8,13 +8,14 @@ import logging
 from edk2toolext.environment import shell_environment
 from edk2toolext.invocables.edk2_ci_build import CiBuildSettingsManager
 from edk2toolext.invocables.edk2_ci_setup import CiSetupSettingsManager
-from edk2toolext.invocables.edk2_setup import SetupSettingsManager, RequiredSubmodule
+from edk2toolext.invocables.edk2_setup import SetupSettingsManager
 from edk2toolext.invocables.edk2_update import UpdateSettingsManager
 from edk2toolext.invocables.edk2_pr_eval import PrEvalSettingsManager
 from edk2toollib.utility_functions import GetHostInfo
 
 
-class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManager, PrEvalSettingsManager):
+class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManager,
+               PrEvalSettingsManager):
 
     def __init__(self):
         self.ActualPackages = []
@@ -30,8 +31,10 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
 
     def AddCommandLineOptions(self, parserObj):
         group = parserObj.add_mutually_exclusive_group()
-        group.add_argument("-force_piptools", "--fpt", dest="force_piptools", action="store_true", default=False, help="Force the system to use pip tools")
-        group.add_argument("-no_piptools", "--npt", dest="no_piptools", action="store_true", default=False, help="Force the system to not use pip tools")
+        group.add_argument("-force_piptools", "--fpt", dest="force_piptools", action="store_true", default=False,
+                           help="Force the system to use pip tools")
+        group.add_argument("-no_piptools", "--npt", dest="no_piptools", action="store_true", default=False,
+                           help="Force the system to not use pip tools")
 
     def RetrieveCommandLineOptions(self, args):
         super().RetrieveCommandLineOptions(args)
@@ -78,8 +81,8 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
         if(len(unsupported) > 0):
             logging.critical(
                 "Unsupported Package Requested: " + " ".join(unsupported))
-            raise Exception("Unsupported Package Requested: " +
-                            " ".join(unsupported))
+            raise Exception("Unsupported Package Requested: "
+                            + " ".join(unsupported))
         self.ActualPackages = list_of_requested_packages
 
     def SetArchitectures(self, list_of_requested_architectures):
@@ -108,8 +111,8 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
         if(len(unsupported) > 0):
             logging.critical(
                 "Unsupported Targets Requested: " + " ".join(unsupported))
-            raise Exception("Unsupported Targets Requested: " +
-                            " ".join(unsupported))
+            raise Exception("Unsupported Targets Requested: "
+                            + " ".join(unsupported))
         self.ActualTargets = list_of_requested_target
 
     # ####################################################################################### #
@@ -129,13 +132,13 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
                 is_linux = GetHostInfo().os.upper() == "LINUX"
                 # try and import the pip module for basetools
                 try:
-                    import edk2basetools
+                    import edk2basetools    # noqa: F401
                     self.UseBuiltInBaseTools = True
                 except ImportError:
                     self.UseBuiltInBaseTools = False
                     pass
 
-            if self.UseBuiltInBaseTools == True:
+            if self.UseBuiltInBaseTools is True:
                 scopes += ('pipbuild-unix',) if is_linux else ('pipbuild-win',)
                 logging.warning("Using Pip Tools based BaseTools")
             else:

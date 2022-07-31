@@ -599,6 +599,69 @@ ConfAppSecureBootSelectMore (
 }
 
 /**
+  Unit test for SecureBoot page when selecting clear option.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSecureBootSelectClear (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  SECURE_BOOT_PAYLOAD_INFO  SBKey[2] = {
+    { .SecureBootKeyName = L"Dummy Key 1" },
+    { .SecureBootKeyName = L"Dummy Key 2" },
+  };
+
+  mSecureBootKeys      = SBKey;
+  mSecureBootKeysCount = 2;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_NONE);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  // Initial run
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '0' + mSecureBootKeysCount;
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootClear);
+
+  Status = SecureBootMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSecBootState, SecureBootWait);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
   Unit test for SecureBoot page when selecting secure boot options after ready to boot.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
@@ -782,8 +845,9 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Secure Boot page should initialize properly", "NormalInit", ConfAppSecureBootInit, NULL, SecureBootCleanup, NULL);
   AddTestCase (MiscTests, "Secure Boot page select Esc should go to previous menu", "SelectEsc", ConfAppSecureBootSelectEsc, NULL, SecureBootCleanup, NULL);
   AddTestCase (MiscTests, "Secure Boot page select others should do nothing", "SelectOther", SecureBootSelectOther, NULL, SecureBootCleanup, NULL);
-  AddTestCase (MiscTests, "Secure Boot page should boot to single option", "SecureBootSingle", SecureBootSelectOne, NULL, SecureBootCleanup, NULL);
-  AddTestCase (MiscTests, "Secure Boot page should boot to multiple options", "SecureBootMultiple", ConfAppSecureBootSelectMore, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should change to the first selection", "SecureBootOne", SecureBootSelectOne, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should change to non-first selection", "SecureBootMore", ConfAppSecureBootSelectMore, NULL, SecureBootCleanup, NULL);
+  AddTestCase (MiscTests, "Secure Boot page should change to clear enrolled settings", "SelectClear", ConfAppSecureBootSelectClear, NULL, SecureBootCleanup, NULL);
   AddTestCase (MiscTests, "Secure Boot page should block selecting options post RTB", "PostRTB", ConfAppSecureBootPostRTB, NULL, SecureBootCleanup, NULL);
   AddTestCase (MiscTests, "Secure Boot page should success updating for selected options", "UpdateKey", ConfAppSecureBootUpdateKeys, NULL, SecureBootCleanup, NULL);
 

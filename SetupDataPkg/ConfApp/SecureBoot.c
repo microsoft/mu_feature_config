@@ -165,7 +165,7 @@ PrintSBOptions (
   EnrollTextColor = SecureBootEnrollTemplate.DescriptionTextAttr;
   EnrollEndState  = SecureBootEnrollTemplate.EndState;
   ClearTextColor  = SecureBootClearTemplate.DescriptionTextAttr;
-  ClearEndState   = SecureBootEnrollTemplate.EndState;
+  ClearEndState   = SecureBootClearTemplate.EndState;
   if ((mCurrentState != MU_SB_CONFIG_NONE) && IsPostReadyToBoot ()) {
     gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK));
     Print (L"Post ready to boot, below options are view only:\n");

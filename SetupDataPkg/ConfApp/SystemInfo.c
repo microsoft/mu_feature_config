@@ -16,6 +16,7 @@
 #include <Library/MuUefiVersionLib.h>
 #include <Library/UefiLib.h>
 #include <Library/ConfigDataLib.h>
+#include <Library/FmpDeviceLib.h>
 
 #include "ConfApp.h"
 
@@ -63,32 +64,119 @@ PrintVersion (
   VOID
   )
 {
-  EFI_STATUS  Status;
-  CHAR16      *Buffer = NULL;
-  UINTN       Length  = 0;
+  EFI_STATUS                        Status;
+  EFI_FIRMWARE_MANAGEMENT_PROTOCOL  **FmpList;
+  UINTN                             FmpCount;
+  UINTN                             Index;
+  EFI_FIRMWARE_MANAGEMENT_PROTOCOL  *Fmp;
+  UINTN                             DescriptorSize;
+  EFI_FIRMWARE_IMAGE_DESCRIPTOR     *FmpImageInfoBuf;
+  UINT8                             FmpImageInfoCount;
+  UINT32                            FmpImageInfoDescriptorVer;
+  UINTN                             ImageInfoSize;
+  UINT32                            PackageVersion;
+  CHAR16                            *PackageVersionName;
 
-  Status = GetBuildDateStringUnicode (NULL, &Length);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    DEBUG ((DEBUG_ERROR, "%a Get the size of build date string returns unexpected - %r\n", __FUNCTION__, Status));
-    ASSERT (FALSE);
-    Status = EFI_DEVICE_ERROR;
-    return Status;
+  FmpImageInfoBuf    = NULL;
+  Fmp                = NULL;
+  FmpList            = NULL;
+  PackageVersionName = NULL;
+
+  //
+  // Get all FMP instances and then use the descriptor to get string name and version
+  //
+  Status = EfiLocateProtocolBuffer (&gEfiFirmwareManagementProtocolGuid, &FmpCount, (VOID *)&FmpList);
+  if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
+    DEBUG ((DEBUG_ERROR, "EfiLocateProtocolBuffer(gEfiFirmwareManagementProtocolGuid) returned error.  %r \n", Status));
+    goto Done;
+  } else if (Status == EFI_NOT_FOUND) {
+    Print (L"No Firmware Management Protocols Installed!\n");
+    Status = EFI_SUCCESS;
+    goto Done;
   }
 
-  Buffer = AllocateZeroPool ((Length + 1) * sizeof (CHAR16));
-  if (Buffer == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
+  Status = Print (L"Firmware Versions:\n");
 
-  Status = GetBuildDateStringUnicode (Buffer, &Length);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to get build date string - %r\n", __FUNCTION__, Status));
-    ASSERT (FALSE);
-    return Status;
-  }
+  for (Index = 0; Index < FmpCount; Index++) {
+    Fmp = (EFI_FIRMWARE_MANAGEMENT_PROTOCOL *)(FmpList[Index]);
+    // get the GetImageInfo for the FMP
 
-  Status = Print (L"System Version:\t%s\n", Buffer);
-  FreePool (Buffer);
+    ImageInfoSize = 0;
+    //
+    // get necessary descriptor size
+    // this should return TOO SMALL
+    Status = Fmp->GetImageInfo (
+                    Fmp,                        // FMP Pointer
+                    &ImageInfoSize,             // Buffer Size (in this case 0)
+                    NULL,                       // NULL so we can get size
+                    &FmpImageInfoDescriptorVer, // DescriptorVersion
+                    &FmpImageInfoCount,         // DescriptorCount
+                    &DescriptorSize,            // DescriptorSize
+                    &PackageVersion,            // PackageVersion
+                    &PackageVersionName         // PackageVersionName
+                    );
+
+    if (Status != EFI_BUFFER_TOO_SMALL) {
+      DEBUG ((DEBUG_ERROR, "%a - Unexpected Failure in GetImageInfo.  Status = %r\n", __FUNCTION__, Status));
+      continue;
+    }
+
+    FmpImageInfoBuf = NULL;
+    FmpImageInfoBuf = AllocateZeroPool (ImageInfoSize);
+    if (FmpImageInfoBuf == NULL) {
+      DEBUG ((DEBUG_ERROR, "%a - Failed to get memory for descriptors.\n", __FUNCTION__));
+      continue;
+    }
+
+    PackageVersionName = NULL;
+    Status             = Fmp->GetImageInfo (
+                                Fmp,
+                                &ImageInfoSize,             // ImageInfoSize
+                                FmpImageInfoBuf,            // ImageInfo
+                                &FmpImageInfoDescriptorVer, // DescriptorVersion
+                                &FmpImageInfoCount,         // DescriptorCount
+                                &DescriptorSize,            // DescriptorSize
+                                &PackageVersion,            // PackageVersion
+                                &PackageVersionName         // PackageVersionName
+                                );
+
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Failure in GetImageInfo.  Status = %r\n", __FUNCTION__, Status));
+      goto FmpCleanUp;
+    }
+
+    if (FmpImageInfoCount == 0) {
+      DEBUG ((DEBUG_INFO, "%a - No Image Info descriptors.\n", __FUNCTION__));
+      goto FmpCleanUp;
+    }
+
+    if (FmpImageInfoCount > 1) {
+      DEBUG ((DEBUG_INFO, "%a - Found %d descriptors.  For config app we only show the 1st descriptor.\n", __FUNCTION__, FmpImageInfoCount));
+    }
+
+    if (FmpImageInfoBuf->ImageIdName != NULL) {
+      Status = Print (L"\t%s:\t", FmpImageInfoBuf->ImageIdName);
+    } else {
+      DEBUG ((DEBUG_ERROR, "%a - FMP ImageIdName is null\n"));
+    }
+
+    if (FmpImageInfoBuf->VersionName != NULL) {
+      Status = Print (L"%s\n", FmpImageInfoBuf->VersionName);
+    } else {
+      DEBUG ((DEBUG_ERROR, "%a - FMP VersionName is null\n"));
+    }
+
+FmpCleanUp:
+    // clean up -
+    FreePool (FmpImageInfoBuf);
+    FmpImageInfoBuf = NULL;
+    if (PackageVersionName != NULL) {
+      FreePool (PackageVersionName);
+      PackageVersionName = NULL;
+    }
+  } // for loop for all fmp handles
+
+Done:
   return Status;
 }
 
