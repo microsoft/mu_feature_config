@@ -23,14 +23,28 @@ import subprocess
 #  set signtool path --
 #  Requires the windows 8.1 kit.
 #  only works on 64bit systems but all dev machines should be 64bit by now.
-gSignToolPath = os.path.join(os.getenv("ProgramFiles(x86)"), "Windows Kits", "10", "bin", "10.0.18362.0", "x64",
-                             "signtool.exe")
+gSignToolPath = os.path.join(
+    os.getenv("ProgramFiles(x86)"),
+    "Windows Kits",
+    "10",
+    "bin",
+    "10.0.18362.0",
+    "x64",
+    "signtool.exe",
+)
 
 #
 # Cert Manager is used for deleting the cert when add/removing certs
 #
-gCertMgrPath = os.path.join(os.getenv("ProgramFiles(x86)"), "Windows Kits", "10", "bin", "10.0.18363.0", "x64",
-                            "certmgr.exe")
+gCertMgrPath = os.path.join(
+    os.getenv("ProgramFiles(x86)"),
+    "Windows Kits",
+    "10",
+    "bin",
+    "10.0.18363.0",
+    "x64",
+    "certmgr.exe",
+)
 
 #
 # Cert Util is used to import PFX into cert store
@@ -42,11 +56,11 @@ gCertUtilPath = "CertUtil.exe"
 #
 # check the tool path and update it
 if not os.path.exists(gCertMgrPath):
-    gCertMgrPath = gCertMgrPath.replace('10', '8.1')
+    gCertMgrPath = gCertMgrPath.replace("10", "8.1")
 
 # check the tool path and update it
 if not os.path.exists(gSignToolPath):
-    gSignToolPath = gSignToolPath.replace('10', '8.1')
+    gSignToolPath = gSignToolPath.replace("10", "8.1")
 
 
 #
@@ -85,9 +99,15 @@ def RunCmd(cmd, capture=True, outfile=None):
     logging.info("--------------Cmd Output Starting---------------")
     logging.info("------------------------------------------------")
     c = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if(capture):
-        if(outfile):
-            out_r = threading.Thread(target=filereader, args=(outfile, c.stdout,))
+    if capture:
+        if outfile:
+            out_r = threading.Thread(
+                target=filereader,
+                args=(
+                    outfile,
+                    c.stdout,
+                ),
+            )
         else:
             out_r = threading.Thread(target=reader, args=(c.stdout,))
         out_r.start()
@@ -104,25 +124,39 @@ def RunCmd(cmd, capture=True, outfile=None):
     delta = endtime - starttime
     logging.info("------------------------------------------------")
     logging.info("--------------Cmd Output Finished---------------")
-    logging.info("--------- Running Time (mm:ss): {0[0]:02}:{0[1]:02} ----------".format(divmod(delta.seconds, 60)))
+    logging.info(
+        "--------- Running Time (mm:ss): {0[0]:02}:{0[1]:02} ----------".format(
+            divmod(delta.seconds, 60)
+        )
+    )
     logging.info("------------------------------------------------")
     return c.returncode
 
 
-def SignWithSignTool(ToSignFilePath, DetachedSignatureOutputFilePath, PfxFile, PfxPass, Oid):
+def SignWithSignTool(
+    ToSignFilePath, DetachedSignatureOutputFilePath, PfxFile, PfxPass, Oid
+):
     OutputDir = os.path.dirname(DetachedSignatureOutputFilePath)
-    cmd = gSignToolPath + ' sign /p7ce DetachedSignedData /fd sha256 /p7co ' + Oid + ' /p7 "' + OutputDir + '" /f "' +\
-        PfxFile + '"'
+    cmd = (
+        gSignToolPath
+        + " sign /p7ce DetachedSignedData /fd sha256 /p7co "
+        + Oid
+        + ' /p7 "'
+        + OutputDir
+        + '" /f "'
+        + PfxFile
+        + '"'
+    )
     if PfxPass:
         # add password if set
-        cmd = cmd + ' /p ' + PfxPass
+        cmd = cmd + " /p " + PfxPass
     cmd = cmd + ' /debug /v "' + ToSignFilePath + '" '
     logging.critical("Command is: %s" % cmd)
     ret = RunCmd(cmd)
-    if(ret != 0):
+    if ret != 0:
         raise Exception("Signtool error %d" % ret)
     signed_file = os.path.join(OutputDir, os.path.basename(ToSignFilePath) + ".p7")
-    if(not os.path.isfile(signed_file)):
+    if not os.path.isfile(signed_file):
         raise Exception("Output file doesn't exist %s" % signed_file)
 
     shutil.move(signed_file, DetachedSignatureOutputFilePath)
@@ -133,49 +167,51 @@ def SignWithSignTool(ToSignFilePath, DetachedSignatureOutputFilePath, PfxFile, P
 # Function to print a byte list as hex and optionally output ascii as well as
 # offset within the buffer
 ###
-def PrintByteList(ByteList, IncludeAscii=True, IncludeOffset=True, IncludeHexSep=True, OffsetStart=0):
+def PrintByteList(
+    ByteList, IncludeAscii=True, IncludeOffset=True, IncludeHexSep=True, OffsetStart=0
+):
     Ascii = ""
     for index in range(len(ByteList)):
         # Start of New Line
-        if(index % 16 == 0):
-            if(IncludeOffset):
-                print("0x%04X -" % (index + OffsetStart), end='')
+        if index % 16 == 0:
+            if IncludeOffset:
+                print("0x%04X -" % (index + OffsetStart), end="")
 
         # Midpoint of a Line
-        if(index % 16 == 8):
-            if(IncludeHexSep):
-                print(" -", end='')
+        if index % 16 == 8:
+            if IncludeHexSep:
+                print(" -", end="")
 
         # Print As Hex Byte
-        print(" 0x%02X" % ByteList[index], end='')
+        print(" 0x%02X" % ByteList[index], end="")
 
         # Prepare to Print As Ascii
-        if(ByteList[index] < 0x20) or (ByteList[index] > 0x7E):
+        if (ByteList[index] < 0x20) or (ByteList[index] > 0x7E):
             Ascii += "."
         else:
-            Ascii += ("%c" % ByteList[index])
+            Ascii += "%c" % ByteList[index]
 
         # End of Line
-        if(index % 16 == 15):
-            if(IncludeAscii):
-                print(" %s" % Ascii, end='')
+        if index % 16 == 15:
+            if IncludeAscii:
+                print(" %s" % Ascii, end="")
             Ascii = ""
             print("")
 
     # Done - Lets check if we have partial
-    if(index % 16 != 15):
+    if index % 16 != 15:
         # Lets print any partial line of ascii
-        if(IncludeAscii) and (Ascii != ""):
+        if (IncludeAscii) and (Ascii != ""):
             # Pad out to the correct spot
 
-            while(index % 16 != 15):
-                print("     ", end='')
+            while index % 16 != 15:
+                print("     ", end="")
                 # account for the - symbol in the hex dump
-                if(index % 16 == 7):
-                    if(IncludeOffset):
-                        print("  ", end='')
+                if index % 16 == 7:
+                    if IncludeOffset:
+                        print("  ", end="")
                 index += 1
             # print the ascii partial line
-            print(" %s" % Ascii, end='')
+            print(" %s" % Ascii, end="")
             # print a single newline so that next print will be on new line
         print("")

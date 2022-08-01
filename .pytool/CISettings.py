@@ -14,9 +14,13 @@ from edk2toolext.invocables.edk2_pr_eval import PrEvalSettingsManager
 from edk2toollib.utility_functions import GetHostInfo
 
 
-class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManager,
-               PrEvalSettingsManager):
-
+class Settings(
+    CiSetupSettingsManager,
+    CiBuildSettingsManager,
+    UpdateSettingsManager,
+    SetupSettingsManager,
+    PrEvalSettingsManager,
+):
     def __init__(self):
         self.ActualPackages = []
         self.ActualTargets = []
@@ -31,10 +35,22 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
 
     def AddCommandLineOptions(self, parserObj):
         group = parserObj.add_mutually_exclusive_group()
-        group.add_argument("-force_piptools", "--fpt", dest="force_piptools", action="store_true", default=False,
-                           help="Force the system to use pip tools")
-        group.add_argument("-no_piptools", "--npt", dest="no_piptools", action="store_true", default=False,
-                           help="Force the system to not use pip tools")
+        group.add_argument(
+            "-force_piptools",
+            "--fpt",
+            dest="force_piptools",
+            action="store_true",
+            default=False,
+            help="Force the system to use pip tools",
+        )
+        group.add_argument(
+            "-no_piptools",
+            "--npt",
+            dest="no_piptools",
+            action="store_true",
+            default=False,
+            help="Force the system to not use pip tools",
+        )
 
     def RetrieveCommandLineOptions(self, args):
         super().RetrieveCommandLineOptions(args)
@@ -48,22 +64,17 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
     # ####################################################################################### #
 
     def GetPackagesSupported(self):
-        ''' return iterable of edk2 packages supported by this build.
-        These should be edk2 workspace relative paths '''
+        """return iterable of edk2 packages supported by this build.
+        These should be edk2 workspace relative paths"""
 
-        return (
-            "SetupDataPkg",
-        )
+        return ("SetupDataPkg",)
 
     def GetArchitecturesSupported(self):
-        ''' return iterable of edk2 architectures supported by this build '''
-        return ("IA32",
-                "X64",
-                "ARM",
-                "AARCH64")
+        """return iterable of edk2 architectures supported by this build"""
+        return ("IA32", "X64", "ARM", "AARCH64")
 
     def GetTargetsSupported(self):
-        ''' return iterable of edk2 target tags supported by this build '''
+        """return iterable of edk2 target tags supported by this build"""
         return ("DEBUG", "RELEASE", "NO-TARGET", "NOOPT")
 
     # ####################################################################################### #
@@ -71,48 +82,45 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
     # ####################################################################################### #
 
     def SetPackages(self, list_of_requested_packages):
-        ''' Confirm the requested package list is valid and configure SettingsManager
+        """Confirm the requested package list is valid and configure SettingsManager
         to build the requested packages.
 
         Raise UnsupportedException if a requested_package is not supported
-        '''
-        unsupported = set(list_of_requested_packages) - \
-            set(self.GetPackagesSupported())
-        if(len(unsupported) > 0):
-            logging.critical(
-                "Unsupported Package Requested: " + " ".join(unsupported))
-            raise Exception("Unsupported Package Requested: "
-                            + " ".join(unsupported))
+        """
+        unsupported = set(list_of_requested_packages) - set(self.GetPackagesSupported())
+        if len(unsupported) > 0:
+            logging.critical("Unsupported Package Requested: " + " ".join(unsupported))
+            raise Exception("Unsupported Package Requested: " + " ".join(unsupported))
         self.ActualPackages = list_of_requested_packages
 
     def SetArchitectures(self, list_of_requested_architectures):
-        ''' Confirm the requests architecture list is valid and configure SettingsManager
+        """Confirm the requests architecture list is valid and configure SettingsManager
         to run only the requested architectures.
 
         Raise Exception if a list_of_requested_architectures is not supported
-        '''
-        unsupported = set(list_of_requested_architectures) - \
-            set(self.GetArchitecturesSupported())
-        if(len(unsupported) > 0):
+        """
+        unsupported = set(list_of_requested_architectures) - set(
+            self.GetArchitecturesSupported()
+        )
+        if len(unsupported) > 0:
             logging.critical(
-                "Unsupported Architecture Requested: " + " ".join(unsupported))
+                "Unsupported Architecture Requested: " + " ".join(unsupported)
+            )
             raise Exception(
-                "Unsupported Architecture Requested: " + " ".join(unsupported))
+                "Unsupported Architecture Requested: " + " ".join(unsupported)
+            )
         self.ActualArchitectures = list_of_requested_architectures
 
     def SetTargets(self, list_of_requested_target):
-        ''' Confirm the request target list is valid and configure SettingsManager
+        """Confirm the request target list is valid and configure SettingsManager
         to run only the requested targets.
 
         Raise UnsupportedException if a requested_target is not supported
-        '''
-        unsupported = set(list_of_requested_target) - \
-            set(self.GetTargetsSupported())
-        if(len(unsupported) > 0):
-            logging.critical(
-                "Unsupported Targets Requested: " + " ".join(unsupported))
-            raise Exception("Unsupported Targets Requested: "
-                            + " ".join(unsupported))
+        """
+        unsupported = set(list_of_requested_target) - set(self.GetTargetsSupported())
+        if len(unsupported) > 0:
+            logging.critical("Unsupported Targets Requested: " + " ".join(unsupported))
+            raise Exception("Unsupported Targets Requested: " + " ".join(unsupported))
         self.ActualTargets = list_of_requested_target
 
     # ####################################################################################### #
@@ -120,11 +128,18 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
     # ####################################################################################### #
 
     def GetActiveScopes(self):
-        ''' return tuple containing scopes that should be active for this process '''
+        """return tuple containing scopes that should be active for this process"""
         if self.ActualScopes is None:
-            scopes = ("feature-config-apps-ci", "cibuild", "edk2-build", "host-based-test")
+            scopes = (
+                "feature-config-apps-ci",
+                "cibuild",
+                "edk2-build",
+                "host-based-test",
+            )
 
-            self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue("TOOL_CHAIN_TAG", "")
+            self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue(
+                "TOOL_CHAIN_TAG", ""
+            )
 
             is_linux = GetHostInfo().os.upper() == "LINUX"
 
@@ -132,14 +147,15 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
                 is_linux = GetHostInfo().os.upper() == "LINUX"
                 # try and import the pip module for basetools
                 try:
-                    import edk2basetools    # noqa: F401
+                    import edk2basetools  # noqa: F401
+
                     self.UseBuiltInBaseTools = True
                 except ImportError:
                     self.UseBuiltInBaseTools = False
                     pass
 
             if self.UseBuiltInBaseTools is True:
-                scopes += ('pipbuild-unix',) if is_linux else ('pipbuild-win',)
+                scopes += ("pipbuild-unix",) if is_linux else ("pipbuild-win",)
                 logging.warning("Using Pip Tools based BaseTools")
             else:
                 logging.warning("Falling back to using in-tree BaseTools")
@@ -155,9 +171,9 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
         return self.ActualScopes
 
     def GetRequiredSubmodules(self):
-        ''' return iterable containing RequiredSubmodule objects.
+        """return iterable containing RequiredSubmodule objects.
         If no RequiredSubmodules return an empty iterable
-        '''
+        """
         rs = []
         return rs
 
@@ -165,7 +181,7 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
         return "MuConfigApps"
 
     def GetDependencies(self):
-        ''' Return Git Repository Dependencies
+        """Return Git Repository Dependencies
 
         Return an iterable of dictionary objects with the following fields
         {
@@ -176,25 +192,26 @@ class Settings(CiSetupSettingsManager, CiBuildSettingsManager, UpdateSettingsMan
             Full: <optional> Boolean to do shallow or Full checkout.  (default is False)
             ReferencePath: <optional> Workspace relative path to git repo to use as "reference"
         }
-        '''
-        return [
-        ]
+        """
+        return []
 
     def GetPackagesPath(self):
-        ''' Return a list of workspace relative paths that should be mapped as edk2 PackagesPath '''
+        """Return a list of workspace relative paths that should be mapped as edk2 PackagesPath"""
         result = [
             shell_environment.GetBuildVars().GetValue("BASECORE_PATH", ""),
             shell_environment.GetBuildVars().GetValue("MU_PLUS_PATH", ""),
-            shell_environment.GetBuildVars().GetValue("MU_TIANO_PATH", "")
+            shell_environment.GetBuildVars().GetValue("MU_TIANO_PATH", ""),
         ]
         for a in self.GetDependencies():
             result.append(a["Path"])
         return result
 
     def GetWorkspaceRoot(self):
-        ''' get WorkspacePath '''
+        """get WorkspacePath"""
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    def FilterPackagesToTest(self, changedFilesList: list, potentialPackagesList: list) -> list:
-        ''' Filter potential packages to test based on changed files. '''
+    def FilterPackagesToTest(
+        self, changedFilesList: list, potentialPackagesList: list
+    ) -> list:
+        """Filter potential packages to test based on changed files."""
         return []
