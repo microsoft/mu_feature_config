@@ -38,6 +38,7 @@ sp = os.path.dirname(os.path.realpath(sys.argv[0]))
 
 # setup python path for build modules
 sys.path.append(sp)
+sys.path.append(os.path.dirname(sp))
 
 from DFCI_SupportLib import DFCI_SupportLib                             # noqa: E402
 from edk2toollib.uefi.wincert import WinCertUefiGuid                    # noqa: E402
