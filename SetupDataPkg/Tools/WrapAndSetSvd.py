@@ -100,7 +100,7 @@ def main():
     with open(os.path.join(sp, setting_file), "rb") as file:
         var = file.read()
         UefiVar = UefiVariable()
-        (rc, err, errorstring) = UefiVar.SetUefiVar(
+        (rc, err, error_string) = UefiVar.SetUefiVar(
             DFCI_SETTINGS_APPLY_INPUT_VAR_NAME,
             DFCI_SETTINGS_GUID,
             var,
@@ -108,7 +108,7 @@ def main():
         )
         if rc == 0:  # This is per function document...
             logging.error(
-                "Failed to set mailbox settings into UEFI variable - %r" % errorstring
+                "Failed to set mailbox settings into UEFI variable - %r" % error_string
             )
             return 1
     return 0
