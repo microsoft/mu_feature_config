@@ -35,6 +35,7 @@
 #define DFCI_OEM_SETTING_ID__CONF         "Device.ConfigData.ConfigData"
 #define SINGLE_SETTING_PROVIDER_START     "Device.ConfigData.TagID_"
 #define SINGLE_SETTING_PROVIDER_TEMPLATE  "Device.ConfigData.TagID_%08X"
+#define DFCI_OEM_SETTING_ID__RUNTIMECONF  "Device.RuntimeData.RuntimeData"
 
 typedef struct {
   UINT16    PlatformId;
