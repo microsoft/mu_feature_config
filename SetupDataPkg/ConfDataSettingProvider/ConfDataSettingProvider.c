@@ -108,7 +108,7 @@ ConfDataGetDefault (
 {
   EFI_STATUS  Status;
 
-  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == NULL)) {
+  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -469,7 +469,7 @@ SingleConfDataGetDefault (
   VOID          *DefaultBuffer = NULL;
   UINTN         Size;
 
-  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == NULL)) {
+  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
@@ -609,7 +609,7 @@ SingleConfDataGet (
   CHAR16      *VarName = NULL;
   UINTN       Size;
 
-  if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == NULL)) {
+  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
