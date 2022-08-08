@@ -131,11 +131,13 @@ typedef struct {
   UINT32    DataSize;
 
   /*
+   * Rest of Variable List struct:
+   * 
    * char Name[NameSize] // Null terminate UTF-16LE encoded name
    * char Guid[16] // namespace Guid
    * UINT32 Attributes // UEFI attributes
    * char Data[DataSize] // actual variable value
-   * UINT32 CRC32 // checksum of all bytes in struct 
+   * UINT32 CRC32 // checksum of all bytes up to CRC32 
    */
 } RUNTIME_VAR_LIST_HDR;
 #pragma pack(pop)

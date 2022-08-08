@@ -372,14 +372,14 @@ ApplySettings (
 
     // Now set the settings
     Status = mSettingAccess->Set (
-                              mSettingAccess,
-                              Id,
-                              &mAuthToken,
-                              DFCI_SETTING_TYPE_BINARY,
-                              ValueSize,
-                              SetValue,
-                              &Flags
-                              );
+                               mSettingAccess,
+                               Id,
+                               &mAuthToken,
+                               DFCI_SETTING_TYPE_BINARY,
+                               ValueSize,
+                               SetValue,
+                               &Flags
+                               );
     DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
 
     // Record Status result
@@ -764,7 +764,6 @@ CreateXmlStringFromCurrentSettings (
                              Data,
                              &Flags
                              );
-
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
     goto EXIT;

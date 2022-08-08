@@ -353,7 +353,7 @@ RuntimeDataSet (
     name = (CHAR16 *)(VarList + 1);
     Guid = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
     Attributes = *(UINT32 *)(Guid + 1);
-    Data = (CHAR8 *)((CHAR8 *)Guid + sizeof(*Guid) + sizeof(Attributes));
+    Data = (CHAR8 *)Guid + sizeof(*Guid) + sizeof(Attributes);
     CRC32 = *(UINT32 *)(Data + VarList->DataSize);
     LenToCRC32 = sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) + sizeof(Attributes);  
 
