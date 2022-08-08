@@ -182,6 +182,7 @@ ApplySettings (
   UINTN       ValueSize;
   UINT8       *ByteArray = NULL;
   CONST VOID  *SetValue  = NULL;
+  BOOLEAN     IsRuntimeSettings = FALSE;
 
   //
   // Create Node List from input
@@ -333,9 +334,12 @@ ApplySettings (
       goto EXIT;
     }
 
+    IsRuntimeSettings = (0 == AsciiStrnCmp (Id, RUNTIME_SETTING_ID__CONF, RUNTIME_SETTING_MAX_LEN));
+
     // only care about our target
     if ((0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) &&
-        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)))
+        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)) &&
+        !IsRuntimeSettings)
     {
       continue;
     }
@@ -369,37 +373,98 @@ ApplySettings (
       goto EXIT;
     }
 
-    // Now set the settings
-    Status = mSettingAccess->Set (
-                               mSettingAccess,
-                               Id,
-                               &mAuthToken,
-                               DFCI_SETTING_TYPE_BINARY,
-                               ValueSize,
-                               SetValue,
-                               &Flags
-                               );
-    DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
-
-    // Record Status result
-    ZeroMem (StatusString, sizeof (StatusString));
-    ZeroMem (FlagString, sizeof (FlagString));
-    StatusString[0] = '0';
-    StatusString[1] = 'x';
-    FlagString[0]   = '0';
-    FlagString[1]   = 'x';
-
-    AsciiValueToStringS (&(StatusString[2]), sizeof (StatusString)-2, RADIX_HEX, (INT64)Status, 18);
-    AsciiValueToStringS (&(FlagString[2]), sizeof (FlagString)-2, RADIX_HEX, (INT64)Flags, 18);
-    Status = SetOutputSettingsStatus (ResultSettingsNode, Id, &(StatusString[0]), &(FlagString[0]));
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Failed to SetOutputSettingStatus.  %r\n", Status));
-      Status = EFI_DEVICE_ERROR;
-      goto EXIT;
+    if (!IsRuntimeSettings) {
+      continue;
     }
 
-    if (Flags & DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED) {
-      ResetRequired = TRUE;
+    if (IsRuntimeSettings) {
+      // For runtime settings, just directly store t
+      // VarList is non-deterministic size, update of
+      // loop variable will happen inside the loop
+
+/*      DUMP_HEX (DEBUG_ERROR, 0, SetValue, ValueSize, "\n\nOSDDEBUG RuntimeSetting Hex: ");
+
+      for (int i = 0; i < ValueSize;) {
+        RUNTIME_VAR_LIST_HDR *VarList = (RUNTIME_VAR_LIST_HDR *)((CHAR8 *)SetValue + i);
+        /*
+          struct {
+            char Name[VarList->NameSize];
+            char Guid[16];
+            UINT32 Attributes;
+            char Data[VarList->DataSize];
+            UINT32 CRC32;
+          }
+        
+
+        // VarListBody is directly after the header
+        CHAR16 *name = (CHAR16 *)(VarList + 1);
+        CHAR8 *Guid = (CHAR8 *)name + VarList->NameSize;
+        UINT32 Attributes = *(UINT32 *)(Guid + 16);
+        CHAR8 *Data = (CHAR8 *)(Guid + 16 + sizeof(UINT32));
+        //UINT32 CRC32 = *(UINT32 *)(Data + VarList->DataSize);
+
+        // OSDDEBUG TODO: validate CRC32
+
+      DUMP_HEX (DEBUG_ERROR, 0, Guid, 16, "\n\nOSDDEBUG Guid: ");
+
+        DEBUG ((DEBUG_ERROR, "OSDDEBUG got GUID:%x Addr: %p Name: %s Addr: %p Attributes: %d Addr: %p Data: %x\n", *Guid, Guid, name, name, Attributes, &Attributes, Data));
+
+        i += sizeof(RUNTIME_VAR_LIST_HDR) + VarList->NameSize + VarList->DataSize + 16 + (2* sizeof(UINT32));
+
+        // send to settings provier
+        Status = gRt->SetVariable(
+                          name,
+                          Guid,
+                          Attributes,
+                          VarList->DataSize,
+                          Data
+        );*/
+
+        Status = mSettingAccess->Set (
+                                mSettingAccess,
+                                Id,
+                                &mAuthToken,
+                                DFCI_SETTING_TYPE_BINARY,
+                                ValueSize,
+                                SetValue,
+                                &Flags
+                                );
+
+        DEBUG ((DEBUG_ERROR, "OSDDEBUG status setting var: %r\n", Status));
+     // }
+    } else {
+      // Now set the settings
+      Status = mSettingAccess->Set (
+                                mSettingAccess,
+                                Id,
+                                &mAuthToken,
+                                DFCI_SETTING_TYPE_BINARY,
+                                ValueSize,
+                                SetValue,
+                                &Flags
+                                );
+      DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
+
+      // Record Status result
+      ZeroMem (StatusString, sizeof (StatusString));
+      ZeroMem (FlagString, sizeof (FlagString));
+      StatusString[0] = '0';
+      StatusString[1] = 'x';
+      FlagString[0]   = '0';
+      FlagString[1]   = 'x';
+
+      AsciiValueToStringS (&(StatusString[2]), sizeof (StatusString)-2, RADIX_HEX, (INT64)Status, 18);
+      AsciiValueToStringS (&(FlagString[2]), sizeof (FlagString)-2, RADIX_HEX, (INT64)Flags, 18);
+      Status = SetOutputSettingsStatus (ResultSettingsNode, Id, &(StatusString[0]), &(FlagString[0]));
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "Failed to SetOutputSettingStatus.  %r\n", Status));
+        Status = EFI_DEVICE_ERROR;
+        goto EXIT;
+      }
+
+      if (Flags & DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED) {
+        ResetRequired = TRUE;
+      }
     }
 
     // all done.
@@ -763,6 +828,18 @@ CreateXmlStringFromCurrentSettings (
                              Data,
                              &Flags
                              );
+
+  // OSDDEBUG tmp, just to print out
+  mSettingAccess->Get (
+                             mSettingAccess,
+                             RUNTIME_SETTING_ID__CONF,
+                             &mAuthToken,
+                             DFCI_SETTING_TYPE_BINARY,
+                             &DataSize,
+                             Data,
+                             &Flags
+                             );
+
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
     goto EXIT;

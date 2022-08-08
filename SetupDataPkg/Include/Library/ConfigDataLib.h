@@ -36,6 +36,10 @@
 #define SINGLE_SETTING_PROVIDER_START     "Device.ConfigData.TagID_"
 #define SINGLE_SETTING_PROVIDER_TEMPLATE  "Device.ConfigData.TagID_%08X"
 
+// Runtime settings
+#define RUNTIME_SETTING_ID__CONF "Device.RuntimeData.RuntimeData"
+#define RUNTIME_SETTING_MAX_LEN  31
+
 typedef struct {
   UINT16    PlatformId;
   UINT16    Reserved;
@@ -118,6 +122,24 @@ typedef struct {
   /* array entry bit mask, 1 bit per entry to indicate the entry exists or not */
   UINT8     BaseTableBitMask[0];
 } ARRAY_CFG_HDR;
+
+#pragma pack(push, 1)
+typedef struct {
+  /* Size of Name in bytes */
+  UINT32    NameSize;
+
+  /* Size of Data in bytes */
+  UINT32    DataSize;
+
+  /*
+   * char Name[NameSize] // Null terminate UTF-16LE encoded name
+   * char Guid[16] // namespace Guid
+   * UINT32 Attributes // UEFI attributes
+   * char Data[DataSize] // actual variable value
+   * UINT32 CRC32 // checksum of all bytes in struct 
+   */
+} RUNTIME_VAR_LIST_HDR;
+#pragma pack(pop)
 
 /**
   Handler function dispatched for individual tag based data.

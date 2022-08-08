@@ -294,6 +294,247 @@ DFCI_SETTING_PROVIDER  mSettingsProvider = {
   (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
 };
 
+/**
+  Set new runtime value to variable storage.
+
+  @param This      Provider Setting
+  @param Value     a pointer to the variable list
+  @param ValueSize Size of the data for this setting.
+  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
+
+  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error       Setting not set.
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSet (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN        UINTN                  ValueSize,
+  IN  CONST UINT8                  *Value,
+  OUT DFCI_SETTING_FLAGS           *Flags
+  )
+{
+  EFI_STATUS  Status = EFI_SUCCESS;
+  CHAR16 *VarName = NULL;
+  CHAR16 *name;
+  EFI_GUID *Guid;
+  UINT32 Attributes;
+  CHAR8 *Data;
+  UINT32 CRC32;
+  UINT32 LenToCRC32;  
+  UINT32 CalcCRC32 = 0;
+  
+  if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  *Flags = 0;
+
+  if (0 != AsciiStrnCmp (This->Id, RUNTIME_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
+    DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
+    return EFI_UNSUPPORTED;
+  }
+
+  for (int i = 0; i < ValueSize;) {
+    // index into variable list
+    RUNTIME_VAR_LIST_HDR *VarList = (RUNTIME_VAR_LIST_HDR *)(Value + i);
+    /*
+     * Var List is in DmpStore format:
+     * 
+     *  struct {
+     *    RUNTIME_VAR_LIST_HDR VarList;
+     *    char Name[VarList->NameSize];
+     *    char Guid[16];
+     *    UINT32 Attributes;
+     *    char Data[VarList->DataSize];
+     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
+     *  }
+     */
+    name = (CHAR16 *)(VarList + 1);
+    Guid = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
+    Attributes = *(UINT32 *)(Guid + 1);
+    Data = (CHAR8 *)((CHAR8 *)Guid + sizeof(*Guid) + sizeof(Attributes));
+    CRC32 = *(UINT32 *)(Data + VarList->DataSize);
+    LenToCRC32 = sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) + sizeof(Attributes);  
+
+    // on next iteration, skip past this variable
+    i += LenToCRC32 + sizeof(CRC32);
+
+    // validate CRC32
+    CalcCRC32 = 0;
+    Status = gBS->CalculateCrc32(VarList, LenToCRC32, &CalcCRC32); 
+
+    if (EFI_ERROR(Status) || CalcCRC32 != CRC32) {
+      // Either CRC calulation failed or CRC didn't match, drop this variable, continue to the next
+      DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
+      continue;
+    }
+
+    VarName = AllocatePool (VarList->NameSize);
+    if (VarName == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+      return Status;
+    }
+
+    // Copy non-16 bit aligned name to VarName, not using StrCpyS functions as they assert on non-16 bit alignment
+    CopyMem(VarName, name, VarList->NameSize);
+
+    // write variable directly to var storage
+    Status = gRT->SetVariable(
+                      VarName,
+                      Guid,
+                      Attributes,
+                      VarList->DataSize,
+                      Data
+    );
+
+    FreePool(VarName);
+  }
+
+  return Status;
+}
+
+/**
+  Get the full setting in binary from FV.
+
+  @param This       Setting Provider
+  @param ValueSize  IN=Size of location to store value
+                    OUT=Size of value stored
+  @param Value      Output parameter for the setting value.
+                    The type and size is based on the provider type
+                    and must be allocated by the caller.
+  @retval EFI_SUCCESS           If setting could be retrieved.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataGet (
+  IN CONST DFCI_SETTING_PROVIDER  *This,
+  IN OUT   UINTN                  *ValueSize,
+  OUT      UINT8                  *Value
+  )
+{
+  for (int i = 0; i < 7; i++) {
+    CHAR16 *VarName = NULL;
+    EFI_GUID Guid = { 0x9FD43EFE, 0x73B1, 0xED41, { 0x90, 0x76, 0x35, 0x66, 0x61, 0xD4, 0x6A, 0x42 }};
+    VOID *Data = NULL;
+    UINTN DataSize = 0;
+    UINT8 Dummy;
+    EFI_STATUS Status = EFI_SUCCESS;
+
+    DEBUG ((DEBUG_ERROR, "OSDDEBUG in get var\n"));
+
+    VarName = AllocatePool(32);
+    if (VarName == NULL){
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG failed to allocate pool\n"));
+      return EFI_UNSUPPORTED;
+    }
+
+    switch(i){
+      case 0:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB1a", VarName, 15);
+        break;
+      case 1:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB1b", VarName, 15);
+        break;
+      case 2:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB2", VarName, 14);
+        break;
+      case 3:
+        AsciiStrToUnicodeStrS("INTEGER_KNOB", VarName, 13);
+        break;
+      case 4:
+        AsciiStrToUnicodeStrS("BOOLEAN_KNOB", VarName, 13);
+        break;
+      case 5:
+        AsciiStrToUnicodeStrS("DOUBLE_KNOB", VarName, 12);
+        break;
+      case 6:
+        AsciiStrToUnicodeStrS("FLOAT_KNOB", VarName, 11);
+        break;
+    }
+ 
+    Status = gRT->GetVariable (VarName, &Guid, NULL, &DataSize, &Dummy);
+
+    if (Status != EFI_BUFFER_TOO_SMALL){
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG status getting var: %s Status: %r failed in efi buff not too small\n", VarName, Status));
+      return EFI_UNSUPPORTED;
+    }
+
+    Data = AllocatePool(DataSize);
+
+    if (Data == NULL) {
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG failed allocating data\n"));
+      return EFI_UNSUPPORTED;
+    }
+
+    Status = gRT->GetVariable (VarName, &Guid, NULL, &DataSize, Data);
+
+    DUMP_HEX (DEBUG_ERROR, 0, Data, DataSize, "\n\nOSDDEBUG RuntimeSetting From Get Hex: ");
+
+    DEBUG ((DEBUG_ERROR, "OSDDEBUG status getting var: %s Status %r\n", VarName, Status));
+
+    FreePool(Data);
+    FreePool(VarName);
+  }
+  return EFI_UNSUPPORTED;
+}
+
+/**
+  Get the default value of configuration settings from UEFI FV.
+  This getter will serialize default configuration setting
+  to printable strings to be used in Config App.
+
+  @param This           Setting Provider
+  @param ValueSize      IN=Size of location to store value
+                        OUT=Size of value stored
+  @param DefaultValue   Output parameter for the settings default value.
+                        The type and size is based on the provider type
+                        and must be allocated by the caller.
+
+  @retval EFI_SUCCESS           If the default could be returned.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataGetDefault (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN  OUT   UINTN                  *ValueSize,
+  OUT       UINT8                  *Value
+  )
+{
+  return EFI_UNSUPPORTED;
+}
+
+/**
+  Set configuration to default value from UEFI FV.
+
+  @param This          Setting Provider protocol
+
+  @retval EFI_SUCCESS  default set
+  @retval ERROR        Error
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSetDefault (
+  IN  CONST DFCI_SETTING_PROVIDER  *This
+  )
+{
+  return EFI_UNSUPPORTED;
+}
+
+DFCI_SETTING_PROVIDER  mRuntimeSettingsProvider = {
+  RUNTIME_SETTING_ID__CONF,
+  DFCI_SETTING_TYPE_BINARY,
+  DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
+  (DFCI_SETTING_PROVIDER_SET)RuntimeDataSet,
+  (DFCI_SETTING_PROVIDER_GET)RuntimeDataGet,
+  (DFCI_SETTING_PROVIDER_GET_DEFAULT)RuntimeDataGetDefault,
+  (DFCI_SETTING_PROVIDER_SET_DEFAULT)RuntimeDataSetDefault
+};
+
 /*
   Helper function extract tag ID from single setting provider ID.
 
@@ -800,6 +1041,13 @@ SettingsProviderSupportProtocolNotify (
   Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mSettingsProvider);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed to Register.  Status = %r\n", Status));
+  }
+
+  // register runtime settings provider
+  DEBUG ((DEBUG_INFO, "Registering runtime Setting Provider\n"));
+  Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mRuntimeSettingsProvider);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to Register Runtime Settings.  Status = %r\n", Status));
   }
 
   Status = gBS->LocateProtocol (&gEdkiiVariablePolicyProtocolGuid, NULL, (VOID **)&mVariablePolicy);
