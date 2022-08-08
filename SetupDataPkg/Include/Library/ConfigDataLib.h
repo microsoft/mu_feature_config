@@ -37,8 +37,7 @@
 #define SINGLE_SETTING_PROVIDER_TEMPLATE  "Device.ConfigData.TagID_%08X"
 
 // Runtime settings
-#define RUNTIME_SETTING_ID__CONF "Device.RuntimeData.RuntimeData"
-#define RUNTIME_SETTING_MAX_LEN  31
+#define DFCI_OEM_SETTING_ID__RUNTIME "Device.RuntimeData.RuntimeData"
 
 typedef struct {
   UINT16    PlatformId;
