@@ -332,7 +332,7 @@ RuntimeDataSet (
 
   *Flags = 0;
 
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)) {
+  if (0 != AsciiStrnCmp (This->Id, RUNTIME_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
     DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
     return EFI_UNSUPPORTED;
   }
@@ -411,8 +411,7 @@ RuntimeDataSet (
 }
 
 /**
-  It is not supported to get the full Runtime Setting list. Instead,
-  each individual Runtime Settings Provider can fetch the setting.
+  Get the full setting in binary from FV.
 
   @param This       Setting Provider
   @param ValueSize  IN=Size of location to store value
@@ -420,7 +419,9 @@ RuntimeDataSet (
   @param Value      Output parameter for the setting value.
                     The type and size is based on the provider type
                     and must be allocated by the caller.
-  @retval EFI_UNSUPPORTED   This is not supported for Runtime Settings
+  @retval EFI_SUCCESS           If setting could be retrieved.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
 **/
 EFI_STATUS
 EFIAPI
@@ -430,11 +431,76 @@ RuntimeDataGet (
   OUT      UINT8                  *Value
   )
 {
+  for (int i = 0; i < 7; i++) {
+    CHAR16 *VarName = NULL;
+    EFI_GUID Guid = { 0x9FD43EFE, 0x73B1, 0xED41, { 0x90, 0x76, 0x35, 0x66, 0x61, 0xD4, 0x6A, 0x42 }};
+    VOID *Data = NULL;
+    UINTN DataSize = 0;
+    UINT8 Dummy;
+    EFI_STATUS Status = EFI_SUCCESS;
+
+    DEBUG ((DEBUG_ERROR, "OSDDEBUG in get var\n"));
+
+    VarName = AllocatePool(32);
+    if (VarName == NULL){
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG failed to allocate pool\n"));
+      return EFI_UNSUPPORTED;
+    }
+
+    switch(i){
+      case 0:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB1a", VarName, 15);
+        break;
+      case 1:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB1b", VarName, 15);
+        break;
+      case 2:
+        AsciiStrToUnicodeStrS("COMPLEX_KNOB2", VarName, 14);
+        break;
+      case 3:
+        AsciiStrToUnicodeStrS("INTEGER_KNOB", VarName, 13);
+        break;
+      case 4:
+        AsciiStrToUnicodeStrS("BOOLEAN_KNOB", VarName, 13);
+        break;
+      case 5:
+        AsciiStrToUnicodeStrS("DOUBLE_KNOB", VarName, 12);
+        break;
+      case 6:
+        AsciiStrToUnicodeStrS("FLOAT_KNOB", VarName, 11);
+        break;
+    }
+ 
+    Status = gRT->GetVariable (VarName, &Guid, NULL, &DataSize, &Dummy);
+
+    if (Status != EFI_BUFFER_TOO_SMALL){
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG status getting var: %s Status: %r failed in efi buff not too small\n", VarName, Status));
+      return EFI_UNSUPPORTED;
+    }
+
+    Data = AllocatePool(DataSize);
+
+    if (Data == NULL) {
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG failed allocating data\n"));
+      return EFI_UNSUPPORTED;
+    }
+
+    Status = gRT->GetVariable (VarName, &Guid, NULL, &DataSize, Data);
+
+    DUMP_HEX (DEBUG_ERROR, 0, Data, DataSize, "\n\nOSDDEBUG RuntimeSetting From Get Hex: ");
+
+    DEBUG ((DEBUG_ERROR, "OSDDEBUG status getting var: %s Status %r\n", VarName, Status));
+
+    FreePool(Data);
+    FreePool(VarName);
+  }
   return EFI_UNSUPPORTED;
 }
 
 /**
-  Default values of Runtime Settings are not supported.
+  Get the default value of configuration settings from UEFI FV.
+  This getter will serialize default configuration setting
+  to printable strings to be used in Config App.
 
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
@@ -443,7 +509,9 @@ RuntimeDataGet (
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
-  @retval EFI_UNSUPPORTED           This is not supported for Runtime Settings
+  @retval EFI_SUCCESS           If the default could be returned.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
 **/
 EFI_STATUS
 EFIAPI
@@ -457,12 +525,12 @@ RuntimeDataGetDefault (
 }
 
 /**
-  It is not supported to get the full Runtime Setting list. Instead,
-  each individual Runtime Settings Provider can fetch the setting.
+  Set configuration to default value from UEFI FV.
 
   @param This          Setting Provider protocol
 
-  @retval EFI_UNSUPPORTED         This is not supported for Runtime Settings
+  @retval EFI_SUCCESS  default set
+  @retval ERROR        Error
 **/
 EFI_STATUS
 EFIAPI
@@ -474,7 +542,7 @@ RuntimeDataSetDefault (
 }
 
 DFCI_SETTING_PROVIDER  mRuntimeSettingsProvider = {
-  DFCI_OEM_SETTING_ID__RUNTIME,
+  RUNTIME_SETTING_ID__CONF,
   DFCI_SETTING_TYPE_BINARY,
   DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
   (DFCI_SETTING_PROVIDER_SET)RuntimeDataSet,
