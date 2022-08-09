@@ -330,6 +330,8 @@ RuntimeDataSet (
 
   *Flags = 0;
 
+  DUMP_HEX (DEBUG_ERROR, 0, Value, ValueSize, "\n\nOSDDEBUG RuntimeSetting Full: ");
+
   if (0 != AsciiStrnCmp (This->Id, RUNTIME_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
     DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
     return EFI_UNSUPPORTED;
