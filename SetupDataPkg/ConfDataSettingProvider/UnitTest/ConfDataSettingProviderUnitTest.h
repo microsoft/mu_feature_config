@@ -166,6 +166,42 @@ SingleConfDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   );
 
+/**
+  Set new configuration value to variable storage.
+
+  @param This      Provider Setting
+  @param Value     a pointer to a datatype defined by the Type for this setting.
+  @param ValueSize Size of the data for this setting.
+  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
+
+  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error       Setting not set.
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSet (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN        UINTN                  ValueSize,
+  IN  CONST UINT8                  *Value,
+  OUT DFCI_SETTING_FLAGS           *Flags
+  );
+
+/**
+  Get the default value of a single setting from UEFI FV.
+  This getter will serialize default configuration setting
+  to printable strings to be used in Config App.
+
+  @param This           Setting Provider
+  @param ValueSize      IN=Size of location to store value
+                        OUT=Size of value stored
+  @param DefaultValue   Output parameter for the settings default value.
+                        The type and size is based on the provider type
+                        and must be allocated by the caller.
+
+  @retval EFI_SUCCESS           If the default could be returned.
+  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
+  @retval ERROR                 Error
+
 /*
   Helper function extract tag ID from single setting provider ID.
 

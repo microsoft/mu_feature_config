@@ -133,10 +133,10 @@ typedef struct {
   /*
    * Rest of Variable List struct:
    * 
-   * char Name[NameSize] // Null terminate UTF-16LE encoded name
-   * char Guid[16] // namespace Guid
+   * CHAR16 Name[NameSize/2] // Null terminate UTF-16LE encoded name
+   * EFI_GUID Guid // namespace Guid
    * UINT32 Attributes // UEFI attributes
-   * char Data[DataSize] // actual variable value
+   * CHAR8 Data[DataSize] // actual variable value
    * UINT32 CRC32 // checksum of all bytes up to CRC32 
    */
 } RUNTIME_VAR_LIST_HDR;

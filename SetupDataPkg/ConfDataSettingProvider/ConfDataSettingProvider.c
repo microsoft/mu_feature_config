@@ -343,10 +343,10 @@ RuntimeDataSet (
      * 
      *  struct {
      *    RUNTIME_VAR_LIST_HDR VarList;
-     *    char Name[VarList->NameSize];
-     *    char Guid[16];
+     *    CHAR16 Name[VarList->NameSize/2];
+     *    EFI_GUID Guid;
      *    UINT32 Attributes;
-     *    char Data[VarList->DataSize];
+     *    CHAR8 Data[VarList->DataSize];
      *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
      *  }
      */
@@ -366,7 +366,8 @@ RuntimeDataSet (
 
     if (EFI_ERROR(Status) || CalcCRC32 != CRC32) {
       // Either CRC calulation failed or CRC didn't match, drop this variable, continue to the next
-      DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
+      DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r \
+      Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
       continue;
     }
 

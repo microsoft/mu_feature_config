@@ -46,12 +46,19 @@
 
 #define KNOWN_GOOD_TAG_COUNT     7
 #define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
+#define KNOWN_GOOD_RUNTIME_VAR_COUNT 7
 
 typedef struct {
   UINTN    Tag;
   UINT8    *Data;
   UINTN    DataSize;
 } TAG_DATA;
+
+typedef struct {
+  CHAR8    Name[15];
+  UINT8    *Data;
+  UINTN    DataSize;
+} RUNTIME_DATA;
 
 TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   { KNOWN_GOOD_TAG_0xF0,  mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)  },
@@ -61,6 +68,16 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   { KNOWN_GOOD_TAG_0x200, mGood_Tag_0x200, sizeof (mGood_Tag_0x200) },
   { KNOWN_GOOD_TAG_0x10,  mGood_Tag_0x10,  sizeof (mGood_Tag_0x10)  },
   { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
+};
+
+RUNTIME_DATA mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
+  { "COMPLEX_KNOB1a", mGood_Runtime_Var_0, sizeof(mGood_Runtime_Var_0)},
+  { "COMPLEX_KNOB1b", mGood_Runtime_Var_1, sizeof(mGood_Runtime_Var_1)},
+  { "COMPLEX_KNOB2", mGood_Runtime_Var_2, sizeof(mGood_Runtime_Var_2)},
+  { "INTEGER_KNOB", mGood_Runtime_Var_3, sizeof(mGood_Runtime_Var_3)},
+  { "BOOLEAN_KNOB", mGood_Runtime_Var_4, sizeof(mGood_Runtime_Var_4)},
+  { "DOUBLE_KNOB", mGood_Runtime_Var_5, sizeof(mGood_Runtime_Var_5)},
+  { "FLOAT_KNOB", mGood_Runtime_Var_6, sizeof(mGood_Runtime_Var_6)},
 };
 
 /**
@@ -1584,6 +1601,138 @@ SingleConfDataSetInvalidId (
 }
 
 /**
+  Unit test for RuntimeDataSet of ConfDataSettingProvider with normal input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RuntimeDataSetNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  CHAR16              *CompareUniPtr[KNOWN_GOOD_RUNTIME_VAR_COUNT];
+  UINTN               UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
+  UINTN               Index      = 0;
+  DFCI_SETTING_FLAGS  Flags      = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__RUNTIME
+  };
+
+  will_return_always (MockSetVariable, EFI_SUCCESS);
+
+  for (Index = 0; Index < KNOWN_GOOD_RUNTIME_VAR_COUNT; Index++) {
+    CompareUniPtr[Index] = AllocatePool (UniStrSize);
+    UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, "%s", mKnownGoodRuntimeVars[Index].Name);
+    expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
+    expect_value (MockSetVariable, DataSize, mKnownGoodRuntimeVars[Index].DataSize);
+    expect_memory (MockSetVariable, Data, mKnownGoodRuntimeVars[Index].Data, mKnownGoodRuntimeVars[Index].DataSize);
+  }
+
+  Status = RuntimeDataSet (
+             &SettingsProvider,
+             sizeof (mKnown_Good_Runtime_Data),
+             mKnown_Good_Runtime_Data,
+             &Flags
+             );
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Index = 0;
+  while (Index < KNOWN_GOOD_RUNTIME_VAR_COUNT) {
+    FreePool (CompareUniPtr[Index]);
+    Index++;
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for RuntimeDataSet of ConfDataSettingProvider with null provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RuntimeDataSetNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = DFCI_OEM_SETTING_ID__RUNTIME
+  };
+
+  Status = RuntimeDataSet (NULL, sizeof (mKnown_Good_Runtime_Data), mKnown_Good_Runtime_Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RuntimeDataSet (&SettingsProvider, sizeof (mKnown_Good_Runtime_Data), NULL, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RuntimeDataSet (&SettingsProvider, sizeof (mKnown_Good_Runtime_Data), mKnown_Good_Runtime_Data, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for RuntimeDataSet of ConfDataSettingProvider with mismatched provider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RuntimeDataSetMismatch (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS          Status;
+  DFCI_SETTING_FLAGS  Flags = 0;
+  // Minimal initialization to tag this provider instance
+  DFCI_SETTING_PROVIDER  SettingsProvider = {
+    .Id = SINGLE_SETTING_PROVIDER_START
+  };
+
+  Status = RuntimeDataSet (&SettingsProvider, sizeof (mKnown_Good_Runtime_Data), mKnown_Good_Runtime_Data, &Flags);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_UNSUPPORTED);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
   Unit test for SettingsProviderSupportProtocolNotify of ConfDataSettingProvider.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
@@ -1893,6 +2042,10 @@ UnitTestingEntry (
   AddTestCase (ConfSettingTests, "Set ConfData should return full blob", "SetFullNormal", ConfDataSetNormal, NULL, NULL, NULL);
   AddTestCase (ConfSettingTests, "Set ConfData should fail with null provider", "SetFullNull", ConfDataSetNull, NULL, NULL, NULL);
   AddTestCase (ConfSettingTests, "Set ConfData should fail with mismatched provider", "SetFullMismatch", ConfDataSetMismatch, NULL, NULL, NULL);
+
+  AddTestCase (ConfSettingTests, "Set RuntimeData should return full blob", "SetFullNormal", RuntimeDataSetNormal, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set RuntimeData should fail with null provider", "SetFullNull", RuntimeDataSetNull, NULL, NULL, NULL);
+  AddTestCase (ConfSettingTests, "Set RuntimeData should fail with mismatched provider", "SetFullMismatch", RuntimeDataSetMismatch, NULL, NULL, NULL);
 
   AddTestCase (SingleSettingTests, "Get Single ConfData Default should return full blob", "SingleGetFullDefaultNormal", SingleConfDataGetDefaultNormal, NULL, NULL, NULL);
   AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with null provider", "SingleGetFullDefaultNull", SingleConfDataGetDefaultNull, NULL, NULL, NULL);
