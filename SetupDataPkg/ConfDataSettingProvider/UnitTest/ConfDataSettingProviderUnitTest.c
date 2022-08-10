@@ -1670,7 +1670,7 @@ RuntimeDataSetNormal (
   DFCI_SETTING_FLAGS  Flags      = 0;
   // Minimal initialization to tag this provider instance
   DFCI_SETTING_PROVIDER  SettingsProvider = {
-    .Id = RUNTIME_SETTING_ID__CONF
+    .Id = DFCI_OEM_SETTING_ID__RUNTIME
   };
 
   will_return_always (MockSetVariable, EFI_SUCCESS);
@@ -1717,7 +1717,7 @@ RuntimeDataSetNull (
   DFCI_SETTING_FLAGS  Flags = 0;
   // Minimal initialization to tag this provider instance
   DFCI_SETTING_PROVIDER  SettingsProvider = {
-    .Id = RUNTIME_SETTING_ID__CONF
+    .Id = DFCI_OEM_SETTING_ID__RUNTIME
   };
 
   Status = RuntimeDataSet (NULL, sizeof (mKnown_Good_Runtime_Data), mKnown_Good_Runtime_Data, &Flags);
