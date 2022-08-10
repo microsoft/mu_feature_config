@@ -55,9 +55,10 @@ typedef struct {
 } TAG_DATA;
 
 typedef struct {
-  CHAR8    Name[15];
+  CHAR16    Name[15];
   UINT8    *Data;
   UINTN    DataSize;
+  UINTN    NameSize;
 } RUNTIME_DATA;
 
 TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
@@ -71,14 +72,58 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
 };
 
 RUNTIME_DATA mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
-  { "COMPLEX_KNOB1a", mGood_Runtime_Var_0, sizeof(mGood_Runtime_Var_0)},
-  { "COMPLEX_KNOB1b", mGood_Runtime_Var_1, sizeof(mGood_Runtime_Var_1)},
-  { "COMPLEX_KNOB2", mGood_Runtime_Var_2, sizeof(mGood_Runtime_Var_2)},
-  { "INTEGER_KNOB", mGood_Runtime_Var_3, sizeof(mGood_Runtime_Var_3)},
-  { "BOOLEAN_KNOB", mGood_Runtime_Var_4, sizeof(mGood_Runtime_Var_4)},
-  { "DOUBLE_KNOB", mGood_Runtime_Var_5, sizeof(mGood_Runtime_Var_5)},
-  { "FLOAT_KNOB", mGood_Runtime_Var_6, sizeof(mGood_Runtime_Var_6)},
+  { L"COMPLEX_KNOB1a", mGood_Runtime_Var_0, 0x09, 15 },
+  { L"COMPLEX_KNOB1b", mGood_Runtime_Var_1, 0x09, 15 },
+  { L"COMPLEX_KNOB2",  mGood_Runtime_Var_2, 0x16, 14 },
+  { L"INTEGER_KNOB",   mGood_Runtime_Var_3, 0x04, 13 },
+  { L"BOOLEAN_KNOB",   mGood_Runtime_Var_4, 0x01, 13 },
+  { L"DOUBLE_KNOB",    mGood_Runtime_Var_5, 0x08, 12 },
+  { L"FLOAT_KNOB",     mGood_Runtime_Var_6, 0x04, 11 },
 };
+
+EFI_STATUS
+MockCalculateCrc32 (
+  IN  UINT8                             *Data,
+  IN  UINTN                             DataSize,
+  IN OUT UINT32                         *CrcOut
+  )
+/*++
+
+Routine Description:
+
+Mocked version of CalculateCrc32.
+
+Arguments:
+
+  Data        - The buffer containing the data to be processed
+  DataSize    - The size of data to be processed
+  CrcOut      - A pointer to the caller allocated UINT32 that on
+                contains the CRC32 checksum of Data
+
+Returns:
+
+  EFI_SUCCESS               - Calculation is successful.
+  EFI_INVALID_PARAMETER     - Data / CrcOut = NULL, or DataSize = 0
+
+--*/
+{
+  UINT32  Crc;
+  UINTN   Index;
+  UINT8   *Ptr;
+
+  if ((DataSize == 0) || (Data == NULL) || (CrcOut == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Crc = 0xffffffff;
+  for (Index = 0, Ptr = Data; Index < DataSize; Index++, Ptr++) {
+    Crc = (Crc >> 8) ^ MockCrcTable[(UINT8) Crc ^ *Ptr];
+  }
+
+  *CrcOut = Crc ^ 0xffffffff;
+
+  return EFI_SUCCESS;
+}
 
 /**
   Mocked version of GetSectionFromAnyFv.
@@ -347,8 +392,6 @@ MockSetVariable (
   )
 {
   assert_non_null (VariableName);
-  assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
-  assert_int_equal (Attributes, CDATA_NV_VAR_ATTR);
 
   DEBUG ((DEBUG_INFO, "%a Name: %s\n", __FUNCTION__, VariableName));
 
@@ -414,6 +457,7 @@ EFI_BOOT_SERVICES  MockBoot = {
     0
   },
   .LocateProtocol = MockLocateProtocol,  // LocateProtocol
+  .CalculateCrc32 = MockCalculateCrc32,
 };
 
 // System table, not used in this test.
@@ -1622,8 +1666,6 @@ RuntimeDataSetNormal (
   )
 {
   EFI_STATUS          Status;
-  CHAR16              *CompareUniPtr[KNOWN_GOOD_RUNTIME_VAR_COUNT];
-  UINTN               UniStrSize = SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16);
   UINTN               Index      = 0;
   DFCI_SETTING_FLAGS  Flags      = 0;
   // Minimal initialization to tag this provider instance
@@ -1634,9 +1676,7 @@ RuntimeDataSetNormal (
   will_return_always (MockSetVariable, EFI_SUCCESS);
 
   for (Index = 0; Index < KNOWN_GOOD_RUNTIME_VAR_COUNT; Index++) {
-    CompareUniPtr[Index] = AllocatePool (UniStrSize);
-    UnicodeSPrintAsciiFormat (CompareUniPtr[Index], UniStrSize, "%s", mKnownGoodRuntimeVars[Index].Name);
-    expect_memory (MockSetVariable, VariableName, CompareUniPtr[Index], UniStrSize);
+    expect_memory (MockSetVariable, VariableName, mKnownGoodRuntimeVars[Index].Name, mKnownGoodRuntimeVars[Index].NameSize);
     expect_value (MockSetVariable, DataSize, mKnownGoodRuntimeVars[Index].DataSize);
     expect_memory (MockSetVariable, Data, mKnownGoodRuntimeVars[Index].Data, mKnownGoodRuntimeVars[Index].DataSize);
   }
@@ -1648,12 +1688,6 @@ RuntimeDataSetNormal (
              &Flags
              );
   UT_ASSERT_NOT_EFI_ERROR (Status);
-
-  Index = 0;
-  while (Index < KNOWN_GOOD_RUNTIME_VAR_COUNT) {
-    FreePool (CompareUniPtr[Index]);
-    Index++;
-  }
 
   return UNIT_TEST_PASSED;
 }
@@ -1761,6 +1795,7 @@ SettingsProviderNotifyShouldComplete (
   will_return (MockLocateProtocol, &mMockDfciSetting);
 
   expect_string (MockDfciRegisterProvider, Provider->Id, DFCI_OEM_SETTING_ID__CONF);
+  expect_string (MockDfciRegisterProvider, Provider->Id, RUNTIME_SETTING_ID__CONF);
 
   expect_value (MockLocateProtocol, Protocol, &gEdkiiVariablePolicyProtocolGuid);
   will_return (MockLocateProtocol, &mMockDfciSetting);
