@@ -1795,7 +1795,7 @@ SettingsProviderNotifyShouldComplete (
   will_return (MockLocateProtocol, &mMockDfciSetting);
 
   expect_string (MockDfciRegisterProvider, Provider->Id, DFCI_OEM_SETTING_ID__CONF);
-  expect_string (MockDfciRegisterProvider, Provider->Id, RUNTIME_SETTING_ID__CONF);
+  expect_string (MockDfciRegisterProvider, Provider->Id, DFCI_OEM_SETTING_ID__RUNTIME);
 
   expect_value (MockLocateProtocol, Protocol, &gEdkiiVariablePolicyProtocolGuid);
   will_return (MockLocateProtocol, &mMockDfciSetting);
