@@ -37,7 +37,7 @@
 #define SINGLE_SETTING_PROVIDER_TEMPLATE  "Device.ConfigData.TagID_%08X"
 
 // Runtime settings
-#define DFCI_OEM_SETTING_ID__RUNTIME "Device.RuntimeData.RuntimeData"
+#define DFCI_OEM_SETTING_ID__RUNTIME  "Device.RuntimeData.RuntimeData"
 
 typedef struct {
   UINT16    PlatformId;
@@ -132,12 +132,12 @@ typedef struct {
 
   /*
    * Rest of Variable List struct:
-   * 
+   *
    * CHAR16 Name[NameSize/2] // Null terminate UTF-16LE encoded name
    * EFI_GUID Guid // namespace Guid
    * UINT32 Attributes // UEFI attributes
    * CHAR8 Data[DataSize] // actual variable value
-   * UINT32 CRC32 // checksum of all bytes up to CRC32 
+   * UINT32 CRC32 // checksum of all bytes up to CRC32
    */
 } RUNTIME_VAR_LIST_HDR;
 #pragma pack(pop)

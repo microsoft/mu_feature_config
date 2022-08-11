@@ -314,18 +314,18 @@ RuntimeDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   )
 {
-  EFI_STATUS  Status = EFI_SUCCESS;
-  CHAR16 *VarName = NULL;
-  CHAR16 *name;
-  EFI_GUID *Guid;
-  UINT32 Attributes;
-  CHAR8 *Data;
-  UINT32 CRC32;
-  UINT32 LenToCRC32;  
-  UINT32 CalcCRC32 = 0;
-  RUNTIME_VAR_LIST_HDR *VarList;
-  UINT32 ListIndex = 0;
-  
+  EFI_STATUS            Status   = EFI_SUCCESS;
+  CHAR16                *VarName = NULL;
+  CHAR16                *name;
+  EFI_GUID              *Guid;
+  UINT32                Attributes;
+  CHAR8                 *Data;
+  UINT32                CRC32;
+  UINT32                LenToCRC32;
+  UINT32                CalcCRC32 = 0;
+  RUNTIME_VAR_LIST_HDR  *VarList;
+  UINT32                ListIndex = 0;
+
   if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
@@ -341,8 +341,9 @@ RuntimeDataSet (
     // index into variable list
     VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
 
-    if (ListIndex + sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) +
-        sizeof(Attributes) + sizeof(CRC32) > ValueSize) {
+    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
+        sizeof (Attributes) + sizeof (CRC32) > ValueSize)
+    {
       // the NameSize and DataSize have bad values and are pushing us past the end of the binary
       DEBUG ((DEBUG_ERROR, "Runtime Settings had bad NameSize or DataSize, unable to process all settings\n"));
       break;
@@ -350,7 +351,7 @@ RuntimeDataSet (
 
     /*
      * Var List is in DmpStore format:
-     * 
+     *
      *  struct {
      *    RUNTIME_VAR_LIST_HDR VarList;
      *    CHAR16 Name[VarList->NameSize/2];
@@ -360,21 +361,21 @@ RuntimeDataSet (
      *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
      *  }
      */
-    name = (CHAR16 *)(VarList + 1);
-    Guid = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
+    name       = (CHAR16 *)(VarList + 1);
+    Guid       = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
     Attributes = *(UINT32 *)(Guid + 1);
-    Data = (CHAR8 *)Guid + sizeof(*Guid) + sizeof(Attributes);
-    CRC32 = *(UINT32 *)(Data + VarList->DataSize);
-    LenToCRC32 = sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) + sizeof(Attributes);  
+    Data       = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
+    CRC32      = *(UINT32 *)(Data + VarList->DataSize);
+    LenToCRC32 = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes);
 
     // on next iteration, skip past this variable
-    ListIndex += LenToCRC32 + sizeof(CRC32);
+    ListIndex += LenToCRC32 + sizeof (CRC32);
 
     // validate CRC32
     CalcCRC32 = 0;
-    Status = gBS->CalculateCrc32(VarList, LenToCRC32, &CalcCRC32); 
+    Status    = gBS->CalculateCrc32 (VarList, LenToCRC32, &CalcCRC32);
 
-    if (EFI_ERROR(Status) || CalcCRC32 != CRC32) {
+    if (EFI_ERROR (Status) || (CalcCRC32 != CRC32)) {
       // Either CRC calculation failed or CRC didn't match, drop this variable, continue to the next
       DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r \
       Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
@@ -388,23 +389,23 @@ RuntimeDataSet (
     }
 
     // Copy non-16 bit aligned name to VarName, not using StrCpyS functions as they assert on non-16 bit alignment
-    CopyMem(VarName, name, VarList->NameSize);
+    CopyMem (VarName, name, VarList->NameSize);
 
     // write variable directly to var storage
-    Status = gRT->SetVariable(
-                      VarName,
-                      Guid,
-                      Attributes,
-                      VarList->DataSize,
-                      Data
-    );
+    Status = gRT->SetVariable (
+                    VarName,
+                    Guid,
+                    Attributes,
+                    VarList->DataSize,
+                    Data
+                    );
 
-    if (EFI_ERROR(Status)) {
+    if (EFI_ERROR (Status)) {
       // failed to set variable, continue to try with other variables
       DEBUG ((DEBUG_ERROR, "Failed to set Runtime Setting %s, continuing to try next variables\n", VarName));
     }
 
-    FreePool(VarName);
+    FreePool (VarName);
   }
 
   return Status;

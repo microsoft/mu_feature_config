@@ -44,9 +44,9 @@
 #define KNOWN_GOOD_TAG_0x10   0x10
 #define KNOWN_GOOD_TAG_0x80   0x80
 
-#define KNOWN_GOOD_TAG_COUNT     7
-#define SINGLE_CONF_DATA_ID_LEN  (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
-#define KNOWN_GOOD_RUNTIME_VAR_COUNT 7
+#define KNOWN_GOOD_TAG_COUNT          7
+#define SINGLE_CONF_DATA_ID_LEN       (sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2)
+#define KNOWN_GOOD_RUNTIME_VAR_COUNT  7
 
 typedef struct {
   UINTN    Tag;
@@ -56,9 +56,9 @@ typedef struct {
 
 typedef struct {
   CHAR16    Name[15];
-  UINT8    *Data;
-  UINTN    DataSize;
-  UINTN    NameSize;
+  UINT8     *Data;
+  UINTN     DataSize;
+  UINTN     NameSize;
 } RUNTIME_DATA;
 
 TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
@@ -71,7 +71,7 @@ TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   { KNOWN_GOOD_TAG_0x80,  mGood_Tag_0x80,  sizeof (mGood_Tag_0x80)  }
 };
 
-RUNTIME_DATA mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
+RUNTIME_DATA  mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
   { L"COMPLEX_KNOB1a", mGood_Runtime_Var_0, 0x09, 15 },
   { L"COMPLEX_KNOB1b", mGood_Runtime_Var_1, 0x09, 15 },
   { L"COMPLEX_KNOB2",  mGood_Runtime_Var_2, 0x16, 14 },
@@ -83,10 +83,11 @@ RUNTIME_DATA mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
 
 EFI_STATUS
 MockCalculateCrc32 (
-  IN  UINT8                             *Data,
-  IN  UINTN                             DataSize,
-  IN OUT UINT32                         *CrcOut
+  IN  UINT8      *Data,
+  IN  UINTN      DataSize,
+  IN OUT UINT32  *CrcOut
   )
+
 /*++
 
 Routine Description:
@@ -117,7 +118,7 @@ Returns:
 
   Crc = 0xffffffff;
   for (Index = 0, Ptr = Data; Index < DataSize; Index++, Ptr++) {
-    Crc = (Crc >> 8) ^ MockCrcTable[(UINT8) Crc ^ *Ptr];
+    Crc = (Crc >> 8) ^ MockCrcTable[(UINT8)Crc ^ *Ptr];
   }
 
   *CrcOut = Crc ^ 0xffffffff;
@@ -1666,8 +1667,8 @@ RuntimeDataSetNormal (
   )
 {
   EFI_STATUS          Status;
-  UINTN               Index      = 0;
-  DFCI_SETTING_FLAGS  Flags      = 0;
+  UINTN               Index = 0;
+  DFCI_SETTING_FLAGS  Flags = 0;
   // Minimal initialization to tag this provider instance
   DFCI_SETTING_PROVIDER  SettingsProvider = {
     .Id = DFCI_OEM_SETTING_ID__RUNTIME
