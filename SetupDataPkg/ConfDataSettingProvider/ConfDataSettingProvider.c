@@ -375,7 +375,7 @@ RuntimeDataSet (
     Status = gBS->CalculateCrc32(VarList, LenToCRC32, &CalcCRC32); 
 
     if (EFI_ERROR(Status) || CalcCRC32 != CRC32) {
-      // Either CRC calulation failed or CRC didn't match, drop this variable, continue to the next
+      // Either CRC calculation failed or CRC didn't match, drop this variable, continue to the next
       DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r \
       Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
       continue;
