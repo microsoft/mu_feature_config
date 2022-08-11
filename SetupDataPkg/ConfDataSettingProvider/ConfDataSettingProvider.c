@@ -90,7 +90,7 @@ Exit:
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
-  @param DefaultValue   Output parameter for the settings default value.
+  @param Value          Output parameter for the settings default value.
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
@@ -323,6 +323,8 @@ RuntimeDataSet (
   UINT32 CRC32;
   UINT32 LenToCRC32;  
   UINT32 CalcCRC32 = 0;
+  RUNTIME_VAR_LIST_HDR *VarList;
+  UINT32 ListIndex = 0;
   
   if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -335,9 +337,17 @@ RuntimeDataSet (
     return EFI_UNSUPPORTED;
   }
 
-  for (int i = 0; i < ValueSize;) {
+  while (ListIndex < ValueSize) {
     // index into variable list
-    RUNTIME_VAR_LIST_HDR *VarList = (RUNTIME_VAR_LIST_HDR *)(Value + i);
+    VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
+
+    if (ListIndex + sizeof(*Varlist) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) +
+        sizeof(Attributes) + sizeof(CRC32)) > ValueSize) {
+      // the NameSize and DataSize have bad values and are pushing us past the end of the binary
+      DEBUG ((DEBUG_ERROR, "Runtime Settings had bad NameSize or DataSize, unable to process all settings\n"));
+      break;
+    }
+
     /*
      * Var List is in DmpStore format:
      * 
@@ -358,7 +368,7 @@ RuntimeDataSet (
     LenToCRC32 = sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) + sizeof(Attributes);  
 
     // on next iteration, skip past this variable
-    i += LenToCRC32 + sizeof(CRC32);
+    ListIndex += LenToCRC32 + sizeof(CRC32);
 
     // validate CRC32
     CalcCRC32 = 0;
@@ -388,6 +398,11 @@ RuntimeDataSet (
                       VarList->DataSize,
                       Data
     );
+
+    if (EFI_ERROR(Status)) {
+      // failed to set variable, continue to try with other variables
+      DEBUG ((DEBUG_ERROR, "Failed to set Runtime Setting %s, continuing to try next variables\n", VarName));
+    }
 
     FreePool(VarName);
   }
@@ -424,7 +439,7 @@ RuntimeDataGet (
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
-  @param DefaultValue   Output parameter for the settings default value.
+  @param Value          Output parameter for the settings default value.
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
@@ -620,7 +635,7 @@ Done:
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
-  @param DefaultValue   Output parameter for the settings default value.
+  @param Value          Output parameter for the settings default value.
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
