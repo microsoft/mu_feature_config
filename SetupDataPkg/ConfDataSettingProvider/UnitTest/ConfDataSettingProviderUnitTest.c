@@ -82,8 +82,9 @@ RUNTIME_DATA  mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
 };
 
 EFI_STATUS
+EFIAPI
 MockCalculateCrc32 (
-  IN  UINT8      *Data,
+  IN  VOID       *Data,
   IN  UINTN      DataSize,
   IN OUT UINT32  *CrcOut
   )
