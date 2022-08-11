@@ -81,52 +81,6 @@ RUNTIME_DATA  mKnownGoodRuntimeVars[KNOWN_GOOD_RUNTIME_VAR_COUNT] = {
   { L"FLOAT_KNOB",     mGood_Runtime_Var_6, 0x04, 11 },
 };
 
-EFI_STATUS
-EFIAPI
-MockCalculateCrc32 (
-  IN  VOID       *Data,
-  IN  UINTN      DataSize,
-  IN OUT UINT32  *CrcOut
-  )
-
-/*++
-
-Routine Description:
-
-Mocked version of CalculateCrc32.
-
-Arguments:
-
-  Data        - The buffer containing the data to be processed
-  DataSize    - The size of data to be processed
-  CrcOut      - A pointer to the caller allocated UINT32 that on
-                contains the CRC32 checksum of Data
-
-Returns:
-
-  EFI_SUCCESS               - Calculation is successful.
-  EFI_INVALID_PARAMETER     - Data / CrcOut = NULL, or DataSize = 0
-
---*/
-{
-  UINT32  Crc;
-  UINTN   Index;
-  UINT8   *Ptr;
-
-  if ((DataSize == 0) || (Data == NULL) || (CrcOut == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  Crc = 0xffffffff;
-  for (Index = 0, Ptr = Data; Index < DataSize; Index++, Ptr++) {
-    Crc = (Crc >> 8) ^ MockCrcTable[(UINT8)Crc ^ *Ptr];
-  }
-
-  *CrcOut = Crc ^ 0xffffffff;
-
-  return EFI_SUCCESS;
-}
-
 /**
   Mocked version of GetSectionFromAnyFv.
 
@@ -459,7 +413,6 @@ EFI_BOOT_SERVICES  MockBoot = {
     0
   },
   .LocateProtocol = MockLocateProtocol,  // LocateProtocol
-  .CalculateCrc32 = MockCalculateCrc32,
 };
 
 // System table, not used in this test.
