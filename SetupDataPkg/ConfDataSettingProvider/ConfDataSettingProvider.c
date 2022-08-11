@@ -90,7 +90,7 @@ Exit:
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
-  @param DefaultValue   Output parameter for the settings default value.
+  @param Value          Output parameter for the settings default value.
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
@@ -294,6 +294,195 @@ DFCI_SETTING_PROVIDER  mSettingsProvider = {
   (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
 };
 
+/**
+  Set new runtime value to variable storage.
+
+  @param This      Provider Setting
+  @param Value     a pointer to the variable list
+  @param ValueSize Size of the data for this setting.
+  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
+
+  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error       Setting not set.
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSet (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN        UINTN                  ValueSize,
+  IN  CONST UINT8                  *Value,
+  OUT DFCI_SETTING_FLAGS           *Flags
+  )
+{
+  EFI_STATUS            Status   = EFI_SUCCESS;
+  CHAR16                *VarName = NULL;
+  CHAR16                *name;
+  EFI_GUID              *Guid;
+  UINT32                Attributes;
+  CHAR8                 *Data;
+  UINT32                CRC32;
+  UINT32                LenToCRC32;
+  UINT32                CalcCRC32 = 0;
+  RUNTIME_VAR_LIST_HDR  *VarList;
+  UINT32                ListIndex = 0;
+
+  if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  *Flags = 0;
+
+  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)) {
+    DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
+    return EFI_UNSUPPORTED;
+  }
+
+  while (ListIndex < ValueSize) {
+    // index into variable list
+    VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
+
+    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
+        sizeof (Attributes) + sizeof (CRC32) > ValueSize)
+    {
+      // the NameSize and DataSize have bad values and are pushing us past the end of the binary
+      DEBUG ((DEBUG_ERROR, "Runtime Settings had bad NameSize or DataSize, unable to process all settings\n"));
+      break;
+    }
+
+    /*
+     * Var List is in DmpStore format:
+     *
+     *  struct {
+     *    RUNTIME_VAR_LIST_HDR VarList;
+     *    CHAR16 Name[VarList->NameSize/2];
+     *    EFI_GUID Guid;
+     *    UINT32 Attributes;
+     *    CHAR8 Data[VarList->DataSize];
+     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
+     *  }
+     */
+    name       = (CHAR16 *)(VarList + 1);
+    Guid       = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
+    Attributes = *(UINT32 *)(Guid + 1);
+    Data       = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
+    CRC32      = *(UINT32 *)(Data + VarList->DataSize);
+    LenToCRC32 = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes);
+
+    // on next iteration, skip past this variable
+    ListIndex += LenToCRC32 + sizeof (CRC32);
+
+    // validate CRC32
+    CalcCRC32 = CalculateCrc32 (VarList, LenToCRC32);
+
+    if (CalcCRC32 != CRC32) {
+      // CRC didn't match, drop this variable, continue to the next
+      DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r \
+      Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
+      continue;
+    }
+
+    VarName = AllocatePool (VarList->NameSize);
+    if (VarName == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+      return Status;
+    }
+
+    // Copy non-16 bit aligned name to VarName, not using StrCpyS functions as they assert on non-16 bit alignment
+    CopyMem (VarName, name, VarList->NameSize);
+
+    // write variable directly to var storage
+    Status = gRT->SetVariable (
+                    VarName,
+                    Guid,
+                    Attributes,
+                    VarList->DataSize,
+                    Data
+                    );
+
+    if (EFI_ERROR (Status)) {
+      // failed to set variable, continue to try with other variables
+      DEBUG ((DEBUG_ERROR, "Failed to set Runtime Setting %s, continuing to try next variables\n", VarName));
+    }
+
+    FreePool (VarName);
+  }
+
+  return Status;
+}
+
+/**
+  It is not supported to get the full Runtime Setting list. Instead,
+  each individual Runtime Settings Provider can fetch the setting.
+
+  @param This       Setting Provider
+  @param ValueSize  IN=Size of location to store value
+                    OUT=Size of value stored
+  @param Value      Output parameter for the setting value.
+                    The type and size is based on the provider type
+                    and must be allocated by the caller.
+  @retval EFI_UNSUPPORTED   This is not supported for Runtime Settings
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataGet (
+  IN CONST DFCI_SETTING_PROVIDER  *This,
+  IN OUT   UINTN                  *ValueSize,
+  OUT      UINT8                  *Value
+  )
+{
+  return EFI_UNSUPPORTED;
+}
+
+/**
+  Default values of Runtime Settings are not supported.
+
+  @param This           Setting Provider
+  @param ValueSize      IN=Size of location to store value
+                        OUT=Size of value stored
+  @param Value          Output parameter for the settings default value.
+                        The type and size is based on the provider type
+                        and must be allocated by the caller.
+
+  @retval EFI_UNSUPPORTED           This is not supported for Runtime Settings
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataGetDefault (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN  OUT   UINTN                  *ValueSize,
+  OUT       UINT8                  *Value
+  )
+{
+  return EFI_UNSUPPORTED;
+}
+
+/**
+  It is not supported to get the full Runtime Setting list. Instead,
+  each individual Runtime Settings Provider can fetch the setting.
+
+  @param This          Setting Provider protocol
+
+  @retval EFI_UNSUPPORTED         This is not supported for Runtime Settings
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSetDefault (
+  IN  CONST DFCI_SETTING_PROVIDER  *This
+  )
+{
+  return EFI_UNSUPPORTED;
+}
+
+DFCI_SETTING_PROVIDER  mRuntimeSettingsProvider = {
+  DFCI_OEM_SETTING_ID__RUNTIME,
+  DFCI_SETTING_TYPE_BINARY,
+  DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
+  (DFCI_SETTING_PROVIDER_SET)RuntimeDataSet,
+  (DFCI_SETTING_PROVIDER_GET)RuntimeDataGet,
+  (DFCI_SETTING_PROVIDER_GET_DEFAULT)RuntimeDataGetDefault,
+  (DFCI_SETTING_PROVIDER_SET_DEFAULT)RuntimeDataSetDefault
+};
+
 /*
   Helper function extract tag ID from single setting provider ID.
 
@@ -446,7 +635,7 @@ Done:
   @param This           Setting Provider
   @param ValueSize      IN=Size of location to store value
                         OUT=Size of value stored
-  @param DefaultValue   Output parameter for the settings default value.
+  @param Value          Output parameter for the settings default value.
                         The type and size is based on the provider type
                         and must be allocated by the caller.
 
@@ -800,6 +989,13 @@ SettingsProviderSupportProtocolNotify (
   Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mSettingsProvider);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed to Register.  Status = %r\n", Status));
+  }
+
+  // register runtime settings provider
+  DEBUG ((DEBUG_INFO, "Registering runtime Setting Provider\n"));
+  Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mRuntimeSettingsProvider);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to Register Runtime Settings.  Status = %r\n", Status));
   }
 
   Status = gBS->LocateProtocol (&gEdkiiVariablePolicyProtocolGuid, NULL, (VOID **)&mVariablePolicy);

@@ -92,7 +92,6 @@ IterateConfData (
                    (CdataHdr->Length << 2) - sizeof (*CdataHdr) - sizeof (CDATA_COND) * CdataHdr->ConditionNum
                    );
         if (EFI_ERROR (Status)) {
-          ASSERT_EFI_ERROR (Status);
           break;
         }
       } else {

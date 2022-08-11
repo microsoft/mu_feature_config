@@ -335,7 +335,8 @@ ApplySettings (
 
     // only care about our target
     if ((0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) &&
-        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)))
+        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)) &&
+        (0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)))
     {
       continue;
     }

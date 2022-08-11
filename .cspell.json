@@ -9,7 +9,8 @@
   ],
   "ignorePaths": [
       "*.exe",
-      "SetupDataPkg/Tools/CommonUtility_test.py"
+      "SetupDataPkg/Tools/CommonUtility_test.py",
+      "SetupDataPkg/Test/Include/Good_Config_Data.h"
 
   ],
   "ignoreWords": [],

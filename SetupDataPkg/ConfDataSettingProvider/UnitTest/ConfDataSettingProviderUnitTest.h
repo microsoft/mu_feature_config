@@ -166,6 +166,26 @@ SingleConfDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   );
 
+/**
+  Set new configuration value to variable storage.
+
+  @param This      Provider Setting
+  @param Value     a pointer to a datatype defined by the Type for this setting.
+  @param ValueSize Size of the data for this setting.
+  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
+
+  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
+  @retval Error       Setting not set.
+**/
+EFI_STATUS
+EFIAPI
+RuntimeDataSet (
+  IN  CONST DFCI_SETTING_PROVIDER  *This,
+  IN        UINTN                  ValueSize,
+  IN  CONST UINT8                  *Value,
+  OUT DFCI_SETTING_FLAGS           *Flags
+  );
+
 /*
   Helper function extract tag ID from single setting provider ID.
 
