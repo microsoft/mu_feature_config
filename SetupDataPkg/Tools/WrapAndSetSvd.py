@@ -14,7 +14,7 @@ import os
 import sys
 import logging
 import argparse
-from edk2toollib.utility_functions import RunPythonScript
+import GenerateSettingsPacketData
 
 # get script path
 sp = os.path.abspath(os.path.dirname(__file__))
@@ -83,17 +83,15 @@ def main():
     Paths = path_parse()
 
     setting_file = "Unsigned_Settings_apply.bin"
-    py_file = "SettingSupport/GenerateSettingsPacketData.py"
     params = ["--Step1Enable"]
-    params += ["--PrepResultFile", setting_file]
+    params += ["--PrepResultFile", os.path.join(sp, setting_file)]
     params += ["--XmlFilePath", Paths.InputSVDFile]
     params += ["--HdrVersion", "2"]
     params += ["--SMBIOSMfg", Paths.Manufacturer]
     params += ["--SMBIOSProd", Paths.Product]
     params += ["--SMBIOSSerial", Paths.SerialNum]
-    ret = RunPythonScript(
-        py_file, " ".join(params), workingdir=sp, environ=os.environ.copy()
-    )
+    ret = GenerateSettingsPacketData.main(params)
+    
     if ret != 0:
         raise Exception("Failed to generate package - %x" % ret)
 

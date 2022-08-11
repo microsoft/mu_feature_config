@@ -334,7 +334,7 @@ ApplySettings (
       goto EXIT;
     }
 
-    IsRuntimeSettings = (0 == AsciiStrnCmp (Id, RUNTIME_SETTING_ID__CONF, RUNTIME_SETTING_MAX_LEN));
+    IsRuntimeSettings = (0 == AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN));
 
     // only care about our target
     if ((0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) &&
@@ -832,7 +832,7 @@ CreateXmlStringFromCurrentSettings (
   // OSDDEBUG tmp, just to print out
   mSettingAccess->Get (
                              mSettingAccess,
-                             RUNTIME_SETTING_ID__CONF,
+                             DFCI_OEM_SETTING_ID__RUNTIME,
                              &mAuthToken,
                              DFCI_SETTING_TYPE_BINARY,
                              &DataSize,

@@ -98,7 +98,7 @@ def SignSEMData(options):
 #
 # main script function
 #
-def main():
+def main(params=None):
     parser = argparse.ArgumentParser(description="Create SEM Settings Packet Variable")
 
     # Output debug log
@@ -257,7 +257,11 @@ def main():
         help="turn on debug logging level for file log",
         default=False,
     )
-    options = parser.parse_args()
+
+    if not params:
+        options = parser.parse_args()
+    else:
+        options = parser.parse_args(params)
 
     # setup file based logging if outputReport specified
     if options.OutputLog:
