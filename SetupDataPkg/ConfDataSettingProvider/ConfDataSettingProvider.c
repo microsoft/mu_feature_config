@@ -341,8 +341,8 @@ RuntimeDataSet (
     // index into variable list
     VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
 
-    if (ListIndex + sizeof(*Varlist) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) +
-        sizeof(Attributes) + sizeof(CRC32)) > ValueSize) {
+    if (ListIndex + sizeof(*VarList) + VarList->NameSize + VarList->DataSize + sizeof(*Guid) +
+        sizeof(Attributes) + sizeof(CRC32) > ValueSize) {
       // the NameSize and DataSize have bad values and are pushing us past the end of the binary
       DEBUG ((DEBUG_ERROR, "Runtime Settings had bad NameSize or DataSize, unable to process all settings\n"));
       break;
