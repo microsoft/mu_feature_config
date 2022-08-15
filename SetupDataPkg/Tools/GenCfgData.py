@@ -501,7 +501,7 @@ class CFG_YAML():
                             # for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x04'
-                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_/4):10b, %d:4b, 0:4b, %s:12b}' %\
+                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_):10b, %d:4b, 0:4b, %s:12b}' %\
                                                (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
@@ -1275,12 +1275,7 @@ class CGenCfgData:
             else:
                 struct_node = top[struct_str]
             struct_node['offset'] = start
-            if len(path) == 1:
-                # Round up first layer tree to be 4 Byte aligned
-                info['offset'] = (info['offset'] + 31) & (~31)
-                struct_node['length'] = (info['offset'] - start + 31) & (~31)
-            else:
-                struct_node['length'] = info['offset'] - start
+            struct_node['length'] = info['offset'] - start
             if struct_node['length'] % 8 != 0:
                 raise SystemExit("Error: Bits length not aligned for %s !" % str(path))
 
