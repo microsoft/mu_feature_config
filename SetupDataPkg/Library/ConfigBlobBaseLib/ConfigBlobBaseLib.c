@@ -43,7 +43,7 @@ FindConfigHdrByPidMaskTag (
     return NULL;
   }
 
-  Offset = IsInternal > 0 ? (CdataBlob->ExtraInfo.InternalDataOffset * 4) : CdataBlob->HeaderLength;
+  Offset = IsInternal > 0 ? (CdataBlob->ExtraInfo.InternalDataOffset) : CdataBlob->HeaderLength;
 
   while (Offset < CdataBlob->UsedLength) {
     CdataHdr = (CDATA_HEADER *)((UINT8 *)CdataBlob + Offset);
@@ -74,7 +74,7 @@ FindConfigHdrByPidMaskTag (
       // }
     }
 
-    Offset += (CdataHdr->Length << 2);
+    Offset += (CdataHdr->Length);
   }
 
   return NULL;
@@ -200,7 +200,7 @@ GetConfigDataSize (
     PidMask = MAX_UINT32; // Enforce true for simplicity (1 << GetPlatformId ());
   } else {
     // Has internal CFGDATA
-    Start   = LdrCfgBlob->ExtraInfo.InternalDataOffset * 4;
+    Start   = LdrCfgBlob->ExtraInfo.InternalDataOffset;
     PidMask = BIT0;
   }
 
@@ -212,7 +212,7 @@ GetConfigDataSize (
       break;
     }
 
-    Offset += (CdataHdr->Length << 2);
+    Offset += (CdataHdr->Length);
   }
 
   return Offset - Start + CfgBlobHdrLen;
