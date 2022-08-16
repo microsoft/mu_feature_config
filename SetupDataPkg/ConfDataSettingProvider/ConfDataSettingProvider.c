@@ -332,7 +332,7 @@ RuntimeDataSet (
 
   *Flags = 0;
 
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)) {
+  if (0 != AsciiStrnCmp (This->Id, RUNTIME_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
     DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
     return EFI_UNSUPPORTED;
   }
@@ -542,7 +542,7 @@ RuntimeDataSetDefault (
 }
 
 DFCI_SETTING_PROVIDER  mRuntimeSettingsProvider = {
-  DFCI_OEM_SETTING_ID__RUNTIME,
+  RUNTIME_SETTING_ID__CONF,
   DFCI_SETTING_TYPE_BINARY,
   DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
   (DFCI_SETTING_PROVIDER_SET)RuntimeDataSet,
