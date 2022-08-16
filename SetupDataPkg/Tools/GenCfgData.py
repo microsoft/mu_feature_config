@@ -1447,6 +1447,7 @@ class CGenCfgData:
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
+        print("OSDDEBUG gen_var_list: ", self.generate_var_list())
         # called during build time, so generate var list bin
         bin_file.write(self.generate_var_list())
         bin_file.close()

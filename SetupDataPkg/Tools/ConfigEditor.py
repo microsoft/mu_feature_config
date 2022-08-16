@@ -850,6 +850,7 @@ class application(tkinter.Frame):
         for idx in self.cfg_data_list:
             bin_len += len(self.cfg_data_list[idx].org_cfg_data_bin)
 
+        print("OSDDEBUG bin_len, bin_data len", bin_len, len(bin_data))
         if len(bin_data) < bin_len:
             messagebox.showerror(
                 "Binary file size is smaller than what YAML requires !"
