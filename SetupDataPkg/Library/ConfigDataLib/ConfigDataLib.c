@@ -89,7 +89,7 @@ IterateConfData (
         Status = SingleTagHandler (
                    CdataHdr->Tag,
                    Data,
-                   (CdataHdr->Length << 2) - sizeof (*CdataHdr) - sizeof (CDATA_COND) * CdataHdr->ConditionNum
+                   (CdataHdr->Length) - sizeof (*CdataHdr) - sizeof (CDATA_COND) * CdataHdr->ConditionNum
                    );
         if (EFI_ERROR (Status)) {
           break;
@@ -101,7 +101,7 @@ IterateConfData (
       }
     }
 
-    Offset += (CdataHdr->Length << 2);
+    Offset += (CdataHdr->Length);
     DEBUG ((DEBUG_VERBOSE, "Offset:    0x%08X\n\n", Offset));
   }
 
