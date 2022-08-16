@@ -611,7 +611,7 @@ SingleConfDataSetDefault (
                   VarName,
                   PcdGetPtr (PcdConfigPolicyVariableGuid),
                   CDATA_NV_VAR_ATTR,
-                  (TagHdrBuffer->Length<<2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum,
+                  (TagHdrBuffer->Length) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum,
                   TagBuffer
                   );
 
@@ -697,7 +697,7 @@ SingleConfDataGetDefault (
     goto Done;
   }
 
-  Size = (TagHdrBuffer->Length << 2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum;
+  Size = (TagHdrBuffer->Length) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum;
   if (*ValueSize < Size) {
     Status = EFI_BUFFER_TOO_SMALL;
   } else {
