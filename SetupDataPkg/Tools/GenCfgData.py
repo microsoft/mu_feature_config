@@ -850,6 +850,8 @@ class CGenCfgData:
                         if match.group(1) == '0' and match.group(2) == '0':
                             unit_len = CGenCfgData.bits_width[match.group(3)] // 8
                         cur_bit_len = int(match.group(2)) * CGenCfgData.bits_width[match.group(3)]
+                        if self.eval(match.group(1)) != (self.eval(match.group(1)) & (1 << cur_bit_len) - 1):
+                            raise SystemExit("Exception: Invalid bit width defined for 'value': '%s' !" % value_str)
                         value += ((self.eval(match.group(1)) & (1 << cur_bit_len) - 1)) << bit_len
                         bit_len += cur_bit_len
                         each_value = bytearray()
