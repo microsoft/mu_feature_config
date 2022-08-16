@@ -75,6 +75,13 @@ IterateConfData (
     DEBUG ((DEBUG_VERBOSE, "\tTag:           0x%08X\n", CdataHdr->Tag));
     DEBUG ((DEBUG_VERBOSE, "\tData:          0x%08p\n", Data));
 
+    if (CdataHdr->Length == 0) {
+      // Cannot continue iteration since the program will get stuck if we do...
+      ASSERT (FALSE);
+      Status = EFI_COMPROMISED_DATA;
+      break;
+    }
+
     for (Idx = 0; Idx < CdataHdr->ConditionNum; Idx++) {
       DEBUG ((DEBUG_VERBOSE, "\tCondition %d:   0x%08X\n", Idx, CdataHdr->Condition[Idx]));
       if ((CdataHdr->Flags & CDATA_FLAG_TYPE_MASK) == CDATA_FLAG_TYPE_REFER) {
