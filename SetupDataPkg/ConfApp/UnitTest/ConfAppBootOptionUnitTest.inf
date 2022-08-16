@@ -52,5 +52,5 @@
   gDfciAuthenticationProtocolGuid
   gEfiSimpleTextInputExProtocolGuid
 
-[Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+[Guids]
+  gSetupConfigPolicyVariableGuid

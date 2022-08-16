@@ -118,7 +118,7 @@ GetSectionFromAnyFv (
 {
   VOID  *ret_buf;
 
-  assert_memory_equal (NameGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
+  assert_memory_equal (NameGuid, &gSetupConfigPolicyVariableGuid, sizeof (EFI_GUID));
   assert_int_equal (SectionType, EFI_SECTION_RAW);
   assert_non_null (Buffer);
   assert_non_null (Size);
@@ -231,7 +231,7 @@ RegisterVarStateVariablePolicy (
   )
 {
   DEBUG ((DEBUG_INFO, "%a Register for %s under %g\n", __FUNCTION__, Name, Namespace));
-  assert_ptr_equal (Namespace, PcdGetPtr (PcdConfigPolicyVariableGuid));
+  assert_ptr_equal (Namespace, &gSetupConfigPolicyVariableGuid);
   assert_int_equal (MaxSize, VARIABLE_POLICY_NO_MAX_SIZE);
   assert_int_equal (AttributesMustHave, CDATA_NV_VAR_ATTR);
   assert_int_equal (AttributesCantHave, (UINT32) ~CDATA_NV_VAR_ATTR);
@@ -283,7 +283,7 @@ MockGetVariable (
   VOID   *RetData;
 
   assert_non_null (VariableName);
-  assert_memory_equal (VendorGuid, PcdGetPtr (PcdConfigPolicyVariableGuid), sizeof (EFI_GUID));
+  assert_memory_equal (VendorGuid, &gSetupConfigPolicyVariableGuid, sizeof (EFI_GUID));
   assert_non_null (DataSize);
 
   DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
