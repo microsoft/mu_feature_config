@@ -70,6 +70,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
         if ret != 0:
             return ret
 
+        logging.error("OSDDEBUG line 73")
+
         # Now generate XML config
         cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "GenNCCfgData.py")
         params = ["GENBIN"]

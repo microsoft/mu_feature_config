@@ -2153,7 +2153,7 @@ def main():
             fi = open(file_list[2], 'rb')
             new_data = bytearray(fi.read())
             fi.close()
-            gen_cfg_data.load_default_from_bin(new_data, False)
+            gen_cfg_data.load_default_from_bin(new_data, True)
             gen_cfg_data.override_default_value(dlt_file)
 
         gen_cfg_data.generate_binary(out_file)
