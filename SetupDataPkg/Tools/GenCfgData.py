@@ -81,6 +81,16 @@ def bytes_to_bracket_str(bytes):
     return '{ %s }' % (', '.join('0x%02x' % i for i in bytes))
 
 
+def cfghdr_to_value(val_str):
+    val_str = val_str.strip()
+    val_str = strip_delimiter(val_str, '{}')
+    val_str = strip_quote(val_str)
+    value = val_str.split(',')[::-1][0]
+    print("OSDDEBUG value: ",value)
+    idx = value.find(':')
+    return value[:idx].strip()
+
+
 def array_str_to_value(val_str):
     val_str = val_str.strip()
     val_str = strip_delimiter(val_str, '{}')
@@ -1420,7 +1430,12 @@ class CGenCfgData:
             new_value = bytes_to_bracket_str(bin_data)
             self.set_config_item_value(item, new_value)
 
-    def load_default_from_bin(self, bin_data):
+    def load_default_from_bin(self, bin_data, is_variable_list_format):
+        # binary may be passed in variable list format or raw binary format
+        # we only want to read the YAML variable to populate the cfg_tree
+        if (not is_variable_list_format):
+            self.set_field_value(self._cfg_tree, bin_data, True)
+            return
         variables = read_vlist_from_buffer(bin_data)
         for var in variables:
             if str(var.guid).lower() == SETUP_CONFIG_POLICY_VAR_GUID.lower():
@@ -1555,7 +1570,7 @@ class CGenCfgData:
         return (execs, bytes_array)
 
     def generate_var_list(self):
-        varlist = []
+        varlist = b''
         for item in self._cfg_list:
             if item['type'] != 'Reserved':
                 item = self.locate_cfg_item(item['path'])
@@ -1572,11 +1587,13 @@ class CGenCfgData:
                 offset += int(exec['CfgHeader']['length'], 0)
                 offset += int(exec['CondValue']['length'], 0)
                 print("OSDDEBUG exec: ", exec)
-                tag_val = array_str_to_value(exec['CfgHeader']['value']) >> 20
-                name = "Device.ConfigData.TagID_%08x" % tag_val
-                varlist.append(create_vlist_buffer(
+                tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
+                name = "Device.ConfigData.TagID_" + tag_val
+                varlist += create_vlist_buffer(
                     UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
-                ))
+                )
+
+        print("OSDDEBUG varlist: ", varlist)
 
         return varlist
 

@@ -219,12 +219,12 @@ class CGenNCCfgData:
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
-        # YAML variable is included in list, XML tree should not contain it
+        xml_list = []
+        # YAML variables are included in list, XML tree should not process them
         for var in var_list:
-            if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
-                # delete from variable list
-                var_list.remove(var)
-        uefi_variables_to_knobs(self.schema, var_list)
+            if str(var.guid).lower() != SETUP_CONFIG_POLICY_VAR_GUID.lower():
+                xml_list.append(var)
+        uefi_variables_to_knobs(self.schema, xml_list)
         self.sync_shim_and_schema()
 
     def generate_binary_array(self):

@@ -843,7 +843,7 @@ class application(tkinter.Frame):
             self.cfg_data_list[idx].cfg_data_obj.load_from_svd(path)
             self.refresh_config_data_page()
 
-    def load_bin_file(self, path, is_variable_list_format):
+    def load_bin_file(self, path):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
         bin_len = 0
@@ -858,7 +858,7 @@ class application(tkinter.Frame):
 
         try:
             for idx in self.cfg_data_list:
-                self.reload_config_data_from_bin(bin_data, idx)
+                self.reload_config_data_from_bin(bin_data, idx, True)
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
@@ -1057,8 +1057,8 @@ class application(tkinter.Frame):
         self.clear_widgets_inLayout()
         self.on_config_page_select_change(None)
 
-    def reload_config_data_from_bin(self, bin_dat, file_id):
-        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat)
+    def reload_config_data_from_bin(self, bin_dat, file_id, is_variable_list_format):
+        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat, is_variable_list_format)
         self.refresh_config_data_page()
 
     def set_config_item_value(self, item, value_str, file_id):
