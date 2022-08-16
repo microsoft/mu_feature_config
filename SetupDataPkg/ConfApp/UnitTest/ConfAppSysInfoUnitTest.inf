@@ -54,5 +54,5 @@
   gEfiSimpleTextInputExProtocolGuid
   gEfiFirmwareManagementProtocolGuid
 
-[Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+[Guids]
+  gSetupConfigPolicyVariableGuid

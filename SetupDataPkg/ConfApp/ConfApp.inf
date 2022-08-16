@@ -60,14 +60,12 @@
   ConfigDataLib
   PerformanceLib
 
-[Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
-
 [Guids]
   gDfciAuthProvisionVarNamespace
   gDfciPermissionManagerVarNamespace
   gDfciSettingsManagerVarNamespace
   gMuVarPolicyDxePhaseGuid
+  gSetupConfigPolicyVariableGuid
 
 [Protocols]
   gEfiSimpleTextInputExProtocolGuid

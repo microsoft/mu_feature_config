@@ -48,6 +48,4 @@
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
-
-[Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+  gSetupConfigPolicyVariableGuid
