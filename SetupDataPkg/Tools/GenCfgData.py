@@ -1447,8 +1447,8 @@ class CGenCfgData:
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
-        # called during build time, so only generate raw yml bin
-        bin_file.write(self.generate_binary_array())
+        # called during build time, so generate var list bin
+        bin_file.write(self.generate_var_list())
         bin_file.close()
         return 0
 
@@ -2149,16 +2149,12 @@ def main():
 
     if command == "GENBIN":
         if len(file_list) == 3:
-            # for the build time generated bin, store the yml data in raw bin format as FW expects
-            old_data = gen_cfg_data.generate_binary_array()
+            # for the build time generated bin, store the yml data in variable list bin format as FW expects
             fi = open(file_list[2], 'rb')
             new_data = bytearray(fi.read())
             fi.close()
-            if len(new_data) != len(old_data):
-                raise Exception("Binary file '%s' length does not match, ignored !" % file_list[2])
-            else:
-                gen_cfg_data.load_default_from_bin(new_data, False)
-                gen_cfg_data.override_default_value(dlt_file)
+            gen_cfg_data.load_default_from_bin(new_data, False)
+            gen_cfg_data.override_default_value(dlt_file)
 
         gen_cfg_data.generate_binary(out_file)
 
