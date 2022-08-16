@@ -327,6 +327,7 @@ def main():
         gen_cfg_data.override_default_value(csv_file)
 
     if command == "GENBIN":
+        print("OSDDEBUG GENBINNING")
         if len(file_list) == 3:
             old_data = gen_cfg_data.generate_binary_array()
             fi = open(file_list[2], "rb")
