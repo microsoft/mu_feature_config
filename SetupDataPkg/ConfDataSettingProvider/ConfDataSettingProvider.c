@@ -26,516 +26,10 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ConfigBlobBaseLib.h>
 #include <Library/VariablePolicyHelperLib.h>
+#include <Library/ConfigVariableListLib.h>
 
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
-
-/**
-  Find and return the default value of a setting from UEFI FV.
-
-  @param ValueSize      IN=Size of location to store value
-                        OUT=Size of value stored
-  @param Value          Output parameter for the settings default value.
-                        The type and size is based on the provider type
-                        and must be allocated by the caller.
-
-  @retval EFI_SUCCESS           If the default could be returned.
-  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
-  @retval ERROR                 Error
-**/
-EFI_STATUS
-GetDefaultConfigDataBin (
-  IN OUT  UINTN  *ValueSize,
-  OUT     UINT8  *Value
-  )
-{
-  UINTN       DataSize = 0;
-  VOID        *Data    = NULL;
-  EFI_STATUS  Status;
-
-  // Then populate the slot with default one from FV.
-  Status = GetSectionFromAnyFv (
-             &gSetupConfigPolicyVariableGuid,
-             EFI_SECTION_RAW,
-             0,
-             (VOID **)&Data,
-             &DataSize
-             );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to get default settings (%r)\n", __FUNCTION__, Status));
-    goto Exit;
-  }
-
-  if (DataSize > *ValueSize) {
-    Status = EFI_BUFFER_TOO_SMALL;
-    goto Exit;
-  } else {
-    CopyMem (Value, Data, DataSize);
-  }
-
-Exit:
-  if (Data != NULL) {
-    FreePool (Data);
-  }
-
-  *ValueSize = DataSize;
-  return Status;
-}
-
-/**
-  Get the default value of configuration settings from UEFI FV.
-  This getter will serialize default configuration setting
-  to printable strings to be used in Config App.
-
-  @param This           Setting Provider
-  @param ValueSize      IN=Size of location to store value
-                        OUT=Size of value stored
-  @param Value          Output parameter for the settings default value.
-                        The type and size is based on the provider type
-                        and must be allocated by the caller.
-
-  @retval EFI_SUCCESS           If the default could be returned.
-  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
-  @retval ERROR                 Error
-**/
-EFI_STATUS
-EFIAPI
-ConfDataGetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER  *This,
-  IN  OUT   UINTN                  *ValueSize,
-  OUT       UINT8                  *Value
-  )
-{
-  EFI_STATUS  Status;
-
-  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
-    DEBUG ((DEBUG_ERROR, "%a was called with incorrect Provider Id (%a)\n", __FUNCTION__, This->Id));
-    return EFI_UNSUPPORTED;
-  }
-
-  Status = GetDefaultConfigDataBin (ValueSize, Value);
-  return Status;
-}
-
-/**
-  Get the full setting in binary from FV.
-
-  @param This       Setting Provider
-  @param ValueSize  IN=Size of location to store value
-                    OUT=Size of value stored
-  @param Value      Output parameter for the setting value.
-                    The type and size is based on the provider type
-                    and must be allocated by the caller.
-  @retval EFI_SUCCESS           If setting could be retrieved.
-  @retval EFI_BUFFER_TOO_SMALL  If the ValueSize on input is too small
-  @retval ERROR                 Error
-**/
-EFI_STATUS
-EFIAPI
-ConfDataGet (
-  IN CONST DFCI_SETTING_PROVIDER  *This,
-  IN OUT   UINTN                  *ValueSize,
-  OUT      UINT8                  *Value
-  )
-{
-  if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
-    DEBUG ((DEBUG_ERROR, "%a was called with incorrect Provider Id (0x%X)\n", __FUNCTION__, This->Id));
-    return EFI_UNSUPPORTED;
-  }
-
-  // This operation is not supported
-  return ConfDataGetDefault (This, ValueSize, Value);
-}
-
-// Helper functions to set a per-tag based data
-STATIC
-EFI_STATUS
-EFIAPI
-SetSingleConfigData (
-  UINT32  Tag,
-  VOID    *Buffer,
-  UINTN   BufferSize
-  )
-{
-  CHAR16      *TempUnicodeId;
-  UINTN       Size;
-  EFI_STATUS  Status;
-
-  Size          = sizeof (SINGLE_SETTING_PROVIDER_START) + 2 * sizeof (Tag);
-  TempUnicodeId = AllocatePool (Size * 2);
-  if (TempUnicodeId == NULL) {
-    DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID 0x%x.\n", Tag));
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Exit;
-  }
-
-  UnicodeSPrintAsciiFormat (TempUnicodeId, Size * 2, SINGLE_SETTING_PROVIDER_TEMPLATE, Tag);
-
-  Status = gRT->SetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, BufferSize, Buffer);
-
-Exit:
-  if (TempUnicodeId != NULL) {
-    FreePool (TempUnicodeId);
-  }
-
-  return Status;
-}
-
-/**
-  Set new configuration value to variable storage.
-
-  @param This      Provider Setting
-  @param Value     a pointer to a datatype defined by the Type for this setting.
-  @param ValueSize Size of the data for this setting.
-  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
-
-  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
-  @retval Error       Setting not set.
-**/
-EFI_STATUS
-EFIAPI
-ConfDataSet (
-  IN  CONST DFCI_SETTING_PROVIDER  *This,
-  IN        UINTN                  ValueSize,
-  IN  CONST UINT8                  *Value,
-  OUT DFCI_SETTING_FLAGS           *Flags
-  )
-{
-  EFI_STATUS  Status = EFI_SUCCESS;
-
-  if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  *Flags = 0;
-
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
-    DEBUG ((DEBUG_ERROR, "ConfDataSet was called with incorrect Provider Id (%a)\n", This->Id));
-    return EFI_UNSUPPORTED;
-  }
-
-  Status = IterateConfData (Value, SetSingleConfigData);
-  if (!EFI_ERROR (Status)) {
-    *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
-  }
-
-  return Status;
-}
-
-/**
-  Set configuration to default value from UEFI FV.
-
-  @param This          Setting Provider protocol
-
-  @retval EFI_SUCCESS  default set
-  @retval ERROR        Error
-**/
-EFI_STATUS
-EFIAPI
-ConfDataSetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER  *This
-  )
-{
-  EFI_STATUS  Status;
-  UINTN       Size  = 0;
-  VOID        *Data = NULL;
-
-  if ((This == NULL) || (This->Id == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) {
-    DEBUG ((DEBUG_ERROR, "%a was called with incorrect Provider Id (%a)\n", __FUNCTION__, This->Id));
-    return EFI_UNSUPPORTED;
-  }
-
-  Size   = 0;
-  Status = GetDefaultConfigDataBin (&Size, Data);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    goto Done;
-  }
-
-  Data = AllocatePool (Size);
-  if (Data == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
-
-  Status = GetDefaultConfigDataBin (&Size, Data);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
-
-  Status = IterateConfData (Data, SetSingleConfigData);
-
-Done:
-  if (Data != NULL) {
-    FreePool (Data);
-  }
-
-  return Status;
-}
-
-DFCI_SETTING_PROVIDER  mSettingsProvider = {
-  DFCI_OEM_SETTING_ID__CONF,
-  DFCI_SETTING_TYPE_BINARY,
-  DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
-  (DFCI_SETTING_PROVIDER_SET)ConfDataSet,
-  (DFCI_SETTING_PROVIDER_GET)ConfDataGet,
-  (DFCI_SETTING_PROVIDER_GET_DEFAULT)ConfDataGetDefault,
-  (DFCI_SETTING_PROVIDER_SET_DEFAULT)ConfDataSetDefault
-};
-
-/**
-  Set new runtime value to variable storage.
-
-  @param This      Provider Setting
-  @param Value     a pointer to the variable list
-  @param ValueSize Size of the data for this setting.
-  @param Flags     Informational Flags passed to the SET and/or Returned as a result of the set
-
-  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
-  @retval Error       Setting not set.
-**/
-EFI_STATUS
-EFIAPI
-RuntimeDataSet (
-  IN  CONST DFCI_SETTING_PROVIDER  *This,
-  IN        UINTN                  ValueSize,
-  IN  CONST UINT8                  *Value,
-  OUT DFCI_SETTING_FLAGS           *Flags
-  )
-{
-  EFI_STATUS            Status   = EFI_SUCCESS;
-  CHAR16                *VarName = NULL;
-  CHAR16                *name;
-  EFI_GUID              *Guid;
-  UINT32                Attributes;
-  CHAR8                 *Data;
-  UINT32                CRC32;
-  UINT32                LenToCRC32;
-  UINT32                CalcCRC32 = 0;
-  RUNTIME_VAR_LIST_HDR  *VarList;
-  UINT32                ListIndex = 0;
-
-  if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  *Flags = 0;
-
-  if (0 != AsciiStrnCmp (This->Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)) {
-    DEBUG ((DEBUG_ERROR, "RuntimeDataSet was called with incorrect Provider Id (%a)\n", This->Id));
-    return EFI_UNSUPPORTED;
-  }
-
-  while (ListIndex < ValueSize) {
-    // index into variable list
-    VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
-
-    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
-        sizeof (Attributes) + sizeof (CRC32) > ValueSize)
-    {
-      // the NameSize and DataSize have bad values and are pushing us past the end of the binary
-      DEBUG ((DEBUG_ERROR, "Runtime Settings had bad NameSize or DataSize, unable to process all settings\n"));
-      break;
-    }
-
-    /*
-     * Var List is in DmpStore format:
-     *
-     *  struct {
-     *    RUNTIME_VAR_LIST_HDR VarList;
-     *    CHAR16 Name[VarList->NameSize/2];
-     *    EFI_GUID Guid;
-     *    UINT32 Attributes;
-     *    CHAR8 Data[VarList->DataSize];
-     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
-     *  }
-     */
-    name       = (CHAR16 *)(VarList + 1);
-    Guid       = (EFI_GUID *)((CHAR8 *)name + VarList->NameSize);
-    Attributes = *(UINT32 *)(Guid + 1);
-    Data       = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
-    CRC32      = *(UINT32 *)(Data + VarList->DataSize);
-    LenToCRC32 = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes);
-
-    // on next iteration, skip past this variable
-    ListIndex += LenToCRC32 + sizeof (CRC32);
-
-    // validate CRC32
-    CalcCRC32 = CalculateCrc32 (VarList, LenToCRC32);
-
-    if (CalcCRC32 != CRC32) {
-      // CRC didn't match, drop this variable, continue to the next
-      DEBUG ((DEBUG_ERROR, "DFCI Runtime Settings Provider failed CRC check, skipping applying setting: %s Status: %r \
-      Received CRC32: %u Calculated CRC32: %u\n", name, Status, CRC32, CalcCRC32));
-      continue;
-    }
-
-    VarName = AllocatePool (VarList->NameSize);
-    if (VarName == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      return Status;
-    }
-
-    // Copy non-16 bit aligned name to VarName, not using StrCpyS functions as they assert on non-16 bit alignment
-    CopyMem (VarName, name, VarList->NameSize);
-
-    // write variable directly to var storage
-    Status = gRT->SetVariable (
-                    VarName,
-                    Guid,
-                    Attributes,
-                    VarList->DataSize,
-                    Data
-                    );
-
-    if (EFI_ERROR (Status)) {
-      // failed to set variable, continue to try with other variables
-      DEBUG ((DEBUG_ERROR, "Failed to set Runtime Setting %s, continuing to try next variables\n", VarName));
-    }
-
-    FreePool (VarName);
-  }
-
-  return Status;
-}
-
-/**
-  It is not supported to get the full Runtime Setting list. Instead,
-  each individual Runtime Settings Provider can fetch the setting.
-
-  @param This       Setting Provider
-  @param ValueSize  IN=Size of location to store value
-                    OUT=Size of value stored
-  @param Value      Output parameter for the setting value.
-                    The type and size is based on the provider type
-                    and must be allocated by the caller.
-  @retval EFI_UNSUPPORTED   This is not supported for Runtime Settings
-**/
-EFI_STATUS
-EFIAPI
-RuntimeDataGet (
-  IN CONST DFCI_SETTING_PROVIDER  *This,
-  IN OUT   UINTN                  *ValueSize,
-  OUT      UINT8                  *Value
-  )
-{
-  return EFI_UNSUPPORTED;
-}
-
-/**
-  Default values of Runtime Settings are not supported.
-
-  @param This           Setting Provider
-  @param ValueSize      IN=Size of location to store value
-                        OUT=Size of value stored
-  @param Value          Output parameter for the settings default value.
-                        The type and size is based on the provider type
-                        and must be allocated by the caller.
-
-  @retval EFI_UNSUPPORTED           This is not supported for Runtime Settings
-**/
-EFI_STATUS
-EFIAPI
-RuntimeDataGetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER  *This,
-  IN  OUT   UINTN                  *ValueSize,
-  OUT       UINT8                  *Value
-  )
-{
-  return EFI_UNSUPPORTED;
-}
-
-/**
-  It is not supported to get the full Runtime Setting list. Instead,
-  each individual Runtime Settings Provider can fetch the setting.
-
-  @param This          Setting Provider protocol
-
-  @retval EFI_UNSUPPORTED         This is not supported for Runtime Settings
-**/
-EFI_STATUS
-EFIAPI
-RuntimeDataSetDefault (
-  IN  CONST DFCI_SETTING_PROVIDER  *This
-  )
-{
-  return EFI_UNSUPPORTED;
-}
-
-DFCI_SETTING_PROVIDER  mRuntimeSettingsProvider = {
-  DFCI_OEM_SETTING_ID__RUNTIME,
-  DFCI_SETTING_TYPE_BINARY,
-  DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED,
-  (DFCI_SETTING_PROVIDER_SET)RuntimeDataSet,
-  (DFCI_SETTING_PROVIDER_GET)RuntimeDataGet,
-  (DFCI_SETTING_PROVIDER_GET_DEFAULT)RuntimeDataGetDefault,
-  (DFCI_SETTING_PROVIDER_SET_DEFAULT)RuntimeDataSetDefault
-};
-
-/*
-  Helper function extract tag ID from single setting provider ID.
-
-  @param IdString       Setting Provider ID, should be in the format
-                        SINGLE_SETTING_PROVIDER_TEMPLATE
-  @param TagId          Pointer to hold extracted TagId value in the
-                        IdString.
-
-  @retval EFI_SUCCESS             Tag ID extracted.
-  @retval EFI_INVALID_PARAMETER   Input ID string does not match template,
-                                  or the
-*/
-EFI_STATUS
-GetTagIdFromDfciId (
-  IN  DFCI_SETTING_ID_STRING  IdString,
-  OUT UINT32                  *TagId
-  )
-{
-  UINT32  Temp;
-  UINTN   Offset;
-  CHAR8   Char;
-  UINTN   TotalSize = sizeof (SINGLE_SETTING_PROVIDER_START) + sizeof (UINT32) * 2;
-
-  if ((TagId == NULL) ||
-      (IdString == NULL) ||
-      (AsciiStrSize (IdString) != TotalSize) ||
-      !CompareMem (IdString, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START)))
-  {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  // Till here, we know that we have 8 bytes left to process
-  Offset = sizeof (SINGLE_SETTING_PROVIDER_START) - 1;
-
-  Temp = 0;
-  while (Offset < (TotalSize - 1)) {
-    Char = IdString[Offset];
-    if ((Char >= 'A') && (Char <= 'F')) {
-      Temp = (Temp << 4) + (Char - 'A' + 0x0A);
-    } else if ((Char >= '0') && (Char <= '9')) {
-      Temp = (Temp << 4) + (Char - '0');
-    } else {
-      // Do not support other characters from here...
-      return EFI_INVALID_PARAMETER;
-    }
-
-    Offset++;
-  }
-
-  *TagId = (UINT32)Temp;
-
-  return EFI_SUCCESS;
-}
 
 /**
   Set configuration to default value from UEFI FV.
@@ -551,77 +45,36 @@ SingleConfDataSetDefault (
   IN  CONST DFCI_SETTING_PROVIDER  *This
   )
 {
-  UINT32        TagId;
-  VOID          *DefaultBuffer = NULL;
-  CDATA_HEADER  *TagHdrBuffer;
-  VOID          *TagBuffer;
-  EFI_STATUS    Status;
-  UINTN         Size;
-  CHAR16        *VarName = NULL;
+  EFI_STATUS            Status;
+  CONFIG_VAR_LIST_ENTRY VarListEntry;
+
+  ZeroMem (&VarListEntry, sizeof (VarListEntry));
 
   if ((This == NULL) || (This->Id == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  Status = QuerySingleActiveConfigVarList (This->Id, &VarListEntry);
   if (EFI_ERROR (Status)) {
     goto Done;
   }
-
-  Size   = 0;
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    goto Done;
-  }
-
-  DefaultBuffer = AllocatePool (Size);
-  if (DefaultBuffer == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
-
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
-
-  TagHdrBuffer = FindConfigHdrByTag (DefaultBuffer, TagId);
-  if (TagHdrBuffer == NULL) {
-    Status = EFI_NOT_FOUND;
-    goto Done;
-  }
-
-  TagBuffer = FindConfigDataByTag (DefaultBuffer, TagId);
-  if (TagBuffer == NULL) {
-    Status = EFI_NOT_FOUND;
-    goto Done;
-  }
-
-  Size    = AsciiStrLen (This->Id);
-  VarName = AllocatePool ((Size + 1) * 2);
-  if (VarName == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
-
-  AsciiStrToUnicodeStrS (This->Id, VarName, Size + 1);
 
   Status = gRT->SetVariable (
-                  VarName,
-                  &gSetupConfigPolicyVariableGuid,
-                  CDATA_NV_VAR_ATTR,
-                  (TagHdrBuffer->Length<<2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum,
-                  TagBuffer
+                  VarListEntry.Name,
+                  &VarListEntry.Guid,
+                  VarListEntry.Attributes,
+                  VarListEntry.DataSize,
+                  VarListEntry.Data
                   );
 
 Done:
-  if (DefaultBuffer != NULL) {
-    FreePool (DefaultBuffer);
+  if (VarListEntry.Name != NULL) {
+    FreePool (VarListEntry.Name);
   }
 
-  if (VarName != NULL) {
-    FreePool (VarName);
+  if (VarListEntry.Data != NULL) {
+    FreePool (VarListEntry.Data);
   }
 
   return Status;
@@ -651,65 +104,82 @@ SingleConfDataGetDefault (
   OUT       UINT8                  *Value
   )
 {
-  EFI_STATUS    Status;
-  UINT32        TagId;
-  CDATA_HEADER  *TagHdrBuffer;
-  VOID          *TagBuffer;
-  VOID          *DefaultBuffer = NULL;
-  UINTN         Size;
+  EFI_STATUS            Status;
+  CONFIG_VAR_LIST_ENTRY VarListEntry;
+  UINTN                 NeededSize;
+  RUNTIME_VAR_LIST_HDR  VarListHdr;
+  UINTN                 Offset;
 
   if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  Status = QuerySingleActiveConfigVarList (This->Id, &VarListEntry);
   if (EFI_ERROR (Status)) {
     goto Done;
   }
 
-  Size   = 0;
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    goto Done;
-  }
+  /*
+    * Var List is in DmpStore format:
+    *
+    *  struct {
+    *    RUNTIME_VAR_LIST_HDR VarList;
+    *    CHAR16 Name[VarList->NameSize/2];
+    *    EFI_GUID Guid;
+    *    UINT32 Attributes;
+    *    CHAR8 Data[VarList->DataSize];
+    *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
+    *  }
+    */
 
-  DefaultBuffer = AllocatePool (Size);
-  if (DefaultBuffer == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
+  VarListHdr.NameSize = StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN);
+  VarListHdr.DataSize = VarListEntry.DataSize;
 
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
+  NeededSize = sizeof (VarListHdr) + VarListHdr.NameSize + VarListHdr.DataSize + sizeof (VarListEntry.Guid) +
+              sizeof (VarListEntry.Attributes) + sizeof (UINT32) > ValueSize;
 
-  TagHdrBuffer = FindConfigHdrByTag (DefaultBuffer, TagId);
-  if (TagHdrBuffer == NULL) {
-    Status = EFI_NOT_FOUND;
-    goto Done;
-  }
-
-  TagBuffer = FindConfigDataByTag (DefaultBuffer, TagId);
-  if (TagBuffer == NULL) {
-    Status = EFI_NOT_FOUND;
-    goto Done;
-  }
-
-  Size = (TagHdrBuffer->Length << 2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum;
-  if (*ValueSize < Size) {
+  if (NeededSize > *ValueSize) {
+    *ValueSize = NeededSize;
     Status = EFI_BUFFER_TOO_SMALL;
-  } else {
-    CopyMem (Value, TagBuffer, Size);
-    Status = EFI_SUCCESS;
+    goto Done;
   }
 
-  *ValueSize = Size;
+  Offset = 0;
+  // Header
+  CopyMem (Value, &VarListHdr, sizeof (VarListHdr));
+  Offset += sizeof (VarListHdr);
+
+  // Name
+  CopyMem (Value + Offset, VarListEntry.Name, VarListHdr.NameSize);
+  Offset += VarListHdr.NameSize;
+
+  // Guid
+  CopyMem (Value + Offset, &VarListEntry.Guid, sizeof (VarListEntry.Guid));
+  Offset += sizeof (VarListEntry.Guid);
+
+  // Attributes
+  CopyMem (Value + Offset, &VarListEntry.Attributes, sizeof (VarListEntry.Attributes));
+  Offset += sizeof (VarListEntry.Attributes);
+
+  // Data
+  CopyMem (Value + Offset, VarListEntry.Data, sizeof (VarListEntry.DataSize));
+  Offset += VarListHdr.DataSize;
+
+  // CRC32
+  *(UINT32*)(Value + Offset) = CalculateCrc32 (Value, Offset);
+  Offset += sizeof (UINT32);
+
+  // They should still match in size...
+  ASSERT (Offset == NeededSize);
 
 Done:
-  if (DefaultBuffer != NULL) {
-    FreePool (DefaultBuffer);
+  if (VarListEntry.Name != NULL) {
+    FreePool (VarListEntry.Name);
+  }
+
+  if (VarListEntry.Data != NULL) {
+    FreePool (VarListEntry.Data);
   }
 
   return Status;
@@ -735,40 +205,33 @@ SingleConfDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   )
 {
-  UINT32      TagId;
-  EFI_STATUS  Status;
-  CHAR16      *VarName = NULL;
-  UINTN       Size;
+  EFI_STATUS            Status;
+  CONFIG_VAR_LIST_ENTRY VarListEntry;
 
   if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0) || (Flags == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  Status = QuerySingleActiveConfigVarList (This->Id, &VarListEntry);
   if (EFI_ERROR (Status)) {
     goto Done;
   }
 
-  Size    = AsciiStrLen (This->Id);
-  VarName = AllocatePool ((Size + 1) * 2);
-  if (VarName == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
-
-  AsciiStrToUnicodeStrS (This->Id, VarName, Size + 1);
-
   // Now set it to non-volatile variable
-  Status = gRT->SetVariable (VarName, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, ValueSize, (VOID *)Value);
+  Status = gRT->SetVariable (VarListEntry.Name, &VarListEntry.Guid, VarListEntry.Attributes, ValueSize, (VOID *)Value);
 
   if (!EFI_ERROR (Status)) {
     *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
   }
 
 Done:
-  if (VarName != NULL) {
-    FreePool (VarName);
+  if (VarListEntry.Name != NULL) {
+    FreePool (VarListEntry.Name);
+  }
+
+  if (VarListEntry.Data != NULL) {
+    FreePool (VarListEntry.Data);
   }
 
   return Status;
@@ -793,35 +256,88 @@ SingleConfDataGet (
   OUT      UINT8                  *Value
   )
 {
-  UINT32      TagId;
-  EFI_STATUS  Status;
-  CHAR16      *VarName = NULL;
-  UINTN       Size;
+  EFI_STATUS            Status;
+  CONFIG_VAR_LIST_ENTRY VarListEntry;
+  VOID                  *Data;
+  UINTN                 NeededSize;
+  RUNTIME_VAR_LIST_HDR  VarListHdr;
+  UINTN                 Offset;
 
   if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
-  Status = GetTagIdFromDfciId (This->Id, &TagId);
+  Status = QuerySingleActiveConfigVarList (This->Id, &VarListEntry);
   if (EFI_ERROR (Status)) {
     goto Done;
   }
 
-  Size    = AsciiStrLen (This->Id);
-  VarName = AllocatePool ((Size + 1) * 2);
-  if (VarName == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
+  /*
+    * Var List is in DmpStore format:
+    *
+    *  struct {
+    *    RUNTIME_VAR_LIST_HDR VarList;
+    *    CHAR16 Name[VarList->NameSize/2];
+    *    EFI_GUID Guid;
+    *    UINT32 Attributes;
+    *    CHAR8 Data[VarList->DataSize];
+    *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
+    *  }
+    */
+
+  VarListHdr.NameSize = StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN);
+
+  VarListHdr.DataSize = 0;
+  Status = gRT->GetVariable (VarListEntry.Name, &VarListEntry.Guid, NULL, &VarListHdr.DataSize, NULL);
+
+  NeededSize = sizeof (VarListHdr) + VarListHdr.NameSize + VarListHdr.DataSize + sizeof (VarListEntry.Guid) +
+              sizeof (VarListEntry.Attributes) + sizeof (UINT32) > ValueSize;
+
+  if (NeededSize > *ValueSize) {
+    *ValueSize = NeededSize;
+    Status = EFI_BUFFER_TOO_SMALL;
     goto Done;
   }
 
-  AsciiStrToUnicodeStrS (This->Id, VarName, Size + 1);
+  Offset = 0;
+  // Header
+  CopyMem (Value, &VarListHdr, sizeof (VarListHdr));
+  Offset += sizeof (VarListHdr);
 
-  Status = gRT->GetVariable (VarName, &gSetupConfigPolicyVariableGuid, NULL, ValueSize, (VOID *)Value);
+  // Name
+  CopyMem (Value + Offset, VarListEntry.Name, VarListHdr.NameSize);
+  Offset += VarListHdr.NameSize;
+
+  // Guid
+  CopyMem (Value + Offset, &VarListEntry.Guid, sizeof (VarListEntry.Guid));
+  Offset += sizeof (VarListEntry.Guid);
+
+  // Attributes
+  CopyMem (Value + Offset, &VarListEntry.Attributes, sizeof (VarListEntry.Attributes));
+  Offset += sizeof (VarListEntry.Attributes);
+
+  // Data
+  Status = gRT->GetVariable (VarListEntry.Name, &VarListEntry.Guid, NULL, &VarListHdr.DataSize, Value + Offset);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+  Offset += VarListHdr.DataSize;
+
+  // CRC32
+  *(UINT32*)(Value + Offset) = CalculateCrc32 (Value, Offset);
+  Offset += sizeof (UINT32);
+
+  // They should still match in size...
+  ASSERT (Offset == NeededSize);
 
 Done:
-  if (VarName != NULL) {
-    FreePool (VarName);
+  if (VarListEntry.Name != NULL) {
+    FreePool (VarListEntry.Name);
+  }
+
+  if (VarListEntry.Data != NULL) {
+    FreePool (VarListEntry.Data);
   }
 
   return Status;
@@ -841,17 +357,14 @@ DFCI_SETTING_PROVIDER  SingleSettingProviderTemplate = {
 STATIC
 EFI_STATUS
 EFIAPI
-RegisterSingleTag (
-  UINT32  Tag,
-  VOID    *Buffer,
-  UINTN   BufferSize
+RegisterSingleConfigVariable (
+  CONFIG_VAR_LIST_ENTRY   *VarListEntry
   )
 {
   EFI_STATUS             Status;
   UINTN                  Size;
   DFCI_SETTING_PROVIDER  *Setting;
   CHAR8                  *TempAsciiId;
-  CHAR16                 *TempUnicodeId;
 
   if ((mVariablePolicy == NULL) || (mSettingProviderProtocol == NULL)) {
     DEBUG ((DEBUG_ERROR, "Either setting access (%p) or variable policy policy (%p) is not ready!!!\n", mSettingProviderProtocol, mVariablePolicy));
@@ -859,14 +372,20 @@ RegisterSingleTag (
     goto Exit;
   }
 
+  if (VarListEntry == NULL) {
+    DEBUG ((DEBUG_ERROR, "Incoming variable list entry is NULL!!!\n"));
+    Status = EFI_INVALID_PARAMETER;
+    goto Exit;
+  }
+
   Setting = AllocateCopyPool (sizeof (DFCI_SETTING_PROVIDER), &SingleSettingProviderTemplate);
   if (Setting == NULL) {
-    DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for setting 0x%x.\n", Tag));
+    DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for setting %s.\n", VarListEntry->Name));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
 
-  Size        = sizeof (SINGLE_SETTING_PROVIDER_START) + 2 * sizeof (Tag);
+  Size        = StrnLenS (VarListEntry->Name, DFCI_MAX_ID_LEN);
   TempAsciiId = AllocatePool (Size);
   if (TempAsciiId == NULL) {
     DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID 0x%x.\n", Tag));
@@ -874,28 +393,19 @@ RegisterSingleTag (
     goto Exit;
   }
 
-  AsciiSPrint (TempAsciiId, Size, "%a%08X", SINGLE_SETTING_PROVIDER_START, Tag);
+  AsciiSPrint (TempAsciiId, Size, "%s", VarListEntry->Name);
   Setting->Id = TempAsciiId;
   Status      = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, Setting);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to Register for ID 0x%x.  Status = %r\n", Tag, Status));
+    DEBUG ((DEBUG_ERROR, "Failed to Register for ID %s.  Status = %r\n", VarListEntry->Name, Status));
   }
-
-  TempUnicodeId = AllocatePool (Size * 2);
-  if (TempUnicodeId == NULL) {
-    DEBUG ((DEBUG_ERROR, "Failed to allocate unicode buffer for ID 0x%x.\n", Tag));
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Exit;
-  }
-
-  AsciiStrToUnicodeStrS (TempAsciiId, TempUnicodeId, Size);
 
   Size   = 0;
-  Status = gRT->GetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, NULL, &Size, NULL);
+  Status = gRT->GetVariable (VarListEntry->Name, &VarListEntry->Guid, NULL, &Size, NULL);
   if (Status == EFI_NOT_FOUND) {
-    Status = gRT->SetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, BufferSize, Buffer);
+    Status = gRT->SetVariable (VarListEntry->Name, &VarListEntry->Guid, CDATA_NV_VAR_ATTR, VarListEntry->DataSize, VarListEntry->Data);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Initializing variable %s failed - %r.\n", TempUnicodeId, Status));
+      DEBUG ((DEBUG_ERROR, "Initializing variable %s failed - %r.\n", VarListEntry->Name, Status));
       goto Exit;
     }
   } else if (Status == EFI_BUFFER_TOO_SMALL) {
@@ -907,18 +417,11 @@ RegisterSingleTag (
     goto Exit;
   }
 
-  // The new configuration, if any, should only grow in size
-  if (BufferSize > MAX_UINT32) {
-    DEBUG ((DEBUG_ERROR, "Configuration too large %llx.\n", BufferSize));
-    Status = EFI_BUFFER_TOO_SMALL;
-    goto Exit;
-  }
-
   Status = RegisterVarStateVariablePolicy (
              mVariablePolicy,
-             &gSetupConfigPolicyVariableGuid,
-             TempUnicodeId,
-             (UINT32)BufferSize,
+             &VarListEntry->Guid,
+             VarListEntry->Name,
+             (UINT32)VarListEntry->DataSize,
              VARIABLE_POLICY_NO_MAX_SIZE,
              CDATA_NV_VAR_ATTR,
              (UINT32) ~CDATA_NV_VAR_ATTR,
@@ -927,7 +430,7 @@ RegisterSingleTag (
              PHASE_INDICATOR_SET
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Registering Variable Policy for Target Variable %s failed - %r\n", __FUNCTION__, TempUnicodeId, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Registering Variable Policy for Target Variable %s failed - %r\n", __FUNCTION__, VarListEntry->Name, Status));
     goto Exit;
   }
 
@@ -940,10 +443,6 @@ Exit:
     if (TempAsciiId != NULL) {
       FreePool (TempAsciiId);
     }
-  }
-
-  if (TempUnicodeId != NULL) {
-    FreePool (TempUnicodeId);
   }
 
   return Status;
@@ -969,10 +468,13 @@ SettingsProviderSupportProtocolNotify (
   IN  VOID       *Context
   )
 {
-  EFI_STATUS    Status;
-  STATIC UINT8  CallCount = 0;
-  UINTN         Size;
-  VOID          *DefaultBuffer = NULL;
+  EFI_STATUS            Status;
+  STATIC UINT8          CallCount = 0;
+  UINTN                 Size;
+  VOID                  *DefaultBuffer  = NULL;
+  CONFIG_VAR_LIST_ENTRY *VarList        = NULL;
+  UINTN                 VarListCount    = 0;
+  UINTN                 Index;
 
   // locate protocol
   Status = gBS->LocateProtocol (&gDfciSettingsProviderSupportProtocolGuid, NULL, (VOID **)&mSettingProviderProtocol);
@@ -984,52 +486,39 @@ SettingsProviderSupportProtocolNotify (
     return;
   }
 
-  // call function
-  DEBUG ((DEBUG_INFO, "Registering configuration Setting Provider\n"));
-  Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mSettingsProvider);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to Register.  Status = %r\n", Status));
-  }
-
-  // register runtime settings provider
-  DEBUG ((DEBUG_INFO, "Registering runtime Setting Provider\n"));
-  Status = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, &mRuntimeSettingsProvider);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to Register Runtime Settings.  Status = %r\n", Status));
-  }
-
   Status = gBS->LocateProtocol (&gEdkiiVariablePolicyProtocolGuid, NULL, (VOID **)&mVariablePolicy);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a - Locating Variable Policy failed - %r\n", __FUNCTION__, Status));
     goto Done;
   }
 
-  Size   = 0;
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    goto Done;
-  }
-
-  DefaultBuffer = AllocatePool (Size);
-  if (DefaultBuffer == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
-
-  Status = GetDefaultConfigDataBin (&Size, DefaultBuffer);
+  Status = RetrieveActiveConfigVarList (&VarList, &VarListCount);
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a - Retrieving Variable List failed - %r\n", __FUNCTION__, Status));
     goto Done;
   }
 
-  // Using default blob to initialize individual setting providers
-  Status = IterateConfData (DefaultBuffer, RegisterSingleTag);
-  if (EFI_ERROR (Status)) {
-    goto Done;
+  for (Index = 0; Index < VarListCount; Index ++) {
+    // Using default blob to initialize individual setting providers
+    Status = RegisterSingleConfigVariable (&VarList[Index]);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Failed to register single config variable - %r\n", __FUNCTION__, Status));
+      break;
+    }
   }
 
 Done:
   if (DefaultBuffer != NULL) {
     FreePool (DefaultBuffer);
+  }
+
+  if (VarList != NULL) {
+    for (Index = 0; Index < VarListCount; Index ++) {
+      // Also free the data and name
+      FreePool (VarList->Name);
+      FreePool (VarList->Data);
+    }
+    FreePool (VarList);
   }
 
   return;
