@@ -29,7 +29,7 @@ from VariableList import (
     read_csv,
 )
 
-from GenCfgData import DFCI_SETTINGS_REQUEST_GUID
+from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
 
 
 class CGenNCCfgData:

@@ -407,13 +407,9 @@ class application(tkinter.Frame):
             'Load Config Changes from SVD File',
             'Save Config Changes to Change File',
             'Save Full Config Data to Change File',
-            "Save Config Data to Raw Binary",
-            "Load Config Data from Raw Binary"
         ]
 
         self.yaml_specific_setting = [
-            "Save Config Data to Raw Binary",
-            "Load Config Data from Raw Binary",
             'Save Config Changes to SVD File',
         ]
 
@@ -478,16 +474,10 @@ class application(tkinter.Frame):
             label="Open Config file...", command=self.load_from_ml
         )
         file_menu.add_command(
-            label=self.menu_string[8], command=self.save_to_raw_bin, state="disabled"
+            label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[9], command=self.load_from_raw_bin, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[0], command=self.save_to_var_list_bin, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[1], command=self.load_from_var_list_bin, state="disabled"
+            label=self.menu_string[1], command=self.load_from_bin, state="disabled"
         )
         file_menu.add_command(
             label=self.menu_string[2], command=self.load_from_delta, state="disabled"
@@ -839,11 +829,11 @@ class application(tkinter.Frame):
             return
         self.load_bin_file(path, False)
 
-    def load_from_var_list_bin(self):
+    def load_from_bin(self):
         path = self.get_open_file_name("bin")
         if not path:
             return
-        self.load_bin_file(path, True)
+        self.load_bin_file(path)
 
     def load_from_svd(self):
         path = self.get_open_file_name("svd")
@@ -868,7 +858,7 @@ class application(tkinter.Frame):
 
         try:
             for idx in self.cfg_data_list:
-                self.reload_config_data_from_bin(bin_data, idx, is_variable_list_format)
+                self.reload_config_data_from_bin(bin_data, idx)
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
@@ -988,13 +978,7 @@ class application(tkinter.Frame):
     def save_full_to_delta(self):
         self.save_delta_file(True)
 
-    def save_to_raw_bin(self):
-        self.save_to_bin(False)
-
-    def save_to_var_list_bin(self):
-        self.save_to_bin(True)
-
-    def save_to_bin(self, is_variable_list_format):
+    def save_to_bin(self):
         path = self.get_save_file_name(".bin")
         if not path:
             return
@@ -1004,11 +988,9 @@ class application(tkinter.Frame):
             bins = b''
             for idx in self.cfg_data_list:
                 bin = None
-                if self.cfg_data_list[idx].config_type == 'yml' and is_variable_list_format:
-                    # need to get the yml svd, base64 encode it, stuff it in UEFI Var
-                    # add that to a buffer, then add that to the bin
-                    svd = self.save_full_to_svd(True)
-                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list_from_svd(svd)
+                if self.cfg_data_list[idx].config_type == 'yml':
+                    # the YAML is not natively in var list format
+                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list()
                 else:
                     bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array()
 
@@ -1075,8 +1057,8 @@ class application(tkinter.Frame):
         self.clear_widgets_inLayout()
         self.on_config_page_select_change(None)
 
-    def reload_config_data_from_bin(self, bin_dat, file_id, is_variable_list_format):
-        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat, is_variable_list_format)
+    def reload_config_data_from_bin(self, bin_dat, file_id):
+        self.cfg_data_list[file_id].cfg_data_obj.load_default_from_bin(bin_dat)
         self.refresh_config_data_page()
 
     def set_config_item_value(self, item, value_str, file_id):

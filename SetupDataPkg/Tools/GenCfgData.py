@@ -34,8 +34,7 @@ __copyright_tmp__ = """/** @file
 **/
 """
 
-DFCI_SETTINGS_REQUEST_NAME = 'DfciSettingsRequest'
-DFCI_SETTINGS_REQUEST_GUID = 'D41C8C24-3F5E-4EF4-8FDD-073E1866CD01'
+SETUP_CONFIG_POLICY_VAR_GUID  = '9F556476-9E82-E848-73A4-F12ADAD1DDD2'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
 
 
@@ -1385,29 +1384,7 @@ class CGenCfgData:
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
                 tag_id = int(id.lstrip("Device.ConfigData.TagID_"), 16)
-                exec = self.locate_exec_from_tag(tag_id)
-                self.set_field_value(exec, bin_data)
-                name = None
-                # exec dict is organized into well known keys and one key that is the name of the exec
-                # we need to extract the index from this name key to find the item and change the
-                # object that is used to show updated info, as the exec only tracks the default
-                # info for generating a delta file/svd from
-                for key in exec.keys():
-                    if (key not in DICT_KEYS_KEYWORDS):
-                        name = key
-
-                if name is None:
-                    raise Exception("Can't find name of exec")
-                item = self.get_item_by_index(exec[name]["indx"])
-                itype = item["type"].split(",")[0]
-                if itype == "Combo":
-                    # combo is an index into combo options
-                    self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
-                elif itype in ["EditNum", "EditText"]:
-                    self.set_config_item_value(item, bin_data.decode())
-                elif itype in ["Table"]:
-                    new_value = bytes_to_bracket_str(bin_data)
-                    self.set_config_item_value(item, new_value)
+                self.update_exec_and_item_from_tag(tag_id, bin_data)
             elif id is not None and id.startswith("Device.ConfigData.ConfigData"):
                 # this is the full data, it is just the raw bin
                 base64_val = value.strip()
@@ -1418,30 +1395,37 @@ class CGenCfgData:
 
         a.iterate_each_setting(path, handler)
 
-    def load_default_from_bin(self, bin_data, is_variable_list_format):
-        # binary may be passed in variable list format or raw binary format
-        # we only want to read the YAML variable to populate the cfg_tree
-        if (not is_variable_list_format):
-            self.set_field_value(self._cfg_tree, bin_data, True)
-            return
+    def update_exec_and_item_from_tag(self, tag_id, bin_data):
+        exec = self.locate_exec_from_tag(tag_id)
+        self.set_field_value(exec, bin_data)
+        name = None
+        # exec dict is organized into well known keys and one key that is the name of the exec
+        # we need to extract the index from this name key to find the item and change the
+        # object that is used to show updated info, as the exec only tracks the default
+        # info for generating a delta file/svd from
+        for key in exec.keys():
+            if (key not in DICT_KEYS_KEYWORDS):
+                name = key
+
+        if name is None:
+            raise Exception("Can't find name of exec")
+        item = self.get_item_by_index(exec[name]["indx"])
+        itype = item["type"].split(",")[0]
+        if itype == "Combo":
+            # combo is an index into combo options
+            self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
+        elif itype in ["EditNum", "EditText"]:
+            self.set_config_item_value(item, bin_data.decode())
+        elif itype in ["Table"]:
+            new_value = bytes_to_bracket_str(bin_data)
+            self.set_config_item_value(item, new_value)
+
+    def load_default_from_bin(self, bin_data):
         variables = read_vlist_from_buffer(bin_data)
         for var in variables:
-            if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
-                # variable data is base64 encoded SVD
-                svd = base64.b64decode(var.data)
-                path = "varlist_svd.tmp"
-                with open(path, "w") as fd:
-                    fd.write(svd.decode('UTF-8'))
-                self.load_from_svd(path)
-                os.remove(path)
-                return
-
-    def generate_var_list_from_svd(self, svd):
-        # we need to base64 encode the entire SVD, stuff it in a UEFI var, then in a vlist buffer
-        svd = base64.b64encode(bytes(svd, 'utf-8'))
-        return create_vlist_buffer(
-            UEFIVariable(DFCI_SETTINGS_REQUEST_NAME, uuid.UUID(DFCI_SETTINGS_REQUEST_GUID), svd, attributes=7)
-        )
+            if str(var.guid).lower() == SETUP_CONFIG_POLICY_VAR_GUID.lower():
+                tag_id = int(var.name.lstrip("Device.ConfigData.TagID_"), 16)
+                self.update_exec_and_item_from_tag(tag_id, var.data)
 
     def generate_binary_array(self):
         return self.get_field_value()
@@ -1569,6 +1553,32 @@ class CGenCfgData:
 
         # self.write_delta_file (delta_file, platform_id, lines)
         return (execs, bytes_array)
+
+    def generate_var_list(self):
+        varlist = []
+        for item in self._cfg_list:
+            if item['type'] != 'Reserved':
+                item = self.locate_cfg_item(item['path'])
+                if item is None:
+                    raise Exception("Failed to locate item from path: %s" % item['path'])
+
+                exec = self.locate_exec_from_item(item)
+
+                if exec is None:
+                    raise Exception("Failed to find the immediate executive tree for an item")
+
+                bytes = self.get_field_value(exec)
+                offset = 0
+                offset += int(exec['CfgHeader']['length'], 0)
+                offset += int(exec['CondValue']['length'], 0)
+                print("OSDDEBUG exec: ", exec)
+                tag_val = array_str_to_value(exec['CfgHeader']['value']) >> 20
+                name = "Device.ConfigData.TagID_%08x" % tag_val
+                varlist.append(create_vlist_buffer(
+                    UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
+                ))
+
+        return varlist
 
     def locate_exec_from_item(self, item):
 
