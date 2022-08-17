@@ -59,6 +59,7 @@
   DfciXmlSettingSchemaSupportLib
   ConfigDataLib
   PerformanceLib
+  ConfigVariableListLib
 
 [Guids]
   gDfciAuthProvisionVarNamespace

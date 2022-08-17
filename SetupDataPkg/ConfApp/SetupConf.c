@@ -184,8 +184,6 @@ ApplySettings (
   CONST VOID  *SetValue  = NULL;
 
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
-  UINTN                  IdLen;
-  CHAR16                 *UnicodeId;
 
   //
   // Create Node List from input
@@ -338,14 +336,9 @@ ApplySettings (
     }
 
     // only care about our target
-    IdLen = AsciiStrnLenS (Id, DFCI_MAX_ID_LEN);
     ZeroMem (&VarListEntry, sizeof (VarListEntry));
-    UnicodeId = AllocatePool (IdLen * sizeof (CHAR16));
-    UnicodeSPrintAsciiFormat (UnicodeId, IdLen, "%a", Id);
-    Status = QuerySingleActiveConfigVarList (UnicodeId, &VarListEntry);
+    Status = QuerySingleActiveConfigAsciiVarList (Id, &VarListEntry);
     if (EFI_ERROR (Status)) {
-      FreePool (UnicodeId);
-      UnicodeId = NULL;
       continue;
     }
 
@@ -411,9 +404,6 @@ ApplySettings (
       ResetRequired = TRUE;
     }
 
-    FreePool (UnicodeId);
-    UnicodeId = NULL;
-
     // all done.
   } // end for loop
 
@@ -462,10 +452,6 @@ EXIT:
 
   if (ResetRequired) {
     ResetCold ();
-  }
-
-  if (UnicodeId) {
-    FreePool (UnicodeId);
   }
 
   return Status;
@@ -655,9 +641,6 @@ CreateXmlStringFromCurrentSettings (
   VOID                    *Data       = NULL;
   UINT8                   Dummy;
   DFCI_SETTING_FLAGS      Flags;
-  CONFIG_TAG_LINK_HEADER  *TagNode;
-  LIST_ENTRY              *Link;
-  UINT32                  TagId;
   CHAR8                   *AsciiName;
   UINTN                   AsciiSize;
   CONFIG_VAR_LIST_ENTRY   *VarListEntries = NULL;
@@ -728,7 +711,7 @@ CreateXmlStringFromCurrentSettings (
     AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN);
     AsciiName = AllocatePool (AsciiSize);
     if (AsciiName == NULL) {
-      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID 0x%x.\n", TagId));
+      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", VarListEntries[Index].Name));
       Status = EFI_OUT_OF_RESOURCES;
       goto EXIT;
     }
