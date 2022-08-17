@@ -86,7 +86,6 @@ def cfghdr_to_value(val_str):
     val_str = strip_delimiter(val_str, '{}')
     val_str = strip_quote(val_str)
     value = val_str.split(',')[::-1][0]
-    print("OSDDEBUG value: ",value)
     idx = value.find(':')
     return value[:idx].strip()
 
@@ -1197,7 +1196,6 @@ class CGenCfgData:
             raise Exception("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
 
         itype = str(item.get('type', 'Reserved'))
-        print("OSDDEBUG itype: ", itype)
         value = str(item.get('value', ''))
         if value:
             if not (check_quote(value) or value.startswith('{')):
@@ -1302,7 +1300,6 @@ class CGenCfgData:
                     return
                 value = self.get_value(act_cfg['value'], act_cfg['length'], False)
                 set_bits_to_bytes(result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
-                print("OSDDEBUG result in func: ", act_cfg)
 
         if top is None:
             top = self._cfg_tree
@@ -1449,7 +1446,6 @@ class CGenCfgData:
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
-        print("OSDDEBUG gen_var_list: ", self.generate_var_list())
         # called during build time, so generate var list bin
         bin_file.write(self.generate_var_list())
         bin_file.close()
@@ -1574,31 +1570,25 @@ class CGenCfgData:
 
     def generate_var_list(self):
         varlist = b''
-        print("OSDDEBUG get field value: ", self.get_field_value())
         for item in self._cfg_list:
-            print(item)
-            if True:#item['type'] != 'Reserved':
-                item = self.locate_cfg_item(item['path'])
-                if item is None:
-                    raise Exception("Failed to locate item from path: %s" % item['path'])
+            item = self.locate_cfg_item(item['path'])
+            if item is None:
+                raise Exception("Failed to locate item from path: %s" % item['path'])
 
-                exec = self.locate_exec_from_item(item)
+            exec = self.locate_exec_from_item(item)
 
-                if exec is None:
-                    continue
+            if exec is None:
+                continue
 
-                bytes = self.get_field_value(exec)
-                offset = 0
-                offset += int(exec['CfgHeader']['length'], 0)
-                offset += int(exec['CondValue']['length'], 0)
-                print("OSDDEBUG exec: ", exec)
-                tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
-                name = "Device.ConfigData.TagID_" + tag_val
-                varlist += create_vlist_buffer(
-                    UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
-                )
-
-        print("OSDDEBUG varlist: ", varlist)
+            bytes = self.get_field_value(exec)
+            offset = 0
+            offset += int(exec['CfgHeader']['length'], 0)
+            offset += int(exec['CondValue']['length'], 0)
+            tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
+            name = "Device.ConfigData.TagID_" + tag_val
+            varlist += create_vlist_buffer(
+                UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
+            )
 
         return varlist
 
@@ -2161,7 +2151,6 @@ def main():
             gen_cfg_data.load_default_from_bin(new_data, True)
             gen_cfg_data.override_default_value(dlt_file)
 
-        print("OSDDEBUG bin_array: ", gen_cfg_data.generate_binary_array())
         gen_cfg_data.generate_binary(out_file)
 
     elif command == "GENDLT":

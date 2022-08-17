@@ -70,8 +70,6 @@ class GenSetupDataBin(IUefiBuildPlugin):
         if ret != 0:
             return ret
 
-        logging.error("OSDDEBUG line 73")
-
         # Now generate XML config
         cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "GenNCCfgData.py")
         params = ["GENBIN"]
@@ -98,16 +96,12 @@ class GenSetupDataBin(IUefiBuildPlugin):
         if ret != 0:
             return ret
 
-        logging.error("OSDDEBUG line 101")
-
         # Combine into single bin file
         combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
         with open(op_name, "rb") as yaml_file, open(xml_filename, "rb") as xml_file, open(combined_bin, "wb") as bin_out:
             yaml_bytes = yaml_file.read()
             xml_bytes = xml_file.read()
             bin_out.write(yaml_bytes + xml_bytes)
-
-        logging.error("OSDDEBUG line 110")
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", op_name, "Plugin generated")
 
