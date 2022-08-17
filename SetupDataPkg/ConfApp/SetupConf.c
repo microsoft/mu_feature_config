@@ -628,24 +628,24 @@ CreateXmlStringFromCurrentSettings (
   OUT UINTN  *StringSize
   )
 {
-  EFI_STATUS              Status;
-  XmlNode                 *List                    = NULL;
-  XmlNode                 *CurrentSettingsNode     = NULL;
-  XmlNode                 *CurrentSettingsListNode = NULL;
-  CHAR8                   LsvString[20];
-  EFI_TIME                Time;
-  UINT32                  Lsv      = 1;
-  UINTN                   DataSize = 0;
-  CHAR8                   *EncodedBuffer;
-  UINTN                   EncodedSize = 0;
-  VOID                    *Data       = NULL;
-  UINT8                   Dummy;
-  DFCI_SETTING_FLAGS      Flags;
-  CHAR8                   *AsciiName;
-  UINTN                   AsciiSize;
-  CONFIG_VAR_LIST_ENTRY   *VarListEntries = NULL;
-  UINTN                   VarListEntriesCount;
-  UINTN                   Index;
+  EFI_STATUS             Status;
+  XmlNode                *List                    = NULL;
+  XmlNode                *CurrentSettingsNode     = NULL;
+  XmlNode                *CurrentSettingsListNode = NULL;
+  CHAR8                  LsvString[20];
+  EFI_TIME               Time;
+  UINT32                 Lsv      = 1;
+  UINTN                  DataSize = 0;
+  CHAR8                  *EncodedBuffer;
+  UINTN                  EncodedSize = 0;
+  VOID                   *Data       = NULL;
+  UINT8                  Dummy;
+  DFCI_SETTING_FLAGS     Flags;
+  CHAR8                  *AsciiName;
+  UINTN                  AsciiSize;
+  CONFIG_VAR_LIST_ENTRY  *VarListEntries = NULL;
+  UINTN                  VarListEntriesCount;
+  UINTN                  Index;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;

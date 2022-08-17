@@ -483,7 +483,7 @@ SettingsProviderSupportProtocolNotify (
   )
 {
   EFI_STATUS             Status;
-  STATIC UINT8           CallCount = 0;
+  STATIC UINT8           CallCount      = 0;
   VOID                   *DefaultBuffer = NULL;
   CONFIG_VAR_LIST_ENTRY  *VarList       = NULL;
   UINTN                  VarListCount   = 0;
