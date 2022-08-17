@@ -1197,6 +1197,7 @@ class CGenCfgData:
             raise Exception("Invalid config name '%s' for '%s' !" % (name, '.'.join(path)))
 
         itype = str(item.get('type', 'Reserved'))
+        print("OSDDEBUG itype: ", itype)
         value = str(item.get('value', ''))
         if value:
             if not (check_quote(value) or value.startswith('{')):
@@ -1301,6 +1302,7 @@ class CGenCfgData:
                     return
                 value = self.get_value(act_cfg['value'], act_cfg['length'], False)
                 set_bits_to_bytes(result, act_cfg['offset'] - struct_info['offset'], act_cfg['length'], value)
+                print("OSDDEBUG result in func: ", act_cfg)
 
         if top is None:
             top = self._cfg_tree
@@ -1572,8 +1574,10 @@ class CGenCfgData:
 
     def generate_var_list(self):
         varlist = b''
+        print("OSDDEBUG get field value: ", self.get_field_value())
         for item in self._cfg_list:
-            if item['type'] != 'Reserved':
+            print(item)
+            if True:#item['type'] != 'Reserved':
                 item = self.locate_cfg_item(item['path'])
                 if item is None:
                     raise Exception("Failed to locate item from path: %s" % item['path'])
@@ -1581,7 +1585,7 @@ class CGenCfgData:
                 exec = self.locate_exec_from_item(item)
 
                 if exec is None:
-                    raise Exception("Failed to find the immediate executive tree for an item")
+                    continue
 
                 bytes = self.get_field_value(exec)
                 offset = 0
@@ -2157,6 +2161,7 @@ def main():
             gen_cfg_data.load_default_from_bin(new_data, True)
             gen_cfg_data.override_default_value(dlt_file)
 
+        print("OSDDEBUG bin_array: ", gen_cfg_data.generate_binary_array())
         gen_cfg_data.generate_binary(out_file)
 
     elif command == "GENDLT":
