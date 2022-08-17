@@ -111,6 +111,8 @@ SingleConfDataGetDefault (
   RUNTIME_VAR_LIST_HDR   VarListHdr;
   UINTN                  Offset;
 
+  ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));
+
   if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
     goto Done;
@@ -134,7 +136,7 @@ SingleConfDataGetDefault (
     *  }
     */
 
-  VarListHdr.NameSize = (UINT32)StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN);
+  VarListHdr.NameSize = (UINT32)(StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1);
   VarListHdr.DataSize = VarListEntry.DataSize;
 
   NeededSize = sizeof (VarListHdr) + VarListHdr.NameSize + VarListHdr.DataSize + sizeof (VarListEntry.Guid) +
@@ -287,7 +289,7 @@ SingleConfDataGet (
     *  }
     */
 
-  VarListHdr.NameSize = (UINT32)StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN);
+  VarListHdr.NameSize = (UINT32)(StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1);
 
   DataSize = 0;
   Status   = gRT->GetVariable (VarListEntry.Name, &VarListEntry.Guid, NULL, &DataSize, NULL);
@@ -377,8 +379,8 @@ RegisterSingleConfigVariable (
 {
   EFI_STATUS             Status;
   UINTN                  Size;
-  DFCI_SETTING_PROVIDER  *Setting;
-  CHAR8                  *TempAsciiId;
+  DFCI_SETTING_PROVIDER  *Setting = NULL;
+  CHAR8                  *TempAsciiId = NULL;
 
   if ((mVariablePolicy == NULL) || (mSettingProviderProtocol == NULL)) {
     DEBUG ((DEBUG_ERROR, "Either setting access (%p) or variable policy policy (%p) is not ready!!!\n", mSettingProviderProtocol, mVariablePolicy));
@@ -399,7 +401,7 @@ RegisterSingleConfigVariable (
     goto Exit;
   }
 
-  Size        = StrnLenS (VarListEntry->Name, DFCI_MAX_ID_LEN);
+  Size        = StrnLenS (VarListEntry->Name, DFCI_MAX_ID_LEN) + 1;
   TempAsciiId = AllocatePool (Size);
   if (TempAsciiId == NULL) {
     DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", VarListEntry->Name));
@@ -407,7 +409,7 @@ RegisterSingleConfigVariable (
     goto Exit;
   }
 
-  AsciiSPrint (TempAsciiId, Size, "%s", VarListEntry->Name);
+  UnicodeStrToAsciiStrS (VarListEntry->Name, TempAsciiId, Size);
   Setting->Id = TempAsciiId;
   Status      = mSettingProviderProtocol->RegisterProvider (mSettingProviderProtocol, Setting);
   if (EFI_ERROR (Status)) {
@@ -435,7 +437,7 @@ RegisterSingleConfigVariable (
              mVariablePolicy,
              &VarListEntry->Guid,
              VarListEntry->Name,
-             (UINT32)VarListEntry->DataSize,
+             VarListEntry->DataSize,
              VARIABLE_POLICY_NO_MAX_SIZE,
              CDATA_NV_VAR_ATTR,
              (UINT32) ~CDATA_NV_VAR_ATTR,
@@ -484,7 +486,6 @@ SettingsProviderSupportProtocolNotify (
 {
   EFI_STATUS             Status;
   STATIC UINT8           CallCount      = 0;
-  VOID                   *DefaultBuffer = NULL;
   CONFIG_VAR_LIST_ENTRY  *VarList       = NULL;
   UINTN                  VarListCount   = 0;
   UINTN                  Index;
@@ -521,15 +522,11 @@ SettingsProviderSupportProtocolNotify (
   }
 
 Done:
-  if (DefaultBuffer != NULL) {
-    FreePool (DefaultBuffer);
-  }
-
   if (VarList != NULL) {
     for (Index = 0; Index < VarListCount; Index++) {
       // Also free the data and name
-      FreePool (VarList->Name);
-      FreePool (VarList->Data);
+      FreePool (VarList[Index].Name);
+      FreePool (VarList[Index].Data);
     }
 
     FreePool (VarList);
