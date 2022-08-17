@@ -38,6 +38,7 @@
   UefiBootManagerLib|MdeModulePkg/Library/BaseUefiBootManagerLibNull/BaseUefiBootManagerLibNull.inf
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
+  SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
 
   XmlTreeLib|XmlSupportPkg/Library/XmlTreeLib/XmlTreeLib.inf
   XmlTreeQueryLib|XmlSupportPkg/Library/XmlTreeQueryLib/XmlTreeQueryLib.inf
@@ -50,6 +51,7 @@
   DfciV1SupportLib|DfciPkg/Library/DfciV1SupportLibNull/DfciV1SupportLibNull.inf
   ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   ConfigBlobBaseLib|SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
+  ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
@@ -74,6 +76,7 @@
 [Components]
   SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
+  SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
 
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 

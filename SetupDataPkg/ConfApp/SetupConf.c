@@ -97,10 +97,10 @@ typedef struct {
   LIST_ENTRY    Link;
 } CONFIG_TAG_LINK_HEADER;
 
-SetupConfState_t  mSetupConfState      = SetupConfInit;
-UINT16            *mConfDataBuffer     = NULL;
-UINTN             mConfDataOffset      = 0;
-UINTN             mConfDataSize        = 0;
+SetupConfState_t  mSetupConfState  = SetupConfInit;
+UINT16            *mConfDataBuffer = NULL;
+UINTN             mConfDataOffset  = 0;
+UINTN             mConfDataSize    = 0;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -183,9 +183,9 @@ ApplySettings (
   UINT8       *ByteArray = NULL;
   CONST VOID  *SetValue  = NULL;
 
-  CONFIG_VAR_LIST_ENTRY   VarListEntry;
-  UINTN                   IdLen;
-  CHAR16                  *UnicodeId;
+  CONFIG_VAR_LIST_ENTRY  VarListEntry;
+  UINTN                  IdLen;
+  CHAR16                 *UnicodeId;
 
   //
   // Create Node List from input
@@ -343,8 +343,7 @@ ApplySettings (
     UnicodeId = AllocatePool (IdLen * sizeof (CHAR16));
     UnicodeSPrintAsciiFormat (UnicodeId, IdLen, "%a", Id);
     Status = QuerySingleActiveConfigVarList (UnicodeId, &VarListEntry);
-    if (EFI_ERROR (Status))
-    {
+    if (EFI_ERROR (Status)) {
       FreePool (UnicodeId);
       UnicodeId = NULL;
       continue;
@@ -725,7 +724,7 @@ CreateXmlStringFromCurrentSettings (
   Data = NULL;
 
   // Now get the individual settings
-  for (Index = 0; Index < VarListEntriesCount; Index ++) {
+  for (Index = 0; Index < VarListEntriesCount; Index++) {
     AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN);
     AsciiName = AllocatePool (AsciiSize);
     if (AsciiName == NULL) {
@@ -823,10 +822,11 @@ EXIT:
   }
 
   if (VarListEntries != NULL) {
-    for (Index = 0; Index < VarListEntriesCount; Index ++) {
+    for (Index = 0; Index < VarListEntriesCount; Index++) {
       FreePool (VarListEntries[Index].Name);
       FreePool (VarListEntries[Index].Data);
     }
+
     FreePool (VarListEntries);
   }
 

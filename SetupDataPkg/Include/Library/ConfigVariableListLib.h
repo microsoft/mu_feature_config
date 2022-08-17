@@ -10,11 +10,11 @@
 #define CONFIG_VAR_LIST_LIB_H_
 
 typedef struct {
-  CHAR16    *Name;
-  EFI_GUID  Guid;
-  UINT32    Attributes;
-  VOID*     Data;
-  UINT32    DataSize;
+  CHAR16      *Name;
+  EFI_GUID    Guid;
+  UINT32      Attributes;
+  VOID        *Data;
+  UINT32      DataSize;
 } CONFIG_VAR_LIST_ENTRY;
 
 /**
@@ -31,14 +31,14 @@ typedef struct {
 EFI_STATUS
 EFIAPI
 RetrieveActiveConfigVarList (
-  OUT CONFIG_VAR_LIST_ENTRY   **ConfigVarListPtr,
-  OUT UINTN                   *ConfigVarListCount
+  OUT CONFIG_VAR_LIST_ENTRY  **ConfigVarListPtr,
+  OUT UINTN                  *ConfigVarListCount
   );
 
 /**
-  Find all active configuration variables for this platform.
+  Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated varible name of interest.
+  @param[in]  VarListName       NULL terminated unicode varible name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
@@ -49,9 +49,28 @@ RetrieveActiveConfigVarList (
 **/
 EFI_STATUS
 EFIAPI
-QuerySingleActiveConfigVarList (
-  IN  CHAR16*                 VarListName,
-  OUT CONFIG_VAR_LIST_ENTRY   *ConfigVarListPtr
+QuerySingleActiveConfigUnicodeVarList (
+  IN  CONST CHAR16           *VarListName,
+  OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
+  );
+
+/**
+  Find specified active configuration variable for this platform.
+
+  @param[in]  VarListName       NULL terminated ascii varible name of interest.
+  @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
+
+  @retval EFI_INVALID_PARAMETER   Input argument is null.
+  @retval EFI_UNSUPPORTED         This request is not supported on this platform.
+  @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_SUCCESS             The operation succeeds.
+
+**/
+EFI_STATUS
+EFIAPI
+QuerySingleActiveConfigAsciiVarList (
+  IN  CONST CHAR8            *VarListName,
+  OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   );
 
 #endif // CONFIG_VAR_LIST_LIB_H_
