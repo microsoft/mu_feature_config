@@ -40,8 +40,8 @@ RetrieveActiveConfigVarList (
   assert_non_null (ConfigVarListPtr);
   assert_non_null (ConfigVarListCount);
 
-  *ConfigVarListPtr   = (CONFIG_VAR_LIST_ENTRY*) mock ();
-  *ConfigVarListCount = (UINTN) mock ();
+  *ConfigVarListPtr   = (CONFIG_VAR_LIST_ENTRY *)mock ();
+  *ConfigVarListCount = (UINTN)mock ();
   return (EFI_STATUS)mock ();
 }
 
@@ -64,15 +64,17 @@ QuerySingleActiveConfigUnicodeVarList (
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
 {
-  CONFIG_VAR_LIST_ENTRY *Temp;
+  CONFIG_VAR_LIST_ENTRY  *Temp;
 
   assert_non_null (ConfigVarListPtr);
   check_expected (VarListName);
 
-  Temp = (CONFIG_VAR_LIST_ENTRY*) mock ();
+  Temp = (CONFIG_VAR_LIST_ENTRY *)mock ();
   CopyMem (ConfigVarListPtr, Temp, sizeof (CONFIG_VAR_LIST_ENTRY));
   return (EFI_STATUS)mock ();
 }
+
+#include <Library/DebugLib.h>
 
 /**
   Find specified active configuration variable for this platform.
@@ -93,16 +95,20 @@ QuerySingleActiveConfigAsciiVarList (
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
 {
-  CONFIG_VAR_LIST_ENTRY *Temp;
+  CONFIG_VAR_LIST_ENTRY  *Temp;
 
   assert_non_null (ConfigVarListPtr);
   check_expected (VarListName);
 
-  Temp = (CONFIG_VAR_LIST_ENTRY*) mock ();
+  Temp = (CONFIG_VAR_LIST_ENTRY *)mock ();
   if (Temp != NULL) {
+    DUMP_HEX (DEBUG_ERROR, 0, Temp, sizeof (CONFIG_VAR_LIST_ENTRY), "");
     CopyMem (ConfigVarListPtr, Temp, sizeof (CONFIG_VAR_LIST_ENTRY));
+    DUMP_HEX (DEBUG_ERROR, 0, ConfigVarListPtr, sizeof (CONFIG_VAR_LIST_ENTRY), "");
     ConfigVarListPtr->Name = AllocateCopyPool ((StrnLenS (Temp->Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16), Temp->Name);
     ConfigVarListPtr->Data = AllocateCopyPool (Temp->DataSize, Temp->Data);
+    DUMP_HEX (DEBUG_ERROR, 0, ConfigVarListPtr, sizeof (CONFIG_VAR_LIST_ENTRY), "");
   }
+
   return (EFI_STATUS)mock ();
 }

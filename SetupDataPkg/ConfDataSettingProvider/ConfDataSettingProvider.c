@@ -49,7 +49,7 @@ SingleConfDataSetDefault (
   EFI_STATUS             Status;
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
 
-  ZeroMem (&VarListEntry, sizeof (VarListEntry));
+  ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));
 
   if ((This == NULL) || (This->Id == NULL)) {
     Status = EFI_INVALID_PARAMETER;
@@ -209,7 +209,13 @@ SingleConfDataSet (
   )
 {
   EFI_STATUS             Status;
+  UINTN                  Offset;
+  UINTN                  NeededSize;
+  UINT32                 CRC32;
+  RUNTIME_VAR_LIST_HDR   *VarListHdr;
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
+
+  ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));
 
   if ((This == NULL) || (This->Id == NULL) || (Value == NULL) || (ValueSize == 0) || (Flags == NULL)) {
     Status = EFI_INVALID_PARAMETER;
@@ -218,6 +224,54 @@ SingleConfDataSet (
 
   Status = QuerySingleActiveConfigAsciiVarList (This->Id, &VarListEntry);
   if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
+  /*
+   * Var List is in DmpStore format:
+   *
+   *  struct {
+   *    RUNTIME_VAR_LIST_HDR VarList;
+   *    CHAR16 Name[VarList->NameSize/2];
+   *    EFI_GUID Guid;
+   *    UINT32 Attributes;
+   *    CHAR8 Data[VarList->DataSize];
+   *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
+   *  }
+   */
+
+  VarListHdr = (RUNTIME_VAR_LIST_HDR *)Value;
+  NeededSize = sizeof (*VarListHdr) + VarListHdr->NameSize + VarListHdr->DataSize + sizeof (VarListEntry.Guid) +
+               sizeof (VarListEntry.Attributes) + sizeof (CRC32);
+
+  Offset = sizeof (RUNTIME_VAR_LIST_HDR);
+  // Sanity check here to make sure the incoming blob is in parity with active config list
+  if (StrCmp (VarListEntry.Name, (CHAR16 *)(Value + Offset))) {
+    // Name string mismatch, bail...
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
+  Offset += VarListHdr->NameSize;
+  if (CompareMem (&VarListEntry.Guid, Value + Offset, sizeof (EFI_GUID))) {
+    // Name Guid mismatch, bail...
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
+  Offset += sizeof (EFI_GUID);
+  if (VarListEntry.Attributes != *(UINT32 *)(Value + Offset)) {
+    // Name attribute mismatch, bail...
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
+  Offset += sizeof (VarListEntry.Attributes);
+  Offset += VarListHdr->DataSize;
+  CRC32   = CalculateCrc32 (VarListHdr, Offset);
+  if (VarListEntry.Attributes != *(UINT32 *)(Value + Offset)) {
+    // Name attribute mismatch, bail...
+    Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
@@ -265,6 +319,8 @@ SingleConfDataGet (
   RUNTIME_VAR_LIST_HDR   VarListHdr;
   UINTN                  Offset;
   UINTN                  DataSize;
+
+  ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));
 
   if ((This == NULL) || (This->Id == NULL) || (ValueSize == NULL) || ((*ValueSize != 0) && (Value == NULL))) {
     Status = EFI_INVALID_PARAMETER;
@@ -379,7 +435,7 @@ RegisterSingleConfigVariable (
 {
   EFI_STATUS             Status;
   UINTN                  Size;
-  DFCI_SETTING_PROVIDER  *Setting = NULL;
+  DFCI_SETTING_PROVIDER  *Setting     = NULL;
   CHAR8                  *TempAsciiId = NULL;
 
   if ((mVariablePolicy == NULL) || (mSettingProviderProtocol == NULL)) {
@@ -485,9 +541,9 @@ SettingsProviderSupportProtocolNotify (
   )
 {
   EFI_STATUS             Status;
-  STATIC UINT8           CallCount      = 0;
-  CONFIG_VAR_LIST_ENTRY  *VarList       = NULL;
-  UINTN                  VarListCount   = 0;
+  STATIC UINT8           CallCount    = 0;
+  CONFIG_VAR_LIST_ENTRY  *VarList     = NULL;
+  UINTN                  VarListCount = 0;
   UINTN                  Index;
 
   // locate protocol

@@ -41,6 +41,8 @@
   ConfigDataLib
   ConfigBlobBaseLib
   PrintLib
+  SafeIntLib
+  ConfigVariableListLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
