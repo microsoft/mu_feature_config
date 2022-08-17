@@ -501,7 +501,7 @@ class CFG_YAML():
                             # for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x04'
-                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_/4):10b, %d:4b, 0:4b, %s:12b}' %\
+                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_):10b, %d:4b, 0:4b, %s:12b}' %\
                                                (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
@@ -850,6 +850,8 @@ class CGenCfgData:
                         if match.group(1) == '0' and match.group(2) == '0':
                             unit_len = CGenCfgData.bits_width[match.group(3)] // 8
                         cur_bit_len = int(match.group(2)) * CGenCfgData.bits_width[match.group(3)]
+                        if self.eval(match.group(1)) != (self.eval(match.group(1)) & (1 << cur_bit_len) - 1):
+                            raise SystemExit("Exception: Invalid bit width defined for 'value': '%s' !" % value_str)
                         value += ((self.eval(match.group(1)) & (1 << cur_bit_len) - 1)) << bit_len
                         bit_len += cur_bit_len
                         each_value = bytearray()
@@ -1275,12 +1277,7 @@ class CGenCfgData:
             else:
                 struct_node = top[struct_str]
             struct_node['offset'] = start
-            if len(path) == 1:
-                # Round up first layer tree to be 4 Byte aligned
-                info['offset'] = (info['offset'] + 31) & (~31)
-                struct_node['length'] = (info['offset'] - start + 31) & (~31)
-            else:
-                struct_node['length'] = info['offset'] - start
+            struct_node['length'] = info['offset'] - start
             if struct_node['length'] % 8 != 0:
                 raise SystemExit("Error: Bits length not aligned for %s !" % str(path))
 

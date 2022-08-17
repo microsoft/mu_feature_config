@@ -75,6 +75,13 @@ IterateConfData (
     DEBUG ((DEBUG_VERBOSE, "\tTag:           0x%08X\n", CdataHdr->Tag));
     DEBUG ((DEBUG_VERBOSE, "\tData:          0x%08p\n", Data));
 
+    if (CdataHdr->Length == 0) {
+      // Cannot continue iteration since the program will get stuck if we do...
+      ASSERT (FALSE);
+      Status = EFI_COMPROMISED_DATA;
+      break;
+    }
+
     for (Idx = 0; Idx < CdataHdr->ConditionNum; Idx++) {
       DEBUG ((DEBUG_VERBOSE, "\tCondition %d:   0x%08X\n", Idx, CdataHdr->Condition[Idx]));
       if ((CdataHdr->Flags & CDATA_FLAG_TYPE_MASK) == CDATA_FLAG_TYPE_REFER) {
@@ -89,7 +96,7 @@ IterateConfData (
         Status = SingleTagHandler (
                    CdataHdr->Tag,
                    Data,
-                   (CdataHdr->Length << 2) - sizeof (*CdataHdr) - sizeof (CDATA_COND) * CdataHdr->ConditionNum
+                   (CdataHdr->Length) - sizeof (*CdataHdr) - sizeof (CDATA_COND) * CdataHdr->ConditionNum
                    );
         if (EFI_ERROR (Status)) {
           break;
@@ -101,7 +108,7 @@ IterateConfData (
       }
     }
 
-    Offset += (CdataHdr->Length << 2);
+    Offset += (CdataHdr->Length);
     DEBUG ((DEBUG_VERBOSE, "Offset:    0x%08X\n\n", Offset));
   }
 
