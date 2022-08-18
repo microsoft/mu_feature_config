@@ -437,9 +437,6 @@ SingleConfDataGetDefaultNormal (
   CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
   DFCI_SETTING_PROVIDER  SettingsProvider;
   CONTEXT_DATA           *Ctx;
-  RUNTIME_VAR_LIST_HDR   *VarListHdr;
-  UINTN                  NeededSize;
-  UINT32                 CRC32;
 
   AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, KNOWN_GOOD_TAG_0xF0);
 
@@ -463,26 +460,8 @@ SingleConfDataGetDefaultNormal (
   Data   = AllocatePool (Size);
   Status = SingleConfDataGetDefault (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
-
-  VarListHdr = (RUNTIME_VAR_LIST_HDR *)Data;
-
-  NeededSize = 0;
-  UT_ASSERT_EQUAL (VarListHdr->NameSize, (StrnLenS (Ctx->VarListPtr->Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16));
-  UT_ASSERT_EQUAL (VarListHdr->DataSize, sizeof (mGood_Tag_0xF0));
-  NeededSize += sizeof (*VarListHdr);
-  UT_ASSERT_MEM_EQUAL ((UINT8 *)Data + NeededSize, Ctx->VarListPtr->Name, VarListHdr->NameSize);
-  NeededSize += VarListHdr->NameSize;
-  UT_ASSERT_MEM_EQUAL ((UINT8 *)Data + NeededSize, &Ctx->VarListPtr->Guid, sizeof (Ctx->VarListPtr->Guid));
-  NeededSize += sizeof (Ctx->VarListPtr->Guid);
-  UT_ASSERT_MEM_EQUAL ((UINT8 *)Data + NeededSize, &Ctx->VarListPtr->Attributes, sizeof (Ctx->VarListPtr->Attributes));
-  NeededSize += sizeof (Ctx->VarListPtr->Attributes);
-  UT_ASSERT_MEM_EQUAL ((UINT8 *)Data + NeededSize, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
-  NeededSize += sizeof (mGood_Tag_0xF0);
-
-  CRC32 = CalculateCrc32 (Data, NeededSize);
-  UT_ASSERT_EQUAL (*(UINT32 *)((UINT8 *)Data + NeededSize), CRC32);
-  NeededSize += sizeof (CRC32);
-  UT_ASSERT_EQUAL (Size, NeededSize);
+  UT_ASSERT_EQUAL (Size, sizeof (mGood_Tag_0xF0_Var_List));
+  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0_Var_List, sizeof (mGood_Tag_0xF0_Var_List));
 
   FreePool (Data);
 
@@ -675,8 +654,6 @@ SingleConfDataGetNormal (
   Data   = AllocatePool (Size);
   Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  DUMP_HEX (DEBUG_ERROR, 0, Data, sizeof (mGood_Tag_0xF0_Var_List), "");
-  DUMP_HEX (DEBUG_ERROR, 0, mGood_Tag_0xF0_Var_List, sizeof (mGood_Tag_0xF0_Var_List), "");
   UT_ASSERT_EQUAL (Size, sizeof (mGood_Tag_0xF0_Var_List));
   UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0_Var_List, sizeof (mGood_Tag_0xF0_Var_List));
 
