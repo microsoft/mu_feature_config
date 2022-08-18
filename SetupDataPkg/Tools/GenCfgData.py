@@ -34,7 +34,7 @@ __copyright_tmp__ = """/** @file
 **/
 """
 
-SETUP_CONFIG_POLICY_VAR_GUID  = '9F556476-9E82-E848-73A4-F12ADAD1DDD2'
+SETUP_CONFIG_POLICY_VAR_GUID  = '9F556476-9E82-E848-A473-F12ADAD1DDD2'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
 
 
@@ -1585,9 +1585,9 @@ class CGenCfgData:
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
             tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
-            name = "Device.ConfigData.TagID_%08x" % int(tag_val, 16)
+            name = "Device.ConfigData.TagID_%08X" % int(tag_val, 16)
             varlist += create_vlist_buffer(
-                UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
+                UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
             )
 
         return varlist

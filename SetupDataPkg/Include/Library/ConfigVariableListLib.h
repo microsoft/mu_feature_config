@@ -13,11 +13,11 @@
  * Internal struct for variable list entries
  */
 typedef struct {
-  CHAR16      *Name;
-  EFI_GUID    Guid;
-  UINT32      Attributes;
-  VOID        *Data;
-  UINT32      DataSize;
+  CHAR16                *Name;
+  EFI_GUID              Guid;
+  UINT32                Attributes;
+  VOID                  *Data;
+  UINT32                DataSize;
 } CONFIG_VAR_LIST_ENTRY;
 
 /*
@@ -40,7 +40,7 @@ typedef struct {
    * CHAR8 Data[DataSize] // actual variable value
    * UINT32 CRC32 // checksum of all bytes up to CRC32
    */
-} CONF_VAR_LIST_HDR;
+} CONFIG_VAR_LIST_HDR;
 #pragma pack(pop)
 
 /**
@@ -76,7 +76,7 @@ RetrieveActiveConfigVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigUnicodeVarList (
-  IN  CONST CHAR16           *VarListName,
+  IN  CONST CHAR16           *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   );
 
@@ -95,7 +95,7 @@ QuerySingleActiveConfigUnicodeVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigAsciiVarList (
-  IN  CONST CHAR8            *VarListName,
+  IN  CONST CHAR8            *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   );
 

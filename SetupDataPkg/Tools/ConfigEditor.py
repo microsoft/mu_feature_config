@@ -761,16 +761,16 @@ class application(tkinter.Frame):
         file_ext = ''
         if 'yaml' in ftype or 'yml' in ftype:
             file_type = 'YAML PKL'
-            file_ext = 'pkl Def.yaml'
+            file_ext = '.pkl Def.yaml'
         if 'xml' in ftype:
             file_type += ' XML'
-            file_ext += ' xml'
+            file_ext += ' .xml'
         if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
             file_type = ftype.upper()
             file_ext = ftype
 
         file_ext = file_ext.split(' ')
-        file_ext_opt = ['*.' + i for i in file_ext]
+        file_ext_opt = ['*' + i for i in file_ext]
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
             title="Load file",
