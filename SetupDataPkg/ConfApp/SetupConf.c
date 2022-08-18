@@ -913,6 +913,7 @@ SetupConfMgr (
   CHAR8         *StrBuf;
   UINTN         StrBufSize;
   UINTN         Index;
+  UINTN         PrintedUnicodes;
 
   switch (mSetupConfState) {
     case SetupConfInit:
@@ -998,8 +999,14 @@ SetupConfMgr (
       } else {
         Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
         Print (L"\n");
-        for (Index = 0; Index < StrBufSize; Index ++) {
-          Print (L"%c", StrBuf[Index]);
+        Index = 0;
+        while (Index < StrBufSize) {
+          PrintedUnicodes = Print (L"%a", &StrBuf[Index]);
+          Index += PrintedUnicodes;
+          if (PrintedUnicodes == 0) {
+            // So that we will not get stuck if Print function malfunctions
+            break;
+          }
         }
         Print (L"\n");
       }
