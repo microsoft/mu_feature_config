@@ -245,6 +245,12 @@ SingleConfDataSet (
   NeededSize = sizeof (*VarListHdr) + VarListHdr->NameSize + VarListHdr->DataSize + sizeof (VarListEntry.Guid) +
                sizeof (VarListEntry.Attributes) + sizeof (CRC32);
 
+  if (NeededSize > ValueSize) {
+    DEBUG ((DEBUG_ERROR, "%a Incoming data does not contain enough bytes 0x%x vs. 0x%x!", __FUNCTION__, NeededSize, ValueSize));
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
   Offset = sizeof (RUNTIME_VAR_LIST_HDR);
   // Sanity check here to make sure the incoming blob is in parity with active config list
   if (StrCmp (VarListEntry.Name, (CHAR16 *)(Value + Offset))) {
