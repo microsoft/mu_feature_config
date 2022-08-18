@@ -102,12 +102,9 @@ QuerySingleActiveConfigAsciiVarList (
 
   Temp = (CONFIG_VAR_LIST_ENTRY *)mock ();
   if (Temp != NULL) {
-    DUMP_HEX (DEBUG_ERROR, 0, Temp, sizeof (CONFIG_VAR_LIST_ENTRY), "");
     CopyMem (ConfigVarListPtr, Temp, sizeof (CONFIG_VAR_LIST_ENTRY));
-    DUMP_HEX (DEBUG_ERROR, 0, ConfigVarListPtr, sizeof (CONFIG_VAR_LIST_ENTRY), "");
     ConfigVarListPtr->Name = AllocateCopyPool ((StrnLenS (Temp->Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16), Temp->Name);
     ConfigVarListPtr->Data = AllocateCopyPool (Temp->DataSize, Temp->Data);
-    DUMP_HEX (DEBUG_ERROR, 0, ConfigVarListPtr, sizeof (CONFIG_VAR_LIST_ENTRY), "");
   }
 
   return (EFI_STATUS)mock ();

@@ -674,8 +674,8 @@ SingleConfDataGetNormal (
 
   Data   = AllocatePool (Size);
   Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
-  // UT_ASSERT_NOT_EFI_ERROR (Status);
-  // UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
 
   FreePool (Data);
 
@@ -1025,7 +1025,7 @@ SingleConfDataSetNormal (
   expect_memory (MockSetVariable, Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  Status = SingleConfDataSet (&SettingsProvider, sizeof (mGood_Tag_0xF0), mGood_Tag_0xF0, &Flags);
+  Status = SingleConfDataSet (&SettingsProvider, sizeof (mGood_Tag_0xF0_Var_List), mGood_Tag_0xF0_Var_List, &Flags);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
 
   return UNIT_TEST_PASSED;

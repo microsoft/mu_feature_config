@@ -248,20 +248,23 @@ SingleConfDataSet (
   // Sanity check here to make sure the incoming blob is in parity with active config list
   if (StrCmp (VarListEntry.Name, (CHAR16 *)(Value + Offset))) {
     // Name string mismatch, bail...
+    DEBUG ((DEBUG_ERROR, "%a Name mismatches with %s vs. %s!", __FUNCTION__, VarListEntry.Name, (CHAR16 *)(Value + Offset)));
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
   Offset += VarListHdr->NameSize;
   if (CompareMem (&VarListEntry.Guid, Value + Offset, sizeof (EFI_GUID))) {
-    // Name Guid mismatch, bail...
+    // Guid mismatch, bail...
+    DEBUG ((DEBUG_ERROR, "%a GUID mismatches with %g vs. %g!", __FUNCTION__, &VarListEntry.Guid, Value + Offset));
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
 
   Offset += sizeof (EFI_GUID);
   if (VarListEntry.Attributes != *(UINT32 *)(Value + Offset)) {
-    // Name attribute mismatch, bail...
+    // Attribute mismatch, bail...
+    DEBUG ((DEBUG_ERROR, "%a Attribute mismatches with 0x%x vs. 0x%x!", __FUNCTION__, VarListEntry.Attributes, *(UINT32 *)(Value + Offset)));
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
@@ -269,8 +272,9 @@ SingleConfDataSet (
   Offset += sizeof (VarListEntry.Attributes);
   Offset += VarListHdr->DataSize;
   CRC32   = CalculateCrc32 (VarListHdr, Offset);
-  if (VarListEntry.Attributes != *(UINT32 *)(Value + Offset)) {
-    // Name attribute mismatch, bail...
+  if (CRC32 != *(UINT32 *)(Value + Offset)) {
+    // CRC mismatch, bail...
+    DEBUG ((DEBUG_ERROR, "%a CRC mismatches with 0x%x vs. 0x%x!", __FUNCTION__, VarListEntry.Attributes, *(UINT32 *)(Value + Offset)));
     Status = EFI_INVALID_PARAMETER;
     goto Done;
   }
