@@ -26,6 +26,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ConfigBlobBaseLib.h>
 #include <Library/VariablePolicyHelperLib.h>
+#include <Library/ConfigVariableListLib.h>
 
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
