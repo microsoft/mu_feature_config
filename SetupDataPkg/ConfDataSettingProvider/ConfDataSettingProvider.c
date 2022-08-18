@@ -136,7 +136,7 @@ SingleConfDataGetDefault (
     *  }
     */
 
-  VarListHdr.NameSize = (UINT32)(StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1);
+  VarListHdr.NameSize = (UINT32)((StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16));
   VarListHdr.DataSize = VarListEntry.DataSize;
 
   NeededSize = sizeof (VarListHdr) + VarListHdr.NameSize + VarListHdr.DataSize + sizeof (VarListEntry.Guid) +
@@ -210,6 +210,7 @@ SingleConfDataSet (
 {
   EFI_STATUS             Status;
   UINTN                  Offset;
+  UINTN                  DataOffset;
   UINTN                  NeededSize;
   UINT32                 CRC32;
   RUNTIME_VAR_LIST_HDR   *VarListHdr;
@@ -270,6 +271,7 @@ SingleConfDataSet (
   }
 
   Offset += sizeof (VarListEntry.Attributes);
+  DataOffset = Offset;
   Offset += VarListHdr->DataSize;
   CRC32   = CalculateCrc32 (VarListHdr, Offset);
   if (CRC32 != *(UINT32 *)(Value + Offset)) {
@@ -280,7 +282,7 @@ SingleConfDataSet (
   }
 
   // Now set it to non-volatile variable
-  Status = gRT->SetVariable (VarListEntry.Name, &VarListEntry.Guid, VarListEntry.Attributes, ValueSize, (VOID *)Value);
+  Status = gRT->SetVariable (VarListEntry.Name, &VarListEntry.Guid, VarListEntry.Attributes, VarListHdr->DataSize, (VOID *)(Value + DataOffset));
 
   if (!EFI_ERROR (Status)) {
     *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
@@ -349,7 +351,7 @@ SingleConfDataGet (
     *  }
     */
 
-  VarListHdr.NameSize = (UINT32)(StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1);
+  VarListHdr.NameSize = (UINT32)((StrnLenS (VarListEntry.Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16));
 
   DataSize = 0;
   Status   = gRT->GetVariable (VarListEntry.Name, &VarListEntry.Guid, NULL, &DataSize, NULL);

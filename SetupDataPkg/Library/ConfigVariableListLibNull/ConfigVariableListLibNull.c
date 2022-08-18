@@ -1,5 +1,5 @@
 /** @file
-  Null library instance to process the list of congfiguration variables.
+  Null library instance to process the list of configuration variables.
 
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -31,7 +31,7 @@ RetrieveActiveConfigVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated unicode varible name of interest.
+  @param[in]  VarListName       NULL terminated unicode variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
@@ -53,7 +53,7 @@ QuerySingleActiveConfigUnicodeVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated ascii varible name of interest.
+  @param[in]  VarListName       NULL terminated ascii variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.

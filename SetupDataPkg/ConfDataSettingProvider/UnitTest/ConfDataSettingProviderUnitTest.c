@@ -467,7 +467,7 @@ SingleConfDataGetDefaultNormal (
   VarListHdr = (RUNTIME_VAR_LIST_HDR *)Data;
 
   NeededSize = 0;
-  UT_ASSERT_EQUAL (VarListHdr->NameSize, StrnLenS (Ctx->VarListPtr->Name, DFCI_MAX_ID_LEN) + 1);
+  UT_ASSERT_EQUAL (VarListHdr->NameSize, (StrnLenS (Ctx->VarListPtr->Name, DFCI_MAX_ID_LEN) + 1) * sizeof (CHAR16));
   UT_ASSERT_EQUAL (VarListHdr->DataSize, sizeof (mGood_Tag_0xF0));
   NeededSize += sizeof (*VarListHdr);
   UT_ASSERT_MEM_EQUAL ((UINT8 *)Data + NeededSize, Ctx->VarListPtr->Name, VarListHdr->NameSize);
@@ -675,7 +675,10 @@ SingleConfDataGetNormal (
   Data   = AllocatePool (Size);
   Status = SingleConfDataGet (&SettingsProvider, &Size, Data);
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0, sizeof (mGood_Tag_0xF0));
+  DUMP_HEX (DEBUG_ERROR, 0, Data, sizeof (mGood_Tag_0xF0_Var_List), "");
+  DUMP_HEX (DEBUG_ERROR, 0, mGood_Tag_0xF0_Var_List, sizeof (mGood_Tag_0xF0_Var_List), "");
+  UT_ASSERT_EQUAL (Size, sizeof (mGood_Tag_0xF0_Var_List));
+  UT_ASSERT_MEM_EQUAL (Data, mGood_Tag_0xF0_Var_List, sizeof (mGood_Tag_0xF0_Var_List));
 
   FreePool (Data);
 
@@ -1103,10 +1106,16 @@ SingleConfDataSetNonTarget (
   DFCI_SETTING_FLAGS     Flags;
   DFCI_SETTING_PROVIDER  SettingsProvider;
 
+  expect_any_count (QuerySingleActiveConfigAsciiVarList, VarListName, 2);
+
+  will_return (QuerySingleActiveConfigAsciiVarList, NULL);
+  will_return (QuerySingleActiveConfigAsciiVarList, EFI_INVALID_PARAMETER);
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_START;
   Status              = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
+  will_return (QuerySingleActiveConfigAsciiVarList, NULL);
+  will_return (QuerySingleActiveConfigAsciiVarList, EFI_INVALID_PARAMETER);
   SettingsProvider.Id = SINGLE_SETTING_PROVIDER_TEMPLATE;
   Status              = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
@@ -1309,24 +1318,24 @@ UnitTestingEntry (
   //
   AddTestCase (MiscTests, "Protocol notify routine should succeed", "ProtocolNotify", SettingsProviderNotifyShouldComplete, ConfSettingProviderPrerequisite, NULL, &Context);
 
-  // AddTestCase (SingleSettingTests, "Get Single ConfData Default should return full blob", "SingleGetFullDefaultNormal", SingleConfDataGetDefaultNormal, ConfSettingProviderPrerequisite, NULL, &Context);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with null provider", "SingleGetFullDefaultNull", SingleConfDataGetDefaultNull, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of invalid ID", "SingleGetFullDefaultInvalidId", SingleConfDataGetDefaultInvalidId, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of ID not related to config settings", "SingleGetDefaultNonTarget", SingleConfDataGetDefaultNonTarget, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should return full blob", "SingleGetFullDefaultNormal", SingleConfDataGetDefaultNormal, ConfSettingProviderPrerequisite, NULL, &Context);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with null provider", "SingleGetFullDefaultNull", SingleConfDataGetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of invalid ID", "SingleGetFullDefaultInvalidId", SingleConfDataGetDefaultInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with provider of ID not related to config settings", "SingleGetDefaultNonTarget", SingleConfDataGetDefaultNonTarget, NULL, NULL, NULL);
 
-  // AddTestCase (SingleSettingTests, "Get Single ConfData should return full blob", "SingleGetFullNormal", SingleConfDataGetNormal, ConfSettingProviderPrerequisite, NULL, &Context);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData should fail with null provider", "SingleGetFullNull", SingleConfDataGetNull, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of invalid ID", "SingleGetFullInvalidId", SingleConfDataGetInvalidId, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of ID not related to config settings", "SingleGetNonTarget", SingleConfDataGetNonTarget, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should return full blob", "SingleGetFullNormal", SingleConfDataGetNormal, ConfSettingProviderPrerequisite, NULL, &Context);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with null provider", "SingleGetFullNull", SingleConfDataGetNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of invalid ID", "SingleGetFullInvalidId", SingleConfDataGetInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Get Single ConfData should fail with provider of ID not related to config settings", "SingleGetNonTarget", SingleConfDataGetNonTarget, NULL, NULL, NULL);
 
-  // AddTestCase (SingleSettingTests, "Set Single ConfData Default should return full blob", "SingleSetDefaultNormal", SingleConfDataSetDefaultNormal, ConfSettingProviderPrerequisite, NULL, &Context);
-  // AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with null provider", "SingleSetDefaultNull", SingleConfDataSetDefaultNull, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of invalid ID", "SingleSetDefaultInvalidId", SingleConfDataSetDefaultInvalidId, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of ID not related to config settings", "SingleSetDefaultNonTarget", SingleConfDataSetDefaultNonTarget, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should return full blob", "SingleSetDefaultNormal", SingleConfDataSetDefaultNormal, ConfSettingProviderPrerequisite, NULL, &Context);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with null provider", "SingleSetDefaultNull", SingleConfDataSetDefaultNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of invalid ID", "SingleSetDefaultInvalidId", SingleConfDataSetDefaultInvalidId, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData Default should fail with provider of ID not related to config settings", "SingleSetDefaultNonTarget", SingleConfDataSetDefaultNonTarget, NULL, NULL, NULL);
 
   AddTestCase (SingleSettingTests, "Set Single ConfData should return full blob", "SingleSetNormal", SingleConfDataSetNormal, ConfSettingProviderPrerequisite, NULL, &Context);
-  // AddTestCase (SingleSettingTests, "Set Single ConfData should fail with null provider", "SingleSetNull", SingleConfDataSetNull, NULL, NULL, NULL);
-  // AddTestCase (SingleSettingTests, "Set Single ConfData should fail with provider of ID not related to config settings", "SingleSetNonTarget", SingleConfDataSetNonTarget, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData should fail with null provider", "SingleSetNull", SingleConfDataSetNull, NULL, NULL, NULL);
+  AddTestCase (SingleSettingTests, "Set Single ConfData should fail with provider of ID not related to config settings", "SingleSetNonTarget", SingleConfDataSetNonTarget, NULL, NULL, NULL);
 
   //
   // Execute the tests.
