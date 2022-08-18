@@ -1101,51 +1101,6 @@ SingleConfDataSetNonTarget (
 }
 
 /**
-  Unit test for SingleConfDataSet of ConfDataSettingProvider with invalid ID provider.
-
-  @param[in]  Context    [Optional] An optional parameter that enables:
-                         1) test-case reuse with varied parameters and
-                         2) test-case re-entry for Target tests that need a
-                         reboot.  This parameter is a VOID* and it is the
-                         responsibility of the test author to ensure that the
-                         contents are well understood by all test cases that may
-                         consume it.
-
-  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-                                        case was successful.
-  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-**/
-UNIT_TEST_STATUS
-EFIAPI
-SingleConfDataSetInvalidId (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  EFI_STATUS             Status;
-  UINTN                  Size  = 1;
-  VOID                   *Data = &Size;
-  DFCI_SETTING_FLAGS     Flags;
-  CHAR8                  ComparePtr[SINGLE_CONF_DATA_ID_LEN];
-  DFCI_SETTING_PROVIDER  SettingsProvider;
-
-  AsciiSPrint (ComparePtr, SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, 0x40);
-
-  // Minimal initialization to tag this provider instance
-  SettingsProvider.Id = ComparePtr;
-
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-
-  Status = SingleConfDataSet (&SettingsProvider, Size, Data, &Flags);
-  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
-
-  return UNIT_TEST_PASSED;
-}
-
-/**
   Unit test for SettingsProviderSupportProtocolNotify of ConfDataSettingProvider.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
