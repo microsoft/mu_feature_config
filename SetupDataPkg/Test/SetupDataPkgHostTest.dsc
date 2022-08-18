@@ -38,8 +38,8 @@
   SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
   SetupDataPkg/Test/MockLibrary/MockConfigVariableListLib/MockConfigVariableListLib.inf
 
-  # SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
-  # SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
+  SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
+  SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
 
   SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {
     <LibraryClasses>
@@ -47,25 +47,25 @@
       UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   }
 
-  # SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {
-  #   <LibraryClasses>
-  #     UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-  #     ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
-  # }
+  SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {
+    <LibraryClasses>
+      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  }
 
-  # SetupDataPkg/ConfApp/UnitTest/ConfAppSysInfoUnitTest.inf {
-  #   <LibraryClasses>
-  #     UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-  #     UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-  #     ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
-  # }
+  SetupDataPkg/ConfApp/UnitTest/ConfAppSysInfoUnitTest.inf {
+    <LibraryClasses>
+      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  }
 
-  # SetupDataPkg/ConfApp/UnitTest/ConfAppBootOptionUnitTest.inf {
-  #   <LibraryClasses>
-  #     UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-  #     UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-  #     ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
-  # }
+  SetupDataPkg/ConfApp/UnitTest/ConfAppBootOptionUnitTest.inf {
+    <LibraryClasses>
+      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  }
 
   # SetupDataPkg/ConfApp/UnitTest/ConfAppSetupConfUnitTest.inf {
   #   <LibraryClasses>
@@ -74,9 +74,9 @@
   #     ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
   # }
 
-  # SetupDataPkg/ConfApp/UnitTest/ConfAppSecureBootUnitTest.inf {
-  #   <LibraryClasses>
-  #     UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-  #     UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-  #     ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
-  # }
+  SetupDataPkg/ConfApp/UnitTest/ConfAppSecureBootUnitTest.inf {
+    <LibraryClasses>
+      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  }
