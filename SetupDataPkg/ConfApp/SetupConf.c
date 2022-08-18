@@ -708,7 +708,7 @@ CreateXmlStringFromCurrentSettings (
 
   // Now get the individual settings
   for (Index = 0; Index < VarListEntriesCount; Index++) {
-    AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN);
+    AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN) + 1;
     AsciiName = AllocatePool (AsciiSize);
     if (AsciiName == NULL) {
       DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", VarListEntries[Index].Name));

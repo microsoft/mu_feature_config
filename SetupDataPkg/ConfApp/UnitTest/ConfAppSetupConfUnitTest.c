@@ -26,6 +26,7 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/ConfigDataLib.h>
 #include <Library/UefiBootManagerLib.h>
+#include <Library/ConfigVariableListLib.h>
 
 #include <Library/UnitTestLib.h>
 
@@ -54,6 +55,11 @@ typedef struct {
   UINT8    *Data;
   UINTN    DataSize;
 } TAG_DATA;
+
+typedef struct {
+  CONFIG_VAR_LIST_ENTRY    *VarListPtr;
+  UINTN                    VarListCnt;
+} CONTEXT_DATA;
 
 TAG_DATA  mKnownGoodTags[KNOWN_GOOD_TAG_COUNT] = {
   { KNOWN_GOOD_TAG_0xF0,  mGood_Tag_0xF0,  sizeof (mGood_Tag_0xF0)  },
@@ -404,6 +410,34 @@ EFI_BOOT_SERVICES  MockBoot = {
   .WaitForEvent = MockWaitForEvent,
 };
 
+UNIT_TEST_STATUS
+EFIAPI
+SetupConfPrerequisite (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONTEXT_DATA  *Ctx;
+  UINTN         Index;
+
+  UT_ASSERT_NOT_NULL (Context);
+
+  Ctx             = (CONTEXT_DATA *)Context;
+  Ctx->VarListCnt = KNOWN_GOOD_TAG_COUNT;
+  Ctx->VarListPtr = AllocatePool (Ctx->VarListCnt * sizeof (CONFIG_VAR_LIST_ENTRY));
+  UT_ASSERT_NOT_NULL (Ctx->VarListPtr);
+
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
+    Ctx->VarListPtr[Index].Name = AllocatePool (SINGLE_CONF_DATA_ID_LEN * 2);
+    UnicodeSPrintAsciiFormat (Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * 2, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    Ctx->VarListPtr[Index].Attributes = CDATA_NV_VAR_ATTR;
+    Ctx->VarListPtr[Index].DataSize   = (UINT32)(mKnownGoodTags[Index].DataSize);
+    Ctx->VarListPtr[Index].Data       = AllocateCopyPool (mKnownGoodTags[Index].DataSize, mKnownGoodTags[Index].Data);
+    CopyMem (&Ctx->VarListPtr[Index].Guid, &gSetupConfigPolicyVariableGuid, sizeof (EFI_GUID));
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
 /**
   Clean up state machine for this page.
 
@@ -584,6 +618,10 @@ ConfAppSetupConfSelectUsb (
   EFI_STATUS                Status;
   EFI_KEY_DATA              KeyData1;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  CONTEXT_DATA           *Ctx;
+
+  UT_ASSERT_NOT_NULL (Context);
+  Ctx = (CONTEXT_DATA *)Context;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -609,6 +647,10 @@ ConfAppSetupConfSelectUsb (
   UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateUsb);
 
   mSettingAccess = &MockSettingAccess;
+
+  expect_memory (QuerySingleActiveConfigAsciiVarList, VarListName, DFCI_OEM_SETTING_ID__CONF, sizeof (DFCI_OEM_SETTING_ID__CONF));
+  will_return (QuerySingleActiveConfigAsciiVarList, Ctx->VarListPtr);
+  will_return (QuerySingleActiveConfigAsciiVarList, EFI_SUCCESS);
 
   will_return (BuildUsbRequest, L"Test");
 
@@ -655,6 +697,10 @@ ConfAppSetupConfSelectSerial (
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
   UINTN                     Index;
   CHAR8                     *KnowGoodXml;
+  CONTEXT_DATA           *Ctx;
+
+  UT_ASSERT_NOT_NULL (Context);
+  Ctx = (CONTEXT_DATA *)Context;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -690,6 +736,10 @@ ConfAppSetupConfSelectSerial (
     Status = SetupConfMgr ();
     Index++;
   }
+
+  expect_memory (QuerySingleActiveConfigAsciiVarList, VarListName, DFCI_OEM_SETTING_ID__CONF, sizeof (DFCI_OEM_SETTING_ID__CONF));
+  will_return (QuerySingleActiveConfigAsciiVarList, Ctx->VarListPtr);
+  will_return (QuerySingleActiveConfigAsciiVarList, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
   KeyData1.Key.ScanCode    = SCAN_NULL;
@@ -807,6 +857,10 @@ ConfAppSetupConfDumpSerial (
   EFI_KEY_DATA  KeyData1;
   CHAR8         *ComparePtr[KNOWN_GOOD_TAG_COUNT];
   UINTN         Index;
+  CONTEXT_DATA  *Ctx;
+
+  UT_ASSERT_NOT_NULL (Context);
+  Ctx = (CONTEXT_DATA *)Context;
 
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -833,11 +887,9 @@ ConfAppSetupConfDumpSerial (
 
   mSettingAccess = &MockSettingAccess;
 
-  expect_string (MockGet, Id, DFCI_OEM_SETTING_ID__CONF);
-  will_return (MockGet, sizeof (mKnown_Good_Config_Data));
-  expect_string (MockGet, Id, DFCI_OEM_SETTING_ID__CONF);
-  will_return (MockGet, sizeof (mKnown_Good_Config_Data));
-  will_return (MockGet, mKnown_Good_Config_Data);
+  will_return (RetrieveActiveConfigVarList, Ctx->VarListPtr);
+  will_return (RetrieveActiveConfigVarList, Ctx->VarListCnt);
+  will_return (RetrieveActiveConfigVarList, EFI_SUCCESS);
 
   for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
     ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
@@ -880,6 +932,7 @@ UnitTestingEntry (
   EFI_STATUS                  Status;
   UNIT_TEST_FRAMEWORK_HANDLE  Framework;
   UNIT_TEST_SUITE_HANDLE      MiscTests;
+  CONTEXT_DATA                Context;
 
   Framework = NULL;
 
@@ -910,10 +963,10 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Setup Configuration page should initialize properly", "NormalInit", ConfAppSetupConfInit, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page select Esc should go to previous menu", "SelectEsc", ConfAppSetupConfSelectEsc, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page select others should do nothing", "SelectOther", ConfAppSetupConfSelectOther, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from USB", "SelectUsb", ConfAppSetupConfSelectUsb, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerial", ConfAppSetupConfSelectSerial, NULL, SetupConfCleanup, NULL);
+  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from USB", "SelectUsb", ConfAppSetupConfSelectUsb, SetupConfPrerequisite, SetupConfCleanup, &Context);
+  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerial", ConfAppSetupConfSelectSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
   AddTestCase (MiscTests, "Setup Configuration page should return with ESC key during serial transport", "SelectSerial", ConfAppSetupConfSelectSerialEsc, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, NULL, SetupConfCleanup, NULL);
+  AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
 
   //
   // Execute the tests.
