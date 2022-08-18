@@ -57,7 +57,7 @@ typedef struct {
 
 typedef struct {
   UINT32        ConditionNum :  2;  // [1:0]   #of condition words present
-  UINT32        Length       : 10;  // [11:2]  total size of item (in dword)
+  UINT32        Length       : 10;  // [11:2]  total size of item (in byte)
   UINT32        Flags        :  4;  // [15:12] unused/reserved so far
   UINT32        Version      :  4;  // [19:16] item (payload) format version
   UINT32        Tag          : 12;  // [31:20] identifies item (in payload)
@@ -73,7 +73,7 @@ typedef struct {
   UINT8     Attribute;
   union {
     //
-    // Internal configuration data offset in DWORD from the start of data blob.
+    // Internal configuration data offset in BYTES from the start of data blob.
     // This value is only valid in runtime.
     //
     UINT16    InternalDataOffset;
