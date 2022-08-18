@@ -1392,13 +1392,9 @@ class CGenCfgData:
                 # YML settings
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
+                variable = read_vlist_from_buffer(bin_data)[0]
                 tag_id = int(id.lstrip("Device.ConfigData.TagID_"), 16)
-                self.update_exec_and_item_from_tag(tag_id, bin_data)
-            elif id is not None and id.startswith("Device.ConfigData.ConfigData"):
-                # this is the full data, it is just the raw bin
-                base64_val = value.strip()
-                bin_data = base64.b64decode(base64_val)
-                self.load_default_from_bin(bin_data, False)
+                self.update_exec_and_item_from_tag(tag_id, variable.data)
 
         a = DFCI_SupportLib()
 
@@ -1441,7 +1437,10 @@ class CGenCfgData:
                 tag_id = int(var.name.lstrip("Device.ConfigData.TagID_"), 16)
                 self.update_exec_and_item_from_tag(tag_id, var.data)
 
-    def generate_binary_array(self):
+    def generate_binary_array(self, is_variable_list_format):
+        if (is_variable_list_format):
+            return self.generate_var_list()
+
         return self.get_field_value()
 
     def generate_binary(self, bin_file_name):
@@ -1539,7 +1538,10 @@ class CGenCfgData:
         items = []
 
         for item in self._cfg_list:
-            old_val = get_bits_from_bytes(old_data, item['offset'], item['length'])
+            old_val = None
+            if old_data != None:
+                old_val = get_bits_from_bytes(old_data, item['offset'], item['length'])
+
             new_val = get_bits_from_bytes(new_data, item['offset'], item['length'])
 
             if item['type'] != 'Reserved' and (new_val != old_val):
@@ -1565,8 +1567,51 @@ class CGenCfgData:
             offset += int(exec['CondValue']['length'], 0)
             bytes_array.append(bytes[offset:])
 
-        # self.write_delta_file (delta_file, platform_id, lines)
         return (execs, bytes_array)
+
+    def get_var_by_index(self, index):
+        # return UEFI variable at index into tree
+        if index < 0:
+            raise Exception("Bad index passed to get_var_by_index")
+
+        internal_idx = -1
+        # caller expects function to have variable set to None once list is exhausted
+        variable = None
+        name = None
+        exec = None
+
+        for item in self._cfg_list:
+            if item['type'] == 'Reserved':
+                continue
+
+            item = self.locate_cfg_item(item['path'])
+            if item is None:
+                raise Exception("Failed to locate item from path: %s" % item['path'])
+
+            exec = self.locate_exec_from_item(item)
+
+            if exec is None:
+                raise Exception("Failed to locate exec from item: %s" % item['path'])
+
+            # we have the exec, this is a real config item
+            internal_idx += 1
+            if internal_idx == index:
+                break
+
+        if internal_idx < index:
+            return None, None
+
+        bytes = self.get_field_value(exec)
+        offset = 0
+        offset += int(exec['CfgHeader']['length'], 0)
+        offset += int(exec['CondValue']['length'], 0)
+        tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
+        name = "Device.ConfigData.TagID_%08X" % int(tag_val, 16)
+        variable = create_vlist_buffer(
+            UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
+        )
+
+        return variable, name
 
     def generate_var_list(self):
         varlist = b''
@@ -1625,7 +1670,7 @@ class CGenCfgData:
         fd.close()
 
         if bin_file2 == '':
-            old_data = self.generate_binary_array()
+            old_data = self.generate_binary_array(False)
         else:
             old_data = new_data
             fd = open(bin_file2, 'rb')
@@ -1712,7 +1757,7 @@ class CGenCfgData:
             bin_dat = prefix + bytearray(fin.read())
             fin.close()
         else:
-            bin_dat = prefix + self.generate_binary_array()
+            bin_dat = prefix + self.generate_binary_array(False)
 
         file_name = os.path.basename(dat_inc_file_name).upper()
         file_name = file_name.replace('.', '_')

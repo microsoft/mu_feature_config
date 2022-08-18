@@ -27,6 +27,7 @@ from VariableList import (
     uefi_variables_to_knobs,
     write_csv,
     read_csv,
+    create_vlist_buffer
 )
 
 from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
@@ -207,11 +208,12 @@ class CGenNCCfgData:
 
     def load_from_svd(self, path):
         def handler(id, value):
-            if id is not None and id.startswith("Device.RuntimeData.RuntimeData"):
-                # this is the full svd, it is a base64 encoded bin
+            if id is not None and id.startswith("Device.RuntimeData."):
+                # this is an xml section
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
-                self.load_default_from_bin(bin_data, True)
+                uefi_variables_to_knobs(self.schema, read_vlist_from_buffer(bin_data))
+                self.sync_shim_and_schema()
 
         a = DFCI_SupportLib()
 
@@ -227,7 +229,16 @@ class CGenNCCfgData:
         uefi_variables_to_knobs(self.schema, xml_list)
         self.sync_shim_and_schema()
 
-    def generate_binary_array(self):
+    def get_var_by_index(self, index):
+        vlist = self.generate_binary_array(True)
+        variables = read_vlist_from_buffer(vlist)
+
+        if (len(variables) <= index):
+            return None, None
+
+        return create_vlist_buffer(variables[index]), "Device.RuntimeData." + variables[index].name
+
+    def generate_binary_array(self, is_variable_list_format):
         return vlist_to_binary(self.schema)
 
     def generate_binary(self, bin_file_name):
