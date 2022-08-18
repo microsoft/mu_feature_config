@@ -618,7 +618,7 @@ ConfAppSetupConfSelectUsb (
   EFI_STATUS                Status;
   EFI_KEY_DATA              KeyData1;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
-  CONTEXT_DATA           *Ctx;
+  CONTEXT_DATA              *Ctx;
 
   UT_ASSERT_NOT_NULL (Context);
   Ctx = (CONTEXT_DATA *)Context;
@@ -697,7 +697,7 @@ ConfAppSetupConfSelectSerial (
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
   UINTN                     Index;
   CHAR8                     *KnowGoodXml;
-  CONTEXT_DATA           *Ctx;
+  CONTEXT_DATA              *Ctx;
 
   UT_ASSERT_NOT_NULL (Context);
   Ctx = (CONTEXT_DATA *)Context;
