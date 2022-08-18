@@ -1585,7 +1585,7 @@ class CGenCfgData:
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
             tag_val = cfghdr_to_value(exec['CfgHeader']['value'])
-            name = "Device.ConfigData.TagID_" + tag_val
+            name = "Device.ConfigData.TagID_%08x" % int(tag_val, 16)
             varlist += create_vlist_buffer(
                 UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=7)
             )
