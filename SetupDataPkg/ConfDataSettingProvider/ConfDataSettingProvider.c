@@ -270,10 +270,10 @@ SingleConfDataSet (
     goto Done;
   }
 
-  Offset += sizeof (VarListEntry.Attributes);
+  Offset    += sizeof (VarListEntry.Attributes);
   DataOffset = Offset;
-  Offset += VarListHdr->DataSize;
-  CRC32   = CalculateCrc32 (VarListHdr, Offset);
+  Offset    += VarListHdr->DataSize;
+  CRC32      = CalculateCrc32 (VarListHdr, Offset);
   if (CRC32 != *(UINT32 *)(Value + Offset)) {
     // CRC mismatch, bail...
     DEBUG ((DEBUG_ERROR, "%a CRC mismatches with 0x%x vs. 0x%x!", __FUNCTION__, VarListEntry.Attributes, *(UINT32 *)(Value + Offset)));
