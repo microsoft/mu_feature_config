@@ -913,7 +913,7 @@ SetupConfMgr (
   CHAR8         *StrBuf;
   UINTN         StrBufSize;
   UINTN         Index;
-  UINTN         PrintedUnicodes;
+  UINTN         PrintedUnicode;
 
   switch (mSetupConfState) {
     case SetupConfInit:
@@ -1001,13 +1001,14 @@ SetupConfMgr (
         Print (L"\n");
         Index = 0;
         while (Index < StrBufSize) {
-          PrintedUnicodes = Print (L"%a", &StrBuf[Index]);
-          Index += PrintedUnicodes;
-          if (PrintedUnicodes == 0) {
+          PrintedUnicode = Print (L"%a", &StrBuf[Index]);
+          Index         += PrintedUnicode;
+          if (PrintedUnicode == 0) {
             // So that we will not get stuck if Print function malfunctions
             break;
           }
         }
+
         Print (L"\n");
       }
 
