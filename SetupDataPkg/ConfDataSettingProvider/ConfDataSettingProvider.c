@@ -270,7 +270,14 @@ SingleConfDataSet (
     goto Done;
   }
 
-  Offset    += sizeof (VarListEntry.Attributes);
+  Offset += sizeof (VarListEntry.Attributes);
+  if (VarListHdr->DataSize < VarListEntry.DataSize) {
+    // The size of data shrinks, bail...
+    DEBUG ((DEBUG_ERROR, "%a Data size dropped 0x%x vs. 0x%x!", __FUNCTION__, VarListHdr->DataSize, VarListEntry.DataSize));
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
   DataOffset = Offset;
   Offset    += VarListHdr->DataSize;
   CRC32      = CalculateCrc32 (VarListHdr, Offset);
