@@ -27,7 +27,8 @@ from VariableList import (
     uefi_variables_to_knobs,
     write_csv,
     read_csv,
-    create_vlist_buffer
+    create_vlist_buffer,
+    delta_vlist_to_binary
 )
 
 from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
@@ -205,6 +206,10 @@ class CGenNCCfgData:
         for shim in self.knob_shim:
             data = shim["inst"]
             shim["value"] = data.format.object_to_string(data.value)
+
+    def generate_delta_svd_from_bin(self, old_data, new_data):
+        # return list of UEFI vars in buffers that have changed data and list of names of vars
+        return delta_vlist_to_binary(self.schema)
 
     def load_from_svd(self, path):
         def handler(id, value):

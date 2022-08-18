@@ -936,15 +936,28 @@ class application(tkinter.Frame):
 
         self.update_config_data_on_page()
         for idx in self.cfg_data_list:
-            index = 0
-            uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
-            while uefi_var != None:
-                b64data = base64.b64encode(uefi_var)
-                settings.append(
-                    (name, b64data.decode("utf-8"))
-                )
-                index += 1
+            if full:
+                index = 0
                 uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
+                while uefi_var != None:
+                    b64data = base64.b64encode(uefi_var)
+                    settings.append(
+                        (name, b64data.decode("utf-8"))
+                    )
+                    index += 1
+                    uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
+            else:
+                # only put changed settings in svd
+                new_data = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(False)
+                (name_array, var_array) = self.cfg_data_list[idx].cfg_data_obj.generate_delta_svd_from_bin(
+                    self.cfg_data_list[idx].org_cfg_data_bin, new_data
+                )
+
+                for index in range(len(name_array)):
+                    b64data = base64.b64encode(var_array[index])
+                    settings.append(
+                        (name_array[index], b64data.decode("utf-8"))
+                    )
 
         set_lib = SettingsXMLLib()
         set_lib.create_settings_xml(

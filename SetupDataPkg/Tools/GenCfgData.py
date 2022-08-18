@@ -1560,14 +1560,20 @@ class CGenCfgData:
                 execs.append(exec)
 
         bytes_array = []
+        name_array  = []
         for exec in execs:
             bytes = self.get_field_value(exec)
             offset = 0
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
-            bytes_array.append(bytes[offset:])
+            cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
+            tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
+            name ="Device.ConfigData.TagID_%08x" % tag_val
+            buf = create_vlist_buffer(UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3 ))
+            bytes_array.append(buf)
+            name_array.append(name)
 
-        return (execs, bytes_array)
+        return (name_array, bytes_array)
 
     def get_var_by_index(self, index):
         # return UEFI variable at index into tree
