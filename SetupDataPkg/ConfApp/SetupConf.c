@@ -912,6 +912,7 @@ SetupConfMgr (
   EFI_KEY_DATA  KeyData;
   CHAR8         *StrBuf;
   UINTN         StrBufSize;
+  UINTN         Index;
 
   switch (mSetupConfState) {
     case SetupConfInit:
@@ -996,7 +997,11 @@ SetupConfMgr (
         Status = EFI_SUCCESS;
       } else {
         Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
-        Print (L"\n%a\n", StrBuf);
+        Print (L"\n");
+        for (Index = 0; Index < StrBufSize; Index ++) {
+          Print (L"%c", StrBuf[Index]);
+        }
+        Print (L"\n");
       }
 
       mSetupConfState = SetupConfDumpComplete;
