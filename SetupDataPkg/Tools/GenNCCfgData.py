@@ -248,7 +248,7 @@ class CGenNCCfgData:
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
-        bin_file.write(self.generate_binary_array())
+        bin_file.write(self.generate_binary_array(True))
         bin_file.close()
         return 0
 
@@ -268,7 +268,7 @@ class CGenNCCfgData:
         fd.close()
 
         if bin_file2 == "":
-            old_data = self.generate_binary_array()
+            old_data = self.generate_binary_array(True)
         else:
             old_data = new_data
             fd = open(bin_file2, "rb")
@@ -344,7 +344,7 @@ def main():
 
     if command == "GENBIN":
         if len(file_list) == 3:
-            old_data = gen_cfg_data.generate_binary_array()
+            old_data = gen_cfg_data.generate_binary_array(True)
             fi = open(file_list[2], "rb")
             new_data = bytearray(fi.read())
             fi.close()
