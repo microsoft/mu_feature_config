@@ -1621,6 +1621,7 @@ class CGenCfgData:
 
     def generate_var_list(self):
         varlist = b''
+        found_list = []
         for item in self._cfg_list:
             item = self.locate_cfg_item(item['path'])
             if item is None:
@@ -1628,8 +1629,11 @@ class CGenCfgData:
 
             exec = self.locate_exec_from_item(item)
 
-            if exec is None:
+            # there are three cfg items associated with each exec
+            if exec is None or exec["CfgHeader"]["indx"] in found_list:
                 continue
+
+            found_list.append(exec["CfgHeader"]["indx"])
 
             bytes = self.get_field_value(exec)
             offset = 0

@@ -987,7 +987,7 @@ class application(tkinter.Frame):
         with open(path, "wb") as fd:
             bins = b''
             for idx in self.cfg_data_list:
-                bin =Falsee
+                bin = None
                 if self.cfg_data_list[idx].config_type == 'yml':
                     # the YAML is not natively in var list format
                     bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list()
