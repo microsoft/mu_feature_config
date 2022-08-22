@@ -5,7 +5,13 @@
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
-
+#include <Uefi.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/DebugLib.h>
+#include <PiDxe.h>
+#include <Library/DxeServicesLib.h>
 #include <Library/ConfigVariableListLib.h>
 
 /**
@@ -30,7 +36,7 @@ ParseActiveConfigVarList (
 )
 {
   UINTN                 BinSize     = 0;
-  CONF_VAR_LIST_HDR     *VarList    = NULL;
+  CONFIG_VAR_LIST_HDR   *VarList    = NULL;
   EFI_STATUS            Status      = EFI_SUCCESS;
   CHAR16                *VarName    = NULL;
   CHAR8                 *Data       = NULL;
@@ -111,16 +117,16 @@ ParseActiveConfigVarList (
     Guid       = (EFI_GUID *)((CHAR8 *)NameInBin + VarList->NameSize);
     Attributes = *(UINT32 *)(Guid + 1);
     DataInBin       = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
-    CRC32      = *(UINT32 *)(DataInBin + VarList-DataSize);
+    CRC32      = *(UINT32 *)(DataInBin + VarList->DataSize);
 
     // on next iteration, skip past this variable
-    ListIndex += sizeof (*VarList) + VarList->NameSize + VarList-DataSize + sizeof (*Guid) + sizeof (Attributes)
+    ListIndex += sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes)
       + sizeof (CRC32);
 
     if (ConfigVarName && 0 != StrnCmp(ConfigVarName, NameInBin, VarList->NameSize / 2)) {
       // Not the entry we are looking for
       // While we are here, set the Name entry to NULL so we can tell if we found the entry later
-      *ConfigVarListPtr->Name = NULL;
+      (*ConfigVarListPtr)->Name = NULL;
       continue;
     }
 
@@ -143,15 +149,16 @@ ParseActiveConfigVarList (
 
     CopyMem (VarName, NameInBin, VarList->NameSize);
     CopyMem (Data, DataInBin, VarList->DataSize);
-    
+
+    // Add correct values to this entry in the blob  
     Entry = ((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount];
 
-    Entry->Name       = VarName;
-    Entry->Guid       = Guid;
-    Entry->Attributes = Attributes;
-    Entry->Data       = Data;
-    Entry->DataSize   = VarList->DataSize;
-    *ConfigVarListCount++;
+    Entry.Name       = VarName;
+    Entry.Guid       = *Guid;
+    Entry.Attributes = Attributes;
+    Entry.Data       = Data;
+    Entry.DataSize   = VarList->DataSize;
+    (*ConfigVarListCount)++;
 
     if (ConfigVarName) {
       // Found the entry we are looking for
@@ -166,7 +173,7 @@ ParseActiveConfigVarList (
       DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr size: %u\n", __FUNCTION__, BinSize));
       return EFI_OUT_OF_RESOURCES;
     }
-  } else if (!*ConfigVarListPtr->Name) {
+  } else if (!(*ConfigVarListPtr)->Name) {
     // We did not find the entry in the var list
     DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
     FreePool (*ConfigVarListPtr);
@@ -177,8 +184,8 @@ Exit:
   if (EFI_ERROR (Status)) {
     // Need to free all allocated memory
     while (*ConfigVarListCount >= 0) {
-      FreePool ((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1]->Name);
-      FreePool ((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1]->Data);
+      FreePool (((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1].Name);
+      FreePool (((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
       *ConfigVarListCount--;
     }
     FreePool (*ConfigVarListPtr);
@@ -268,7 +275,7 @@ QuerySingleActiveConfigAsciiVarList (
 
   UniVarName = AllocatePool(AsciiStrLen(VarName) * 2 + 1);
   if (!UniVarName) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, AsciiStrLen(VarName) * 2) + 1);
+    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, AsciiStrLen(VarName) * 2 + 1));
     return EFI_OUT_OF_RESOURCES;
   }
 
