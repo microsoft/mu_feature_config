@@ -46,15 +46,15 @@ ParseActiveConfigVarList (
   CHAR8                 *DataInBin;
   UINT32                CRC32;
   UINT32                ListIndex   = 0;
-  CONFIG_VAR_LIST_ENTRY Entry;
+  CONFIG_VAR_LIST_ENTRY *Entry;
+  VOID                  *BlobPtr    = NULL;
 
   if (!ConfigVarListPtr || !ConfigVarListCount)
   {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
-
-  *ConfigVarListPtr   = NULL;
+ 
   *ConfigVarListCount = 0;
 
   // Populate the slot with default one from FV.
@@ -62,11 +62,11 @@ ParseActiveConfigVarList (
               &gSetupConfigPolicyVariableGuid,
               EFI_SECTION_RAW,
               0,
-              (VOID **)&VarList,
+              (VOID **)&BlobPtr,
               &BinSize
               );
 
-  if (EFI_ERROR (Status) || !VarList || !BinSize) {
+  if (EFI_ERROR (Status) || !BlobPtr || !BinSize) {
       DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
       ASSERT (FALSE);
       // OSDDEBUG need to think through failure logic here
@@ -76,10 +76,8 @@ ParseActiveConfigVarList (
   if (!ConfigVarName) {
     // We don't know how many entries there are, for now allocate far too large of a pool, we'll realloc once we
     // know how many entries there are. We are returning full list of entries.
+    *ConfigVarListPtr   = NULL;
     *ConfigVarListPtr = AllocatePool (BinSize);
-  } else {
-    // Returning only one entry
-    *ConfigVarListPtr = AllocatePool (sizeof(**ConfigVarListPtr));
   }
 
   if (!*ConfigVarListPtr) {
@@ -89,7 +87,7 @@ ParseActiveConfigVarList (
 
   while (ListIndex < BinSize) {
     // index into variable list
-    VarList = (CONFIG_VAR_LIST_HDR *)(VarList + ListIndex);
+    VarList = (CONFIG_VAR_LIST_HDR *)((CHAR8 *)BlobPtr + ListIndex);
 
     if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
         sizeof (Attributes) + sizeof (CRC32) > BinSize)
@@ -113,28 +111,33 @@ ParseActiveConfigVarList (
      *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of DataInBin
      *  }
      */
-    NameInBin    = (CHAR16 *)(VarList + 1); 
+    NameInBin  = (CHAR16 *)(VarList + 1); 
     Guid       = (EFI_GUID *)((CHAR8 *)NameInBin + VarList->NameSize);
     Attributes = *(UINT32 *)(Guid + 1);
-    DataInBin       = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
+    DataInBin  = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
     CRC32      = *(UINT32 *)(DataInBin + VarList->DataSize);
 
     // on next iteration, skip past this variable
     ListIndex += sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes)
-      + sizeof (CRC32);
-
-    if (ConfigVarName && 0 != StrnCmp(ConfigVarName, NameInBin, VarList->NameSize / 2)) {
-      // Not the entry we are looking for
-      // While we are here, set the Name entry to NULL so we can tell if we found the entry later
-      (*ConfigVarListPtr)->Name = NULL;
-      continue;
-    }
+      + sizeof (CRC32); 
 
     VarName = AllocatePool (VarList->NameSize);
     if (VarName == NULL) {
       DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for VarName size: %u\n", __FUNCTION__, VarList->NameSize));
       Status = EFI_OUT_OF_RESOURCES;
       goto Exit;
+    }
+
+    CopyMem (VarName, NameInBin, VarList->NameSize);
+
+    // This check needs to come after we allocate VarName so we can compare against a 16 bit aligned
+    // string and not assert
+    if (ConfigVarName && 0 != StrnCmp(ConfigVarName, VarName, VarList->NameSize / 2)) {
+      // Not the entry we are looking for
+      // While we are here, set the Name entry to NULL so we can tell if we found the entry later
+      (*ConfigVarListPtr)->Name = NULL;
+      FreePool (VarName);
+      continue;
     }
 
     Data = AllocatePool (VarList->DataSize);
@@ -147,17 +150,16 @@ ParseActiveConfigVarList (
       goto Exit;
     }
 
-    CopyMem (VarName, NameInBin, VarList->NameSize);
     CopyMem (Data, DataInBin, VarList->DataSize);
 
     // Add correct values to this entry in the blob  
-    Entry = ((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount];
+    Entry = &(*ConfigVarListPtr)[*ConfigVarListCount];
 
-    Entry.Name       = VarName;
-    Entry.Guid       = *Guid;
-    Entry.Attributes = Attributes;
-    Entry.Data       = Data;
-    Entry.DataSize   = VarList->DataSize;
+    Entry->Name       = VarName;
+    Entry->Guid       = *Guid;
+    Entry->Attributes = Attributes;
+    Entry->Data       = Data;
+    Entry->DataSize   = VarList->DataSize;
     (*ConfigVarListCount)++;
 
     if (ConfigVarName) {
@@ -184,8 +186,8 @@ Exit:
   if (EFI_ERROR (Status)) {
     // Need to free all allocated memory
     while (*ConfigVarListCount >= 0) {
-      FreePool (((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1].Name);
-      FreePool (((CONFIG_VAR_LIST_ENTRY *)*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
+      FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Name);
+      FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
       *ConfigVarListCount--;
     }
     FreePool (*ConfigVarListPtr);
