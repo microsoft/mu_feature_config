@@ -51,6 +51,9 @@ typedef struct {
   @param[out] ConfigVarListCount  Number of variable list entries.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
+  @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
+  @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
@@ -67,9 +70,11 @@ RetrieveActiveConfigVarList (
   @param[in]  VarListName       NULL terminated unicode varible name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
+  @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
   @retval EFI_INVALID_PARAMETER   Input argument is null.
-  @retval EFI_UNSUPPORTED         This request is not supported on this platform.
+  @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
   @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
@@ -86,9 +91,11 @@ QuerySingleActiveConfigUnicodeVarList (
   @param[in]  VarListName       NULL terminated ascii varible name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
+  @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
   @retval EFI_INVALID_PARAMETER   Input argument is null.
-  @retval EFI_UNSUPPORTED         This request is not supported on this platform.
+  @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
   @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/

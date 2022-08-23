@@ -25,6 +25,7 @@
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
   @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
@@ -69,8 +70,7 @@ ParseActiveConfigVarList (
   if (EFI_ERROR (Status) || !BlobPtr || !BinSize) {
       DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
       ASSERT (FALSE);
-      // OSDDEBUG need to think through failure logic here
-      //goto Exit;
+      return EFI_NOT_FOUND;
   }
 
   if (!ConfigVarName) {
@@ -95,7 +95,7 @@ ParseActiveConfigVarList (
       // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
       DEBUG ((DEBUG_ERROR, "%a Configuration VarList had bad NameSize or DataInBinSize\n", __FUNCTION__));
       ASSERT (FALSE);
-      // OSDDEBUG TODO think through failure case
+      Status = EFI_COMPROMISED_DATA;
       break;
     }
 
@@ -177,8 +177,8 @@ ParseActiveConfigVarList (
     }
   } else if (!(*ConfigVarListPtr)->Name) {
     // We did not find the entry in the var list
+    // caller is responsible for freeing input
     DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
-    FreePool (*ConfigVarListPtr);
     return EFI_NOT_FOUND;
   }
 
@@ -190,6 +190,7 @@ Exit:
       FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
       *ConfigVarListCount--;
     }
+
     FreePool (*ConfigVarListPtr);
   }
 
@@ -205,6 +206,8 @@ Exit:
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
+  @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
@@ -224,9 +227,11 @@ RetrieveActiveConfigVarList (
   @param[in]  VarListName       NULL terminated unicode varible name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
+  @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
   @retval EFI_INVALID_PARAMETER   Input argument is null.
-  @retval EFI_UNSUPPORTED         This request is not supported on this platform.
+  @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
   @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
@@ -253,10 +258,11 @@ QuerySingleActiveConfigUnicodeVarList (
   @param[in]  VarListName       NULL terminated ascii varible name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
+  @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
   @retval EFI_INVALID_PARAMETER   Input argument is null.
-  @retval EFI_UNSUPPORTED         This request is not supported on this platform.
+  @retval EFI_OUT_OF_RESOURCES    Memory allocation failed.
   @retval EFI_NOT_FOUND           The requested variable is not found in the active profile.
-  @retval EFI_OUT_OF_RESOURCES    Failed to allocate memory for Unicode string.
+  @retval EFI_COMPROMISED_DATA    The profile contains data that does not fit within the structure defined.
   @retval EFI_SUCCESS             The operation succeeds.
 
 **/
