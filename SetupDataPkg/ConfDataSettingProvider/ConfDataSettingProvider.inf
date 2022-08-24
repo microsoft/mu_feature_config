@@ -36,9 +36,11 @@
   ConfigBlobBaseLib
   VariablePolicyHelperLib
 
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid
+
 [Guids]
   gMuVarPolicyDxePhaseGuid
-  gSetupConfigPolicyVariableGuid
 
 [Protocols]
   gPolicyProtocolGuid

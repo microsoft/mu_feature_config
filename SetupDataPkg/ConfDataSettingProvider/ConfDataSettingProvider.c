@@ -26,7 +26,6 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ConfigBlobBaseLib.h>
 #include <Library/VariablePolicyHelperLib.h>
-#include <Library/ConfigVariableListLib.h>
 
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
@@ -56,7 +55,7 @@ GetDefaultConfigDataBin (
 
   // Then populate the slot with default one from FV.
   Status = GetSectionFromAnyFv (
-             &gSetupConfigPolicyVariableGuid,
+             PcdGetPtr (PcdConfigPolicyVariableGuid),
              EFI_SECTION_RAW,
              0,
              (VOID **)&Data,
@@ -180,7 +179,7 @@ SetSingleConfigData (
 
   UnicodeSPrintAsciiFormat (TempUnicodeId, Size * 2, SINGLE_SETTING_PROVIDER_TEMPLATE, Tag);
 
-  Status = gRT->SetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, BufferSize, Buffer);
+  Status = gRT->SetVariable (TempUnicodeId, PcdGetPtr (PcdConfigPolicyVariableGuid), CDATA_NV_VAR_ATTR, BufferSize, Buffer);
 
 Exit:
   if (TempUnicodeId != NULL) {
@@ -324,7 +323,7 @@ RuntimeDataSet (
   UINT32                CRC32;
   UINT32                LenToCRC32;
   UINT32                CalcCRC32 = 0;
-  CONFIG_VAR_LIST_HDR   *VarList;
+  RUNTIME_VAR_LIST_HDR  *VarList;
   UINT32                ListIndex = 0;
 
   if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
@@ -340,7 +339,7 @@ RuntimeDataSet (
 
   while (ListIndex < ValueSize) {
     // index into variable list
-    VarList = (CONFIG_VAR_LIST_HDR *)(Value + ListIndex);
+    VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
 
     if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
         sizeof (Attributes) + sizeof (CRC32) > ValueSize)
@@ -354,7 +353,7 @@ RuntimeDataSet (
      * Var List is in DmpStore format:
      *
      *  struct {
-     *    CONFIG_VAR_LIST_HDR VarList;
+     *    RUNTIME_VAR_LIST_HDR VarList;
      *    CHAR16 Name[VarList->NameSize/2];
      *    EFI_GUID Guid;
      *    UINT32 Attributes;
@@ -610,7 +609,7 @@ SingleConfDataSetDefault (
 
   Status = gRT->SetVariable (
                   VarName,
-                  &gSetupConfigPolicyVariableGuid,
+                  PcdGetPtr (PcdConfigPolicyVariableGuid),
                   CDATA_NV_VAR_ATTR,
                   (TagHdrBuffer->Length<<2) - sizeof (*TagHdrBuffer) - sizeof (CDATA_COND) * TagHdrBuffer->ConditionNum,
                   TagBuffer
@@ -761,7 +760,7 @@ SingleConfDataSet (
   AsciiStrToUnicodeStrS (This->Id, VarName, Size + 1);
 
   // Now set it to non-volatile variable
-  Status = gRT->SetVariable (VarName, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, ValueSize, (VOID *)Value);
+  Status = gRT->SetVariable (VarName, PcdGetPtr (PcdConfigPolicyVariableGuid), CDATA_NV_VAR_ATTR, ValueSize, (VOID *)Value);
 
   if (!EFI_ERROR (Status)) {
     *Flags |= DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED;
@@ -818,7 +817,7 @@ SingleConfDataGet (
 
   AsciiStrToUnicodeStrS (This->Id, VarName, Size + 1);
 
-  Status = gRT->GetVariable (VarName, &gSetupConfigPolicyVariableGuid, NULL, ValueSize, (VOID *)Value);
+  Status = gRT->GetVariable (VarName, PcdGetPtr (PcdConfigPolicyVariableGuid), NULL, ValueSize, (VOID *)Value);
 
 Done:
   if (VarName != NULL) {
@@ -892,9 +891,9 @@ RegisterSingleTag (
   AsciiStrToUnicodeStrS (TempAsciiId, TempUnicodeId, Size);
 
   Size   = 0;
-  Status = gRT->GetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, NULL, &Size, NULL);
+  Status = gRT->GetVariable (TempUnicodeId, PcdGetPtr (PcdConfigPolicyVariableGuid), NULL, &Size, NULL);
   if (Status == EFI_NOT_FOUND) {
-    Status = gRT->SetVariable (TempUnicodeId, &gSetupConfigPolicyVariableGuid, CDATA_NV_VAR_ATTR, BufferSize, Buffer);
+    Status = gRT->SetVariable (TempUnicodeId, PcdGetPtr (PcdConfigPolicyVariableGuid), CDATA_NV_VAR_ATTR, BufferSize, Buffer);
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Initializing variable %s failed - %r.\n", TempUnicodeId, Status));
       goto Exit;
@@ -917,7 +916,7 @@ RegisterSingleTag (
 
   Status = RegisterVarStateVariablePolicy (
              mVariablePolicy,
-             &gSetupConfigPolicyVariableGuid,
+             PcdGetPtr (PcdConfigPolicyVariableGuid),
              TempUnicodeId,
              (UINT32)BufferSize,
              VARIABLE_POLICY_NO_MAX_SIZE,

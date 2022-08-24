@@ -61,5 +61,5 @@
   gEfiUsbIoProtocolGuid
   gEfiBlockIoProtocolGuid
 
-[Guids]
-  gSetupConfigPolicyVariableGuid
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdConfigPolicyVariableGuid

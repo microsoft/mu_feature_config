@@ -1,6 +1,6 @@
 ##
 # This plugin generates setup data binary blobs
-# from platform supplied YAML and XML configurations.
+# from platform supplied YAML configurations.
 #
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -64,45 +64,11 @@ class GenSetupDataBin(IUefiBuildPlugin):
         params.append(conf_file)
 
         # Should be all setup, generate bin now...
-        op_name = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
+        op_name = os.path.join(op_dir, "ConfPolicyVarBin.bin")
         params.append(op_name)
         ret = RunPythonScript(cmd, " ".join(params))
         if ret != 0:
             return ret
-
-        # Now generate XML config
-        cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "GenNCCfgData.py")
-        params = ["GENBIN"]
-
-        conf_file = thebuilder.env.GetValue("XML_CONF_FILE")
-        if conf_file is None:
-            logging.warn("XML file not specified, system might not work as expected!!!")
-            return 0
-        if not os.path.isfile(conf_file):
-            return -1
-
-        # Can also add the csv file application step if supplied
-        delta_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
-        if delta_conf is not None:
-            if not os.path.isfile(delta_conf):
-                return -1
-            conf_file = ";".join(conf_file, delta_conf)
-        params.append(conf_file)
-
-        # Should be all setup, generate bin now...
-        xml_filename = os.path.join(op_dir, "XMLPolicyVarBin.bin")
-        params.append(xml_filename)
-        ret = RunPythonScript(cmd, " ".join(params))
-        if ret != 0:
-            return ret
-
-        # Combine into single bin file
-        combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
-        with open(op_name, "rb") as yaml_file, open(xml_filename, "rb") as xml_file, open(combined_bin, "wb") as bin_out:
-            yaml_bytes = yaml_file.read()
-            xml_bytes = xml_file.read()
-            bin_out.write(yaml_bytes + xml_bytes)
-
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", op_name, "Plugin generated")
 
         # Eventually generate a built in var xml
