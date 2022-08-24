@@ -1394,7 +1394,7 @@ class CGenCfgData:
                 bin_data = base64.b64decode(base64_val)
                 variable = read_vlist_from_buffer(bin_data)[0]
                 tag_id = int(id.lstrip("Device.ConfigData.TagID_"), 16)
-                self.update_exec_and_item_from_tag(tag_id, variable.data)
+                self.update_exec_and_item_from_tag(tag_id, variable.data.rstrip(b'\0'))
 
         a = DFCI_SupportLib()
 
