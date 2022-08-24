@@ -336,7 +336,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
         self.assertEqual("'PlatName'", item['value'])
-        
+
     # General test to load both yml and xml and confirm the config
     def test_merged_yml_xml_generate_load_svd(self):
         # Create yml obj
@@ -402,7 +402,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
-        self.assertEqual(ret['inst'].value, 2) 
+        self.assertEqual(ret['inst'].value, 2)
 
         settings = []
         y_new_data = ydata.generate_binary_array(False)
