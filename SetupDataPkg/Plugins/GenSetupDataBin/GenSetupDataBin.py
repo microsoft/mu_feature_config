@@ -98,8 +98,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         # Combine into single bin file
         combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
-        with open(op_name, "rb") as yaml_file, open(xml_filename, "rb") as xml_file, open(combined_bin, "wb") as bin_out:
-            yaml_bytes = yaml_file.read()
+        with open(op_name, "rb") as yml_file, open(xml_filename, "rb") as xml_file, open(combined_bin, "wb") as bin_out:
+            yaml_bytes = yml_file.read()
             xml_bytes = xml_file.read()
             bin_out.write(yaml_bytes + xml_bytes)
 
