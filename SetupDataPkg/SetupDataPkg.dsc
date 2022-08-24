@@ -50,6 +50,7 @@
   DfciV1SupportLib|DfciPkg/Library/DfciV1SupportLibNull/DfciV1SupportLibNull.inf
   ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   ConfigBlobBaseLib|SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
+  ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
@@ -74,7 +75,7 @@
 [Components]
   SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
-
+  SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 
 [Components.X64, Components.AARCH64]

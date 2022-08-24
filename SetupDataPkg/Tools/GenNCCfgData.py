@@ -27,9 +27,11 @@ from VariableList import (
     uefi_variables_to_knobs,
     write_csv,
     read_csv,
+    create_vlist_buffer,
+    delta_vlist_to_binary
 )
 
-from GenCfgData import DFCI_SETTINGS_REQUEST_GUID
+from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
 
 
 class CGenNCCfgData:
@@ -205,13 +207,18 @@ class CGenNCCfgData:
             data = shim["inst"]
             shim["value"] = data.format.object_to_string(data.value)
 
+    def generate_delta_svd_from_bin(self, old_data, new_data):
+        # return list of UEFI vars in buffers that have changed data and list of names of vars
+        return delta_vlist_to_binary(self.schema)
+
     def load_from_svd(self, path):
         def handler(id, value):
-            if id is not None and id.startswith("Device.RuntimeData.RuntimeData"):
-                # this is the full svd, it is a base64 encoded bin
+            if id is not None and id.startswith("Device.RuntimeData."):
+                # this is an xml section
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
-                self.load_default_from_bin(bin_data, True)
+                uefi_variables_to_knobs(self.schema, read_vlist_from_buffer(bin_data))
+                self.sync_shim_and_schema()
 
         a = DFCI_SupportLib()
 
@@ -219,20 +226,29 @@ class CGenNCCfgData:
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
-        # YAML variable is included in list, XML tree should not contain it
+        xml_list = []
+        # YAML variables are included in list, XML tree should not process them
         for var in var_list:
-            if str(var.guid).lower() == DFCI_SETTINGS_REQUEST_GUID.lower():
-                # delete from variable list
-                var_list.remove(var)
-        uefi_variables_to_knobs(self.schema, var_list)
+            if str(var.guid).lower() != SETUP_CONFIG_POLICY_VAR_GUID.lower():
+                xml_list.append(var)
+        uefi_variables_to_knobs(self.schema, xml_list)
         self.sync_shim_and_schema()
 
-    def generate_binary_array(self):
+    def get_var_by_index(self, index):
+        vlist = self.generate_binary_array(True)
+        variables = read_vlist_from_buffer(vlist)
+
+        if (len(variables) <= index):
+            return None, None
+
+        return create_vlist_buffer(variables[index]), "Device.RuntimeData." + variables[index].name
+
+    def generate_binary_array(self, is_variable_list_format):
         return vlist_to_binary(self.schema)
 
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
-        bin_file.write(self.generate_binary_array())
+        bin_file.write(self.generate_binary_array(True))
         bin_file.close()
         return 0
 
@@ -252,7 +268,7 @@ class CGenNCCfgData:
         fd.close()
 
         if bin_file2 == "":
-            old_data = self.generate_binary_array()
+            old_data = self.generate_binary_array(True)
         else:
             old_data = new_data
             fd = open(bin_file2, "rb")
@@ -328,7 +344,7 @@ def main():
 
     if command == "GENBIN":
         if len(file_list) == 3:
-            old_data = gen_cfg_data.generate_binary_array()
+            old_data = gen_cfg_data.generate_binary_array(True)
             fi = open(file_list[2], "rb")
             new_data = bytearray(fi.read())
             fi.close()

@@ -401,20 +401,12 @@ class application(tkinter.Frame):
         self.menu_string = [
             "Save Config Data to Var List Binary",
             "Load Config Data from Var List Binary",
-            'Load Config from Change File',
             'Save Full Config Data to SVD File',
             'Save Config Changes to SVD File',
-            'Load Config Changes from SVD File',
-            'Save Config Changes to Change File',
+            'Load Config from SVD File',
             'Save Full Config Data to Change File',
-            "Save Config Data to Raw Binary",
-            "Load Config Data from Raw Binary"
-        ]
-
-        self.yaml_specific_setting = [
-            "Save Config Data to Raw Binary",
-            "Load Config Data from Raw Binary",
-            'Save Config Changes to SVD File',
+            'Save Config Changes to Change File',
+            'Load Config from Change File',
         ]
 
         root.geometry("1200x800")
@@ -478,34 +470,28 @@ class application(tkinter.Frame):
             label="Open Config file...", command=self.load_from_ml
         )
         file_menu.add_command(
-            label=self.menu_string[8], command=self.save_to_raw_bin, state="disabled"
+            label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[9], command=self.load_from_raw_bin, state="disabled"
+            label=self.menu_string[1], command=self.load_from_bin, state="disabled"
+        ) 
+        file_menu.add_command(
+            label=self.menu_string[2], command=self.save_full_to_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[0], command=self.save_to_var_list_bin, state="disabled"
+            label=self.menu_string[3], command=self.save_delta_to_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[1], command=self.load_from_var_list_bin, state="disabled"
+            label=self.menu_string[4], command=self.load_from_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[2], command=self.load_from_delta, state="disabled"
+            label=self.menu_string[5], command=self.save_full_to_delta, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[3], command=self.save_full_to_svd, state="disabled"
+            label=self.menu_string[6], command=self.save_to_delta, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[4], command=self.save_to_svd, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[5], command=self.load_from_svd, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[6], command=self.save_delta_file, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[7], command=self.save_full_to_delta, state="disabled"
+            label=self.menu_string[7], command=self.load_from_delta, state="disabled"
         )
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -771,16 +757,16 @@ class application(tkinter.Frame):
         file_ext = ''
         if 'yaml' in ftype or 'yml' in ftype:
             file_type = 'YAML PKL'
-            file_ext = 'pkl Def.yaml'
+            file_ext = '.pkl Def.yaml'
         if 'xml' in ftype:
             file_type += ' XML'
-            file_ext += ' xml'
+            file_ext += ' .xml'
         if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
             file_type = ftype.upper()
             file_ext = ftype
 
         file_ext = file_ext.split(' ')
-        file_ext_opt = ['*.' + i for i in file_ext]
+        file_ext_opt = ['*' + i for i in file_ext]
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
             title="Load file",
@@ -839,11 +825,11 @@ class application(tkinter.Frame):
             return
         self.load_bin_file(path, False)
 
-    def load_from_var_list_bin(self):
+    def load_from_bin(self):
         path = self.get_open_file_name("bin")
         if not path:
             return
-        self.load_bin_file(path, True)
+        self.load_bin_file(path)
 
     def load_from_svd(self):
         path = self.get_open_file_name("svd")
@@ -853,7 +839,7 @@ class application(tkinter.Frame):
             self.cfg_data_list[idx].cfg_data_obj.load_from_svd(path)
             self.refresh_config_data_page()
 
-    def load_bin_file(self, path, is_variable_list_format):
+    def load_bin_file(self, path):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
         bin_len = 0
@@ -868,7 +854,7 @@ class application(tkinter.Frame):
 
         try:
             for idx in self.cfg_data_list:
-                self.reload_config_data_from_bin(bin_data, idx, is_variable_list_format)
+                self.reload_config_data_from_bin(bin_data, idx, True)
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
@@ -890,15 +876,11 @@ class application(tkinter.Frame):
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
         self.update_last_dir(path)
-        self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array()
+        self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
         self.build_config_page_tree(self.cfg_data_list[file_id].cfg_data_obj.get_cfg_page()["root"], "", file_id)
 
         for menu in self.menu_string:
-            if self.cfg_data_list[file_id].config_type == 'xml' and menu in self.yaml_specific_setting:
-                # Block out the yaml options for loading for now
-                self.file_menu.entryconfig(menu, state="disabled")
-            else:
-                self.file_menu.entryconfig(menu, state="normal")
+            self.file_menu.entryconfig(menu, state="normal")
 
         return 0
 
@@ -938,37 +920,45 @@ class application(tkinter.Frame):
             else:
                 dlt_path += '.csv'
 
-            new_data = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array()
+            new_data = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
             self.cfg_data_list[file_id].cfg_data_obj.generate_delta_file_from_bin(
                 dlt_path, self.cfg_data_list[file_id].org_cfg_data_bin, new_data, full
             )
 
-    def save_to_svd(self):
+    def save_to_svd(self, full):
         path = self.get_save_file_name(".svd")
         if not path:
             return
 
         base64_path = path
         temp_file = path + ".tmp"
+        settings = []
 
         self.update_config_data_on_page()
-        new_data = self.cfg_data_list[0].cfg_data_obj.generate_binary_array()
+        for idx in self.cfg_data_list:
+            if full:
+                index = 0
+                uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
+                while uefi_var != None:
+                    b64data = base64.b64encode(uefi_var)
+                    settings.append(
+                        (name, b64data.decode("utf-8"))
+                    )
+                    index += 1
+                    uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
+            else:
+                # only put changed settings in svd
+                new_data = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(False)
+                (name_array, var_array) = self.cfg_data_list[idx].cfg_data_obj.generate_delta_svd_from_bin(
+                    self.cfg_data_list[idx].org_cfg_data_bin, new_data
+                )
 
-        (execs, bytes_array) = self.cfg_data_list[0].cfg_data_obj.generate_delta_svd_from_bin(
-            self.cfg_data_list[0].org_cfg_data_bin, new_data
-        )
+                for index in range(len(name_array)):
+                    b64data = base64.b64encode(var_array[index])
+                    settings.append(
+                        (name_array[index], b64data.decode("utf-8"))
+                    )
 
-        settings = []
-        for index in range(len(execs)):
-            b64data = base64.b64encode(bytes_array[index])
-            # This should start with SINGLE_SETTING_PROVIDER_TEMPLATE from SetupDataPkg/Include/Library/ConfigDataLib.h
-            cfg_hdr = self.cfg_data_list[0].cfg_data_obj.get_item_by_index(
-                execs[index]["CfgHeader"]["indx"]
-            )
-            tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
-            settings.append(
-                ("Device.ConfigData.TagID_%08x" % tag_val, b64data.decode("utf-8"))
-            )
         set_lib = SettingsXMLLib()
         set_lib.create_settings_xml(
             filename=temp_file, version=1, lsv=1, settingslist=settings
@@ -988,13 +978,7 @@ class application(tkinter.Frame):
     def save_full_to_delta(self):
         self.save_delta_file(True)
 
-    def save_to_raw_bin(self):
-        self.save_to_bin(False)
-
-    def save_to_var_list_bin(self):
-        self.save_to_bin(True)
-
-    def save_to_bin(self, is_variable_list_format):
+    def save_to_bin(self):
         path = self.get_save_file_name(".bin")
         if not path:
             return
@@ -1004,72 +988,21 @@ class application(tkinter.Frame):
             bins = b''
             for idx in self.cfg_data_list:
                 bin = None
-                if self.cfg_data_list[idx].config_type == 'yml' and is_variable_list_format:
-                    # need to get the yml svd, base64 encode it, stuff it in UEFI Var
-                    # add that to a buffer, then add that to the bin
-                    svd = self.save_full_to_svd(True)
-                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list_from_svd(svd)
+                if self.cfg_data_list[idx].config_type == 'yml':
+                    # the YAML is not natively in var list format
+                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list()
                 else:
-                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array()
+                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
 
                 bins += bin
 
             fd.write(bins)
 
-    def save_full_to_svd(self, gen_yml_svd=False):
-        path = None
-        if gen_yml_svd:
-            # if we are only generating a yml svd to save in the var list binary, we don't want to write this to a file
-            path = 'svdtmp'
-        else:
-            path = self.get_save_file_name(".svd")
-            if not path:
-                return
+    def save_full_to_svd(self):
+        self.save_to_svd(True)
 
-        base64_path = path
-        temp_file = path + ".tmp"
-        settings = []
-
-        self.update_config_data_on_page()
-
-        for file_id in self.cfg_data_list:
-            found_yml = False
-            if gen_yml_svd:
-                for idx in self.cfg_data_list:
-                    if self.cfg_data_list[idx].config_type == 'yml':
-                        file_id = idx
-                        found_yml = True
-                if not found_yml:
-                    raise Exception('Failed to find YAML config to generate SVD from!')
-            b64data = base64.b64encode(self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array())
-            # This should match DFCI_OEM_SETTING_ID__CONF from SetupDataPkg/Include/Library/ConfigDataLib.h
-            if self.cfg_data_list[file_id].config_type == 'yml':
-                settings.append(("Device.ConfigData.ConfigData", b64data.decode("utf-8")))
-            else:
-                settings.append(("Device.RuntimeData.RuntimeData", b64data.decode("utf-8")))
-
-            if gen_yml_svd:
-                break
-
-        set_lib = SettingsXMLLib()
-        set_lib.create_settings_xml(
-            filename=temp_file, version=1, lsv=1, settingslist=settings
-        )
-
-        yml_svd = ''
-
-        # To remove the line ends and spaces
-        with open(temp_file, "r") as tf:
-            if not gen_yml_svd:
-                with open(base64_path, "w") as ff:
-                    for line in tf:
-                        line = line.strip().rstrip("\n")
-                        ff.write(line)
-            else:
-                for line in tf:
-                    yml_svd += line.strip().rstrip("\n")
-        os.remove(temp_file)
-        return yml_svd
+    def save_delta_to_svd(self):
+        self.save_to_svd(False)
 
     def refresh_config_data_page(self):
         self.clear_widgets_inLayout()
