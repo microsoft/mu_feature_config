@@ -1569,8 +1569,8 @@ class CGenCfgData:
             cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
             tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
             name = "Device.ConfigData.TagID_%08x" % tag_val
-            buf = create_vlist_buffer(UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:],
-                attributes=3))
+            var = UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
+            buf = create_vlist_buffer(var)
             bytes_array.append(buf)
             name_array.append(name)
 

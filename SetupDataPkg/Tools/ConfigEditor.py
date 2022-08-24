@@ -941,7 +941,7 @@ class application(tkinter.Frame):
             if full is not None:
                 index = 0
                 uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
-                while uefi_var != None:
+                while uefi_var is not None:
                     b64data = base64.b64encode(uefi_var)
                     settings.append(
                         (name, b64data.decode("utf-8"))
