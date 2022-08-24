@@ -34,7 +34,7 @@ __copyright_tmp__ = """/** @file
 **/
 """
 
-SETUP_CONFIG_POLICY_VAR_GUID  = '9F556476-9E82-E848-A473-F12ADAD1DDD2'
+SETUP_CONFIG_POLICY_VAR_GUID = '9F556476-9E82-E848-A473-F12ADAD1DDD2'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
 
 
@@ -1539,7 +1539,7 @@ class CGenCfgData:
 
         for item in self._cfg_list:
             old_val = None
-            if old_data != None:
+            if old_data is not None:
                 old_val = get_bits_from_bytes(old_data, item['offset'], item['length'])
 
             new_val = get_bits_from_bytes(new_data, item['offset'], item['length'])
@@ -1560,7 +1560,7 @@ class CGenCfgData:
                 execs.append(exec)
 
         bytes_array = []
-        name_array  = []
+        name_array = []
         for exec in execs:
             bytes = self.get_field_value(exec)
             offset = 0
@@ -1568,8 +1568,9 @@ class CGenCfgData:
             offset += int(exec['CondValue']['length'], 0)
             cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
             tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
-            name ="Device.ConfigData.TagID_%08x" % tag_val
-            buf = create_vlist_buffer(UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3 ))
+            name = "Device.ConfigData.TagID_%08x" % tag_val
+            buf = create_vlist_buffer(UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:],
+                attributes=3))
             bytes_array.append(buf)
             name_array.append(name)
 

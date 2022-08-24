@@ -10,7 +10,7 @@ import os
 import base64
 
 from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
-from GenCfgData import CGenCfgData, array_str_to_value
+from GenCfgData import CGenCfgData
 from GenNCCfgData import CGenNCCfgData
 
 
@@ -240,7 +240,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         settings = []
         index = 0
         uefi_var, name = cdata.get_var_by_index(index)
-        while uefi_var != None:
+        while uefi_var is not None:
             b64data = base64.b64encode(uefi_var)
             settings.append(
                 (name, b64data.decode("utf-8"))
@@ -417,7 +417,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
             settings.append(
                 (name_array[index], b64data.decode("utf-8"))
             )
-        
+
         path = 'merged_xml_yml_svd.svd'
         temp_file = path + '.tmp'
         set_lib = SettingsXMLLib()
@@ -480,7 +480,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         settings = []
         index = 0
         uefi_var, name = cdata.get_var_by_index(index)
-        while uefi_var != None:
+        while uefi_var is not None:
             b64data = base64.b64encode(uefi_var)
             settings.append(
                 (name, b64data.decode("utf-8"))
@@ -490,7 +490,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         index = 0
         uefi_var, name = ydata.get_var_by_index(index)
-        while uefi_var != None:
+        while uefi_var is not None:
             b64data = base64.b64encode(uefi_var)
             settings.append(
                 (name, b64data.decode("utf-8"))

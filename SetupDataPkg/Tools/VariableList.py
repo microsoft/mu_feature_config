@@ -859,6 +859,7 @@ def create_vlist_buffer(variable):
 
     return payload + struct.pack("<I", crc)
 
+
 def delta_vlist_to_binary(schema):
     name_list = []
     var_list = []
@@ -873,6 +874,7 @@ def delta_vlist_to_binary(schema):
         name_list.append('Device.RuntimeData.' + knob.name)
 
     return name_list, var_list
+
 
 # Create a byte array for all the knobs in this schema
 def vlist_to_binary(schema):

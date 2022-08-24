@@ -474,7 +474,7 @@ class application(tkinter.Frame):
         )
         file_menu.add_command(
             label=self.menu_string[1], command=self.load_from_bin, state="disabled"
-        ) 
+        )
         file_menu.add_command(
             label=self.menu_string[2], command=self.save_full_to_svd, state="disabled"
         )
@@ -876,7 +876,9 @@ class application(tkinter.Frame):
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
         self.update_last_dir(path)
-        self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
+        self.cfg_data_list[file_id].org_cfg_data_bin = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(
+            False
+        )
         self.build_config_page_tree(self.cfg_data_list[file_id].cfg_data_obj.get_cfg_page()["root"], "", file_id)
 
         for menu in self.menu_string:
@@ -936,7 +938,7 @@ class application(tkinter.Frame):
 
         self.update_config_data_on_page()
         for idx in self.cfg_data_list:
-            if full:
+            if full is not None:
                 index = 0
                 uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
                 while uefi_var != None:
