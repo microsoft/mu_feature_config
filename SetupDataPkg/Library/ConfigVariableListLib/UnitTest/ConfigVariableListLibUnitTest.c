@@ -101,31 +101,31 @@ RetrieveActiveConfigVarListTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr = NULL;
-  UINTN                 ConfigVarListCount = 0;
-  EFI_STATUS            Status;
-  UINT32                i = 0;
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr  = NULL;
+  UINTN                  ConfigVarListCount = 0;
+  EFI_STATUS             Status;
+  UINT32                 i = 0;
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
   Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount);
-  UT_ASSERT_NOT_EFI_ERROR(Status);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
-  for (; i < ConfigVarListCount; i++) {
+  for ( ; i < ConfigVarListCount; i++) {
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Names[i], ConfigVarListPtr[i].Name, StrLen(mKnown_Good_VarList_Names[i]) * 2);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Names[i], ConfigVarListPtr[i].Name, StrLen (mKnown_Good_VarList_Names[i]) * 2);
     if (i < 2) {
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Yaml_Guid, &ConfigVarListPtr[i].Guid, sizeof (mKnown_Good_Yaml_Guid));
-      UT_ASSERT_EQUAL(3, ConfigVarListPtr[i].Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Yaml_Guid, &ConfigVarListPtr[i].Guid, sizeof (mKnown_Good_Yaml_Guid));
+      UT_ASSERT_EQUAL (3, ConfigVarListPtr[i].Attributes);
     } else {
       // Xml part of blob
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Xml_Guid, &ConfigVarListPtr[i].Guid, sizeof (mKnown_Good_Xml_Guid));
-      UT_ASSERT_EQUAL(7, ConfigVarListPtr[i].Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Xml_Guid, &ConfigVarListPtr[i].Guid, sizeof (mKnown_Good_Xml_Guid));
+      UT_ASSERT_EQUAL (7, ConfigVarListPtr[i].Attributes);
     }
 
-    UT_ASSERT_EQUAL(mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr[i].DataSize);
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Entries[i], ConfigVarListPtr[i].Data, ConfigVarListPtr[i].DataSize);
+    UT_ASSERT_EQUAL (mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr[i].DataSize);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Entries[i], ConfigVarListPtr[i].Data, ConfigVarListPtr[i].DataSize);
 
     FreePool (ConfigVarListPtr[i].Name);
     FreePool (ConfigVarListPtr[i].Data);
@@ -157,36 +157,36 @@ QuerySingleActiveConfigUnicodeVarListTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr = NULL;
-  EFI_STATUS            Status;
-  UINT32                i = 0;
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  UINT32                 i = 0;
 
-  for (; i < 9; i++) {
+  for ( ; i < 9; i++) {
     will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
     will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
-    UT_ASSERT_NOT_NULL(ConfigVarListPtr);
+    UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
     Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr);
-    UT_ASSERT_NOT_EFI_ERROR(Status);
+    UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Names[i], ConfigVarListPtr->Name, StrLen(mKnown_Good_VarList_Names[i]) * 2);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Names[i], ConfigVarListPtr->Name, StrLen (mKnown_Good_VarList_Names[i]) * 2);
     if (i < 2) {
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Yaml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Yaml_Guid));
-      UT_ASSERT_EQUAL(3, ConfigVarListPtr->Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Yaml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Yaml_Guid));
+      UT_ASSERT_EQUAL (3, ConfigVarListPtr->Attributes);
     } else {
       // Xml part of blob
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Xml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Xml_Guid));
-      UT_ASSERT_EQUAL(7, ConfigVarListPtr->Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Xml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Xml_Guid));
+      UT_ASSERT_EQUAL (7, ConfigVarListPtr->Attributes);
     }
 
-    UT_ASSERT_EQUAL(mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr->DataSize);
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Entries[i], ConfigVarListPtr->Data, ConfigVarListPtr->DataSize);
+    UT_ASSERT_EQUAL (mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr->DataSize);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Entries[i], ConfigVarListPtr->Data, ConfigVarListPtr->DataSize);
 
     FreePool (ConfigVarListPtr->Name);
-    FreePool (ConfigVarListPtr->Data);  
+    FreePool (ConfigVarListPtr->Data);
     FreePool (ConfigVarListPtr);
   }
 
@@ -214,43 +214,43 @@ QuerySingleActiveConfigAsciiVarListTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr = NULL;
-  EFI_STATUS            Status;
-  UINT32                i = 0;
-  CHAR8                 *AsciiName = NULL; 
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  UINT32                 i          = 0;
+  CHAR8                  *AsciiName = NULL;
 
-  for (; i < 9; i++) {
+  for ( ; i < 9; i++) {
     will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
     will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
-    UT_ASSERT_NOT_NULL(ConfigVarListPtr);
+    UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-    AsciiName = AllocatePool (StrLen(mKnown_Good_VarList_Names[i]) + 1);
+    AsciiName = AllocatePool (StrLen (mKnown_Good_VarList_Names[i]) + 1);
     UT_ASSERT_NOT_NULL (AsciiName);
 
-    UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen(mKnown_Good_VarList_Names[i]) + 1);
+    UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
     Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr);
-    UT_ASSERT_NOT_EFI_ERROR(Status);
+    UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Names[i], ConfigVarListPtr->Name, StrLen(mKnown_Good_VarList_Names[i]) * 2);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Names[i], ConfigVarListPtr->Name, StrLen (mKnown_Good_VarList_Names[i]) * 2);
     if (i < 2) {
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Yaml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Yaml_Guid));
-      UT_ASSERT_EQUAL(3, ConfigVarListPtr->Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Yaml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Yaml_Guid));
+      UT_ASSERT_EQUAL (3, ConfigVarListPtr->Attributes);
     } else {
       // Xml part of blob
-      UT_ASSERT_MEM_EQUAL(&mKnown_Good_Xml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Xml_Guid));
-      UT_ASSERT_EQUAL(7, ConfigVarListPtr->Attributes);
+      UT_ASSERT_MEM_EQUAL (&mKnown_Good_Xml_Guid, &ConfigVarListPtr->Guid, sizeof (mKnown_Good_Xml_Guid));
+      UT_ASSERT_EQUAL (7, ConfigVarListPtr->Attributes);
     }
 
-    UT_ASSERT_EQUAL(mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr->DataSize);
-    UT_ASSERT_MEM_EQUAL(mKnown_Good_VarList_Entries[i], ConfigVarListPtr->Data, ConfigVarListPtr->DataSize);
+    UT_ASSERT_EQUAL (mKnown_Good_VarList_DataSizes[i], ConfigVarListPtr->DataSize);
+    UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Entries[i], ConfigVarListPtr->Data, ConfigVarListPtr->DataSize);
 
     FreePool (AsciiName);
     FreePool (ConfigVarListPtr->Name);
-    FreePool (ConfigVarListPtr->Data);  
+    FreePool (ConfigVarListPtr->Data);
     FreePool (ConfigVarListPtr);
   }
 
@@ -278,15 +278,15 @@ RetrieveActiveConfigVarListInvalidParamTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr;
-  EFI_STATUS            Status;
-  UINTN                 ConfigVarListCount; 
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
+  EFI_STATUS             Status;
+  UINTN                  ConfigVarListCount;
 
   Status = RetrieveActiveConfigVarList (NULL, &ConfigVarListCount);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, NULL);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }
@@ -312,15 +312,15 @@ QuerySingleActiveConfigUnicodeVarListInvalidParamTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY ConfigVarListPtr;
-  EFI_STATUS            Status;
-  CHAR16                UnicodeName; 
+  CONFIG_VAR_LIST_ENTRY  ConfigVarListPtr;
+  EFI_STATUS             Status;
+  CHAR16                 UnicodeName;
 
   Status = QuerySingleActiveConfigUnicodeVarList (NULL, &ConfigVarListPtr);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   Status = QuerySingleActiveConfigUnicodeVarList (&UnicodeName, NULL);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }
@@ -346,15 +346,15 @@ QuerySingleActiveConfigAsciiVarListInvalidParamTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY ConfigVarListPtr;
-  EFI_STATUS            Status;
-  CHAR8                 AsciiName; 
+  CONFIG_VAR_LIST_ENTRY  ConfigVarListPtr;
+  EFI_STATUS             Status;
+  CHAR8                  AsciiName;
 
   Status = QuerySingleActiveConfigAsciiVarList (NULL, &ConfigVarListPtr);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   Status = QuerySingleActiveConfigAsciiVarList (&AsciiName, NULL);
-  UT_ASSERT_STATUS_EQUAL(Status, EFI_INVALID_PARAMETER);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }
@@ -380,9 +380,9 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr       = NULL;
-  EFI_STATUS            Status;
-  CHAR16                *UnicodeName            = NULL; 
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  CHAR16                 *UnicodeName = NULL;
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
@@ -425,9 +425,9 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  CONFIG_VAR_LIST_ENTRY *ConfigVarListPtr       = NULL;
-  EFI_STATUS            Status;
-  CHAR8                 *AsciiName              = NULL; 
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  CHAR8                  *AsciiName = NULL;
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
@@ -498,7 +498,7 @@ UnitTestingEntry (
   //
   // Success Tests
   //
-  AddTestCase (ConfigVariableListLib, "Retrieve entire config should succeed", "RetriveActiveConfigVarListTest", RetrieveActiveConfigVarListTest, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Retrieve entire config should succeed", "RetrieveActiveConfigVarListTest", RetrieveActiveConfigVarListTest, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Query single Unicode config should succeed", "QuerySingleActiveConfigUnicodeVarListTest", QuerySingleActiveConfigUnicodeVarListTest, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Query single Ascii config should succeed", "QuerySingleActiveConfigAsciiVarListTest", QuerySingleActiveConfigAsciiVarListTest, NULL, NULL, NULL);
 

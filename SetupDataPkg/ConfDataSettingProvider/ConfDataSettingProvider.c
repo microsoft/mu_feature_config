@@ -315,17 +315,17 @@ RuntimeDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   )
 {
-  EFI_STATUS            Status   = EFI_SUCCESS;
-  CHAR16                *VarName = NULL;
-  CHAR16                *name;
-  EFI_GUID              *Guid;
-  UINT32                Attributes;
-  CHAR8                 *Data;
-  UINT32                CRC32;
-  UINT32                LenToCRC32;
-  UINT32                CalcCRC32 = 0;
-  CONFIG_VAR_LIST_HDR   *VarList;
-  UINT32                ListIndex = 0;
+  EFI_STATUS           Status   = EFI_SUCCESS;
+  CHAR16               *VarName = NULL;
+  CHAR16               *name;
+  EFI_GUID             *Guid;
+  UINT32               Attributes;
+  CHAR8                *Data;
+  UINT32               CRC32;
+  UINT32               LenToCRC32;
+  UINT32               CalcCRC32 = 0;
+  CONFIG_VAR_LIST_HDR  *VarList;
+  UINT32               ListIndex = 0;
 
   if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;

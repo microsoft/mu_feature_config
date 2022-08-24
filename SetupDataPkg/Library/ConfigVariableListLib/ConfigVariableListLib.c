@@ -1,5 +1,5 @@
 /** @file
-  Library interface to process the list of congfiguration variables.
+  Library interface to process the list of configuration variables.
 
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -34,49 +34,48 @@ ParseActiveConfigVarList (
   OUT CONFIG_VAR_LIST_ENTRY  **ConfigVarListPtr,
   OUT UINTN                  *ConfigVarListCount,
   IN  CONST CHAR16           *ConfigVarName
-)
+  )
 {
-  UINTN                 BinSize     = 0;
-  CONFIG_VAR_LIST_HDR   *VarList    = NULL;
-  EFI_STATUS            Status      = EFI_SUCCESS;
-  CHAR16                *VarName    = NULL;
-  CHAR8                 *Data       = NULL;
-  CHAR16                *NameInBin;
-  EFI_GUID              *Guid;
-  UINT32                Attributes;
-  CHAR8                 *DataInBin;
-  UINT32                CRC32;
-  UINT32                ListIndex   = 0;
-  CONFIG_VAR_LIST_ENTRY *Entry;
-  VOID                  *BlobPtr    = NULL;
+  UINTN                  BinSize  = 0;
+  CONFIG_VAR_LIST_HDR    *VarList = NULL;
+  EFI_STATUS             Status   = EFI_SUCCESS;
+  CHAR16                 *VarName = NULL;
+  CHAR8                  *Data    = NULL;
+  CHAR16                 *NameInBin;
+  EFI_GUID               *Guid;
+  UINT32                 Attributes;
+  CHAR8                  *DataInBin;
+  UINT32                 CRC32;
+  UINT32                 ListIndex = 0;
+  CONFIG_VAR_LIST_ENTRY  *Entry;
+  VOID                   *BlobPtr = NULL;
 
-  if (!ConfigVarListPtr || !ConfigVarListCount)
-  {
+  if (!ConfigVarListPtr || !ConfigVarListCount) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
- 
+
   *ConfigVarListCount = 0;
 
   // Populate the slot with default one from FV.
   Status = GetSectionFromAnyFv (
-              &gSetupConfigPolicyVariableGuid,
-              EFI_SECTION_RAW,
-              0,
-              (VOID **)&BlobPtr,
-              &BinSize
-              );
+             &gSetupConfigPolicyVariableGuid,
+             EFI_SECTION_RAW,
+             0,
+             (VOID **)&BlobPtr,
+             &BinSize
+             );
 
   if (EFI_ERROR (Status) || !BlobPtr || !BinSize) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
-      ASSERT (FALSE);
-      return EFI_NOT_FOUND;
+    DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
+    ASSERT (FALSE);
+    return EFI_NOT_FOUND;
   }
 
   if (!ConfigVarName) {
     // We don't know how many entries there are, for now allocate far too large of a pool, we'll realloc once we
     // know how many entries there are. We are returning full list of entries.
-    *ConfigVarListPtr   = NULL;
+    *ConfigVarListPtr = NULL;
     *ConfigVarListPtr = AllocatePool (BinSize);
   }
 
@@ -111,7 +110,7 @@ ParseActiveConfigVarList (
      *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of DataInBin
      *  }
      */
-    NameInBin  = (CHAR16 *)(VarList + 1); 
+    NameInBin  = (CHAR16 *)(VarList + 1);
     Guid       = (EFI_GUID *)((CHAR8 *)NameInBin + VarList->NameSize);
     Attributes = *(UINT32 *)(Guid + 1);
     DataInBin  = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
@@ -119,7 +118,7 @@ ParseActiveConfigVarList (
 
     // on next iteration, skip past this variable
     ListIndex += sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes)
-      + sizeof (CRC32); 
+                 + sizeof (CRC32);
 
     VarName = AllocatePool (VarList->NameSize);
     if (VarName == NULL) {
@@ -132,7 +131,7 @@ ParseActiveConfigVarList (
 
     // This check needs to come after we allocate VarName so we can compare against a 16 bit aligned
     // string and not assert
-    if (ConfigVarName && 0 != StrnCmp(ConfigVarName, VarName, VarList->NameSize / 2)) {
+    if (ConfigVarName && (0 != StrnCmp (ConfigVarName, VarName, VarList->NameSize / 2))) {
       // Not the entry we are looking for
       // While we are here, set the Name entry to NULL so we can tell if we found the entry later
       (*ConfigVarListPtr)->Name = NULL;
@@ -152,7 +151,7 @@ ParseActiveConfigVarList (
 
     CopyMem (Data, DataInBin, VarList->DataSize);
 
-    // Add correct values to this entry in the blob  
+    // Add correct values to this entry in the blob
     Entry = &(*ConfigVarListPtr)[*ConfigVarListCount];
 
     Entry->Name       = VarName;
@@ -170,7 +169,7 @@ ParseActiveConfigVarList (
 
   if (!ConfigVarName) {
     // No need to realloc for single entry
-    *ConfigVarListPtr = ReallocatePool (BinSize, sizeof(CONFIG_VAR_LIST_ENTRY) * *ConfigVarListCount, *ConfigVarListPtr);
+    *ConfigVarListPtr = ReallocatePool (BinSize, sizeof (CONFIG_VAR_LIST_ENTRY) * *ConfigVarListCount, *ConfigVarListPtr);
     if (!*ConfigVarListPtr) {
       DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr size: %u\n", __FUNCTION__, BinSize));
       return EFI_OUT_OF_RESOURCES;
@@ -224,7 +223,7 @@ RetrieveActiveConfigVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated unicode varible name of interest.
+  @param[in]  VarListName       NULL terminated unicode variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
@@ -242,7 +241,7 @@ QuerySingleActiveConfigUnicodeVarList (
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
 {
-  UINTN ConfigVarListCount = 0;
+  UINTN  ConfigVarListCount = 0;
 
   if (!VarName || !ConfigVarListPtr) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
@@ -255,7 +254,7 @@ QuerySingleActiveConfigUnicodeVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated ascii varible name of interest.
+  @param[in]  VarListName       NULL terminated ascii variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
@@ -273,21 +272,21 @@ QuerySingleActiveConfigAsciiVarList (
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
 {
-   UINTN ConfigVarListCount = 0;
-   CHAR16 *UniVarName       = NULL;
+  UINTN   ConfigVarListCount = 0;
+  CHAR16  *UniVarName        = NULL;
 
   if (!VarName || !ConfigVarListPtr) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
 
-  UniVarName = AllocatePool(AsciiStrLen(VarName) * 2 + 1);
+  UniVarName = AllocatePool (AsciiStrLen (VarName) * 2 + 1);
   if (!UniVarName) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, AsciiStrLen(VarName) * 2 + 1));
+    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, AsciiStrLen (VarName) * 2 + 1));
     return EFI_OUT_OF_RESOURCES;
   }
 
-  AsciiStrToUnicodeStrS (VarName, UniVarName, AsciiStrLen(VarName) * 2 + 1);
+  AsciiStrToUnicodeStrS (VarName, UniVarName, AsciiStrLen (VarName) * 2 + 1);
 
   return ParseActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount, UniVarName);
 }

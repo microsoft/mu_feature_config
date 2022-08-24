@@ -1,5 +1,5 @@
 /** @file
-  Library interface to process the list of congfiguration variables.
+  Library interface to process the list of configuration variables.
 
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -13,11 +13,11 @@
  * Internal struct for variable list entries
  */
 typedef struct {
-  CHAR16                *Name;
-  EFI_GUID              Guid;
-  UINT32                Attributes;
-  VOID                  *Data;
-  UINT32                DataSize;
+  CHAR16      *Name;
+  EFI_GUID    Guid;
+  UINT32      Attributes;
+  VOID        *Data;
+  UINT32      DataSize;
 } CONFIG_VAR_LIST_ENTRY;
 
 /*
@@ -67,7 +67,7 @@ RetrieveActiveConfigVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated unicode varible name of interest.
+  @param[in]  VarListName       NULL terminated unicode variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
@@ -88,7 +88,7 @@ QuerySingleActiveConfigUnicodeVarList (
 /**
   Find specified active configuration variable for this platform.
 
-  @param[in]  VarListName       NULL terminated ascii varible name of interest.
+  @param[in]  VarListName       NULL terminated ascii variable name of interest.
   @param[out] ConfigVarListPtr  Pointer to hold variable list entry from active profile.
 
   @retval EFI_UNSUPPORTED         Unsupported operation on this platform.
