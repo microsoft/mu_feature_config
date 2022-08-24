@@ -261,12 +261,21 @@ class UncoreCfgUnitTests(unittest.TestCase):
                     ff.write(line)
         os.remove(temp_file)
 
-        item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        cdata.set_config_item_value(item, "AltF4")
+        item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+        cdata.set_config_item_value(item, '1')
+
+        item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+        self.assertEqual('1', item['value'])
+
+        cdata.load_from_svd(path)
+        os.remove(path)
+
+        # Check if value is changed
+        item = cdata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
+        self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        # Internally, EditText configs get ' ' added
-        self.assertEqual("'AltF4'", item['value'])
+        self.assertEqual("'PlatName'", item['value'])
 
     # Test to create/load varlist bins for YML only
     def test_yml_generate_load_bin(self):
