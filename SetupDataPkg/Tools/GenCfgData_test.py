@@ -408,9 +408,9 @@ class UncoreCfgUnitTests(unittest.TestCase):
         y_new_data = ydata.generate_binary_array(False)
         x_new_data = cdata.generate_binary_array(True)
         (name_array, var_array) = ydata.generate_delta_svd_from_bin(y_old_data, y_new_data)
-        (xname_array, xvar_array) = cdata.generate_delta_svd_from_bin(x_old_data, x_new_data)
-        name_array += xname_array
-        var_array += xvar_array
+        (xml_name_array, xml_var_array) = cdata.generate_delta_svd_from_bin(x_old_data, x_new_data)
+        name_array += xml_name_array
+        var_array += xml_var_array
 
         for index in range(len(name_array)):
             b64data = base64.b64encode(var_array[index])
