@@ -28,7 +28,7 @@ from VariableList import (
     write_csv,
     read_csv,
     create_vlist_buffer,
-    delta_vlist_to_binary
+    get_delta_vlist
 )
 
 from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
@@ -209,11 +209,12 @@ class CGenNCCfgData:
 
     def generate_delta_svd_from_bin(self, old_data, new_data):
         # return list of UEFI vars in buffers that have changed data and list of names of vars
-        return delta_vlist_to_binary(self.schema)
+        return get_delta_vlist(self.schema)
 
     def load_from_svd(self, path):
         def handler(id, value):
-            if id is not None and id.startswith("Device.RuntimeData."):
+            # ignore YAML entries
+            if id is not None and not id.startswith("Device.ConfigData."):
                 # this is an xml section
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
@@ -241,7 +242,7 @@ class CGenNCCfgData:
         if (len(variables) <= index):
             return None, None
 
-        return create_vlist_buffer(variables[index]), "Device.RuntimeData." + variables[index].name
+        return create_vlist_buffer(variables[index]), variables[index].name
 
     def generate_binary_array(self, is_variable_list_format):
         return vlist_to_binary(self.schema)

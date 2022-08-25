@@ -860,7 +860,7 @@ def create_vlist_buffer(variable):
     return payload + struct.pack("<I", crc)
 
 
-def delta_vlist_to_binary(schema):
+def get_delta_vlist(schema):
     name_list = []
     var_list = []
     for knob in schema.knobs:
@@ -871,7 +871,7 @@ def delta_vlist_to_binary(schema):
 
         variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
         var_list.append(create_vlist_buffer(variable))
-        name_list.append('Device.RuntimeData.' + knob.name)
+        name_list.append(knob.name)
 
     return name_list, var_list
 
