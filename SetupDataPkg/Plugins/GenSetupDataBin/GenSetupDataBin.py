@@ -103,7 +103,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             xml_bytes = xml_file.read()
             bin_out.write(yaml_bytes + xml_bytes)
 
-        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", op_name, "Plugin generated")
+        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", combined_bin, "Plugin generated")
 
         # Eventually generate a built in var xml
         op_xml = os.path.join(op_dir, "BuiltInVars.xml")
