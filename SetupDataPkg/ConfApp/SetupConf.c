@@ -703,9 +703,6 @@ CreateXmlStringFromCurrentSettings (
     goto EXIT;
   }
 
-  FreePool (Data);
-  Data = NULL;
-
   // Now get the individual settings
   for (Index = 0; Index < VarListEntriesCount; Index++) {
     AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN) + 1;
@@ -806,8 +803,12 @@ EXIT:
 
   if (VarListEntries != NULL) {
     for (Index = 0; Index < VarListEntriesCount; Index++) {
-      FreePool (VarListEntries[Index].Name);
-      FreePool (VarListEntries[Index].Data);
+      if (VarListEntries[Index].Name != NULL) {
+        FreePool (VarListEntries[Index].Name);
+      }
+      if (VarListEntries[Index].Data != NULL) {
+        FreePool (VarListEntries[Index].Data);
+      }
     }
 
     FreePool (VarListEntries);
