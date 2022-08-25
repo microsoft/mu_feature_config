@@ -52,14 +52,21 @@ ParseActiveConfigVarList (
 
   if (!ConfigVarListPtr || !ConfigVarListCount) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
-    return EFI_INVALID_PARAMETER;
+    Status = EFI_INVALID_PARAMETER;
+    if (ConfigVarListCount) {
+      *ConfigVarListCount = 0;
+    } else {
+      *ConfigVarListPtr = NULL;
+    }
+
+    goto Exit;
   }
 
   *ConfigVarListCount = 0;
 
   // Populate the slot with default one from FV.
   Status = GetSectionFromAnyFv (
-             &gSetupConfigPolicyVariableGuid,
+             (EFI_GUID *)PcdGetPtr (PcdSetupConfigActiveProfileFile),
              EFI_SECTION_RAW,
              0,
              (VOID **)&BlobPtr,
@@ -69,7 +76,8 @@ ParseActiveConfigVarList (
   if (EFI_ERROR (Status) || !BlobPtr || !BinSize) {
     DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
     ASSERT (FALSE);
-    return EFI_NOT_FOUND;
+    Status = EFI_NOT_FOUND;
+    goto Exit;
   }
 
   if (!ConfigVarName) {
@@ -81,7 +89,8 @@ ParseActiveConfigVarList (
 
   if (!*ConfigVarListPtr) {
     DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for ConfigVarListPtr\n", __FUNCTION__));
-    return EFI_OUT_OF_RESOURCES;
+    Status = EFI_OUT_OF_RESOURCES;
+    goto Exit;
   }
 
   while (ListIndex < BinSize) {
@@ -172,25 +181,37 @@ ParseActiveConfigVarList (
     *ConfigVarListPtr = ReallocatePool (BinSize, sizeof (CONFIG_VAR_LIST_ENTRY) * *ConfigVarListCount, *ConfigVarListPtr);
     if (!*ConfigVarListPtr) {
       DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr size: %u\n", __FUNCTION__, BinSize));
-      return EFI_OUT_OF_RESOURCES;
+      Status = EFI_OUT_OF_RESOURCES;
+      goto Exit;
     }
   } else if (!(*ConfigVarListPtr)->Name) {
     // We did not find the entry in the var list
     // caller is responsible for freeing input
     DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
-    return EFI_NOT_FOUND;
+    Status = EFI_NOT_FOUND;
+    goto Exit;
   }
 
 Exit:
   if (EFI_ERROR (Status)) {
     // Need to free all allocated memory
-    while (*ConfigVarListCount >= 0) {
-      FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Name);
-      FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
-      *ConfigVarListCount--;
+    while (ConfigVarListCount && *ConfigVarListCount > 0) {
+      if (ConfigVarListPtr && *ConfigVarListPtr && (*ConfigVarListPtr)[*ConfigVarListCount - 1].Name) {
+        FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Name);
+      }
+
+      if (ConfigVarListPtr && *ConfigVarListPtr && (*ConfigVarListPtr)[*ConfigVarListCount - 1].Data) {
+        FreePool ((*ConfigVarListPtr)[*ConfigVarListCount - 1].Data);
+      }
+
+      (*ConfigVarListCount)--;
     }
 
-    FreePool (*ConfigVarListPtr);
+    // only free *ConfigVarListPtr if we allocated it
+    if (ConfigVarListPtr && *ConfigVarListPtr && !ConfigVarName) {
+      FreePool (*ConfigVarListPtr);
+      *ConfigVarListPtr = NULL;
+    }
   }
 
   return Status;
@@ -274,19 +295,22 @@ QuerySingleActiveConfigAsciiVarList (
 {
   UINTN   ConfigVarListCount = 0;
   CHAR16  *UniVarName        = NULL;
+  UINTN   UniVarNameLen      = 0;
 
   if (!VarName || !ConfigVarListPtr) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
 
-  UniVarName = AllocatePool (AsciiStrLen (VarName) * 2 + 1);
+  UniVarNameLen = AsciiStrSize (VarName) * 2;
+
+  UniVarName = AllocatePool (UniVarNameLen);
   if (!UniVarName) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, AsciiStrLen (VarName) * 2 + 1));
+    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, UniVarNameLen));
     return EFI_OUT_OF_RESOURCES;
   }
 
-  AsciiStrToUnicodeStrS (VarName, UniVarName, AsciiStrLen (VarName) * 2 + 1);
+  AsciiStrToUnicodeStrS (VarName, UniVarName, UniVarNameLen);
 
   return ParseActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount, UniVarName);
 }

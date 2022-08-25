@@ -25,5 +25,5 @@
   BaseLib
   DebugLib
 
-[Guids]
-  gSetupConfigPolicyVariableGuid
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile

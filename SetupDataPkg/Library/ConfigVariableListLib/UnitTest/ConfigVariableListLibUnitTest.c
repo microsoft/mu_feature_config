@@ -81,6 +81,25 @@ GetSectionFromAnyFv (
 }
 
 /**
+  Mock retrieving a PCD Ptr.
+
+  Returns the pointer to the buffer of the token specified by TokenNumber.
+
+  @param[in]  TokenNumber The PCD token number to retrieve a current value for.
+
+  @return Returns the pointer to the token specified by TokenNumber.
+
+**/
+VOID *
+EFIAPI
+LibPcdGetPtr (
+  IN UINTN  TokenNumber
+  )
+{
+  return (VOID *)mock ();
+}
+
+/**
   Unit test for RetrieveActiveConfigVarList.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
@@ -108,6 +127,7 @@ RetrieveActiveConfigVarListTest (
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gZeroGuid);
 
   Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -164,6 +184,7 @@ QuerySingleActiveConfigUnicodeVarListTest (
   for ( ; i < 9; i++) {
     will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
     will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+    will_return (LibPcdGetPtr, &gZeroGuid);
 
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
@@ -222,6 +243,7 @@ QuerySingleActiveConfigAsciiVarListTest (
   for ( ; i < 9; i++) {
     will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
     will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+    will_return (LibPcdGetPtr, &gZeroGuid);
 
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
@@ -386,6 +408,7 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gZeroGuid);
 
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
@@ -431,6 +454,7 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gZeroGuid);
 
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
