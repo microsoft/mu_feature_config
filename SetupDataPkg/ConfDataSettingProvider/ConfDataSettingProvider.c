@@ -108,7 +108,7 @@ SingleConfDataGetDefault (
   EFI_STATUS             Status;
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
   UINTN                  NeededSize;
-  RUNTIME_VAR_LIST_HDR   VarListHdr;
+  CONFIG_VAR_LIST_HDR    VarListHdr;
   UINTN                  Offset;
 
   ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));
@@ -127,7 +127,7 @@ SingleConfDataGetDefault (
     * Var List is in DmpStore format:
     *
     *  struct {
-    *    RUNTIME_VAR_LIST_HDR VarList;
+    *    CONFIG_VAR_LIST_HDR VarList;
     *    CHAR16 Name[VarList->NameSize/2];
     *    EFI_GUID Guid;
     *    UINT32 Attributes;
@@ -232,7 +232,7 @@ SingleConfDataSet (
    * Var List is in DmpStore format:
    *
    *  struct {
-   *    RUNTIME_VAR_LIST_HDR VarList;
+   *    CONFIG_VAR_LIST_HDR VarList;
    *    CHAR16 Name[VarList->NameSize/2];
    *    EFI_GUID Guid;
    *    UINT32 Attributes;
@@ -241,7 +241,7 @@ SingleConfDataSet (
    *  }
    */
 
-  VarListHdr = (RUNTIME_VAR_LIST_HDR *)Value;
+  VarListHdr = (CONFIG_VAR_LIST_HDR *)Value;
   NeededSize = sizeof (*VarListHdr) + VarListHdr->NameSize + VarListHdr->DataSize + sizeof (VarListEntry.Guid) +
                sizeof (VarListEntry.Attributes) + sizeof (CRC32);
 
@@ -251,7 +251,7 @@ SingleConfDataSet (
     goto Done;
   }
 
-  Offset = sizeof (RUNTIME_VAR_LIST_HDR);
+  Offset = sizeof (CONFIG_VAR_LIST_HDR);
   // Sanity check here to make sure the incoming blob is in parity with active config list
   if (StrCmp (VarListEntry.Name, (CHAR16 *)(Value + Offset))) {
     // Name string mismatch, bail...
@@ -335,7 +335,7 @@ SingleConfDataGet (
   EFI_STATUS             Status;
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
   UINTN                  NeededSize;
-  RUNTIME_VAR_LIST_HDR   VarListHdr;
+  CONFIG_VAR_LIST_HDR    VarListHdr;
   UINTN                  Offset;
   UINTN                  DataSize;
 
@@ -355,7 +355,7 @@ SingleConfDataGet (
     * Var List is in DmpStore format:
     *
     *  struct {
-    *    RUNTIME_VAR_LIST_HDR VarList;
+    *    CONFIG_VAR_LIST_HDR VarList;
     *    CHAR16 Name[VarList->NameSize/2];
     *    EFI_GUID Guid;
     *    UINT32 Attributes;
