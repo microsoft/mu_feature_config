@@ -126,28 +126,30 @@ class GenSetupDataBin(IUefiBuildPlugin):
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", combined_bin, "Plugin generated")
 
         # Eventually generate a built in var xml
-        op_xml = os.path.join(op_dir, "BuiltInVars.xml")
-        with open(yaml_filename, "rb") as in_file, open(op_xml, "wb") as out_file:
-            bytes = in_file.read()
-            comment = xml.etree.ElementTree.Comment(' === Auto-Generated === ')
-            root = xml.etree.ElementTree.Element('BuiltInVariables')
-            root.insert(0, comment)
-            xml_var = xml.etree.ElementTree.SubElement(root, "Variable")
-            var_name = xml.etree.ElementTree.SubElement(xml_var, "Name")
-            var_name.text = 'CONF_POLICY_BLOB'
-            var_guid = xml.etree.ElementTree.SubElement(xml_var, "GUID")
-            var_guid.text = thebuilder.env.GetBuildValue("CONF_POLICY_GUID_REGISTRY")
-            var_attr = xml.etree.ElementTree.SubElement(xml_var, "Attributes")
-            # BS|NV
-            var_attr.text = str(3)
-            var_data = xml.etree.ElementTree.SubElement(xml_var, "Data")
-            var_data.set('type', "hex")
-            var_data.text = bytes.hex()
-            GenSetupDataBin.indent(root)
-            xml_str = xml.etree.ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
-            out_file.write(xml_str)
-        if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
-            shutil.copy2(op_xml, thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE")))
+        if found_yaml_conf:
+            op_xml = os.path.join(op_dir, "BuiltInVars.xml")
+            with open(yaml_filename, "rb") as in_file, open(op_xml, "wb") as out_file:
+                bytes = in_file.read()
+                comment = xml.etree.ElementTree.Comment(' === Auto-Generated === ')
+                root = xml.etree.ElementTree.Element('BuiltInVariables')
+                root.insert(0, comment)
+                xml_var = xml.etree.ElementTree.SubElement(root, "Variable")
+                var_name = xml.etree.ElementTree.SubElement(xml_var, "Name")
+                var_name.text = 'CONF_POLICY_BLOB'
+                var_guid = xml.etree.ElementTree.SubElement(xml_var, "GUID")
+                var_guid.text = thebuilder.env.GetBuildValue("CONF_POLICY_GUID_REGISTRY")
+                var_attr = xml.etree.ElementTree.SubElement(xml_var, "Attributes")
+                # BS|NV
+                var_attr.text = str(3)
+                var_data = xml.etree.ElementTree.SubElement(xml_var, "Data")
+                var_data.set('type', "hex")
+                var_data.text = bytes.hex()
+                GenSetupDataBin.indent(root)
+                xml_str = xml.etree.ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+                out_file.write(xml_str)
+            if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
+                shutil.copy2(op_xml,
+                             thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE")))
         return 0
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at

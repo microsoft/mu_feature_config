@@ -1,7 +1,7 @@
 ## @file
-# Config Data Library instance for iterate through raw data blobs.
+# Config Data Library instance to iterate through variable list data blobs.
 #
-# Copyright (C) Microsoft Corporation. All rights reserved.
+# Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
@@ -11,7 +11,7 @@
   BASE_NAME           = ConfigVariableListLib
   FILE_GUID           = F96C919B-59EE-499C-BE3E-43CA118932DB
   VERSION_STRING      = 1.0
-  MODULE_TYPE         = BASE
+  MODULE_TYPE         = DXE_DRIVER
   LIBRARY_CLASS       = ConfigVariableListLib
 
 [Sources]
@@ -24,6 +24,9 @@
 [LibraryClasses]
   BaseLib
   DebugLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  DxeServicesLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
