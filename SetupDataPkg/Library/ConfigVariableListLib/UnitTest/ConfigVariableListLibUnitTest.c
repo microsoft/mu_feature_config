@@ -474,6 +474,170 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
 }
 
 /**
+  Unit test for RetrieveActiveConfigVarListTest.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RetrieveActiveConfigVarListBadDataTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
+  EFI_STATUS             Status;
+  UINTN                  ConfigVarListCount;
+
+  // pass in bad data, expect an assert
+  // mKnown_Good_Config_Data is not in varlist format, so it should fail
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for QuerySingleActiveConfigAsciiVarList.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+QuerySingleActiveConfigAsciiVarListBadDataTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  UINT32                 i          = 0;
+  CHAR8                  *AsciiName = NULL;
+
+  // pass in bad data, expect an assert
+  // mKnown_Good_Config_Data is not in varlist format, so it should fail
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
+  UT_ASSERT_NOT_NULL (ConfigVarListPtr);
+
+  AsciiName = AllocatePool (StrLen (mKnown_Good_VarList_Names[i]) + 1);
+  UT_ASSERT_NOT_NULL (AsciiName);
+
+  UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
+
+  UT_EXPECT_ASSERT_FAILURE (Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr), NULL);
+
+  FreePool (AsciiName);
+  FreePool (ConfigVarListPtr);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for QuerySingleActiveConfigUnicodeVarList.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+QuerySingleActiveConfigUnicodeVarListBadDataTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
+  EFI_STATUS             Status;
+  UINT32                 i = 0;
+
+  // pass in bad data, expect an assert
+  // mKnown_Good_Config_Data is not in varlist format, so it should fail
+  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
+  UT_ASSERT_NOT_NULL (ConfigVarListPtr);
+
+  UT_EXPECT_ASSERT_FAILURE (Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
+
+  FreePool (ConfigVarListPtr);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for RetrieveActiveConfigVarListTest.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RetrieveActiveConfigVarListNoProfileTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
+  EFI_STATUS             Status;
+  UINTN                  ConfigVarListCount;
+
+  will_return (GetSectionFromAnyFv, NULL);
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, 0);
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
   Initialize the unit test framework, suite, and unit tests for the
   ConfigVariableListLib and run the ConfigVariableListLib unit test.
 
@@ -539,6 +703,13 @@ UnitTestingEntry (
   AddTestCase (ConfigVariableListLib, "Bad name test should fail", "QuerySingleActiveConfigUnicodeVarListNotFoundTest", QuerySingleActiveConfigUnicodeVarListNotFoundTest, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Bad name test should fail", "QuerySingleActiveConfigAsciiVarListNotFoundTest", QuerySingleActiveConfigAsciiVarListNotFoundTest, NULL, NULL, NULL);
 
+  // Bad data
+  AddTestCase (ConfigVariableListLib, "Bad data test should fail", "RetrieveActiveConfigVarListBadDataTest", RetrieveActiveConfigVarListBadDataTest, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad data test should fail", "QuerySingleActiveConfigUnicodeVarListBadDataTest", QuerySingleActiveConfigUnicodeVarListBadDataTest, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad data test should fail", "QuerySingleActiveConfigAsciiVarListBadDataTest", QuerySingleActiveConfigAsciiVarListBadDataTest, NULL, NULL, NULL);
+
+  // No Profile
+  AddTestCase (ConfigVariableListLib, "No profile test should fail", "RetrieveActiveConfigVarListNoProfileTest", RetrieveActiveConfigVarListNoProfileTest, NULL, NULL, NULL);
   //
   // Execute the tests.
   //

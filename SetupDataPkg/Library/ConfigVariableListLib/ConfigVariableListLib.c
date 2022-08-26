@@ -69,7 +69,7 @@ ParseActiveConfigVarList (
              (EFI_GUID *)PcdGetPtr (PcdSetupConfigActiveProfileFile),
              EFI_SECTION_RAW,
              0,
-             (VOID **)&BlobPtr,
+             &BlobPtr,
              &BinSize
              );
 
