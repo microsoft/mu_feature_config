@@ -40,7 +40,8 @@
 [PcdsFixedAtBuild]
 
 [PcdsDynamic, PcdsDynamicEx]
-  # Profile driver will receive the active profile GUID and populate this PCD
+  ## Profile driver will receive the active profile file GUID and populate this PCD
+  ## Platform is recommended to set a default value to the generic profile
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile|{0}|VOID*|0x40000001
 
 [PcdsFeatureFlag]

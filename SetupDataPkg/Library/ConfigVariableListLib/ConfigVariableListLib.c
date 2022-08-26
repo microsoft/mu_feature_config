@@ -50,12 +50,14 @@ ParseActiveConfigVarList (
   CONFIG_VAR_LIST_ENTRY  *Entry;
   VOID                   *BlobPtr = NULL;
 
-  if (!ConfigVarListPtr || !ConfigVarListCount) {
+  if ((ConfigVarListPtr == NULL) || (ConfigVarListCount == NULL)) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     Status = EFI_INVALID_PARAMETER;
     if (ConfigVarListCount) {
       *ConfigVarListCount = 0;
-    } else {
+    }
+
+    if (ConfigVarListPtr) {
       *ConfigVarListPtr = NULL;
     }
 
@@ -73,21 +75,21 @@ ParseActiveConfigVarList (
              &BinSize
              );
 
-  if (EFI_ERROR (Status) || !BlobPtr || !BinSize) {
+  if (EFI_ERROR (Status) || (BlobPtr == NULL) || (BinSize == 0)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
     ASSERT (FALSE);
     Status = EFI_NOT_FOUND;
     goto Exit;
   }
 
-  if (!ConfigVarName) {
+  if (ConfigVarName == NULL) {
     // We don't know how many entries there are, for now allocate far too large of a pool, we'll realloc once we
     // know how many entries there are. We are returning full list of entries.
     *ConfigVarListPtr = NULL;
     *ConfigVarListPtr = AllocatePool (BinSize);
   }
 
-  if (!*ConfigVarListPtr) {
+  if (*ConfigVarListPtr == NULL) {
     DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for ConfigVarListPtr\n", __FUNCTION__));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
@@ -140,7 +142,7 @@ ParseActiveConfigVarList (
 
     // This check needs to come after we allocate VarName so we can compare against a 16 bit aligned
     // string and not assert
-    if (ConfigVarName && (0 != StrnCmp (ConfigVarName, VarName, VarList->NameSize / 2))) {
+    if ((ConfigVarName != NULL) && (0 != StrnCmp (ConfigVarName, VarName, VarList->NameSize / 2))) {
       // Not the entry we are looking for
       // While we are here, set the Name entry to NULL so we can tell if we found the entry later
       (*ConfigVarListPtr)->Name = NULL;
@@ -170,21 +172,21 @@ ParseActiveConfigVarList (
     Entry->DataSize   = VarList->DataSize;
     (*ConfigVarListCount)++;
 
-    if (ConfigVarName) {
+    if (ConfigVarName != NULL) {
       // Found the entry we are looking for
       break;
     }
   }
 
-  if (!ConfigVarName) {
+  if (ConfigVarName == NULL) {
     // No need to realloc for single entry
     *ConfigVarListPtr = ReallocatePool (BinSize, sizeof (CONFIG_VAR_LIST_ENTRY) * *ConfigVarListCount, *ConfigVarListPtr);
-    if (!*ConfigVarListPtr) {
+    if (*ConfigVarListPtr == NULL) {
       DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr size: %u\n", __FUNCTION__, BinSize));
       Status = EFI_OUT_OF_RESOURCES;
       goto Exit;
     }
-  } else if (!(*ConfigVarListPtr)->Name) {
+  } else if ((*ConfigVarListPtr)->Name == NULL) {
     // We did not find the entry in the var list
     // caller is responsible for freeing input
     DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
@@ -208,7 +210,7 @@ Exit:
     }
 
     // only free *ConfigVarListPtr if we allocated it
-    if (ConfigVarListPtr && *ConfigVarListPtr && !ConfigVarName) {
+    if ((ConfigVarListPtr != NULL) && (*ConfigVarListPtr != NULL) && (ConfigVarName == NULL)) {
       FreePool (*ConfigVarListPtr);
       *ConfigVarListPtr = NULL;
     }
@@ -264,7 +266,7 @@ QuerySingleActiveConfigUnicodeVarList (
 {
   UINTN  ConfigVarListCount = 0;
 
-  if (!VarName || !ConfigVarListPtr) {
+  if ((VarName == NULL) || (ConfigVarListPtr == NULL)) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
@@ -297,7 +299,7 @@ QuerySingleActiveConfigAsciiVarList (
   CHAR16  *UniVarName        = NULL;
   UINTN   UniVarNameLen      = 0;
 
-  if (!VarName || !ConfigVarListPtr) {
+  if ((VarName == NULL) || (ConfigVarListPtr == NULL)) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
@@ -305,7 +307,7 @@ QuerySingleActiveConfigAsciiVarList (
   UniVarNameLen = AsciiStrSize (VarName) * 2;
 
   UniVarName = AllocatePool (UniVarNameLen);
-  if (!UniVarName) {
+  if (UniVarName == NULL) {
     DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, UniVarNameLen));
     return EFI_OUT_OF_RESOURCES;
   }

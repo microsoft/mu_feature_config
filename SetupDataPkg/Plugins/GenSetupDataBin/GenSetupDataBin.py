@@ -50,6 +50,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
         found_yaml_conf = False
+        yaml_filename = None
         if conf_file is None:
             logging.warn("YAML file not specified, system might not work as expected!!!")
         else:
@@ -66,8 +67,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
-            op_name = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
-            params.append(op_name)
+            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
+            params.append(yaml_filename)
             ret = RunPythonScript(cmd, " ".join(params))
             if ret != 0:
                 return ret
@@ -77,13 +78,15 @@ class GenSetupDataBin(IUefiBuildPlugin):
         params = ["GENBIN"]
 
         conf_file = thebuilder.env.GetValue("XML_CONF_FILE")
-        found_xml_conf = True
+        found_xml_conf = False
+        xml_filename = None
         if conf_file is None:
             logging.warn("XML file not specified, system might not work as expected!!!")
             if not found_yaml_conf:
                 logging.warn("Did not find any profile config files, system might not work as expec!!!")
                 return -1
         else:
+            found_xml_conf = True
             if not os.path.isfile(conf_file):
                 return -1
 
@@ -104,26 +107,27 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         # Combine into single bin file
         combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
-        if found_yaml_conf and found_xml_conf:
-            with open(op_name, "rb") as yml_file, open(xml_filename, "rb") as xml_file, \
-                 open(combined_bin, "wb") as bin_out:
-                yaml_bytes = yml_file.read()
-                xml_bytes = xml_file.read()
-                bin_out.write(yaml_bytes + xml_bytes)
-        elif found_yaml_conf:
-            with open(op_name, "rb") as yml_file, open(combined_bin, "wb") as bin_out:
-                yaml_bytes = yml_file.read()
-                bin_out.write(yaml_bytes)
-        else:
-            # xml only
-            xml_bytes = xml_file.read()
-            bin_out.write(xml_bytes)
+        with open(combined_bin, "wb") as bin_out:
+            if found_yaml_conf and found_xml_conf:
+                with open(yaml_filename, "rb") as yml_file, open(xml_filename, "rb") as xml_file:
+                    yaml_bytes = yml_file.read()
+                    xml_bytes = xml_file.read()
+                    bin_out.write(yaml_bytes + xml_bytes)
+            elif found_yaml_conf:
+                with open(yaml_filename, "rb") as yml_file:
+                    yaml_bytes = yml_file.read()
+                    bin_out.write(yaml_bytes)
+            else:
+                # xml only
+                with open(xml_filename, "rb") as xml_file:
+                    xml_bytes = xml_file.read()
+                    bin_out.write(xml_bytes)
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", combined_bin, "Plugin generated")
 
         # Eventually generate a built in var xml
         op_xml = os.path.join(op_dir, "BuiltInVars.xml")
-        with open(op_name, "rb") as in_file, open(op_xml, "wb") as out_file:
+        with open(yaml_filename, "rb") as in_file, open(op_xml, "wb") as out_file:
             bytes = in_file.read()
             comment = xml.etree.ElementTree.Comment(' === Auto-Generated === ')
             root = xml.etree.ElementTree.Element('BuiltInVariables')
