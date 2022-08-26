@@ -49,59 +49,75 @@ class GenSetupDataBin(IUefiBuildPlugin):
         params = ["GENBIN"]
 
         conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
+        found_yaml_conf = False
         if conf_file is None:
             logging.warn("YAML file not specified, system might not work as expected!!!")
-            return 0
-        if not os.path.isfile(conf_file):
-            return -1
-
-        # Can also add the dlt file application step if supplied
-        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
-        if delta_conf is not None:
-            if not os.path.isfile(delta_conf):
+        else:
+            found_yaml_conf = True
+            if not os.path.isfile(conf_file):
                 return -1
-            conf_file = ";".join(conf_file, delta_conf)
-        params.append(conf_file)
 
-        # Should be all setup, generate bin now...
-        op_name = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
-        params.append(op_name)
-        ret = RunPythonScript(cmd, " ".join(params))
-        if ret != 0:
-            return ret
+            # Can also add the dlt file application step if supplied
+            delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
+            if delta_conf is not None:
+                if not os.path.isfile(delta_conf):
+                    return -1
+                conf_file = ";".join(conf_file, delta_conf)
+            params.append(conf_file)
+
+            # Should be all setup, generate bin now...
+            op_name = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
+            params.append(op_name)
+            ret = RunPythonScript(cmd, " ".join(params))
+            if ret != 0:
+                return ret
 
         # Now generate XML config
         cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "GenNCCfgData.py")
         params = ["GENBIN"]
 
         conf_file = thebuilder.env.GetValue("XML_CONF_FILE")
+        found_xml_conf = True
         if conf_file is None:
             logging.warn("XML file not specified, system might not work as expected!!!")
-            return 0
-        if not os.path.isfile(conf_file):
-            return -1
-
-        # Can also add the csv file application step if supplied
-        delta_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
-        if delta_conf is not None:
-            if not os.path.isfile(delta_conf):
+            if not found_yaml_conf:
+                logging.warn("Did not find any profile config files, system might not work as expec!!!")
                 return -1
-            conf_file = ";".join(conf_file, delta_conf)
-        params.append(conf_file)
+        else:
+            if not os.path.isfile(conf_file):
+                return -1
 
-        # Should be all setup, generate bin now...
-        xml_filename = os.path.join(op_dir, "XMLPolicyVarBin.bin")
-        params.append(xml_filename)
-        ret = RunPythonScript(cmd, " ".join(params))
-        if ret != 0:
-            return ret
+            # Can also add the csv file application step if supplied
+            delta_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
+            if delta_conf is not None:
+                if not os.path.isfile(delta_conf):
+                    return -1
+                conf_file = ";".join(conf_file, delta_conf)
+            params.append(conf_file)
+
+            # Should be all setup, generate bin now...
+            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin.bin")
+            params.append(xml_filename)
+            ret = RunPythonScript(cmd, " ".join(params))
+            if ret != 0:
+                return ret
 
         # Combine into single bin file
         combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
-        with open(op_name, "rb") as yml_file, open(xml_filename, "rb") as xml_file, open(combined_bin, "wb") as bin_out:
-            yaml_bytes = yml_file.read()
+        if found_yaml_conf and found_xml_conf:
+            with open(op_name, "rb") as yml_file, open(xml_filename, "rb") as xml_file, \
+                 open(combined_bin, "wb") as bin_out:
+                yaml_bytes = yml_file.read()
+                xml_bytes = xml_file.read()
+                bin_out.write(yaml_bytes + xml_bytes)
+        elif found_yaml_conf:
+            with open(op_name, "rb") as yml_file, open(combined_bin, "wb") as bin_out:
+                yaml_bytes = yml_file.read()
+                bin_out.write(yaml_bytes)
+        else:
+            # xml only
             xml_bytes = xml_file.read()
-            bin_out.write(yaml_bytes + xml_bytes)
+            bin_out.write(xml_bytes)
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", combined_bin, "Plugin generated")
 
