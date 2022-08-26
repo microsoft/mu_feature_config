@@ -494,7 +494,7 @@ RegisterSingleConfigVariable (
   Size   = 0;
   Status = gRT->GetVariable (VarListEntry->Name, &VarListEntry->Guid, NULL, &Size, NULL);
   if (Status == EFI_NOT_FOUND) {
-    Status = gRT->SetVariable (VarListEntry->Name, &VarListEntry->Guid, CDATA_NV_VAR_ATTR, VarListEntry->DataSize, VarListEntry->Data);
+    Status = gRT->SetVariable (VarListEntry->Name, &VarListEntry->Guid, VarListEntry->Attributes, VarListEntry->DataSize, VarListEntry->Data);
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Initializing variable %s failed - %r.\n", VarListEntry->Name, Status));
       goto Exit;
@@ -514,8 +514,8 @@ RegisterSingleConfigVariable (
              VarListEntry->Name,
              VarListEntry->DataSize,
              VARIABLE_POLICY_NO_MAX_SIZE,
-             CDATA_NV_VAR_ATTR,
-             (UINT32) ~CDATA_NV_VAR_ATTR,
+             VarListEntry->Attributes,
+             (UINT32) ~(VarListEntry->Attributes),
              &gMuVarPolicyDxePhaseGuid,
              READY_TO_BOOT_INDICATOR_VAR_NAME,
              PHASE_INDICATOR_SET
