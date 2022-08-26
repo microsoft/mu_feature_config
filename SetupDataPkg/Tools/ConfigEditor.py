@@ -938,7 +938,7 @@ class application(tkinter.Frame):
 
         self.update_config_data_on_page()
         for idx in self.cfg_data_list:
-            if full is not None:
+            if full:
                 index = 0
                 uefi_var, name = self.cfg_data_list[idx].cfg_data_obj.get_var_by_index(index)
                 while uefi_var is not None:
