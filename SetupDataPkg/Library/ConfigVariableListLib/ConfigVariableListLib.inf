@@ -27,6 +27,7 @@
   BaseMemoryLib
   MemoryAllocationLib
   DxeServicesLib
+  PcdLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile

@@ -83,7 +83,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
         if conf_file is None:
             logging.warn("XML file not specified, system might not work as expected!!!")
             if not found_yaml_conf:
-                logging.warn("Did not find any profile config files, system might not work as expec!!!")
+                logging.warn("Did not find any profile config files, system might not work as expected!!!")
                 return -1
         else:
             found_xml_conf = True

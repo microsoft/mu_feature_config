@@ -12,6 +12,7 @@
 #include <Library/DebugLib.h>
 #include <PiDxe.h>
 #include <Library/DxeServicesLib.h>
+#include <Library/PcdLib.h>
 #include <Library/ConfigVariableListLib.h>
 
 /**

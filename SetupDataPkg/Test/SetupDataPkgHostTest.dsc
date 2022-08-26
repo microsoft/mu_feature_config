@@ -21,7 +21,6 @@
 [LibraryClasses]
   ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   ConfigBlobBaseLib|SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
-  ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
   SecurityLockAuditLib|MdeModulePkg/Library/SecurityLockAuditLibNull/SecurityLockAuditLibNull.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
