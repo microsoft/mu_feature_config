@@ -530,8 +530,8 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
-  UINT32                 i          = 0;
-  CHAR8                  *AsciiName = NULL;
+  UINT32                 i                 = 0;
+  CHAR8                  *AsciiName        = NULL;
 
   // pass in bad data, expect an assert
   // mKnown_Good_Config_Data is not in varlist format, so it should fail
@@ -577,7 +577,7 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
-  UINT32                 i = 0;
+  UINT32                 i                 = 0;
 
   // pass in bad data, expect an assert
   // mKnown_Good_Config_Data is not in varlist format, so it should fail
