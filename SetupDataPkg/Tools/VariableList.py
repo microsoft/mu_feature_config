@@ -860,6 +860,22 @@ def create_vlist_buffer(variable):
     return payload + struct.pack("<I", crc)
 
 
+def get_delta_vlist(schema):
+    name_list = []
+    var_list = []
+    for knob in schema.knobs:
+        if knob.default == knob.value:
+            # knob value didn't change
+            continue
+        value_bytes = knob.format.object_to_binary(knob.value)
+
+        variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
+        var_list.append(create_vlist_buffer(variable))
+        name_list.append(knob.name)
+
+    return name_list, var_list
+
+
 # Create a byte array for all the knobs in this schema
 def vlist_to_binary(schema):
 
