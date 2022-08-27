@@ -1,0 +1,41 @@
+## @file
+# Unit tests of the ConfigVariableListLib instance.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ConfigVariableListLibUnitTest
+  FILE_GUID                      = 620B65B7-7DB2-4C05-A504-E7DFCD83E5A4
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  ConfigVariableListLibUnitTest.c
+  ../ConfigVariableListLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  UnitTestLib
+
+  [Guids]
+    gZeroGuid
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile

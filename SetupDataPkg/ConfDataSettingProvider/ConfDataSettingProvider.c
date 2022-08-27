@@ -26,6 +26,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ConfigBlobBaseLib.h>
 #include <Library/VariablePolicyHelperLib.h>
+#include <Library/ConfigVariableListLib.h>
 
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
@@ -314,17 +315,17 @@ RuntimeDataSet (
   OUT DFCI_SETTING_FLAGS           *Flags
   )
 {
-  EFI_STATUS            Status   = EFI_SUCCESS;
-  CHAR16                *VarName = NULL;
-  CHAR16                *name;
-  EFI_GUID              *Guid;
-  UINT32                Attributes;
-  CHAR8                 *Data;
-  UINT32                CRC32;
-  UINT32                LenToCRC32;
-  UINT32                CalcCRC32 = 0;
-  RUNTIME_VAR_LIST_HDR  *VarList;
-  UINT32                ListIndex = 0;
+  EFI_STATUS           Status   = EFI_SUCCESS;
+  CHAR16               *VarName = NULL;
+  CHAR16               *name;
+  EFI_GUID             *Guid;
+  UINT32               Attributes;
+  CHAR8                *Data;
+  UINT32               CRC32;
+  UINT32               LenToCRC32;
+  UINT32               CalcCRC32 = 0;
+  CONFIG_VAR_LIST_HDR  *VarList;
+  UINT32               ListIndex = 0;
 
   if ((This == NULL) || (This->Id == NULL) || (Flags == NULL) || (Value == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -339,7 +340,7 @@ RuntimeDataSet (
 
   while (ListIndex < ValueSize) {
     // index into variable list
-    VarList = (RUNTIME_VAR_LIST_HDR *)(Value + ListIndex);
+    VarList = (CONFIG_VAR_LIST_HDR *)(Value + ListIndex);
 
     if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
         sizeof (Attributes) + sizeof (CRC32) > ValueSize)
@@ -353,7 +354,7 @@ RuntimeDataSet (
      * Var List is in DmpStore format:
      *
      *  struct {
-     *    RUNTIME_VAR_LIST_HDR VarList;
+     *    CONFIG_VAR_LIST_HDR VarList;
      *    CHAR16 Name[VarList->NameSize/2];
      *    EFI_GUID Guid;
      *    UINT32 Attributes;

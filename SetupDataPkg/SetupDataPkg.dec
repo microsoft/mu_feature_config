@@ -24,11 +24,11 @@
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h
   ConfigBlobBaseLib|Include/Library/ConfigBlobBaseLib.h
+  ConfigVariableListLib|Include/Library/ConfigVariableListLib.h
 
 [Guids]
-  gSetupDataPkgTokenSpaceGuid     = { 0x651d23a, 0xe244, 0x4a7f, { 0x8d, 0x2e, 0x37, 0xac, 0x2b, 0xf9, 0x32, 0xff } }
+  gSetupDataPkgTokenSpaceGuid     = { 0x0651d23a, 0xe244, 0x4a7f, { 0x8d, 0x2e, 0x37, 0xac, 0x2b, 0xf9, 0x32, 0xff } }
   ## Configuration modules will locate variables under this GUID to initiate and/or update system configuration.
-  #
   gSetupConfigPolicyVariableGuid  = { 0x7664559f, 0x829e, 0x48e8, { 0xa4, 0x73, 0xf1, 0x2a, 0xda, 0xd1, 0xdd, 0xd2 } }
 
 [Ppis]
@@ -38,5 +38,8 @@
 [PcdsFixedAtBuild]
 
 [PcdsDynamic, PcdsDynamicEx]
+  ## Profile driver will receive the active profile file GUID and populate this PCD
+  ## Platform is recommended to set a default value to the generic profile
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile|{0}|VOID*|0x40000001
 
 [PcdsFeatureFlag]

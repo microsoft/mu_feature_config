@@ -38,6 +38,7 @@
 
   SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
+  SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
 
   SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {
     <LibraryClasses>
