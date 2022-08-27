@@ -122,26 +122,6 @@ typedef struct {
   UINT8     BaseTableBitMask[0];
 } ARRAY_CFG_HDR;
 
-#pragma pack(push, 1)
-typedef struct {
-  /* Size of Name in bytes */
-  UINT32    NameSize;
-
-  /* Size of Data in bytes */
-  UINT32    DataSize;
-
-  /*
-   * Rest of Variable List struct:
-   *
-   * CHAR16 Name[NameSize/2] // Null terminate UTF-16LE encoded name
-   * EFI_GUID Guid // namespace Guid
-   * UINT32 Attributes // UEFI attributes
-   * CHAR8 Data[DataSize] // actual variable value
-   * UINT32 CRC32 // checksum of all bytes up to CRC32
-   */
-} RUNTIME_VAR_LIST_HDR;
-#pragma pack(pop)
-
 /**
   Handler function dispatched for individual tag based data.
 

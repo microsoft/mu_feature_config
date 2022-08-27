@@ -213,7 +213,7 @@ SingleConfDataSet (
   UINTN                  DataOffset;
   UINTN                  NeededSize;
   UINT32                 CRC32;
-  RUNTIME_VAR_LIST_HDR   *VarListHdr;
+  CONFIG_VAR_LIST_HDR    *VarListHdr;
   CONFIG_VAR_LIST_ENTRY  VarListEntry;
 
   ZeroMem (&VarListEntry, sizeof (CONFIG_VAR_LIST_ENTRY));

@@ -819,6 +819,7 @@ EXIT:
       if (VarListEntries[Index].Name != NULL) {
         FreePool (VarListEntries[Index].Name);
       }
+
       if (VarListEntries[Index].Data != NULL) {
         FreePool (VarListEntries[Index].Data);
       }

@@ -188,14 +188,14 @@ RegisterVarStateVariablePolicy (
   DEBUG ((DEBUG_INFO, "%a Register for %s under %g\n", __FUNCTION__, Name, Namespace));
   assert_memory_equal (Namespace, &gSetupConfigPolicyVariableGuid, sizeof (EFI_GUID));
   assert_int_equal (MaxSize, VARIABLE_POLICY_NO_MAX_SIZE);
-  assert_int_equal (AttributesMustHave, CDATA_NV_VAR_ATTR);
-  assert_int_equal (AttributesCantHave, (UINT32) ~CDATA_NV_VAR_ATTR);
   assert_ptr_equal (VarStateNamespace, &gMuVarPolicyDxePhaseGuid);
   assert_memory_equal (VarStateName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
   assert_int_equal (VarStateValue, PHASE_INDICATOR_SET);
+  assert_int_equal ((UINT32)(~AttributesMustHave), AttributesCantHave);
 
   check_expected (Name);
   check_expected (MinSize);
+  check_expected (AttributesMustHave);
   return EFI_SUCCESS;
 }
 
@@ -1147,6 +1147,7 @@ SettingsProviderNotifyShouldComplete (
     will_return (MockGetVariable, mKnownGoodTags[Index].DataSize);
     expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
     expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
+    expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, CDATA_NV_VAR_ATTR);
   }
 
   // Intentionally leave out the last entry to make sure it will be set if first seen
@@ -1164,6 +1165,7 @@ SettingsProviderNotifyShouldComplete (
   will_return (MockSetVariable, EFI_SUCCESS);
   expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
   expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
+  expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, CDATA_NV_VAR_ATTR);
 
   for (Index = 0; Index < KNOWN_GOOD_RUNTIME_VAR_COUNT; Index++) {
     ComparePtr[Index + KNOWN_GOOD_TAG_COUNT] = AllocatePool (mKnownGoodRuntimeVars[Index].NameSize);
@@ -1173,6 +1175,7 @@ SettingsProviderNotifyShouldComplete (
     will_return (MockGetVariable, mKnownGoodRuntimeVars[Index].DataSize);
     expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index + KNOWN_GOOD_TAG_COUNT].Name, mKnownGoodRuntimeVars[Index].NameSize * sizeof (CHAR16));
     expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodRuntimeVars[Index].DataSize);
+    expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, (CDATA_NV_VAR_ATTR | EFI_VARIABLE_RUNTIME_ACCESS));
   }
 
   SettingsProviderSupportProtocolNotify (NULL, NULL);
