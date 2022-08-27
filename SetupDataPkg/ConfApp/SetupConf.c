@@ -643,8 +643,8 @@ CreateXmlStringFromCurrentSettings (
   DFCI_SETTING_FLAGS     Flags;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
-  CONFIG_VAR_LIST_ENTRY  *VarListEntries      = NULL;
-  UINTN                  VarListEntriesCount  = 0;
+  CONFIG_VAR_LIST_ENTRY  *VarListEntries     = NULL;
+  UINTN                  VarListEntriesCount = 0;
   UINTN                  Index;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
