@@ -495,7 +495,6 @@ RetrieveActiveConfigVarListBadDataTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
-  EFI_STATUS             Status;
   UINTN                  ConfigVarListCount;
 
   // pass in bad data, expect an assert
@@ -504,7 +503,7 @@ RetrieveActiveConfigVarListBadDataTest (
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
   will_return (LibPcdGetPtr, &gZeroGuid);
 
-  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   return UNIT_TEST_PASSED;
 }
@@ -531,7 +530,6 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
-  EFI_STATUS             Status;
   UINT32                 i          = 0;
   CHAR8                  *AsciiName = NULL;
 
@@ -549,7 +547,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
 
   UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-  UT_EXPECT_ASSERT_FAILURE (Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr), NULL);
 
   FreePool (AsciiName);
   FreePool (ConfigVarListPtr);
@@ -579,7 +577,6 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr = NULL;
-  EFI_STATUS             Status;
   UINT32                 i = 0;
 
   // pass in bad data, expect an assert
@@ -591,7 +588,7 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-  UT_EXPECT_ASSERT_FAILURE (Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
 
   FreePool (ConfigVarListPtr);
 
@@ -620,13 +617,12 @@ RetrieveActiveConfigVarListNoProfileTest (
   )
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
-  EFI_STATUS             Status;
   UINTN                  ConfigVarListCount;
 
   will_return (GetSectionFromAnyFv, NULL);
   will_return (LibPcdGetPtr, &gZeroGuid);
 
-  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, 0);
