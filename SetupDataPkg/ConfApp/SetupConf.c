@@ -25,6 +25,7 @@
 #include <Library/XmlTreeQueryLib.h>
 #include <Library/DfciXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
+#include <Library/ConfigVariableListLib.h>
 
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
@@ -96,11 +97,10 @@ typedef struct {
   LIST_ENTRY    Link;
 } CONFIG_TAG_LINK_HEADER;
 
-SetupConfState_t  mSetupConfState      = SetupConfInit;
-UINT16            *mConfDataBuffer     = NULL;
-UINTN             mConfDataOffset      = 0;
-UINTN             mConfDataSize        = 0;
-LIST_ENTRY        mCollectedConfigTags = INITIALIZE_LIST_HEAD_VARIABLE (mCollectedConfigTags);
+SetupConfState_t  mSetupConfState  = SetupConfInit;
+UINT16            *mConfDataBuffer = NULL;
+UINTN             mConfDataOffset  = 0;
+UINTN             mConfDataSize    = 0;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -182,6 +182,8 @@ ApplySettings (
   UINTN       ValueSize;
   UINT8       *ByteArray = NULL;
   CONST VOID  *SetValue  = NULL;
+
+  CONFIG_VAR_LIST_ENTRY  VarListEntry;
 
   //
   // Create Node List from input
@@ -334,10 +336,9 @@ ApplySettings (
     }
 
     // only care about our target
-    if ((0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, DFCI_MAX_ID_LEN)) &&
-        (0 != AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, sizeof (SINGLE_SETTING_PROVIDER_START) - 1)) &&
-        (0 != AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__RUNTIME, DFCI_MAX_ID_LEN)))
-    {
+    ZeroMem (&VarListEntry, sizeof (VarListEntry));
+    Status = QuerySingleActiveConfigAsciiVarList (Id, &VarListEntry);
+    if (EFI_ERROR (Status)) {
       continue;
     }
 
@@ -617,44 +618,6 @@ Exit:
 }
 
 /**
-  Handler function dispatched for individual tag based data.
-
-  @param[in] Tag          Discovered Tag ID of Buffer.
-  @param[in] Buffer       Data content of Tag ID from target configuration data blob.
-  @param[in] BufferSize   Size of Tag ID buffer discovered from target configuration data blob.
-
-  @retval EFI_INVALID_PARAMETER   Input argument is null.
-  @retval EFI_SUCCESS             All p.
-
-**/
-EFI_STATUS
-EFIAPI
-CollectAllConfigTags (
-  UINT32  Tag,
-  VOID    *Buffer,
-  UINTN   BufferSize
-  )
-{
-  EFI_STATUS              Status;
-  CONFIG_TAG_LINK_HEADER  *Hdr;
-
-  // Now that we add it to the registered list
-  Hdr = AllocatePool (sizeof (CONFIG_TAG_LINK_HEADER));
-  if (Hdr == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Exit;
-  }
-
-  Hdr->TagId = Tag;
-  InsertTailList (&mCollectedConfigTags, &Hdr->Link);
-
-  Status = EFI_SUCCESS;
-
-Exit:
-  return Status;
-}
-
-/**
 Create an XML string from all the current settings
 
 **/
@@ -665,24 +628,24 @@ CreateXmlStringFromCurrentSettings (
   OUT UINTN  *StringSize
   )
 {
-  EFI_STATUS              Status;
-  XmlNode                 *List                    = NULL;
-  XmlNode                 *CurrentSettingsNode     = NULL;
-  XmlNode                 *CurrentSettingsListNode = NULL;
-  CHAR8                   LsvString[20];
-  EFI_TIME                Time;
-  UINT32                  Lsv      = 1;
-  UINTN                   DataSize = 0;
-  CHAR8                   *EncodedBuffer;
-  UINTN                   EncodedSize = 0;
-  VOID                    *Data       = NULL;
-  UINT8                   Dummy;
-  DFCI_SETTING_FLAGS      Flags;
-  CONFIG_TAG_LINK_HEADER  *TagNode;
-  LIST_ENTRY              *Link;
-  UINT32                  TagId;
-  CHAR8                   *AsciiName;
-  UINTN                   AsciiSize;
+  EFI_STATUS             Status;
+  XmlNode                *List                    = NULL;
+  XmlNode                *CurrentSettingsNode     = NULL;
+  XmlNode                *CurrentSettingsListNode = NULL;
+  CHAR8                  LsvString[20];
+  EFI_TIME               Time;
+  UINT32                 Lsv      = 1;
+  UINTN                  DataSize = 0;
+  CHAR8                  *EncodedBuffer;
+  UINTN                  EncodedSize = 0;
+  VOID                   *Data       = NULL;
+  UINT8                  Dummy;
+  DFCI_SETTING_FLAGS     Flags;
+  CHAR8                  *AsciiName;
+  UINTN                  AsciiSize;
+  CONFIG_VAR_LIST_ENTRY  *VarListEntries     = NULL;
+  UINTN                  VarListEntriesCount = 0;
+  UINTN                  Index;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -734,67 +697,36 @@ CreateXmlStringFromCurrentSettings (
     goto EXIT;
   }
 
-  DataSize = 0;
-  Status   = mSettingAccess->Get (
-                               mSettingAccess,
-                               DFCI_OEM_SETTING_ID__CONF,
-                               &mAuthToken,
-                               DFCI_SETTING_TYPE_BINARY,
-                               &DataSize,
-                               &Dummy,
-                               &Flags
-                               );
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
-    goto EXIT;
-  }
-
-  Data = AllocatePool (DataSize);
-  if (Data == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto EXIT;
-  }
-
-  Status = mSettingAccess->Get (
-                             mSettingAccess,
-                             DFCI_OEM_SETTING_ID__CONF,
-                             &mAuthToken,
-                             DFCI_SETTING_TYPE_BINARY,
-                             &DataSize,
-                             Data,
-                             &Flags
-                             );
+  Status = RetrieveActiveConfigVarList (&VarListEntries, &VarListEntriesCount);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Unexpected result from getting - %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "Retrieving config data failed - %r\n", Status));
     goto EXIT;
   }
 
-  Status = IterateConfData (Data, CollectAllConfigTags);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Iterate config data failed - %r\n", Status));
+  if ((VarListEntries == NULL) && (VarListEntriesCount != 0)) {
+    // Should not be here, but...
+    DEBUG ((DEBUG_ERROR, "Retrieved config data is NULL.\n"));
+    Status = EFI_COMPROMISED_DATA;
     goto EXIT;
   }
-
-  FreePool (Data);
-  Data = NULL;
 
   // Now get the individual settings
-  while (!IsListEmpty (&mCollectedConfigTags)) {
-    Link    = GetFirstNode (&mCollectedConfigTags);
-    TagNode = BASE_CR (Link, CONFIG_TAG_LINK_HEADER, Link);
-    TagId   = TagNode->TagId;
-    RemoveEntryList (Link);
-    FreePool (TagNode);
+  for (Index = 0; Index < VarListEntriesCount; Index++) {
+    if (VarListEntries[Index].Name == NULL) {
+      DEBUG ((DEBUG_ERROR, "Retrieved config data index 0x%x has NULL name.\n", Index));
+      Status = EFI_COMPROMISED_DATA;
+      goto EXIT;
+    }
 
-    AsciiSize = sizeof (SINGLE_SETTING_PROVIDER_START) + 2 * sizeof (TagId);
+    AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN) + 1;
     AsciiName = AllocatePool (AsciiSize);
     if (AsciiName == NULL) {
-      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID 0x%x.\n", TagId));
+      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", VarListEntries[Index].Name));
       Status = EFI_OUT_OF_RESOURCES;
       goto EXIT;
     }
 
-    AsciiSPrint (AsciiName, AsciiSize, SINGLE_SETTING_PROVIDER_TEMPLATE, TagId);
+    AsciiSPrint (AsciiName, AsciiSize, "%s", VarListEntries[Index].Name);
 
     DataSize = 0;
     Status   = mSettingAccess->Get (
@@ -880,6 +812,20 @@ EXIT:
 
   if (EncodedBuffer != NULL) {
     FreePool (EncodedBuffer);
+  }
+
+  if (VarListEntries != NULL) {
+    for (Index = 0; Index < VarListEntriesCount; Index++) {
+      if (VarListEntries[Index].Name != NULL) {
+        FreePool (VarListEntries[Index].Name);
+      }
+
+      if (VarListEntries[Index].Data != NULL) {
+        FreePool (VarListEntries[Index].Data);
+      }
+    }
+
+    FreePool (VarListEntries);
   }
 
   if (EFI_ERROR (Status)) {

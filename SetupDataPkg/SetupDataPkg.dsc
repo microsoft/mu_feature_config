@@ -38,6 +38,7 @@
   UefiBootManagerLib|MdeModulePkg/Library/BaseUefiBootManagerLibNull/BaseUefiBootManagerLibNull.inf
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
+  SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
 
   XmlTreeLib|XmlSupportPkg/Library/XmlTreeLib/XmlTreeLib.inf
   XmlTreeQueryLib|XmlSupportPkg/Library/XmlTreeQueryLib/XmlTreeQueryLib.inf
@@ -76,6 +77,8 @@
   SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
   SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
+  SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
+
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 
 [Components.X64, Components.AARCH64]

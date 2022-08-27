@@ -30,11 +30,13 @@
   DfciV1SupportLib|DfciPkg/Library/DfciV1SupportLibNull/DfciV1SupportLibNull.inf
   DfciUiSupportLib|DfciPkg/Library/DfciUiSupportLibNull/DfciUiSupportLibNull.inf
   SecureBootKeyStoreLib|MsCorePkg/Library/SecureBootKeyStoreLibNull/SecureBootKeyStoreLibNull.inf
+  ConfigVariableListLib|SetupDataPkg/Test/MockLibrary/MockConfigVariableListLib/MockConfigVariableListLib.inf
 
 [Components]
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  SetupDataPkg/Test/MockLibrary/MockConfigVariableListLib/MockConfigVariableListLib.inf
 
   SetupDataPkg/Library/ConfigDataLib/UnitTest/ConfigDataLibUnitTest.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/UnitTest/ConfigBlobBaseLibUnitTest.inf
