@@ -587,6 +587,13 @@ SettingsProviderSupportProtocolNotify (
     goto Done;
   }
 
+  if ((VarList == NULL) && (VarListCount != 0)) {
+    // Should not be here, but...
+    DEBUG ((DEBUG_ERROR, "%a Retrieved config data is NULL.\n", __FUNCTION__));
+    Status = EFI_COMPROMISED_DATA;
+    goto Done;
+  }
+
   for (Index = 0; Index < VarListCount; Index++) {
     // Using default blob to initialize individual setting providers
     Status = RegisterSingleConfigVariable (&VarList[Index]);
@@ -600,8 +607,13 @@ Done:
   if (VarList != NULL) {
     for (Index = 0; Index < VarListCount; Index++) {
       // Also free the data and name
-      FreePool (VarList[Index].Name);
-      FreePool (VarList[Index].Data);
+      if (VarList[Index].Name != NULL) {
+        FreePool (VarList[Index].Name);
+      }
+
+      if (VarList[Index].Data != NULL) {
+        FreePool (VarList[Index].Data);
+      }
     }
 
     FreePool (VarList);

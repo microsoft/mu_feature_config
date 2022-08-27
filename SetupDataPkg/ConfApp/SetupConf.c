@@ -643,8 +643,8 @@ CreateXmlStringFromCurrentSettings (
   DFCI_SETTING_FLAGS     Flags;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
-  CONFIG_VAR_LIST_ENTRY  *VarListEntries = NULL;
-  UINTN                  VarListEntriesCount;
+  CONFIG_VAR_LIST_ENTRY  *VarListEntries      = NULL;
+  UINTN                  VarListEntriesCount  = 0;
   UINTN                  Index;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
@@ -703,8 +703,21 @@ CreateXmlStringFromCurrentSettings (
     goto EXIT;
   }
 
+  if ((VarListEntries == NULL) && (VarListEntriesCount != 0)) {
+    // Should not be here, but...
+    DEBUG ((DEBUG_ERROR, "Retrieved config data is NULL.\n"));
+    Status = EFI_COMPROMISED_DATA;
+    goto EXIT;
+  }
+
   // Now get the individual settings
   for (Index = 0; Index < VarListEntriesCount; Index++) {
+    if (VarListEntries[Index].Name == NULL) {
+      DEBUG ((DEBUG_ERROR, "Retrieved config data index 0x%x has NULL name.\n", Index));
+      Status = EFI_COMPROMISED_DATA;
+      goto EXIT;
+    }
+
     AsciiSize = StrnLenS (VarListEntries[Index].Name, DFCI_MAX_ID_LEN) + 1;
     AsciiName = AllocatePool (AsciiSize);
     if (AsciiName == NULL) {
