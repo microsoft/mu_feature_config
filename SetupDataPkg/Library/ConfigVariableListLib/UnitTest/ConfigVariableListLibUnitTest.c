@@ -628,7 +628,7 @@ RetrieveActiveConfigVarListNoProfileTest (
   will_return (GetSectionFromAnyFv, 0);
   will_return (LibPcdGetPtr, &gZeroGuid);
 
-  UT_EXPECT_ASSERT_FAILURE (Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   return UNIT_TEST_PASSED;
 }
