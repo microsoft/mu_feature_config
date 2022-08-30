@@ -738,7 +738,7 @@ class application(tkinter.Frame):
 
     def get_open_file_name(self, ftype):
         if self.is_config_data_loaded():
-            if ftype == "dlt":
+            if "dlt" in ftype or 'csv' in ftype:
                 question = ""
             elif ftype == "bin":
                 question = 'All configuration will be reloaded from binary blob, continue ?'
@@ -757,16 +757,16 @@ class application(tkinter.Frame):
         file_ext = ''
         if 'yaml' in ftype or 'yml' in ftype:
             file_type = 'YAML PKL'
-            file_ext = '.pkl Def.yaml'
+            file_ext = 'pkl yaml'
         if 'xml' in ftype:
             file_type += ' XML'
-            file_ext += ' .xml'
+            file_ext += ' xml'
         if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
             file_type = ftype.upper()
             file_ext = ftype
 
         file_ext = file_ext.split(' ')
-        file_ext_opt = ['*' + i for i in file_ext]
+        file_ext_opt = ['*.' + i for i in file_ext]
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
             title="Load file",
@@ -779,7 +779,7 @@ class application(tkinter.Frame):
             return None
 
     def load_from_delta(self):
-        path = self.get_open_file_name("dlt")
+        path = self.get_open_file_name("dlt csv")
         if not path:
             return
         self.load_delta_file(path)
@@ -894,11 +894,13 @@ class application(tkinter.Frame):
         self.load_cfg_file(path, 0)
 
     def get_save_file_name(self, extension):
+        file_ext = extension.split(' ')
+        file_ext_opt = ['*.' + i for i in file_ext]
         path = filedialog.asksaveasfilename(
             initialdir=self.last_dir,
             title="Save file",
             defaultextension=extension,
-            filetypes=((extension + " file", "*" + extension), ("All Files", "*.*")))
+            filetypes=(("%s files" % extension, file_ext_opt), ("All Files", "*.*")))
         if path:
             self.last_dir = os.path.dirname(path)
             return path
@@ -906,11 +908,9 @@ class application(tkinter.Frame):
             return None
 
     def save_delta_file(self, full=False):
-        path = self.get_save_file_name(".dlt")
+        path = self.get_save_file_name("dlt csv")
         if not path:
             return
-
-        dlt_path = path
 
         # assumption is there is one yaml file and one xml file
         # yml changes get saved to dlt, xml changes get saved to csv
@@ -918,9 +918,10 @@ class application(tkinter.Frame):
             self.update_config_data_on_page()
 
             if self.cfg_data_list[file_id].config_type == 'yml':
-                dlt_path += '.dlt'
+                dlt_path = path
             else:
-                dlt_path += '.csv'
+                # replace .dlt with .csv
+                dlt_path = path[:-4] + ".csv"
 
             new_data = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
             self.cfg_data_list[file_id].cfg_data_obj.generate_delta_file_from_bin(
@@ -928,7 +929,7 @@ class application(tkinter.Frame):
             )
 
     def save_to_svd(self, full):
-        path = self.get_save_file_name(".svd")
+        path = self.get_save_file_name("svd")
         if not path:
             return
 
@@ -981,7 +982,7 @@ class application(tkinter.Frame):
         self.save_delta_file(True)
 
     def save_to_bin(self):
-        path = self.get_save_file_name(".bin")
+        path = self.get_save_file_name("bin")
         if not path:
             return
 
