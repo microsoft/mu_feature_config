@@ -60,7 +60,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
-            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + idx + ".bin")
+            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx) + ".bin")
             params.append(yaml_filename)
             ret = RunPythonScript(cmd, " ".join(params))
             if ret != 0:
@@ -91,7 +91,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
-            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + idx + ".bin")
+            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx) + ".bin")
             params.append(xml_filename)
             ret = RunPythonScript(cmd, " ".join(params))
             if ret != 0:
