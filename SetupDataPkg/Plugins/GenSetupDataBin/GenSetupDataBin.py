@@ -46,7 +46,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
         found_yaml_conf = False
         yaml_filename = None
         if conf_file is None:
-            logging.warn("YAML file not specified, system might not work as expected!!!")
+            logging.info("YAML generic profile file not specified")
         else:
             found_yaml_conf = True
             if not os.path.isfile(conf_file):
@@ -74,9 +74,9 @@ class GenSetupDataBin(IUefiBuildPlugin):
         found_xml_conf = False
         xml_filename = None
         if conf_file is None:
-            logging.warn("XML file not specified, system might not work as expected!!!")
+            logging.warn("XML generic profile file not specified")
             if not found_yaml_conf:
-                logging.error("Did not find any profile config files, system might not work as expected!!!")
+                logging.error("Did not find any profile config files!")
                 return -1
         else:
             found_xml_conf = True
@@ -126,22 +126,39 @@ class GenSetupDataBin(IUefiBuildPlugin):
         self.generate_profile(thebuilder, None, None, 0)
 
         # Build other profiles, if present
-        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY").split(";")
-        csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY").split(";")
+        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
+        csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
 
-        # Validate we have the same number of delta and csv files, as required
-        if len(delta_conf) != len(csv_conf):
-            logging.error("Differing number of Delta and CSV files provided for profiles, they must be the same.")
-            return -1
-
-        for idx in range(len(delta_conf)):
-            # Validate the name of the delta file and csv file match, to mitigate human error in placement
-            if delta_conf[idx] != csv_conf[idx]:
-                logging.error("Delta and CSV files do not have the same name, possible misordering of list.")
+        if delta_conf is not None and csv_conf is not None:
+            delta_conf = delta_conf.split(";")
+            csv_conf = csv_conf.split(";")
+            # Validate we have the same number of delta and csv files, as required
+            if len(delta_conf) != len(csv_conf):
+                logging.error("Differing number of Delta and CSV files provided for profiles, they must be the same.")
                 return -1
 
-            # Generate the profile
-            self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+            for idx in range(len(delta_conf)):
+                # Validate the name of the delta file and csv file match, to mitigate human error in placement
+                if delta_conf[idx] != csv_conf[idx]:
+                    logging.error("Delta and CSV files do not have the same name, possible misordering of list.")
+                    return -1
+
+                # Generate the profile
+                self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+        elif delta_conf is not None:
+            delta_conf = delta_conf.split(";")
+
+            for idx in range(len(delta_conf)):
+                # Generate the profile
+                self.generate_profile(thebuilder, delta_conf[idx], None, idx + 1)
+        elif csv_conf is not None:
+            csv_conf = csv_conf.split(";")
+
+            for idx in range(len(csv_conf)):
+                # Generate the profile
+                self.generate_profile(thebuilder, None, csv_conf[idx], idx + 1)
+        else:
+            logging.warn("Either DELTA_CONF_POLICY or CSV_CONF_POLICY or both not set. Only generic profile generated.")
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", "ConfPolicyVarBin_0.bin", "Plugin generated")
         return 0
