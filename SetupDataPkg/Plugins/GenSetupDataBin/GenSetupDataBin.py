@@ -98,7 +98,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
                 return ret
 
         # Combine into single bin file
-        combined_bin = os.path.join(op_dir, "ConfPolicyVarBin_" + idx + ".bin")
+        combined_bin = os.path.join(op_dir, "ConfPolicyVarBin_" + str(idx) + ".bin")
         with open(combined_bin, "wb") as bin_out:
             if found_yaml_conf and found_xml_conf:
                 with open(yaml_filename, "rb") as yml_file, open(xml_filename, "rb") as xml_file:
