@@ -123,7 +123,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
     # "MSFT_PLATFORM_PACKAGE"
     def do_pre_build(self, thebuilder):
         # Generate Generic Profile
-        self.generate_profile(self, thebuilder, None, None, 0)
+        self.generate_profile(thebuilder, None, None, 0)
 
         # Build other profiles, if present
         delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY").split(";")
@@ -141,7 +141,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
                 return -1
 
             # Generate the profile
-            self.generate_profile(self, thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+            self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", "ConfPolicyVarBin_0.bin", "Plugin generated")
         return 0
