@@ -8,30 +8,11 @@
 
 import logging
 import os
-import shutil
-import xml.etree.ElementTree
 from edk2toolext.environment.plugintypes.uefi_build_plugin import IUefiBuildPlugin
 from edk2toollib.utility_functions import RunPythonScript
 
 
 class GenSetupDataBin(IUefiBuildPlugin):
-
-    # Prettyprint formatter from https://stackoverflow.com/questions/749796/pretty-printing-xml-in-python
-    @staticmethod
-    def indent(elem, level=0):
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                GenSetupDataBin.indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
 
     def generate_profile(self, thebuilder, dlt_filename, csv_filename, idx):
         # Set up a playground
@@ -165,7 +146,9 @@ class GenSetupDataBin(IUefiBuildPlugin):
         else:
             logging.warn("Either DELTA_CONF_POLICY or CSV_CONF_POLICY or both not set. Only generic profile generated.")
 
-        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", "ConfPolicyVarBin_0.bin", "Plugin generated")
+        op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
+        generic_profile = os.path.join(op_dir, "ConfPolicyVarBin_0.bin")
+        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", generic_profile, "Plugin generated")
         return 0
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
