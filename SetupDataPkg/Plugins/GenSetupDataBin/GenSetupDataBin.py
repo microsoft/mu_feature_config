@@ -96,6 +96,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
                     xml_bytes = xml_file.read()
                     bin_out.write(xml_bytes)
 
+        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE_" + str(idx), combined_bin, "Plugin generated")
+
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
     #
@@ -147,9 +149,6 @@ class GenSetupDataBin(IUefiBuildPlugin):
         else:
             logging.warn("Either DELTA_CONF_POLICY or CSV_CONF_POLICY or both not set. Only generic profile generated.")
 
-        op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
-        generic_profile = os.path.join(op_dir, "ConfPolicyVarBin_0.bin")
-        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", generic_profile, "Plugin generated")
         return 0
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
