@@ -29,3 +29,6 @@
 
 [Pcd]
   gDfciPkgTokenSpaceGuid.PcdUnsignedPermissionsFile
+
+[Depex]
+  TRUE
