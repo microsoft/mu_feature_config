@@ -55,7 +55,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
         found_xml_conf = False
         xml_filename = None
         if conf_file is None:
-            logging.warn("XML generic profile file not specified")
+            logging.info("XML generic profile file not specified")
             if not found_yaml_conf:
                 logging.error("Did not find any profile config files!")
                 return -1
@@ -125,7 +125,8 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
             for idx in range(len(delta_conf)):
                 # Validate the name of the delta file and csv file match, to mitigate human error in placement
-                if delta_conf[idx] != csv_conf[idx]:
+                # ignore file suffix
+                if delta_conf[idx][:-4] != csv_conf[idx][:-4]:
                     logging.error("Delta and CSV files do not have the same name, possible misordering of list.")
                     return -1
 
