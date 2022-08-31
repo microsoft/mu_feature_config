@@ -60,6 +60,7 @@
   ConfigDataLib
   PerformanceLib
   ConfigVariableListLib
+  ConfigSystemModeLib
 
 [Guids]
   gDfciAuthProvisionVarNamespace

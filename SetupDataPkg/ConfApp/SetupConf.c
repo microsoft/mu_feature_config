@@ -26,6 +26,7 @@
 #include <Library/DfciXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
+#include <Library/ConfigSystemModeLib.h>
 
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
@@ -35,7 +36,7 @@
 
 #define SETUP_CONF_STATE_OPTIONS  6
 
-CONST ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
+ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   {
     .KeyName             = L"1",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
@@ -117,6 +118,15 @@ ResetGlobals (
     mConfDataBuffer = NULL;
   }
 
+  SetupConfStateOptions[0].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
+  SetupConfStateOptions[0].EndState            = SetupConfUpdateUsb;
+
+  SetupConfStateOptions[1].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
+  SetupConfStateOptions[1].EndState            = SetupConfUpdateNetwork;
+
+  SetupConfStateOptions[2].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
+  SetupConfStateOptions[2].EndState            = SetupConfUpdateSerialHint;
+
   mConfDataSize   = 0;
   mConfDataOffset = 0;
 }
@@ -137,6 +147,19 @@ PrintOptions (
   PrintScreenInit ();
   Print (L"Setup Configuration Options:\n");
   Print (L"\n");
+
+  if (!IsSystemInManufacturingMode ()) {
+    gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK));
+    Print (L"Updating configuration is not allowed per platform policy:\n");
+    SetupConfStateOptions[0].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
+    SetupConfStateOptions[0].EndState            = SetupConfError;
+
+    SetupConfStateOptions[1].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
+    SetupConfStateOptions[1].EndState            = SetupConfError;
+
+    SetupConfStateOptions[2].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
+    SetupConfStateOptions[2].EndState            = SetupConfError;
+  }
 
   Status = PrintAvailableOptions (SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS);
   if (EFI_ERROR (Status)) {
@@ -976,6 +999,10 @@ SetupConfMgr (
         mSetupConfState = SetupConfInit;
       }
 
+      break;
+    case SetupConfError:
+      Print (L"Cannot change configurations at current mode!\n");
+      mSetupConfState = SetupConfWait;
       break;
     case SetupConfExit:
       ResetGlobals ();

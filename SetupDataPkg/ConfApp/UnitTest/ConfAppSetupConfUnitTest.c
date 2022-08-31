@@ -459,6 +459,9 @@ SetupConfCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
+  // Leverage the exit state to clean up the global states.
+  mSetupConfState = SetupConfExit;
+  SetupConfMgr ();
   mSetupConfState = SetupConfInit;
 }
 
@@ -487,6 +490,8 @@ ConfAppSetupConfInit (
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -524,6 +529,8 @@ ConfAppSetupConfSelectEsc (
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -572,6 +579,8 @@ ConfAppSetupConfSelectOther (
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -625,6 +634,8 @@ ConfAppSetupConfSelectUsb (
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, TRUE);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -704,6 +715,8 @@ ConfAppSetupConfSelectSerial (
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, TRUE);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -787,6 +800,8 @@ ConfAppSetupConfSelectSerialEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (IsSystemInManufacturingMode, TRUE);
+
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -865,6 +880,8 @@ ConfAppSetupConfDumpSerial (
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // Expect the prints twice
   expect_any_count (MockSetCursorPosition, Column, 2);
   expect_any_count (MockSetCursorPosition, Row, 2);
@@ -910,6 +927,89 @@ ConfAppSetupConfDumpSerial (
     FreePool (ComparePtr[Index]);
     Index++;
   }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SetupConf page when selecting update configuration at non-mfg mode.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSetupConfNonMfg (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  // Initial run
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  // Selecting 1 should fail
+  KeyData1.Key.UnicodeChar = '1';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfError);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+
+  // Selecting 2 should fail
+  KeyData1.Key.UnicodeChar = '2';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfError);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+
+  // Selecting 3 should fail
+  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfError);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
   return UNIT_TEST_PASSED;
 }
@@ -967,6 +1067,7 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerial", ConfAppSetupConfSelectSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
   AddTestCase (MiscTests, "Setup Configuration page should return with ESC key during serial transport", "SelectSerial", ConfAppSetupConfSelectSerialEsc, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
+  AddTestCase (MiscTests, "Setup Configuration page should ignore updating configurations when in non-mfg mode", "ConfNonMfg", ConfAppSetupConfNonMfg, NULL, SetupConfCleanup, NULL);
 
   //
   // Execute the tests.
