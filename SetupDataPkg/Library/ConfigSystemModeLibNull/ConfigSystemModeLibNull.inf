@@ -1,0 +1,30 @@
+## @file ConfigSystemModeLibNull.inf
+#
+#  Library Instance for system mode related functions for configuration modules.
+#
+#  Copyright (c) Microsoft Corporation.
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfigSystemModeLibNull
+  FILE_GUID           = 79C56AB2-41A1-4F10-B46A-995269A4ADF8
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = BASE
+  LIBRARY_CLASS       = ConfigSystemModeLib
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ANY
+#
+
+
+[Sources]
+  ConfigSystemModeLibNull.c
+
+[Packages]
+  MdePkg/MdePkg.dec
