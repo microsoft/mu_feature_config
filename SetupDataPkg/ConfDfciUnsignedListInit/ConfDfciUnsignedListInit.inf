@@ -27,5 +27,5 @@
   PeimEntryPoint
   ConfigSystemModeLib
 
-[Pcds]
+[Pcd]
   gDfciPkgTokenSpaceGuid.PcdUnsignedPermissionsFile
