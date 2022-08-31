@@ -63,6 +63,7 @@ typedef enum SetupConfState_t_def {
   SetupConfDumpSerial,
   SetupConfDumpComplete,
   SetupConfExit,
+  SetupConfError,
   SetupConfMax
 } SetupConfState_t;
 

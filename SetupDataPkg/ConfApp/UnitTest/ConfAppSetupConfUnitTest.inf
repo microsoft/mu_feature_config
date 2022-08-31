@@ -52,6 +52,7 @@
   DfciUiSupportLib
   SecureBootKeyStoreLib
   ConfigVariableListLib
+  ConfigSystemModeLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
