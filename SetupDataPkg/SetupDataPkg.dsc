@@ -52,6 +52,7 @@
   ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   ConfigBlobBaseLib|SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
+  ConfigSystemModeLib|SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
@@ -78,6 +79,7 @@
   SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
   SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
+  SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
 
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 
