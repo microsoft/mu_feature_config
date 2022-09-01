@@ -26,6 +26,7 @@
   ConfigBlobBaseLib|Include/Library/ConfigBlobBaseLib.h
   ConfigVariableListLib|Include/Library/ConfigVariableListLib.h
   ConfigSystemModeLib|Include/Library/ConfigSystemModeLib.h
+  ActiveProfileSelectorLib|Include/Library/ActiveProfileSelectorLib.h
 
 [Guids]
   gSetupDataPkgTokenSpaceGuid     = { 0x0651d23a, 0xe244, 0x4a7f, { 0x8d, 0x2e, 0x37, 0xac, 0x2b, 0xf9, 0x32, 0xff } }
