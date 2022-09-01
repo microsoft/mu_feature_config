@@ -74,6 +74,10 @@
 [LibraryClasses.common.UEFI_APPLICATION]
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
 
+[PcdsDynamicExDefault]
+  # Set a default value for such dynamic PCD
+  gDfciPkgTokenSpaceGuid.PcdUnsignedPermissionsFile|{GUID("62CF29AD-FEEE-4930-B71B-4806C787C6AA")}
+
 [Components]
   SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
   SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
