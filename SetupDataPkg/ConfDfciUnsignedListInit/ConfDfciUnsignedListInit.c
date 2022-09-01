@@ -46,6 +46,7 @@ ConfDfciUnsignedListInitEntry (
     if (Size != sizeof (EFI_GUID)) {
       DEBUG ((DEBUG_ERROR, "%a Setting dynamic PCD returned with unexpected size 0x%x\n", __FUNCTION__));
       ASSERT (FALSE);
+      return EFI_ABORTED;
     }
   }
 
