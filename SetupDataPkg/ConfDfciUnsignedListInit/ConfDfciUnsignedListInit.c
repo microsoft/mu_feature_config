@@ -1,7 +1,6 @@
 /** @file
-  Settings provider driver to register configuration data setter and getters.
+  Initialize DFCI unsigned list.
 
-  Copyright (c) 2017 - 2020, Intel Corporation. All rights reserved.<BR>
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
@@ -10,6 +9,7 @@
 
 #include <Guid/ZeroGuid.h>
 
+#include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/ConfigSystemModeLib.h>
 
@@ -21,7 +21,7 @@
   @param  PeiServices Describes the list of possible PEI Services.
 
   @retval  EFI_SUCCESS   The PEIM executed normally.
-  @retval  !EFI_SUCCESS  The PEIM failed to execute normally.
+  @retval  !EFI_SUCCESS  The PEIM failed to update dynamic PCD.
 **/
 EFI_STATUS
 EFIAPI
@@ -30,9 +30,23 @@ SgiPlatformPeim (
  IN CONST EFI_PEI_SERVICES     **PeiServices
   )
 {
+  UINTN       Size;
+  EFI_STATUS  Status;
+
   if (!IsSystemInManufacturingMode ()) {
     // Invalidate the PCD if system operation does not allow it.
-    PcdSetPtrS (PcdUnsignedPermissionsFile, sizeof (EFI_GUID), &gZeroGuid);
+    Size = sizeof (EFI_GUID);
+    Status = PcdSetPtrS (PcdUnsignedPermissionsFile, &Size, &gZeroGuid);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a Setting dynamic PCD failed %r\n", __FUNCTION__, Status));
+      ASSERT (FALSE);
+      return Status;
+    }
+
+    if (Size != sizeof (EFI_GUID)) {
+      DEBUG ((DEBUG_ERROR, "%a Setting dynamic PCD returned with unexpected size 0x%x\n", __FUNCTION__));
+      ASSERT (FALSE);
+    }
   }
 
   return EFI_SUCCESS;

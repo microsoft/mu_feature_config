@@ -27,6 +27,7 @@
   PcdLib
   PeimEntryPoint
   ConfigSystemModeLib
+  DebugLib
 
 [Guids]
   gZeroGuid
