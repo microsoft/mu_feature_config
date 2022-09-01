@@ -14,8 +14,12 @@
 #include <Library/ConfigSystemModeLib.h>
 
 /**
-  This function initializes the DFCI unsigned XML PCD based on the system
-  operation mode.
+  This PEIM will update the PCD content based on the system operation mode,
+  before the DFCI has a chance to look at the file guid PCD. If this is MFG
+  mode, that means the unsigned settings will be accepted, thus the file GUID
+  PCD contains a legit value. Otherwise, it will be supplied with a bogus/null
+  value so that DFCI will not be able to locate any xml and eventually not
+  taking any unsigned settings.
 
   @param  FileHandle  Handle of the file being invoked.
   @param  PeiServices Describes the list of possible PEI Services.
