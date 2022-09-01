@@ -25,7 +25,7 @@
 **/
 EFI_STATUS
 EFIAPI
-SgiPlatformPeim (
+_ConfDfciUnsignedListInitEntry (
  IN       EFI_PEI_FILE_HANDLE  FileHandle,
  IN CONST EFI_PEI_SERVICES     **PeiServices
   )
