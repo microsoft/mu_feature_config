@@ -20,6 +20,7 @@
 
 [Includes.Common.Private]
   Test/Include
+  ConfProfileMgr/IncludePrivate
 
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h
@@ -32,6 +33,10 @@
   gSetupDataPkgTokenSpaceGuid     = { 0x0651d23a, 0xe244, 0x4a7f, { 0x8d, 0x2e, 0x37, 0xac, 0x2b, 0xf9, 0x32, 0xff } }
   ## Configuration modules will locate variables under this GUID to initiate and/or update system configuration.
   gSetupConfigPolicyVariableGuid  = { 0x7664559f, 0x829e, 0x48e8, { 0xa4, 0x73, 0xf1, 0x2a, 0xda, 0xd1, 0xdd, 0xd2 } }
+
+[Guids.Common.Private]
+  ## Variable space guid for the ConfProfileMgr. Only intended for private use.
+  gConfProfileMgrVariableGuid = { 0x172da7c0, 0xed94, 0x4066, { 0x90, 0xa0, 0xc7, 0x54, 0x73, 0x80, 0x6a, 0xd9 } }
 
 [Ppis]
 

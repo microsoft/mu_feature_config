@@ -86,6 +86,7 @@
   SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
   SetupDataPkg/Library/ActiveProfileSelectorLibNull/ActiveProfileSelectorLibNull.inf
+  SetupDataPkg/ConfProfileMgr/ConfProfileMgrPei/ConfProfileMgrPei.inf
 
   SetupDataPkg/ConfDfciUnsignedListInit/ConfDfciUnsignedListInit.inf
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
