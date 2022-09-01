@@ -1,0 +1,39 @@
+## @file
+# Initialize DFCI unsigned list.
+#
+# Copyright (C) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfDfciUnsignedListInit
+  FILE_GUID           = 49F3C599-D84C-4E49-BBB6-8FF9A1EE5148
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = PEIM
+  ENTRY_POINT         = ConfDfciUnsignedListInitEntry
+
+[Sources]
+  ConfDfciUnsignedListInit.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  DfciPkg/DfciPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  PcdLib
+  PeimEntryPoint
+  ConfigSystemModeLib
+  DebugLib
+
+[Guids]
+  gZeroGuid
+
+[Pcd]
+  gDfciPkgTokenSpaceGuid.PcdUnsignedPermissionsFile
+
+[Depex]
+  TRUE
