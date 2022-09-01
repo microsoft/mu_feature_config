@@ -26,8 +26,8 @@
 EFI_STATUS
 EFIAPI
 ConfDfciUnsignedListInitEntry (
- IN       EFI_PEI_FILE_HANDLE  FileHandle,
- IN CONST EFI_PEI_SERVICES     **PeiServices
+  IN       EFI_PEI_FILE_HANDLE  FileHandle,
+  IN CONST EFI_PEI_SERVICES     **PeiServices
   )
 {
   UINTN       Size;
@@ -35,7 +35,7 @@ ConfDfciUnsignedListInitEntry (
 
   if (!IsSystemInManufacturingMode ()) {
     // Invalidate the PCD if system operation does not allow it.
-    Size = sizeof (EFI_GUID);
+    Size   = sizeof (EFI_GUID);
     Status = PcdSetPtrS (PcdUnsignedPermissionsFile, &Size, &gZeroGuid);
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "%a Setting dynamic PCD failed %r\n", __FUNCTION__, Status));

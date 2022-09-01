@@ -81,6 +81,7 @@
   SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
 
+  SetupDataPkg/ConfDfciUnsignedListInit/ConfDfciUnsignedListInit.inf
   SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 
 [Components.X64, Components.AARCH64]
