@@ -49,5 +49,6 @@
 
 [Depex]
   gEfiVariableWriteArchProtocolGuid AND
-  gEdkiiVariablePolicyProtocolGuid
+  gEdkiiVariablePolicyProtocolGuid AND
+  gConfProfileMgrProfileValidProtocolGuid
 

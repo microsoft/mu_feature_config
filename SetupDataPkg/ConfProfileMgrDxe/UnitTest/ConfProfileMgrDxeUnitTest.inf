@@ -1,0 +1,45 @@
+## @file
+# Unit tests of the ConfProfileMgrDxe module
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ConfProfileMgrDxeUnitTest
+  FILE_GUID                      = 08401E08-158A-4E38-BC9B-E14E6F834868
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
+
+[Sources]
+  ConfProfileMgrDxeUnitTest.c
+  ConfProfileMgrDxeUnitTest.h
+  ../ConfProfileMgrDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  UnitTestLib
+  ResetUtilityLib
+  ActiveProfileSelectorLib
+  ConfigVariableListLib
+
+[Protocols]
+
+[Guids]

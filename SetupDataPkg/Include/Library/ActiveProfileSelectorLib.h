@@ -11,8 +11,9 @@
 
 /**
   Return which profile is the active profile for this boot.
+  This function validates the profile GUID is valid.
 
-  @param[out] ActiveProfileGuid   The file GUID for the active profile. Caller frees memory.
+  @param[out] ActiveProfileGuid   The file GUID for the active profile. This function allocates mem, caller frees mem.
                                   NULL is returned in case of failure.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.

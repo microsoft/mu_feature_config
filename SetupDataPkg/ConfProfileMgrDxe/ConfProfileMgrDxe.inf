@@ -1,0 +1,50 @@
+## @file
+# Get the active profile and validate against flash, writing to flash and resetting if necessary.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfProfileMgrDxe
+  FILE_GUID           = 625B39FD-E095-4346-B23F-2710D4AE6B8C
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = DXE_DRIVER
+  ENTRY_POINT         = ConfProfileMgrDxeEntry
+
+[Sources]
+  ConfProfileMgrDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  MemoryAllocationLib
+  PcdLib
+  BaseMemoryLib
+  ResetUtilityLib
+  ConfigVariableListLib
+  ActiveProfileSelectorLib
+
+[Guids]
+  gConfProfileMgrVariableGuid
+  gConfProfileMgrResetGuid
+  gSetupDataPkgGenericProfileGuid
+
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile ## PRODUCES
+
+[Protocols]
+  gConfProfileMgrProfileValidProtocolGuid  ## PRODUCES
+
+[Depex]
+   gEfiVariableWriteArchProtocolGuid

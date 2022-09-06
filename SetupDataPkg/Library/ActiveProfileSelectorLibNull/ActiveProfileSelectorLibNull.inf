@@ -29,4 +29,6 @@
   MemoryAllocationLib
 
 [Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile   ## CONSUMES
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList       ## CONSUMES
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileCount      ## CONSUMES

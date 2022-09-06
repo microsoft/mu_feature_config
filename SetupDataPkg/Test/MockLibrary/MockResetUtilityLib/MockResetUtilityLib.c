@@ -18,21 +18,18 @@
 #include <Library/UnitTestLib.h>
 
 /**
-  Simple helper to reset the system with a subtype GUID, and a default
-  to fall back on (that isn't necessarily EfiResetPlatformSpecific).
+  Calling this function causes a system-wide reset. This sets
+  all circuitry within the system to its initial state. This type of reset
+  is asynchronous to system operation and operates without regard to
+  cycle boundaries.
 
-  @param[in]  ResetType     The default EFI_RESET_TYPE of the reset.
-  @param[in]  ResetSubtype  GUID pointer for the reset subtype to be used.
-
-  @retval     Pointer to the GUIDed reset data structure. Structure is
-              SIMPLE_GUIDED_RESET_DATA_SIZE in size.
-
+  System reset should not return, if it returns, it means the system does
+  not support cold reset.
 **/
 VOID
 EFIAPI
-ResetSystemWithSubtype (
-  IN EFI_RESET_TYPE  ResetType,
-  IN CONST  GUID     *ResetSubtype
+ResetCold (
+  VOID
   )
 {
   BASE_LIBRARY_JUMP_BUFFER  *JumpBuf;

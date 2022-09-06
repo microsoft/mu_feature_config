@@ -15,6 +15,7 @@
 
 /**
   Return which profile is the active profile for this boot.
+  This function validates the profile GUID is valid.
 
   @param[out] ActiveProfileGuid   The file GUID for the active profile. Caller frees memory.
                                   NULL is returned in case of failure.
@@ -33,6 +34,9 @@ RetrieveActiveProfileGuid (
 {
   EFI_GUID  *ActiveProfile = NULL;
   UINTN     Size           = sizeof (EFI_GUID);
+  UINT32    NumProfiles    = 0;
+  UINT32    i;
+  EFI_GUID  *ValidGuids = NULL;
 
   if (ActiveProfileGuid == NULL) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
@@ -42,13 +46,35 @@ RetrieveActiveProfileGuid (
   ActiveProfile = AllocatePool (Size);
 
   if (ActiveProfile == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory size: \n", __FUNCTION__, Size));
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory size: %u\n", __FUNCTION__, Size));
     return EFI_OUT_OF_RESOURCES;
   }
 
   CopyMem (ActiveProfile, PcdGetPtr (PcdSetupConfigActiveProfileFile), Size);
 
-  *ActiveProfileGuid = ActiveProfile;
+  NumProfiles = PcdGet32 (PcdConfigurationProfileCount);
 
-  return EFI_SUCCESS;
+  if (NumProfiles == 0) {
+    DEBUG ((DEBUG_ERROR, "%a Failed to get NumProfiles\n", __FUNCTION__));
+    return EFI_NO_RESPONSE;
+  }
+
+  ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
+
+  if (ValidGuids == NULL) {
+    DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs\n", __FUNCTION__));
+    return EFI_NO_RESPONSE;
+  }
+
+  // validate that the returned profile guid is one of the known profile guids
+  for (i = 0; i < NumProfiles; i++) {
+    if (0 == CompareMem (ActiveProfile, &ValidGuids[i], sizeof (*ActiveProfile))) {
+      // we found the profile we are in
+      *ActiveProfileGuid = ActiveProfile;
+
+      return EFI_SUCCESS;
+    }
+  }
+
+  return EFI_NO_RESPONSE;
 }
