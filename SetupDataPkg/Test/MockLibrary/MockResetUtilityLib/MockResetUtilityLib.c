@@ -1,7 +1,7 @@
 /** @file
-  Mocked version of ResetSystemLib for SetupDataPkg unit tests
+  Mocked version of ResetUtilityLib for SetupDataPkg unit tests
 
-  Copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -18,18 +18,21 @@
 #include <Library/UnitTestLib.h>
 
 /**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
+  Simple helper to reset the system with a subtype GUID, and a default
+  to fall back on (that isn't necessarily EfiResetPlatformSpecific).
 
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
+  @param[in]  ResetType     The default EFI_RESET_TYPE of the reset.
+  @param[in]  ResetSubtype  GUID pointer for the reset subtype to be used.
+
+  @retval     Pointer to the GUIDed reset data structure. Structure is
+              SIMPLE_GUIDED_RESET_DATA_SIZE in size.
+
 **/
 VOID
 EFIAPI
-ResetCold (
-  VOID
+ResetSystemWithSubtype (
+  IN EFI_RESET_TYPE  ResetType,
+  IN CONST  GUID     *ResetSubtype
   )
 {
   BASE_LIBRARY_JUMP_BUFFER  *JumpBuf;

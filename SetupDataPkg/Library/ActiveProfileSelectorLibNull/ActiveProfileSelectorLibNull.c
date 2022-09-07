@@ -68,7 +68,7 @@ RetrieveActiveProfileGuid (
 
   // validate that the returned profile guid is one of the known profile guids
   for (i = 0; i < NumProfiles; i++) {
-    if (0 == CompareMem (ActiveProfile, &ValidGuids[i], sizeof (*ActiveProfile))) {
+    if (0 == CompareMem (ActiveProfile, &(ValidGuids[i]), sizeof (*ActiveProfile))) {
       // we found the profile we are in
       *ActiveProfileGuid = ActiveProfile;
 

@@ -40,6 +40,16 @@
   ActiveProfileSelectorLib
   ConfigVariableListLib
 
+[Pcd]
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
+
 [Protocols]
+  gConfProfileMgrProfileValidProtocolGuid
+
 
 [Guids]
+  gZeroGuid
+  gConfProfileMgrVariableGuid
+  gConfProfileMgrResetGuid
+  gSetupDataPkgGenericProfileGuid
+  gSetupConfigPolicyVariableGuid

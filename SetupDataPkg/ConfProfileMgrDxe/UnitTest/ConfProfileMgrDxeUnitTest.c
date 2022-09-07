@@ -18,15 +18,19 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
+#include <PiDxe.h>
+#include <Library/DxeServicesLib.h>
 #include <Library/ConfigVariableListLib.h>
 #include <Library/ActiveProfileSelectorLib.h>
 
 #include <Library/UnitTestLib.h>
-
+#include <Good_Config_Data.h>
 #include "ConfProfileMgrDxeUnitTest.h"
 
 #define UNIT_TEST_APP_NAME     "Configuration Profile Manager DXE Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
+
+EFI_HANDLE  gImageHandle = NULL;
 
 /**
   Mocked version of GetSectionFromAnyFv.
@@ -81,23 +85,172 @@ GetSectionFromAnyFv (
 }
 
 /**
-  Mock retrieving a PCD Ptr.
+  Mock Install Protocol Interface
 
-  Returns the pointer to the buffer of the token specified by TokenNumber.
+  @param  UserHandle             The handle to install the protocol handler on,
+                                 or NULL if a new handle is to be allocated
+  @param  Protocol               The protocol to add to the handle
+  @param  InterfaceType          Indicates whether Interface is supplied in
+                                 native form.
+  @param  Interface              The interface for the protocol being added
 
-  @param[in]  TokenNumber The PCD token number to retrieve a current value for.
-
-  @return Returns the pointer to the token specified by TokenNumber.
+  @return Status code
 
 **/
-VOID *
+EFI_STATUS
 EFIAPI
-LibPcdGetPtr (
-  IN UINTN  TokenNumber
+MockInstallProtocolInterface (
+  IN OUT EFI_HANDLE      *UserHandle,
+  IN EFI_GUID            *Protocol,
+  IN EFI_INTERFACE_TYPE  InterfaceType,
+  IN VOID                *Interface
   )
 {
-  return (VOID *)mock ();
+  assert_non_null (Protocol);
+  assert_memory_equal (Protocol, &gConfProfileMgrProfileValidProtocolGuid, sizeof (EFI_GUID));
+
+  return (EFI_STATUS)mock ();
 }
+
+///
+/// Mock version of the UEFI Boot Services Table
+///
+EFI_BOOT_SERVICES  MockBoot = {
+  {
+    EFI_BOOT_SERVICES_SIGNATURE,         // Signature
+    EFI_BOOT_SERVICES_REVISION,          // Revision
+    sizeof (EFI_BOOT_SERVICES),          // HeaderSize
+    0,                                   // CRC32
+    0
+  },
+  .InstallProtocolInterface = MockInstallProtocolInterface,  // LocateProtocol
+};
+
+/**
+  Mocked version of GetVariable.
+
+  @param[in]       VariableName  A Null-terminated string that is the name of the vendor's
+                                 variable.
+  @param[in]       VendorGuid    A unique identifier for the vendor.
+  @param[out]      Attributes    If not NULL, a pointer to the memory location to return the
+                                 attributes bitmask for the variable.
+  @param[in, out]  DataSize      On input, the size in bytes of the return Data buffer.
+                                 On output the size of data returned in Data.
+  @param[out]      Data          The buffer to return the contents of the variable. May be NULL
+                                 with a zero DataSize in order to determine the size buffer needed.
+
+  @retval EFI_SUCCESS            The function completed successfully.
+  @retval EFI_NOT_FOUND          The variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL   The DataSize is too small for the result.
+  @retval EFI_INVALID_PARAMETER  VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER  VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER  DataSize is NULL.
+  @retval EFI_INVALID_PARAMETER  The DataSize is not too small and Data is NULL.
+  @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
+  @retval EFI_SECURITY_VIOLATION The variable could not be retrieved due to an authentication failure.
+
+**/
+STATIC
+EFI_STATUS
+EFIAPI
+MockGetVariable (
+  IN     CHAR16    *VariableName,
+  IN     EFI_GUID  *VendorGuid,
+  OUT    UINT32    *Attributes     OPTIONAL,
+  IN OUT UINTN     *DataSize,
+  OUT    VOID      *Data           OPTIONAL
+  )
+{
+  UINTN  Size;
+  VOID   *RetData;
+
+  assert_non_null (VariableName);
+  assert_non_null (DataSize);
+
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+
+  Size = (UINTN)mock ();
+  if (Size > *DataSize) {
+    *DataSize = Size;
+    return EFI_BUFFER_TOO_SMALL;
+  } else {
+    *DataSize = Size;
+    RetData   = (VOID *)mock ();
+    CopyMem (Data, RetData, Size);
+  }
+
+  *Attributes = (UINT32)mock ();
+
+  return (EFI_STATUS)mock ();
+}
+
+/**
+  Mocked version of SetVariable.
+
+  @param[in]  VariableName       A Null-terminated string that is the name of the vendor's variable.
+                                 Each VariableName is unique for each VendorGuid. VariableName must
+                                 contain 1 or more characters. If VariableName is an empty string,
+                                 then EFI_INVALID_PARAMETER is returned.
+  @param[in]  VendorGuid         A unique identifier for the vendor.
+  @param[in]  Attributes         Attributes bitmask to set for the variable.
+  @param[in]  DataSize           The size in bytes of the Data buffer. Unless the EFI_VARIABLE_APPEND_WRITE or
+                                 EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set, a size of zero
+                                 causes the variable to be deleted. When the EFI_VARIABLE_APPEND_WRITE attribute is
+                                 set, then a SetVariable() call with a DataSize of zero will not cause any change to
+                                 the variable value (the timestamp associated with the variable may be updated however
+                                 even if no new data value is provided,see the description of the
+                                 EFI_VARIABLE_AUTHENTICATION_2 descriptor below. In this case the DataSize will not
+                                 be zero since the EFI_VARIABLE_AUTHENTICATION_2 descriptor will be populated).
+  @param[in]  Data               The contents for the variable.
+
+  @retval EFI_SUCCESS            The firmware has successfully stored the variable and its data as
+                                 defined by the Attributes.
+  @retval EFI_INVALID_PARAMETER  An invalid combination of attribute bits, name, and GUID was supplied, or the
+                                 DataSize exceeds the maximum allowed.
+  @retval EFI_INVALID_PARAMETER  VariableName is an empty string.
+  @retval EFI_OUT_OF_RESOURCES   Not enough storage is available to hold the variable and its data.
+  @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
+  @retval EFI_WRITE_PROTECTED    The variable in question is read-only.
+  @retval EFI_WRITE_PROTECTED    The variable in question cannot be deleted.
+  @retval EFI_SECURITY_VIOLATION The variable could not be written due to EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS being set,
+                                 but the AuthInfo does NOT pass the validation check carried out by the firmware.
+
+  @retval EFI_NOT_FOUND          The variable trying to be updated or deleted was not found.
+
+**/
+STATIC
+EFI_STATUS
+EFIAPI
+MockSetVariable (
+  IN  CHAR16    *VariableName,
+  IN  EFI_GUID  *VendorGuid,
+  IN  UINT32    Attributes,
+  IN  UINTN     DataSize,
+  IN  VOID      *Data
+  )
+{
+  assert_non_null (VariableName);
+
+  DEBUG ((DEBUG_INFO, "%a Name: %s\n", __FUNCTION__, VariableName));
+
+  check_expected (VariableName);
+  check_expected (VendorGuid);
+  check_expected (DataSize);
+  check_expected (Data);
+
+  return (EFI_STATUS)mock ();
+}
+
+///
+/// Mock version of the UEFI Runtime Services Table
+///
+EFI_RUNTIME_SERVICES  MockRuntime = {
+  .GetVariable = MockGetVariable,
+  .SetVariable = MockSetVariable,
+};
+
+// System table, not used in this test.
+EFI_SYSTEM_TABLE  MockSys;
 
 /**
   Unit test for ActiveProfileSelectorNull.
@@ -124,11 +277,107 @@ RetrieveActiveProfileGuidShouldMatch (
   EFI_GUID    *Guid;
 
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-  will_return (LibPcdGetPtr, { gZeroGuid, gSetupDataPkgGenericProfileGuid });
 
   Status = RetrieveActiveProfileGuid (&Guid);
 
   UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_MEM_EQUAL (Guid, &gSetupDataPkgGenericProfileGuid, sizeof (*Guid));
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ActiveProfileSelectorNull.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RetrieveActiveProfileGuidShouldFail (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  EFI_GUID    *Guid;
+
+  Status = RetrieveActiveProfileGuid (NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  Status = RetrieveActiveProfileGuid (&Guid);
+
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NO_RESPONSE);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RetrieveActiveProfileGuidShouldUseRetrievedProfile (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      i;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    will_return (MockGetVariable, EFI_SUCCESS);
+  }
+
+  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  expect_value (MockSetVariable, VariableName, L"CachedConfProfileGuid");
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+
+  Status = ConfProfileMgrDxeEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
 }
 
 /**
@@ -150,7 +399,6 @@ UnitTestingEntry (
   UNIT_TEST_FRAMEWORK_HANDLE  Framework;
   UNIT_TEST_SUITE_HANDLE      ConfProfileMgrDxeTests;
   UNIT_TEST_SUITE_HANDLE      ActiveProfileSelectorLibNullTests;
-  CONTEXT_DATA                Context;
 
   Framework = NULL;
 
@@ -188,7 +436,9 @@ UnitTestingEntry (
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
-  AddTestCase (ConfProfileMgrDxeTests, "RetrieveActiveProfileGuid should succeed when given generic profile", "RetrieveActiveProfileGuidShouldMatch", RetrieveActiveProfileGuidShouldMatch, NULL, NULL, NULL);
+  AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should succeed when given generic profile", "RetrieveActiveProfileGuidShouldMatch", RetrieveActiveProfileGuidShouldMatch, NULL, NULL, NULL);
+  AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should fail when given bad profile", "RetrieveActiveProfileGuidShouldFail", RetrieveActiveProfileGuidShouldFail, NULL, NULL, NULL);
+  AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should fail when given bad profile", "RetrieveActiveProfileGuidShouldFail", RetrieveActiveProfileGuidShouldUseRetrievedProfile, NULL, NULL, NULL);
 
   //
   // Execute the tests.

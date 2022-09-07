@@ -62,6 +62,8 @@ ValidateActiveProfile (
       continue;
     }
 
+    Size = VarList[i].DataSize;
+
     // Compare profile value against flash value
     Status = gRT->GetVariable (
                     VarList[i].Name,
@@ -210,6 +212,20 @@ ConfProfileMgrDxeEntry (
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a failed to publish protocol (%r)!\n", __FUNCTION__, Status));
     ASSERT (FALSE);
+  }
+
+  // Set the cached variable, in case of communication failure in the future
+  Status = gRT->SetVariable (
+                  CACHED_CONF_PROFILE_VARIABLE_NAME,
+                  &gConfProfileMgrVariableGuid,
+                  Attributes,
+                  Size,
+                  ActiveProfileGuid
+                  );
+
+  // If we fail to cache the profile GUID, don't fail, system may just default to the generic profile in the future
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_WARN, "%a failed to write cached profile variable Status: (%r)!\n", __FUNCTION__, Status));
   }
 
   if (NeedToFreeMem && ActiveProfileGuid) {

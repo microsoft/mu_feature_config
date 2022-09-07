@@ -38,6 +38,9 @@
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+  SetupDataPkg/Test/MockLibrary/MockResetUtilityLib/MockResetUtilityLib.inf
+  SetupDataPkg/Test/MockLibrary/MockConfigVariableListLib/MockConfigVariableListLib.inf
+  SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
   SetupDataPkg/Test/MockLibrary/MockConfigVariableListLib/MockConfigVariableListLib.inf
   SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
 
@@ -50,6 +53,12 @@
       UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
       UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
       ResetUtilityLib|SetupDataPkg/Test/MockLibrary/MockResetUtilityLib/MockResetUtilityLib.inf
+      PcdLib|SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
+      ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
+      DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
+      DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
+      UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
+      HobLib|MdeModulePkg/Library/BaseHobLibNull/BaseHobLibNull.inf
   }
 
   SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {
