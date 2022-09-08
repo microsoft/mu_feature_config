@@ -90,14 +90,18 @@ ValidateActiveProfile (
     {
       DEBUG ((DEBUG_ERROR, "%a active profile does not match variable store %s!\n", __FUNCTION__, VarList[i].Name));
       ValidationFailure = TRUE;
-      FreePool (Data);
       goto Done;
     }
 
     FreePool (Data);
+    Data = NULL;
   }
 
 Done:
+  if (Data != NULL) {
+    FreePool (Data);
+  }
+
   if (ValidationFailure) {
     // Write profile values and reset the system
     for (i = 0; i < VarListCount; i++) {
