@@ -351,6 +351,8 @@ RetrieveActiveProfileGuidShouldUseRetrievedProfile (
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -414,6 +416,8 @@ RetrieveActiveProfileGuidShouldUseCachedProfile (
   will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
   will_return (MockGetVariable, 7);
   will_return (MockGetVariable, EFI_SUCCESS);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
@@ -479,6 +483,8 @@ RetrieveActiveProfileGuidShouldUseGenericProfile (
   will_return (MockGetVariable, 7);
   will_return (MockGetVariable, EFI_NOT_FOUND);
 
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -504,6 +510,96 @@ RetrieveActiveProfileGuidShouldUseGenericProfile (
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+RetrieveActiveProfileGuidShouldAssert (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  UINT32  i;
+
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  // Make set PCD fail
+  will_return (LibPcdSetPtrS, EFI_OUT_OF_RESOURCES);
+
+  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
+
+  // Force assert if GetVariable fails
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    if (i == 8) {
+      will_return (MockGetVariable, EFI_NOT_FOUND);
+    } else {
+      will_return (MockGetVariable, EFI_SUCCESS);
+    }
+  }
+
+  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
+
+  // Force assert in Protocol Install failure
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    will_return (MockGetVariable, EFI_SUCCESS);
+  }
+
+  // Fail to set protocol
+  will_return (MockInstallProtocolInterface, EFI_OUT_OF_RESOURCES);
+
+  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
 
   return UNIT_TEST_PASSED;
 }
@@ -566,9 +662,11 @@ UnitTestingEntry (
   //
   AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should succeed when given generic profile", "RetrieveActiveProfileGuidShouldMatch", RetrieveActiveProfileGuidShouldMatch, NULL, NULL, NULL);
   AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should fail when given bad profile", "RetrieveActiveProfileGuidShouldFail", RetrieveActiveProfileGuidShouldFail, NULL, NULL, NULL);
+
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the retrieved active profile", "RetrieveActiveProfileGuidShouldUseRetrievedProfile", RetrieveActiveProfileGuidShouldUseRetrievedProfile, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the cached profile", "RetrieveActiveProfileGuidShouldUseCachedProfile", RetrieveActiveProfileGuidShouldUseCachedProfile, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the generic profile", "RetrieveActiveProfileGuidShouldUseGenericProfile", RetrieveActiveProfileGuidShouldUseGenericProfile, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should assert", "RetrieveActiveProfileGuidShouldAssert", RetrieveActiveProfileGuidShouldAssert, NULL, NULL, NULL);
 
   //
   // Execute the tests.
