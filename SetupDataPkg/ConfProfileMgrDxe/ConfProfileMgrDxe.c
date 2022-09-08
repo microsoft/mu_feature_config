@@ -74,7 +74,10 @@ ValidateActiveProfile (
                     );
 
     // We should not fail to read any of these variables, if so, write variables, reset
-    if (EFI_ERROR (Status)) {
+    // It is possible that we will fail to read the variable due to the size being different, indicating
+    // the variable has changed. That may be expected and should be handled as the case of the active profile
+    // not matching the variable store
+    if ((Status != EFI_BUFFER_TOO_SMALL) && EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "%a failed to read variable %s Status: (%r)!\n", __FUNCTION__, VarList[i].Name, Status));
       ASSERT (FALSE);
       ValidationFailure = TRUE;
