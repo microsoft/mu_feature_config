@@ -128,7 +128,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
                 # Validate the name of the delta file and csv file match, to mitigate human error in placement
                 # ignore file suffix
                 if delta_conf[idx][:-4] != csv_conf[idx][:-4]:
-                    logging.error("Delta and CSV files do not have the same name, possible misordering of list.")
+                    logging.error("Delta and CSV files do not have the same name, list might be in the wrong order.")
                     return -1
 
                 # Generate the profile
