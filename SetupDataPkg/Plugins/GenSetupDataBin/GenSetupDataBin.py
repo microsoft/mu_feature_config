@@ -99,11 +99,10 @@ class GenSetupDataBin(IUefiBuildPlugin):
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE_" + str(idx), combined_bin, "Plugin generated")
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
-    # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
+    # ConfPolicyVarBin_*.bin
     #
     # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE", "XML_CONF_FILE",
-    # "DELTA_CONF_POLICY" (optional), "CSV_CONF_POLICY" (optional), "CONF_POLICY_GUID_REGISTRY", and
-    # "MSFT_PLATFORM_PACKAGE"
+    # "DELTA_CONF_POLICY" (optional), "CSV_CONF_POLICY" (optional)
     def do_pre_build(self, thebuilder):
         # Generate Generic Profile
         self.generate_profile(thebuilder, None, None, 0)
@@ -151,13 +150,44 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         return 0
 
-    # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
-    # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
+    # Delete intermediate binary files
     #
-    # Consumes build environment variables: "MSFT_PLATFORM_PACKAGE"
+    # Consumes build environment variables: "DELTA_CONF_POLICY" and "CSV_CONF_POLICY"
     def do_post_build(self, thebuilder):
-        if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
-            os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"),
-                                          "BuiltInVars.xml"))
-            # OSDDEBUG remove all partial bin files, after testing
+        op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
+        yaml_conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
+        xml_conf_file = thebuilder.env.GetValue("XML_CONF_FILE")
+        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
+        csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
+
+        if yaml_conf_file is not None:
+            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_0.bin")
+            os.remove(yaml_filename)
+
+        if xml_conf_file is not None:
+            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_0.bin")
+            os.remove(xml_filename)
+
+        if delta_conf is not None and csv_conf is not None:
+            delta_conf = delta_conf.split(";")
+            csv_conf = csv_conf.split(";")
+
+            for idx in range(len(delta_conf)):
+                yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx + 1) + ".bin")
+                xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx + 1) + ".bin")
+                os.remove(yaml_filename)
+                os.remove(xml_filename)
+        elif delta_conf is not None:
+            delta_conf = delta_conf.split(";")
+
+            for idx in range(len(delta_conf)):
+                yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx + 1) + ".bin")
+                os.remove(yaml_filename)
+        elif csv_conf is not None:
+            csv_conf = csv_conf.split(";")
+
+            for idx in range(len(csv_conf)):
+                xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx + 1) + ".bin")
+                os.remove(yaml_filename)
+
         return 0
