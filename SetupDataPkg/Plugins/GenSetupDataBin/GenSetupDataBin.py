@@ -112,7 +112,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
         csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
 
         if (delta_conf is None and csv_conf is not None and thebuilder.env.GetValue("YAML_CONF_FILE") is not None) or\
-            (delta_conf is not None and csv_conf is None and thebuilder.env.GetValue("XML_CONF_FILE") is not None):
+                (delta_conf is not None and csv_conf is None and thebuilder.env.GetValue("XML_CONF_FILE") is not None):
             logging.error("There must be an equal number of entries for delta and csv files when both YAML/XML present")
             return -1
 

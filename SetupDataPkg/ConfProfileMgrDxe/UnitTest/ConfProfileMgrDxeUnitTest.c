@@ -376,7 +376,7 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -447,7 +447,7 @@ ConfProfileMgrDxeShouldUseCachedProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -518,7 +518,7 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -903,7 +903,7 @@ ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -954,7 +954,7 @@ ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -1005,7 +1005,7 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
