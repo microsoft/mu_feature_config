@@ -339,7 +339,7 @@ RetrieveActiveProfileGuidShouldFail (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-RetrieveActiveProfileGuidShouldUseRetrievedProfile (
+ConfProfileMgrDxeShouldUseRetrievedProfile (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -399,7 +399,7 @@ RetrieveActiveProfileGuidShouldUseRetrievedProfile (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-RetrieveActiveProfileGuidShouldUseCachedProfile (
+ConfProfileMgrDxeShouldUseCachedProfile (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -408,6 +408,8 @@ RetrieveActiveProfileGuidShouldUseCachedProfile (
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
+  // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
@@ -465,7 +467,7 @@ RetrieveActiveProfileGuidShouldUseCachedProfile (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-RetrieveActiveProfileGuidShouldUseGenericProfile (
+ConfProfileMgrDxeShouldUseGenericProfile (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -474,6 +476,8 @@ RetrieveActiveProfileGuidShouldUseGenericProfile (
 
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
+  // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
@@ -531,7 +535,7 @@ RetrieveActiveProfileGuidShouldUseGenericProfile (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-RetrieveActiveProfileGuidShouldAssert (
+ConfProfileMgrDxeShouldAssert (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -601,6 +605,239 @@ RetrieveActiveProfileGuidShouldAssert (
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
 
+  // Force assert in SetVariable failure when profile doesn't match
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Force profile to not match flash
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
+
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Force SetVariable to fail
+  will_return (MockSetVariable, EFI_OUT_OF_RESOURCES);
+
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
+  expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
+
+  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  UINT32                    i;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Force profile to not match flash
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
+
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  for (i = 0; i < 9; i++) {
+    will_return (MockSetVariable, EFI_SUCCESS);
+
+    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+    if (i < 2) {
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+    } else {
+      // XML part of blob
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+    }
+
+    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
+    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+  }
+
+  will_return (ResetSystemWithSubtype, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    Status = ConfProfileMgrDxeEntry (NULL, NULL);
+    UT_ASSERT_NOT_EFI_ERROR (Status);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  UINT32                    i;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  // Getting cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Force profile to not match flash
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
+
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  for (i = 0; i < 9; i++) {
+    will_return (MockSetVariable, EFI_SUCCESS);
+
+    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+    if (i < 2) {
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+    } else {
+      // XML part of blob
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+    }
+
+    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
+    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+  }
+
+  will_return (ResetSystemWithSubtype, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    Status = ConfProfileMgrDxeEntry (NULL, NULL);
+    UT_ASSERT_NOT_EFI_ERROR (Status);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  UINT32                    i;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  // Force failure to get cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Force profile to not match flash
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
+
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  for (i = 0; i < 9; i++) {
+    will_return (MockSetVariable, EFI_SUCCESS);
+
+    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+    if (i < 2) {
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+    } else {
+      // XML part of blob
+      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+    }
+
+    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
+    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+  }
+
+  will_return (ResetSystemWithSubtype, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    Status = ConfProfileMgrDxeEntry (NULL, NULL);
+    UT_ASSERT_NOT_EFI_ERROR (Status);
+  }
+
   return UNIT_TEST_PASSED;
 }
 
@@ -663,10 +900,24 @@ UnitTestingEntry (
   AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should succeed when given generic profile", "RetrieveActiveProfileGuidShouldMatch", RetrieveActiveProfileGuidShouldMatch, NULL, NULL, NULL);
   AddTestCase (ActiveProfileSelectorLibNullTests, "RetrieveActiveProfileGuid should fail when given bad profile", "RetrieveActiveProfileGuidShouldFail", RetrieveActiveProfileGuidShouldFail, NULL, NULL, NULL);
 
-  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the retrieved active profile", "RetrieveActiveProfileGuidShouldUseRetrievedProfile", RetrieveActiveProfileGuidShouldUseRetrievedProfile, NULL, NULL, NULL);
-  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the cached profile", "RetrieveActiveProfileGuidShouldUseCachedProfile", RetrieveActiveProfileGuidShouldUseCachedProfile, NULL, NULL, NULL);
-  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the generic profile", "RetrieveActiveProfileGuidShouldUseGenericProfile", RetrieveActiveProfileGuidShouldUseGenericProfile, NULL, NULL, NULL);
-  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should assert", "RetrieveActiveProfileGuidShouldAssert", RetrieveActiveProfileGuidShouldAssert, NULL, NULL, NULL);
+  //
+  // ConfProfileMgrDxe in expected cases
+  //
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the retrieved active profile", "ConfProfileMgrDxeShouldUseRetrievedProfile", ConfProfileMgrDxeShouldUseRetrievedProfile, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the cached profile", "ConfProfileMgrDxeShouldUseCachedProfile", ConfProfileMgrDxeShouldUseCachedProfile, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the generic profile", "ConfProfileMgrDxeShouldUseGenericProfile", ConfProfileMgrDxeShouldUseGenericProfile, NULL, NULL, NULL);
+
+  //
+  // ConfProfileMgrDxe hits assert path
+  //
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should assert", "ConfProfileMgrDxeShouldAssert", ConfProfileMgrDxeShouldAssert, NULL, NULL, NULL);
+
+  //
+  // Profile doesn't match flash test cases
+  //
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the received active profile and reset", "ConfProfileMgrDxeShouldWriteReceivedProfileAndReset", ConfProfileMgrDxeShouldWriteReceivedProfileAndReset, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the cached profile and reset", "ConfProfileMgrDxeShouldWriteCachedProfileAndReset", ConfProfileMgrDxeShouldWriteCachedProfileAndReset, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the generic profile and reset", "ConfProfileMgrDxeShouldWriteGenericProfileAndReset", ConfProfileMgrDxeShouldWriteGenericProfileAndReset, NULL, NULL, NULL);
 
   //
   // Execute the tests.
