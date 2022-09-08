@@ -27,8 +27,8 @@
 #include <Good_Config_Data.h>
 #include "ConfProfileMgrDxeUnitTest.h"
 
-#define UNIT_TEST_APP_NAME     "Configuration Profile Manager DXE Unit Tests"
-#define UNIT_TEST_APP_VERSION  "1.0"
+#define UNIT_TEST_APP_NAME                 "Configuration Profile Manager DXE Unit Tests"
+#define UNIT_TEST_APP_VERSION              "1.0"
 #define CACHED_CONF_PROFILE_VARIABLE_NAME  L"CachedConfProfileGuid"
 
 // Unused, needed for DxeServicesLib
