@@ -20,7 +20,6 @@
 
 [Includes.Common.Private]
   Test/Include
-  ConfProfileMgrDxe/IncludePrivate
 
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h

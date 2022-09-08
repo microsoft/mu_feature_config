@@ -29,7 +29,9 @@
 
 #define UNIT_TEST_APP_NAME     "Configuration Profile Manager DXE Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
+#define CACHED_CONF_PROFILE_VARIABLE_NAME  L"CachedConfProfileGuid"
 
+// Unused, needed for DxeServicesLib
 EFI_HANDLE  gImageHandle = NULL;
 
 /**
@@ -371,7 +373,7 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, L"CachedConfProfileGuid");
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -439,7 +441,7 @@ ConfProfileMgrDxeShouldUseCachedProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, L"CachedConfProfileGuid");
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
@@ -507,7 +509,7 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  expect_value (MockSetVariable, VariableName, L"CachedConfProfileGuid");
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));

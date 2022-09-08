@@ -17,7 +17,8 @@
 #include <Library/ResetUtilityLib.h>
 #include <Library/ConfigVariableListLib.h>
 #include <Library/ActiveProfileSelectorLib.h>
-#include <ConfProfileMgrPrivate.h>
+
+#define CACHED_CONF_PROFILE_VARIABLE_NAME  L"CachedConfProfileGuid"
 
 /**
   Validate the chosen profile values against variable storage. If any value mismatch, write profile values to flash
