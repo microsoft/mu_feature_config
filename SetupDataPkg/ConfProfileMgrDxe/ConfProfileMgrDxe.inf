@@ -34,6 +34,7 @@
   ResetUtilityLib
   ConfigVariableListLib
   ActiveProfileSelectorLib
+  ConfigSystemModeLib
 
 [Guids]
   gConfProfileMgrVariableGuid

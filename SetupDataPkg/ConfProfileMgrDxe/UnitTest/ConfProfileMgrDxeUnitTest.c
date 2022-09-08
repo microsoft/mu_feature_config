@@ -355,6 +355,9 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -422,6 +425,9 @@ ConfProfileMgrDxeShouldUseCachedProfile (
   will_return (MockGetVariable, EFI_SUCCESS);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
@@ -491,6 +497,9 @@ ConfProfileMgrDxeShouldUseGenericProfile (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -558,6 +567,9 @@ ConfProfileMgrDxeShouldAssert (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -587,6 +599,9 @@ ConfProfileMgrDxeShouldAssert (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -614,6 +629,9 @@ ConfProfileMgrDxeShouldAssert (
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // Force profile to not match flash
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
@@ -666,6 +684,9 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // Force profile to not match flash
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
@@ -739,6 +760,9 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // Force profile to not match flash
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
@@ -811,6 +835,9 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
+  // Cause profile to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // Force profile to not match flash
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
@@ -839,6 +866,152 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
     Status = ConfProfileMgrDxeEntry (NULL, NULL);
     UT_ASSERT_NOT_EFI_ERROR (Status);
   }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to not be validated
+  will_return (IsSystemInManufacturingMode, TRUE);
+
+  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+
+  Status = ConfProfileMgrDxeEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  // Getting cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to not be validated
+  will_return (IsSystemInManufacturingMode, TRUE);
+
+  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+
+  Status = ConfProfileMgrDxeEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfProfileMgrDxe.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
+  // Fail to get cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
+  will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  // Cause profile to not be validated
+  will_return (IsSystemInManufacturingMode, TRUE);
+
+  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  expect_value (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME);
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+
+  Status = ConfProfileMgrDxeEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -920,6 +1093,13 @@ UnitTestingEntry (
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the received active profile and reset", "ConfProfileMgrDxeShouldWriteReceivedProfileAndReset", ConfProfileMgrDxeShouldWriteReceivedProfileAndReset, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the cached profile and reset", "ConfProfileMgrDxeShouldWriteCachedProfileAndReset", ConfProfileMgrDxeShouldWriteCachedProfileAndReset, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should write the generic profile and reset", "ConfProfileMgrDxeShouldWriteGenericProfileAndReset", ConfProfileMgrDxeShouldWriteGenericProfileAndReset, NULL, NULL, NULL);
+
+  //
+  // ConfProfileMgrDxe in MfgMode
+  //
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the retrieved active profile in Mfg Mode", "ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode", ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the cached profile in Mfg Mode", "ConfProfileMgrDxeShouldUseCachedProfileMfgMode", ConfProfileMgrDxeShouldUseCachedProfileMfgMode, NULL, NULL, NULL);
+  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the generic profile in Mfg Mode", "ConfProfileMgrDxeShouldUseGenericProfileMfgMode", ConfProfileMgrDxeShouldUseGenericProfileMfgMode, NULL, NULL, NULL);
 
   //
   // Execute the tests.

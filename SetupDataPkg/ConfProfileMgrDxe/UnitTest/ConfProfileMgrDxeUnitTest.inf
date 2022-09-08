@@ -39,6 +39,7 @@
   ResetUtilityLib
   ActiveProfileSelectorLib
   ConfigVariableListLib
+  ConfigSystemModeLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
