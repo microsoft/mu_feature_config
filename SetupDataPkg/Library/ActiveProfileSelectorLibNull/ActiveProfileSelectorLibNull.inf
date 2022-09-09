@@ -12,7 +12,7 @@
   FILE_GUID           = 23757D9D-D703-47E1-90B5-266FD8CBF928
   VERSION_STRING      = 1.0
   MODULE_TYPE         = BASE
-  LIBRARY_CLASS       = ActiveProfileSelectorLibNull
+  LIBRARY_CLASS       = ActiveProfileSelectorLib
 
 [Sources]
   ActiveProfileSelectorLibNull.c
@@ -30,5 +30,3 @@
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile   ## CONSUMES
-  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList       ## CONSUMES
-  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileCount      ## CONSUMES

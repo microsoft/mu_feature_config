@@ -17,8 +17,7 @@
   Return which profile is the active profile for this boot.
   This function validates the profile GUID is valid.
 
-  @param[out] ActiveProfileGuid   The file GUID for the active profile. Caller frees memory.
-                                  NULL is returned in case of failure.
+  @param[out] ActiveProfileGuid   The file GUID for the active profile.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_NO_RESPONSE         The source of truth for profile selection has returned a garbage value or not replied.
@@ -29,52 +28,25 @@
 EFI_STATUS
 EFIAPI
 RetrieveActiveProfileGuid (
-  OUT EFI_GUID  **ActiveProfileGuid
+  OUT EFI_GUID  *ActiveProfileGuid
   )
 {
   EFI_GUID  *ActiveProfile = NULL;
   UINTN     Size           = sizeof (EFI_GUID);
-  UINT32    NumProfiles    = 0;
-  UINT32    i;
-  EFI_GUID  *ValidGuids = NULL;
 
   if (ActiveProfileGuid == NULL) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
     return EFI_INVALID_PARAMETER;
   }
 
-  ActiveProfile = AllocatePool (Size);
+  ActiveProfile = PcdGetPtr (PcdSetupConfigActiveProfileFile);
 
   if (ActiveProfile == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory size: %u\n", __FUNCTION__, Size));
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  CopyMem (ActiveProfile, PcdGetPtr (PcdSetupConfigActiveProfileFile), Size);
-
-  NumProfiles = PcdGet32 (PcdConfigurationProfileCount);
-
-  if (NumProfiles == 0) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to get NumProfiles\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a Failed to retrieve PcdSetupConfigActiveProfileFile!\n", __FUNCTION__));
     return EFI_NO_RESPONSE;
   }
 
-  ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
+  CopyMem (ActiveProfileGuid, ActiveProfile, Size);
 
-  if (ValidGuids == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs\n", __FUNCTION__));
-    return EFI_NO_RESPONSE;
-  }
-
-  // validate that the returned profile guid is one of the known profile guids
-  for (i = 0; i < NumProfiles; i++) {
-    if (0 == CompareMem (ActiveProfile, &(ValidGuids[i]), sizeof (*ActiveProfile))) {
-      // we found the profile we are in
-      *ActiveProfileGuid = ActiveProfile;
-
-      return EFI_SUCCESS;
-    }
-  }
-
-  return EFI_NO_RESPONSE;
+  return EFI_SUCCESS;
 }

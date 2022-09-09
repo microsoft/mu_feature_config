@@ -30,6 +30,7 @@
 STATIC
 VOID
 ValidateActiveProfile (
+  VOID
   )
 {
   EFI_STATUS             Status;
@@ -163,45 +164,117 @@ ConfProfileMgrDxeEntry (
   IN  EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_GUID    *ActiveProfileGuid = NULL;
+  EFI_GUID    ActiveProfileGuid;
   EFI_STATUS  Status;
-  UINTN       Size = sizeof (EFI_GUID);
-  UINT32      Attributes;
   EFI_GUID    CachedProfile;
-  BOOLEAN     NeedToFreeMem = TRUE;
+  UINT32      i;
+  UINT32      NumProfiles        = 0;
+  EFI_GUID    *ValidGuids        = NULL;
+  UINTN       Size               = sizeof (EFI_GUID);
+  UINT32      Attributes         = 3;
+  BOOLEAN     FoundProfileInList = FALSE;
+  BOOLEAN     FoundCachedProfile = FALSE;
+
+  // read the cached profile value. This will be used in case RetrieveActiveProfileGuid fails
+  // and to check if we need to write the variable if the cached value is different than the new value
+  Status = gRT->GetVariable (
+                  CACHED_CONF_PROFILE_VARIABLE_NAME,
+                  &gConfProfileMgrVariableGuid,
+                  &Attributes,
+                  &Size,
+                  &CachedProfile
+                  );
+
+  if (EFI_ERROR (Status) || (Size != sizeof (EFI_GUID))) {
+    DEBUG ((DEBUG_WARN, "%a failed to read cached profile, expected on first boot (%r)!\n", __FUNCTION__, Status));
+    Size = sizeof (EFI_GUID);
+    CopyMem (&CachedProfile, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
+  } else {
+    // used to tell if we need to write the cached profile later or not
+    FoundCachedProfile = TRUE;
+  }
 
   // RetrieveActiveProfileGuid will validate the profile guid is valid before returning
   Status = RetrieveActiveProfileGuid (&ActiveProfileGuid);
 
   // Check if the status failed, but don't error out, try to use cached profile
-  if (EFI_ERROR (Status) || (ActiveProfileGuid == NULL)) {
-    NeedToFreeMem = FALSE;
-    DEBUG ((DEBUG_ERROR, "%a RetrieveActiveProfileGuid failed (%r)! Attempting to set cached profile\n", __FUNCTION__, Status));
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a RetrieveActiveProfileGuid failed (%r)! Attempting to use cached profile\n", __FUNCTION__, Status));
 
-    Status = gRT->GetVariable (
-                    CACHED_CONF_PROFILE_VARIABLE_NAME,
-                    &gConfProfileMgrVariableGuid,
-                    &Attributes,
-                    &Size,
-                    &CachedProfile
-                    );
+    if (!FoundCachedProfile) {
+      DEBUG ((DEBUG_ERROR, "%a Failed to retrieve cached profile, using generic profile\n", __FUNCTION__, Status));
+    }
 
-    if (EFI_ERROR (Status) || (Size != sizeof (EFI_GUID))) {
-      DEBUG ((DEBUG_ERROR, "%a failed to read cached profile, defaulting to default profile (%r)!\n", __FUNCTION__, Status));
-      ActiveProfileGuid = (EFI_GUID *)&gSetupDataPkgGenericProfileGuid;
+    CopyMem (&ActiveProfileGuid, &CachedProfile, Size);
+  }
+
+  // Validate this profile is in the list of profiles for this platform
+  NumProfiles = PcdGetSize (PcdConfigurationProfileList);
+
+  // if we get a bad size for the profile list, we need to fail to the default profile
+  // as we cannot validate the received profile
+  if ((NumProfiles == 0) || (NumProfiles % Size != 0)) {
+    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationProfileList: %u\n", __FUNCTION__, NumProfiles));
+    ASSERT (FALSE);
+    CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
+  } else {
+    NumProfiles /= (UINT32)Size;
+
+    DEBUG ((DEBUG_ERROR, "%a NumProfiles: %u\n", __FUNCTION__, NumProfiles));
+
+    ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
+
+    // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
+    // we need to fail back to the default profile
+    if ((ValidGuids == NULL) || (((UINTN)ValidGuids & BIT0) != 0)) {
+      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs\n", __FUNCTION__));
+      ASSERT (FALSE);
+      CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
     } else {
-      ActiveProfileGuid = &CachedProfile;
+      // validate that the returned profile guid is one of the known profile guids
+      for (i = 0; i < NumProfiles; i++) {
+        if (0 == CompareMem (&ActiveProfileGuid, &(ValidGuids[i]), Size)) {
+          // we found the profile we are in
+          FoundProfileInList = TRUE;
+          break;
+        }
+      }
+
+      // if we didn't find the profile, it is invalid and we default to the generic profile
+      if (!FoundProfileInList) {
+        DEBUG ((DEBUG_ERROR, "%a Invalid profile GUID received, defaulting to default profile\n", __FUNCTION__));
+        CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
+      }
     }
   }
 
   // Set the PCD for the profile parser lib to read during profile validation and for the ConfApp
-  Status = PcdSetPtrS (PcdSetupConfigActiveProfileFile, &Size, ActiveProfileGuid);
+  Status = PcdSetPtrS (PcdSetupConfigActiveProfileFile, &Size, &ActiveProfileGuid);
 
   // If we fail to set the PCD, the system will still be in the correct profile, but the ConfApp will report that
   // the generic profile is active, so we still want to validate the active profile
   if (EFI_ERROR (Status) || (Size != sizeof (EFI_GUID))) {
     DEBUG ((DEBUG_ERROR, "%a failed to set ActiveProfile PCD (%r)!\n", __FUNCTION__, Status));
     ASSERT (FALSE);
+    Size = sizeof (EFI_GUID);
+  }
+
+  // to avoid perf hit, only write var in case of mismatch with cached variable
+  // write the cached profile before we validate against the current variable store contents
+  // so that in case of mismatch we have the cached variable stored for next boot
+  if ((!FoundCachedProfile) || (0 != CompareMem (&CachedProfile, &ActiveProfileGuid, Size))) {
+    Status = gRT->SetVariable (
+                    CACHED_CONF_PROFILE_VARIABLE_NAME,
+                    &gConfProfileMgrVariableGuid,
+                    Attributes,
+                    Size,
+                    &ActiveProfileGuid
+                    );
+
+    // If we fail to cache the profile GUID, don't fail, system may just default to the generic profile in the future
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_WARN, "%a failed to write cached profile variable Status: (%r)!\n", __FUNCTION__, Status));
+    }
   }
 
   // We have the active profile guid, we need to load it and validate the contents against flash.
@@ -209,7 +282,10 @@ ConfProfileMgrDxeEntry (
   // and resets the system. Only validate the profile if we are in CUSTOMER_MODE (not manufacturing mode),
   // as in debug and bringup scenarios the profile may be expected to not match
   if (!IsSystemInManufacturingMode ()) {
+    DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
     ValidateActiveProfile ();
+  } else {
+    DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
   }
 
   // Publish protocol for the configuration settings provider to be able to load with the correct profile in the PCD
@@ -224,24 +300,6 @@ ConfProfileMgrDxeEntry (
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "%a failed to publish protocol (%r)!\n", __FUNCTION__, Status));
     ASSERT (FALSE);
-  }
-
-  // Set the cached variable, in case of communication failure in the future
-  Status = gRT->SetVariable (
-                  CACHED_CONF_PROFILE_VARIABLE_NAME,
-                  &gConfProfileMgrVariableGuid,
-                  Attributes,
-                  Size,
-                  ActiveProfileGuid
-                  );
-
-  // If we fail to cache the profile GUID, don't fail, system may just default to the generic profile in the future
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_WARN, "%a failed to write cached profile variable Status: (%r)!\n", __FUNCTION__, Status));
-  }
-
-  if (NeedToFreeMem && ActiveProfileGuid) {
-    FreePool (ActiveProfileGuid);
   }
 
   return Status;

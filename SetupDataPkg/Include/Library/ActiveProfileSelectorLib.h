@@ -13,8 +13,7 @@
   Return which profile is the active profile for this boot.
   This function validates the profile GUID is valid.
 
-  @param[out] ActiveProfileGuid   The file GUID for the active profile. This function allocates mem, caller frees mem.
-                                  NULL is returned in case of failure.
+  @param[out] ActiveProfileGuid   The file GUID for the active profile.
 
   @retval EFI_INVALID_PARAMETER   Input argument is null.
   @retval EFI_NO_RESPONSE         The source of truth for profile selection has returned a garbage value or not replied.
@@ -25,7 +24,7 @@
 EFI_STATUS
 EFIAPI
 RetrieveActiveProfileGuid (
-  OUT EFI_GUID  **ActiveProfileGuid
+  OUT EFI_GUID  *ActiveProfileGuid
   );
 
 #endif // __ACTIVE_PROFILE_SELECTOR_LIB_H__

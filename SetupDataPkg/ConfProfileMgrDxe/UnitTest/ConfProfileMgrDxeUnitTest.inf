@@ -43,10 +43,10 @@
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList
 
 [Protocols]
   gConfProfileMgrProfileValidProtocolGuid
-
 
 [Guids]
   gZeroGuid

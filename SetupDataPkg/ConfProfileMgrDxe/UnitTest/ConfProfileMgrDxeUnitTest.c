@@ -276,14 +276,14 @@ RetrieveActiveProfileGuidShouldMatch (
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    *Guid;
+  EFI_GUID    Guid;
 
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   Status = RetrieveActiveProfileGuid (&Guid);
 
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_MEM_EQUAL (Guid, &gSetupDataPkgGenericProfileGuid, sizeof (*Guid));
+  UT_ASSERT_MEM_EQUAL (&Guid, &gSetupDataPkgGenericProfileGuid, sizeof (Guid));
 
   return UNIT_TEST_PASSED;
 }
@@ -310,12 +310,12 @@ RetrieveActiveProfileGuidShouldFail (
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    *Guid;
+  EFI_GUID    Guid;
 
   Status = RetrieveActiveProfileGuid (NULL);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  will_return (LibPcdGetPtr, &gZeroGuid);
+  will_return (LibPcdGetPtr, NULL);
 
   Status = RetrieveActiveProfileGuid (&Guid);
 
@@ -348,12 +348,24 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
   EFI_STATUS  Status;
   UINT32      i;
 
+  // Getting cached variable, force it to write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gZeroGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
@@ -374,12 +386,6 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
-  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
-  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -411,18 +417,18 @@ ConfProfileMgrDxeShouldUseCachedProfile (
   EFI_STATUS  Status;
   UINT32      i;
 
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
   // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  // Getting cached variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
-  will_return (MockGetVariable, EFI_SUCCESS);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
@@ -445,12 +451,6 @@ ConfProfileMgrDxeShouldUseCachedProfile (
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
-  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
-  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -482,6 +482,12 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   EFI_STATUS  Status;
   UINT32      i;
 
+  // Fail to get cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
@@ -489,13 +495,13 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
-  // Fail to get cached variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
-  will_return (MockGetVariable, EFI_NOT_FOUND);
-
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
@@ -516,12 +522,6 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
-  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
-  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -552,12 +552,24 @@ ConfProfileMgrDxeShouldAssert (
 {
   UINT32  i;
 
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   // Make set PCD fail
   will_return (LibPcdSetPtrS, EFI_OUT_OF_RESOURCES);
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
+
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   // Force assert if GetVariable fails
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
@@ -591,6 +603,12 @@ ConfProfileMgrDxeShouldAssert (
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
 
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   // Force assert in Protocol Install failure
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
@@ -621,6 +639,12 @@ ConfProfileMgrDxeShouldAssert (
   will_return (MockInstallProtocolInterface, EFI_OUT_OF_RESOURCES);
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
+
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   // Force assert in SetVariable failure when profile doesn't match
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
@@ -678,12 +702,24 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   UINT32                    i;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  // Getting cached variable, it should write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gZeroGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
@@ -745,18 +781,18 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   UINT32                    i;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
   // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  // Getting cached variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
-  will_return (MockGetVariable, EFI_SUCCESS);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
@@ -820,6 +856,12 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   UINT32                    i;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  // Fail to get cached variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
 
@@ -827,13 +869,13 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   will_return (LibPcdGetPtr, &gZeroGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
-  // Force failure to get cached variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
-  will_return (MockGetVariable, EFI_NOT_FOUND);
-
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
+
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
@@ -893,6 +935,12 @@ ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
 {
   EFI_STATUS  Status;
 
+  // Getting cached variable, it should not write variable
+  will_return (MockGetVariable, sizeof (EFI_GUID));
+  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, 3);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
@@ -901,12 +949,6 @@ ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
   will_return (IsSystemInManufacturingMode, TRUE);
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
-  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
-  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -937,14 +979,14 @@ ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
 {
   EFI_STATUS  Status;
 
-  // Force bad profile to be retrieved
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  // Getting cached variable
+  // Getting cached variable, it should not write variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
   will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
@@ -952,12 +994,6 @@ ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
   will_return (IsSystemInManufacturingMode, TRUE);
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
-  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
-  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -988,27 +1024,27 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
 {
   EFI_STATUS  Status;
 
-  // Force bad profile to be retrieved
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   // Fail to get cached variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
   will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 7);
+  will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_NOT_FOUND);
 
+  // Force bad profile to be retrieved
+  will_return (LibPcdGetPtr, &gZeroGuid);
+
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
-
-  // Cause profile to not be validated
-  will_return (IsSystemInManufacturingMode, TRUE);
-
-  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
-  will_return (MockSetVariable, EFI_SUCCESS);
 
   expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
   expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Cause profile to not be validated
+  will_return (IsSystemInManufacturingMode, TRUE);
+
+  will_return (MockInstallProtocolInterface, EFI_SUCCESS);
 
   Status = ConfProfileMgrDxeEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);

@@ -49,8 +49,6 @@
 
 
 [PcdsFixedAtBuild]
-  ## Number of configuration profiles. Platform should override this value. Used to validate received active profile GUID.
-  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileCount|1|UINT32|0x30000001
   ## List of valid Profile GUIDs. Platform should override this value. Used to validate received active profile GUID.
   ## gSetupDataPkgGenericProfileGuid is used as the only valid entry here.
   gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{GUID("8464A6FF-A984-4899-A375-3DC1DB3D4227")}|VOID*|0x30000002

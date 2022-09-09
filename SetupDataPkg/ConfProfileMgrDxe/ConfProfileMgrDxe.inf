@@ -42,7 +42,8 @@
   gSetupDataPkgGenericProfileGuid
 
 [Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile ## PRODUCES
+  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile   ## PRODUCES
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList       ## CONSUMES
 
 [Protocols]
   gConfProfileMgrProfileValidProtocolGuid  ## PRODUCES
