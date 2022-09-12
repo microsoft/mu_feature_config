@@ -195,6 +195,7 @@ ConfProfileMgrDxeEntry (
                   );
 
   if (EFI_ERROR (Status) || (Size != sizeof (EFI_GUID))) {
+    // failed to read the cached profile, fail back to generic profile if required
     DEBUG ((DEBUG_WARN, "%a failed to read cached profile, expected on first boot (%r)!\n", __FUNCTION__, Status));
     Size = sizeof (EFI_GUID);
     CopyMem (&CachedProfile, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
@@ -223,20 +224,18 @@ ConfProfileMgrDxeEntry (
   // if we get a bad size for the profile list, we need to fail to the default profile
   // as we cannot validate the received profile
   if ((NumProfiles == 0) || (NumProfiles % Size != 0)) {
-    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationProfileList: %u\n", __FUNCTION__, NumProfiles));
+    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationProfileList: %u, using generic profile\n", __FUNCTION__, NumProfiles));
     ASSERT (FALSE);
     CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
   } else {
     NumProfiles /= (UINT32)Size;
-
-    DEBUG ((DEBUG_ERROR, "%a NumProfiles: %u\n", __FUNCTION__, NumProfiles));
 
     ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
 
     // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
     // we need to fail back to the default profile
     if ((ValidGuids == NULL) || (((UINTN)ValidGuids & BIT0) != 0)) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs, using generic profile\n", __FUNCTION__));
       ASSERT (FALSE);
       CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
     } else {
