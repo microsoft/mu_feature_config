@@ -80,34 +80,32 @@ ValidateActiveProfile (
     // It is possible that we will fail to read the variable due to the size being different, indicating
     // the variable has changed. That may be expected and should be handled as the case of the active profile
     // not matching the variable store
-    if ((Status != EFI_BUFFER_TOO_SMALL) && EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a failed to read variable %s Status: (%r)!\n", __FUNCTION__, VarList[i].Name, Status));
-      ASSERT (FALSE);
-      ValidationFailure = TRUE;
-      goto Done;
-    }
-
-    if ((Size != VarList[i].DataSize) ||
-        (0 != CompareMem (Data, VarList[i].Data, Size)) ||
+    if (EFI_ERROR (Status) ||
+        (Size != VarList[i].DataSize) ||
         (Attributes != VarList[i].Attributes))
     {
-      DEBUG ((DEBUG_ERROR, "%a active profile does not match variable store %s!\n", __FUNCTION__, VarList[i].Name));
+      DEBUG ((DEBUG_ERROR, "%a variable %s does not match profile, deleting!\n", __FUNCTION__, VarList[i].Name));
       ValidationFailure = TRUE;
-      goto Done;
+
+      // DataSize or Attributes incorrect. Try deleting the variable so we can set the correct values
+      Status = gRT->SetVariable (
+                      VarList[i].Name,
+                      &VarList[i].Guid,
+                      0,
+                      0,
+                      NULL
+                      );
+
+      // We should not fail to delete any of these variables, but if so, try to delete the rest
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "%a failed to delete variable %s Status: (%r)!\n", __FUNCTION__, VarList[i].Name, Status));
+        ASSERT (FALSE);
+      }
     }
 
-    FreePool (Data);
-    Data = NULL;
-  }
-
-Done:
-  if (Data != NULL) {
-    FreePool (Data);
-  }
-
-  if (ValidationFailure) {
-    // Write profile values and reset the system
-    for (i = 0; i < VarListCount; i++) {
+    if (ValidationFailure || (0 != CompareMem (Data, VarList[i].Data, Size))) {
+      // either the variable was previously deleted and needs to be written or the Attributes and DataSize were fine
+      // but the Data does not match, so it can be rewritten without being deleted
       Status = gRT->SetVariable (
                       VarList[i].Name,
                       &VarList[i].Guid,
@@ -123,6 +121,17 @@ Done:
       }
     }
 
+    FreePool (Data);
+    Data = NULL;
+  }
+
+Done:
+  if (Data != NULL) {
+    FreePool (Data);
+  }
+
+  if (ValidationFailure) {
+    // We've updated the variables, now reset the system
     DEBUG ((DEBUG_ERROR, "%a profile written, resetting system\n", __FUNCTION__));
     ResetSystemWithSubtype (EfiResetCold, &gConfProfileMgrResetGuid);
     // Reset system should not return, dead loop if it does
@@ -171,7 +180,7 @@ ConfProfileMgrDxeEntry (
   UINT32      NumProfiles        = 0;
   EFI_GUID    *ValidGuids        = NULL;
   UINTN       Size               = sizeof (EFI_GUID);
-  UINT32      Attributes         = 3;
+  UINT32      Attributes         = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS;
   BOOLEAN     FoundProfileInList = FALSE;
   BOOLEAN     FoundCachedProfile = FALSE;
 

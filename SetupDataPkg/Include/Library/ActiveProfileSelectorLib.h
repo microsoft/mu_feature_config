@@ -6,8 +6,8 @@
 
 **/
 
-#ifndef __ACTIVE_PROFILE_SELECTOR_LIB_H__
-#define __ACTIVE_PROFILE_SELECTOR_LIB_H__
+#ifndef ACTIVE_PROFILE_SELECTOR_LIB_H_
+#define ACTIVE_PROFILE_SELECTOR_LIB_H_
 
 /**
   Return which profile is the active profile for this boot.
@@ -27,4 +27,4 @@ RetrieveActiveProfileGuid (
   OUT EFI_GUID  *ActiveProfileGuid
   );
 
-#endif // __ACTIVE_PROFILE_SELECTOR_LIB_H__
+#endif // ACTIVE_PROFILE_SELECTOR_LIB_H_

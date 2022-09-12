@@ -571,7 +571,7 @@ ConfProfileMgrDxeShouldAssert (
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
-  // Force assert if GetVariable fails
+  // Force assert if SetVariable fails
   will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
   will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
@@ -600,6 +600,20 @@ ConfProfileMgrDxeShouldAssert (
       will_return (MockGetVariable, EFI_SUCCESS);
     }
   }
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[8]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockSetVariable, EFI_NOT_FOUND);
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
 
@@ -637,40 +651,6 @@ ConfProfileMgrDxeShouldAssert (
 
   // Fail to set protocol
   will_return (MockInstallProtocolInterface, EFI_OUT_OF_RESOURCES);
-
-  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
-
-  // Getting cached variable, it should not write variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 3);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Force assert in SetVariable failure when profile doesn't match
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  will_return (LibPcdSetPtrS, EFI_SUCCESS);
-
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
-  // Force profile to not match flash
-  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
-  will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
-
-  will_return (MockGetVariable, 3);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Force SetVariable to fail
-  will_return (MockSetVariable, EFI_OUT_OF_RESOURCES);
-
-  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
-  expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
 
   UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
 
@@ -724,27 +704,71 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
 
-  // Force profile to not match flash
-  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  // Force profile to not match flash with bad entry
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
-  for (i = 0; i < 9; i++) {
-    will_return (MockSetVariable, EFI_SUCCESS);
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
-    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+  for (i = 1; i < 7; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
     if (i < 2) {
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 3);
     } else {
       // XML part of blob
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 7);
     }
 
-    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
-    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, EFI_SUCCESS);
   }
+
+  // Force profile to not match flash with bad datasize
+  will_return (MockGetVariable, 140);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[7]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[7], mKnown_Good_VarList_DataSizes[7]);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Force profile to not match flash with bad attribute
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[8]);
+
+  will_return (MockGetVariable, 2);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[8]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   will_return (ResetSystemWithSubtype, &JumpBuf);
 
@@ -799,27 +823,71 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
 
-  // Force profile to not match flash
-  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  // Force profile to not match flash with bad entry
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
-  for (i = 0; i < 9; i++) {
-    will_return (MockSetVariable, EFI_SUCCESS);
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
-    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+  for (i = 1; i < 7; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
     if (i < 2) {
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 3);
     } else {
       // XML part of blob
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 7);
     }
 
-    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
-    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, EFI_SUCCESS);
   }
+
+  // Force profile to not match flash with bad datasize
+  will_return (MockGetVariable, 140);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[7]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[7], mKnown_Good_VarList_DataSizes[7]);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Force profile to not match flash with bad attribute
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[8]);
+
+  will_return (MockGetVariable, 2);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[8]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   will_return (ResetSystemWithSubtype, &JumpBuf);
 
@@ -880,27 +948,71 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   // Cause profile to be validated
   will_return (IsSystemInManufacturingMode, FALSE);
 
-  // Force profile to not match flash
-  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[1]);
+  // Force profile to not match flash with bad entry
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
-  for (i = 0; i < 9; i++) {
-    will_return (MockSetVariable, EFI_SUCCESS);
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
-    expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[i], StrSize (mKnown_Good_VarList_Names[i]));
+  for (i = 1; i < 7; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
     if (i < 2) {
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 3);
     } else {
       // XML part of blob
-      expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+      will_return (MockGetVariable, 7);
     }
 
-    expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[i]);
-    expect_memory (MockSetVariable, Data, &mKnown_Good_VarList_Entries[i], mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, EFI_SUCCESS);
   }
+
+  // Force profile to not match flash with bad datasize
+  will_return (MockGetVariable, 140);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[7]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[7], mKnown_Good_VarList_DataSizes[7]);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Force profile to not match flash with bad attribute
+  will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockGetVariable, mKnown_Good_VarList_Entries[8]);
+
+  will_return (MockGetVariable, 2);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // delete var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, 0);
+  expect_value (MockSetVariable, Data, NULL);
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // set var
+  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[8]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
+  will_return (MockSetVariable, EFI_SUCCESS);
 
   will_return (ResetSystemWithSubtype, &JumpBuf);
 

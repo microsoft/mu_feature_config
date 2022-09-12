@@ -98,14 +98,29 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
         thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE_" + str(idx), combined_bin, "Plugin generated")
 
+        return 0
+
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # ConfPolicyVarBin_*.bin
     #
-    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE", "XML_CONF_FILE",
-    # "DELTA_CONF_POLICY" (optional), "CSV_CONF_POLICY" (optional)
+    # Consumes build environment variables: 
+    # "BUILD_OUTPUT_BASE": root of build output
+    # "YAML_CONF_FILE": absolute file path of a YAML configuration file (optional if XML_CONF_FILE is specified)
+    # "XML_CONF_FILE": absolute file path of an XML configuration file (optional if YAML_CONF_FILE is specified)
+    # "DELTA_CONF_POLICY": semicolon delimited list of absolute file paths for YAML delta files to be built as
+    #                      additional profiles. Only valid if YAML_CONF_FILE is populated and multiple profiles desired.
+    #                      If both DELTA_CONF_POLICY and CSV_CONF_POLICY specified, they must have the same number of
+    #                      elements.
+    # "CSV_CONF_POLICY":   semicolon delimited list of absolute file paths for XML csv delta files to be built as
+    #                      additional profiles. Only valid if XML_CONF_FILE is populated and multiple profiles desired.
+    #                      If both DELTA_CONF_POLICY and CSV_CONF_POLICY specified, they must have the same number of
+    #                      elements.
     def do_pre_build(self, thebuilder):
         # Generate Generic Profile
-        self.generate_profile(thebuilder, None, None, 0)
+        ret = self.generate_profile(thebuilder, None, None, 0)
+
+        if ret != 0:
+            return ret
 
         # Build other profiles, if present
         delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
@@ -132,62 +147,29 @@ class GenSetupDataBin(IUefiBuildPlugin):
                     return -1
 
                 # Generate the profile
-                self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+                ret = self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+
+                if ret != 0:
+                    return ret
         elif delta_conf is not None:
             delta_conf = delta_conf.split(";")
 
             for idx in range(len(delta_conf)):
                 # Generate the profile
-                self.generate_profile(thebuilder, delta_conf[idx], None, idx + 1)
+                ret = self.generate_profile(thebuilder, delta_conf[idx], None, idx + 1)
+
+                if ret != 0:
+                    return ret
         elif csv_conf is not None:
             csv_conf = csv_conf.split(";")
 
             for idx in range(len(csv_conf)):
                 # Generate the profile
-                self.generate_profile(thebuilder, None, csv_conf[idx], idx + 1)
+                ret = self.generate_profile(thebuilder, None, csv_conf[idx], idx + 1)
+
+                if ret != 0:
+                    return ret
         else:
             logging.warn("Either DELTA_CONF_POLICY or CSV_CONF_POLICY or both not set. Only generic profile generated.")
-
-        return 0
-
-    # Delete intermediate binary files
-    #
-    # Consumes build environment variables: "DELTA_CONF_POLICY" and "CSV_CONF_POLICY"
-    def do_post_build(self, thebuilder):
-        op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
-        yaml_conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
-        xml_conf_file = thebuilder.env.GetValue("XML_CONF_FILE")
-        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
-        csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
-
-        if yaml_conf_file is not None:
-            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_0.bin")
-            os.remove(yaml_filename)
-
-        if xml_conf_file is not None:
-            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_0.bin")
-            os.remove(xml_filename)
-
-        if delta_conf is not None and csv_conf is not None:
-            delta_conf = delta_conf.split(";")
-            csv_conf = csv_conf.split(";")
-
-            for idx in range(len(delta_conf)):
-                yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx + 1) + ".bin")
-                xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx + 1) + ".bin")
-                os.remove(yaml_filename)
-                os.remove(xml_filename)
-        elif delta_conf is not None:
-            delta_conf = delta_conf.split(";")
-
-            for idx in range(len(delta_conf)):
-                yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx + 1) + ".bin")
-                os.remove(yaml_filename)
-        elif csv_conf is not None:
-            csv_conf = csv_conf.split(";")
-
-            for idx in range(len(csv_conf)):
-                xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx + 1) + ".bin")
-                os.remove(yaml_filename)
 
         return 0
