@@ -38,6 +38,7 @@ ValidateActiveProfile (
   UINTN                  VarListCount = 0;
   UINT32                 i;
   BOOLEAN                ValidationFailure = FALSE;
+  BOOLEAN                VariableInvalid   = FALSE;
   UINTN                  Size;
   UINT32                 Attributes;
   VOID                   *Data = NULL;
@@ -86,6 +87,7 @@ ValidateActiveProfile (
     {
       DEBUG ((DEBUG_ERROR, "%a variable %s does not match profile, deleting!\n", __FUNCTION__, VarList[i].Name));
       ValidationFailure = TRUE;
+      VariableInvalid = TRUE;
 
       // DataSize or Attributes incorrect. Try deleting the variable so we can set the correct values
       Status = gRT->SetVariable (
@@ -97,13 +99,14 @@ ValidateActiveProfile (
                       );
 
       // We should not fail to delete any of these variables, but if so, try to delete the rest
-      if (EFI_ERROR (Status)) {
+      if ((Status != EFI_NOT_FOUND) && EFI_ERROR (Status)) {
         DEBUG ((DEBUG_ERROR, "%a failed to delete variable %s Status: (%r)!\n", __FUNCTION__, VarList[i].Name, Status));
         ASSERT (FALSE);
       }
     }
 
-    if (ValidationFailure || (0 != CompareMem (Data, VarList[i].Data, Size))) {
+    if (VariableInvalid || (0 != CompareMem (Data, VarList[i].Data, VarList[i].DataSize))) {
+      DEBUG ((DEBUG_ERROR, "%a variable %s does not match profile, overwriting!\n", __FUNCTION__, VarList[i].Name));
       // either the variable was previously deleted and needs to be written or the Attributes and DataSize were fine
       // but the Data does not match, so it can be rewritten without being deleted
       Status = gRT->SetVariable (
@@ -114,6 +117,8 @@ ValidateActiveProfile (
                       VarList[i].Data
                       );
 
+      ValidationFailure = TRUE;
+
       // We should not fail to write any of these variables, but if so, try to write the rest
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_ERROR, "%a failed to write variable %s Status: (%r)!\n", __FUNCTION__, VarList[i].Name, Status));
@@ -123,6 +128,7 @@ ValidateActiveProfile (
 
     FreePool (Data);
     Data = NULL;
+    VariableInvalid = FALSE;
   }
 
 Done:
@@ -203,6 +209,8 @@ ConfProfileMgrDxeEntry (
     // used to tell if we need to write the cached profile later or not
     FoundCachedProfile = TRUE;
   }
+
+  DEBUG ((DEBUG_ERROR, "%a OSDDEBUG!\n", __FUNCTION__));
 
   // RetrieveActiveProfileGuid will validate the profile guid is valid before returning
   Status = RetrieveActiveProfileGuid (&ActiveProfileGuid);
@@ -289,12 +297,12 @@ ConfProfileMgrDxeEntry (
   // ValidateProfile does not return a status, in case of failure, it writes the chosen profile to flash
   // and resets the system. Only validate the profile if we are in CUSTOMER_MODE (not manufacturing mode),
   // as in debug and bringup scenarios the profile may be expected to not match
-  if (!IsSystemInManufacturingMode ()) {
-    DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
-    ValidateActiveProfile ();
-  } else {
-    DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
-  }
+    if (!IsSystemInManufacturingMode ()) {
+      DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
+      ValidateActiveProfile ();
+    } else {
+      DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
+    }
 
   // Publish protocol for the configuration settings provider to be able to load with the correct profile in the PCD
   Status = gBS->InstallProtocolInterface (
