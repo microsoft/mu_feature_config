@@ -103,7 +103,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
     # ConfPolicyVarBin_*.bin
     #
-    # Consumes build environment variables: 
+    # Consumes build environment variables:
     # "BUILD_OUTPUT_BASE": root of build output
     # "YAML_CONF_FILE": absolute file path of a YAML configuration file (optional if XML_CONF_FILE is specified)
     # "XML_CONF_FILE": absolute file path of an XML configuration file (optional if YAML_CONF_FILE is specified)
