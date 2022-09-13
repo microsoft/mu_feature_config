@@ -254,8 +254,11 @@ ConfProfileMgrDxeEntry (
         }
       }
 
-      // if we didn't find the profile, it is invalid and we default to the generic profile
-      if (!FoundProfileInList) {
+      // if we didn't find the profile and it is not the generic profile, it is invalid and
+      // we default to the generic profile
+      if ((!FoundProfileInList) &&
+          ((0 != CompareMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid)), Size))
+      {
         DEBUG ((DEBUG_ERROR, "%a Invalid profile GUID received, defaulting to default profile\n", __FUNCTION__));
         CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
       }
