@@ -37,6 +37,8 @@ ResetSystemWithSubtype (
 {
   BASE_LIBRARY_JUMP_BUFFER  *JumpBuf;
 
+  check_expected (ResetSubtype);
+
   JumpBuf = (BASE_LIBRARY_JUMP_BUFFER *)mock ();
 
   LongJump (JumpBuf, 1);

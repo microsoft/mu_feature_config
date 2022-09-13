@@ -59,6 +59,8 @@
       DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
       UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
       HobLib|MdeModulePkg/Library/BaseHobLibNull/BaseHobLibNull.inf
+    <PcdsFixedAtBuild>
+      gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{GUID("8464A6FF-A984-4899-A375-3DC1DB3D4227")}
   }
 
   SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {

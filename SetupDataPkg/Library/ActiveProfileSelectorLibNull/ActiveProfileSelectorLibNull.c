@@ -10,7 +10,6 @@
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/MemoryAllocationLib.h>
 #include <Library/ActiveProfileSelectorLib.h>
 
 /**

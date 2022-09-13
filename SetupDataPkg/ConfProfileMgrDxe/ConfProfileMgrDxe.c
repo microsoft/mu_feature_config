@@ -234,7 +234,7 @@ ConfProfileMgrDxeEntry (
     ASSERT (FALSE);
     CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
   } else {
-    NumProfiles /= (UINT32)Size;
+    NumProfiles /= sizeof (EFI_GUID);
 
     ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
 

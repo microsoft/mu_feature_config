@@ -47,11 +47,11 @@
   ## Produced by ConfProfileMgrDxe after active profile validation has completed
   gConfProfileMgrProfileValidProtocolGuid = { 0xd5f29ad3, 0x8317, 0x4475, { 0xa2, 0x46, 0x58, 0x52, 0x9a, 0x9d, 0x6e, 0xf0 } }
 
-
 [PcdsFixedAtBuild]
-  ## List of valid Profile GUIDs. Platform should override this value. Used to validate received active profile GUID.
-  ## gSetupDataPkgGenericProfileGuid is used as the only valid entry here.
-  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{GUID("8464A6FF-A984-4899-A375-3DC1DB3D4227")}|VOID*|0x30000002
+  ## List of valid Profile GUIDs. Platform should override this value as the default is empty.
+  ## This list is used to validate received active profile GUID. If the GUID is not in this list, the generic profile
+  ## gSetupDataPkgGenericProfileGuid is defaulted to.
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{0}|VOID*|0x30000002
 
 [PcdsDynamic, PcdsDynamicEx]
   ## Profile driver will receive the active profile file GUID and populate this PCD

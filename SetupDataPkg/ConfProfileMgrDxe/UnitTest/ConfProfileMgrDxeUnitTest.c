@@ -770,6 +770,7 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  expect_memory (ResetSystemWithSubtype, ResetSubtype, &gConfProfileMgrResetGuid, sizeof (EFI_GUID));
   will_return (ResetSystemWithSubtype, &JumpBuf);
 
   if (!SetJump (&JumpBuf)) {
@@ -889,6 +890,7 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  expect_memory (ResetSystemWithSubtype, ResetSubtype, &gConfProfileMgrResetGuid, sizeof (EFI_GUID));
   will_return (ResetSystemWithSubtype, &JumpBuf);
 
   if (!SetJump (&JumpBuf)) {
@@ -1014,6 +1016,7 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  expect_memory (ResetSystemWithSubtype, ResetSubtype, &gConfProfileMgrResetGuid, sizeof (EFI_GUID));
   will_return (ResetSystemWithSubtype, &JumpBuf);
 
   if (!SetJump (&JumpBuf)) {

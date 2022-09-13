@@ -26,7 +26,6 @@
   DebugLib
   PcdLib
   BaseMemoryLib
-  MemoryAllocationLib
 
 [Pcd]
   gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile   ## CONSUMES
