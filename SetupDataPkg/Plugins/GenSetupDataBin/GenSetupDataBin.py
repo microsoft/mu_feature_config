@@ -8,66 +8,40 @@
 
 import logging
 import os
-import shutil
-import xml.etree.ElementTree
 from edk2toolext.environment.plugintypes.uefi_build_plugin import IUefiBuildPlugin
 from edk2toollib.utility_functions import RunPythonScript
 
 
 class GenSetupDataBin(IUefiBuildPlugin):
 
-    # Prettyprint formatter from https://stackoverflow.com/questions/749796/pretty-printing-xml-in-python
-    @staticmethod
-    def indent(elem, level=0):
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                GenSetupDataBin.indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
-
-    # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
-    # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
-    #
-    # Consumes build environment variables: "BUILD_OUTPUT_BASE", "YAML_CONF_FILE",
-    # "DELTA_CONF_POLICY" (optional), "CONF_POLICY_GUID_REGISTRY" and "MSFT_PLATFORM_PACKAGE"
-    def do_pre_build(self, thebuilder):
+    def generate_profile(self, thebuilder, dlt_filename, csv_filename, idx):
         # Set up a playground
         op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
         if not os.path.isdir(op_dir):
             os.makedirs(op_dir)
-
-        # Add GENBIN routine here
         cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "GenCfgData.py")
+
         params = ["GENBIN"]
 
         conf_file = thebuilder.env.GetValue("YAML_CONF_FILE")
         found_yaml_conf = False
         yaml_filename = None
         if conf_file is None:
-            logging.warn("YAML file not specified, system might not work as expected!!!")
+            logging.info("YAML generic profile file not specified")
         else:
             found_yaml_conf = True
             if not os.path.isfile(conf_file):
                 return -1
 
             # Can also add the dlt file application step if supplied
-            delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
-            if delta_conf is not None:
-                if not os.path.isfile(delta_conf):
+            if dlt_filename is not None:
+                if not os.path.isfile(dlt_filename):
                     return -1
-                conf_file = ";".join(conf_file, delta_conf)
+                conf_file = conf_file + ";" + dlt_filename
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
-            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin.bin")
+            yaml_filename = os.path.join(op_dir, "YAMLPolicyVarBin_" + str(idx) + ".bin")
             params.append(yaml_filename)
             ret = RunPythonScript(cmd, " ".join(params))
             if ret != 0:
@@ -81,9 +55,9 @@ class GenSetupDataBin(IUefiBuildPlugin):
         found_xml_conf = False
         xml_filename = None
         if conf_file is None:
-            logging.warn("XML file not specified, system might not work as expected!!!")
+            logging.info("XML generic profile file not specified")
             if not found_yaml_conf:
-                logging.warn("Did not find any profile config files, system might not work as expected!!!")
+                logging.error("Did not find any profile config files!")
                 return -1
         else:
             found_xml_conf = True
@@ -91,22 +65,21 @@ class GenSetupDataBin(IUefiBuildPlugin):
                 return -1
 
             # Can also add the csv file application step if supplied
-            delta_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
-            if delta_conf is not None:
-                if not os.path.isfile(delta_conf):
+            if csv_filename is not None:
+                if not os.path.isfile(csv_filename):
                     return -1
-                conf_file = ";".join(conf_file, delta_conf)
+                conf_file = conf_file + ";" + csv_filename
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
-            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin.bin")
+            xml_filename = os.path.join(op_dir, "XMLPolicyVarBin_" + str(idx) + ".bin")
             params.append(xml_filename)
             ret = RunPythonScript(cmd, " ".join(params))
             if ret != 0:
                 return ret
 
         # Combine into single bin file
-        combined_bin = os.path.join(op_dir, "ConfPolicyVarBin.bin")
+        combined_bin = os.path.join(op_dir, "ConfPolicyVarBin_" + str(idx) + ".bin")
         with open(combined_bin, "wb") as bin_out:
             if found_yaml_conf and found_xml_conf:
                 with open(yaml_filename, "rb") as yml_file, open(xml_filename, "rb") as xml_file:
@@ -123,41 +96,80 @@ class GenSetupDataBin(IUefiBuildPlugin):
                     xml_bytes = xml_file.read()
                     bin_out.write(xml_bytes)
 
-        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE", combined_bin, "Plugin generated")
+        thebuilder.env.SetValue("BLD_*_CONF_BIN_FILE_" + str(idx), combined_bin, "Plugin generated")
 
-        # Eventually generate a built in var xml
-        if found_yaml_conf:
-            op_xml = os.path.join(op_dir, "BuiltInVars.xml")
-            with open(yaml_filename, "rb") as in_file, open(op_xml, "wb") as out_file:
-                bytes = in_file.read()
-                comment = xml.etree.ElementTree.Comment(' === Auto-Generated === ')
-                root = xml.etree.ElementTree.Element('BuiltInVariables')
-                root.insert(0, comment)
-                xml_var = xml.etree.ElementTree.SubElement(root, "Variable")
-                var_name = xml.etree.ElementTree.SubElement(xml_var, "Name")
-                var_name.text = 'CONF_POLICY_BLOB'
-                var_guid = xml.etree.ElementTree.SubElement(xml_var, "GUID")
-                var_guid.text = thebuilder.env.GetBuildValue("CONF_POLICY_GUID_REGISTRY")
-                var_attr = xml.etree.ElementTree.SubElement(xml_var, "Attributes")
-                # BS|NV
-                var_attr.text = str(3)
-                var_data = xml.etree.ElementTree.SubElement(xml_var, "Data")
-                var_data.set('type', "hex")
-                var_data.text = bytes.hex()
-                GenSetupDataBin.indent(root)
-                xml_str = xml.etree.ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
-                out_file.write(xml_str)
-            if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
-                shutil.copy2(op_xml,
-                             thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE")))
         return 0
 
     # Attempt to run GenCfgData to generate setup data binary blob, output will be placed at
-    # "MSFT_PLATFORM_PACKAGE"/BuiltInVars.xml
+    # ConfPolicyVarBin_*.bin
     #
-    # Consumes build environment variables: "MSFT_PLATFORM_PACKAGE"
-    def do_post_build(self, thebuilder):
-        if thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE") is not None:
-            os.remove(thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("MSFT_PLATFORM_PACKAGE"),
-                                          "BuiltInVars.xml"))
+    # Consumes build environment variables:
+    # "BUILD_OUTPUT_BASE": root of build output
+    # "YAML_CONF_FILE": absolute file path of a YAML configuration file (optional if XML_CONF_FILE is specified)
+    # "XML_CONF_FILE": absolute file path of an XML configuration file (optional if YAML_CONF_FILE is specified)
+    # "DELTA_CONF_POLICY": semicolon delimited list of absolute file paths for YAML delta files to be built as
+    #                      additional profiles. Only valid if YAML_CONF_FILE is populated and multiple profiles desired.
+    #                      If both DELTA_CONF_POLICY and CSV_CONF_POLICY specified, they must have the same number of
+    #                      elements.
+    # "CSV_CONF_POLICY":   semicolon delimited list of absolute file paths for XML csv delta files to be built as
+    #                      additional profiles. Only valid if XML_CONF_FILE is populated and multiple profiles desired.
+    #                      If both DELTA_CONF_POLICY and CSV_CONF_POLICY specified, they must have the same number of
+    #                      elements.
+    def do_pre_build(self, thebuilder):
+        # Generate Generic Profile
+        ret = self.generate_profile(thebuilder, None, None, 0)
+
+        if ret != 0:
+            return ret
+
+        # Build other profiles, if present
+        delta_conf = thebuilder.env.GetValue("DELTA_CONF_POLICY")
+        csv_conf = thebuilder.env.GetValue("CSV_CONF_POLICY")
+
+        if (delta_conf is None and csv_conf is not None and thebuilder.env.GetValue("YAML_CONF_FILE") is not None) or\
+                (delta_conf is not None and csv_conf is None and thebuilder.env.GetValue("XML_CONF_FILE") is not None):
+            logging.error("There must be an equal number of entries for delta and csv files when both YAML/XML present")
+            return -1
+
+        if delta_conf is not None and csv_conf is not None:
+            delta_conf = delta_conf.split(";")
+            csv_conf = csv_conf.split(";")
+            # Validate we have the same number of delta and csv files, as required
+            if len(delta_conf) != len(csv_conf):
+                logging.error("Differing number of Delta and CSV files provided for profiles, they must be the same.")
+                return -1
+
+            for idx in range(len(delta_conf)):
+                # Validate the name of the delta file and csv file match, to mitigate human error in placement
+                # ignore file suffix
+                if delta_conf[idx][:-4] != csv_conf[idx][:-4]:
+                    logging.error("Delta and CSV files do not have the same name, list might be in the wrong order.")
+                    return -1
+
+                # Generate the profile
+                ret = self.generate_profile(thebuilder, delta_conf[idx], csv_conf[idx], idx + 1)
+
+                if ret != 0:
+                    return ret
+        elif delta_conf is not None:
+            delta_conf = delta_conf.split(";")
+
+            for idx in range(len(delta_conf)):
+                # Generate the profile
+                ret = self.generate_profile(thebuilder, delta_conf[idx], None, idx + 1)
+
+                if ret != 0:
+                    return ret
+        elif csv_conf is not None:
+            csv_conf = csv_conf.split(";")
+
+            for idx in range(len(csv_conf)):
+                # Generate the profile
+                ret = self.generate_profile(thebuilder, None, csv_conf[idx], idx + 1)
+
+                if ret != 0:
+                    return ret
+        else:
+            logging.warn("Either DELTA_CONF_POLICY or CSV_CONF_POLICY or both not set. Only generic profile generated.")
+
         return 0
