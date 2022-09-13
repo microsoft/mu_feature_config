@@ -37,7 +37,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             if dlt_filename is not None:
                 if not os.path.isfile(dlt_filename):
                     return -1
-                conf_file = conf_file + ";" + dlt_filename
+                conf_file = '"' + conf_file + ";" + dlt_filename + '"'
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
@@ -68,7 +68,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             if csv_filename is not None:
                 if not os.path.isfile(csv_filename):
                     return -1
-                conf_file = conf_file + ";" + csv_filename
+                conf_file = '"' + conf_file + ";" + csv_filename + '"'
             params.append(conf_file)
 
             # Should be all setup, generate bin now...
