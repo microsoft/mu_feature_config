@@ -95,14 +95,14 @@ be added, with the old knob being removed as soon as feasible.
 
 ### Active Profile Selection
 
-The ActiveProfileSelectorLib library class will retrieve the active profile file GUID. If ActiveProfileSelectorLib has
-a failure or returns a file GUID not in `gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList`, ConfProfileMgrDxe
-will attempt to fall back to the last used profile, if one exists. If the cached profile is not found or has an
-invalid value, ConfProfileDxe will use the generic profile, under the GUID `gSetupDataPkgGenericProfileGuid`, as the
-active profile.
+The ActiveProfileSelectorLib library class is intended to be a platform overidden value. It will retrieve the active
+profile file GUID. If ActiveProfileSelectorLib has a failure or returns a file GUID not in
+`gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList`, ConfProfileMgrDxe will attempt to fall back to the last used
+profile, if one exists. If the cached profile is not found or has an invalid value, ConfProfileDxe will use the generic
+profile, under the GUID `gSetupDataPkgGenericProfileGuid`, as the active profile.
 
-A given platform may choose to override the ActiveProfileSelectorLib library class to retrieve the active profile file
-GUID from a different source of truth.
+A given platform should override the ActiveProfileSelectorLib library class to retrieve the active profile file
+GUID from their source of truth.
 
 ### Profile Enforcement
 

@@ -100,7 +100,7 @@ will omit the integration steps for these features. For more information about D
 
 ### Platform DSC statements
 
-1. Add the DSC sections below.
+Add the DSC sections below.
 
 > Note: This is change is on top of Project MU based BDS and DFCI feature.
 
@@ -128,7 +128,7 @@ will omit the integration steps for these features. For more information about D
   }
 ```
 
-1. Remove the DSC sections below.
+Remove the DSC sections below.
 
 ``` bash
 [Components.X64, Components.AARCH64]
@@ -143,7 +143,7 @@ will omit the integration steps for these features. For more information about D
 
 ### Platform FDF statements
 
-1. Add the FDF sections below.
+Add the FDF sections below.
 
 > Note: This is change is on top of Project MU based BDS and DFCI feature.
 
@@ -153,7 +153,7 @@ will omit the integration steps for these features. For more information about D
   INF SetupDataPkg/ConfApp/ConfApp.inf
 ```
 
-1. Remove the FDF sections below.
+Remove the FDF sections below.
 
 ``` bash
 [FV.YOUR_DXE_FV]
