@@ -14,6 +14,8 @@ policy and serialize them into printable strings.
 `ConfApp` is a UEFI application that replaces traditional UI application to display basic system information and provide
 minimal functionalities, including updating system configuration data.
 
+`ConfProfileMgrDxe` is a DXE driver that validates and enforces the active configuration profile in MFCI Customer Mode.
+
 For more general background about the steps necessary to integrate the configuration modules, please review the
 [Platform Integration Steps](PlatformIntegrationSteps.md).
 
@@ -22,6 +24,7 @@ For more general background about the steps necessary to integrate the configura
 | Driver | Location |
 | ---| ---|
 | ConfDataSettingProvider | SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf |
+| ConfProfileMgrDxe | SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf |
 
 ## UEFI Applications
 

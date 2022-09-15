@@ -20,6 +20,7 @@ This document is intended to describe the Project MU version of Configuration Fi
 | ------------ | --------- | ------------------|
 | Kun Qin   | 11/29/2021| First draft |
 | Oliver Smith-Denny | 7/22/2022 | Add YAML/XML Merged Support |
+| Oliver Smith-Denny | 9/15/2022 | Add Profile Support |
 
 ## Terms
 
@@ -69,16 +70,20 @@ to denote an array ID tag value. [GenCfgData.py](../../Tools/GenCfgData.py) will
 content to backend database and generate the same binary data blob.
 
 - MU version of ConfigEditor supports 3 more option for loading from and saving to SVD (Setup Variable Data) files:
-  - Save Full Config Data to SVD File (supported for YAML/XML/Merged YAML + XML):
-      Saving the entire defined YAML structure into encoded binary settings format. This format is useful when many tags
-      of settings need updating at once, as it will save transmission overhead when serial method is selected. But this
-      will *touch* all configurations defined.
-  - Save Config Changes to SVD File (Supported for YAML):
+  - Save Full Config Data to SVD File:
+      Saving the entire defined YAML/XML structure into encoded binary settings format. This format is useful when many
+      tags of settings need updating at once, but this will save *all* configurations defined.
+  - Save Config Changes to SVD File:
       Saving only the changed tag setting into corresponding encoded binary value. This will allow the target system to
-      update only the changed tag setting (i.e. Only disable GFX controllers, and leave USB ports on the same system intact)
-  - Load Config Data from SVD File (Supported for YAML/XML/Merged YAML + XML):
-      Once the target system has dumped current configuration from ConfApp, the output data can be viewed in ConfigEditor
-      on host system.
+      update only the changed tag setting (i.e. Only disable GFX controllers, and leave USB ports on the same system
+      intact)
+  - Load Config Data from SVD File:
+      Once the target system has dumped current configuration from ConfApp, the output data can be viewed in
+      the ConfigEditor on a host system or saved SVDs from the ConfigEditor can be loaded again.
+
+The SVD is intended for use with the UEFI [Conf App](../../ConfApp/), which can take the SVD as input
+and give an SVD describing the current UEFI settings as an output. The SVD is formatted to be compatible
+with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
 
 ## XML Specification
 
@@ -86,6 +91,9 @@ See [sampleschema.xml](../../Tools/sampleschema.xml) for an example XML schema.
 
 Configuration will be organized in namespaces, each consisting of various knobs. Knobs may be built of children knobs
 or be a leaf knob.
+
+The XML and artifacts generated from it are not used by the ConfApp or other UEFI components, but support is given to
+visualize the XML for scenarios that have XML configuration.
 
 Supported data types are:
 
@@ -114,8 +122,7 @@ config changes and a .csv file for the XML config changes. Either or both of the
 loaded to modify the current config viewed in the ConfigEditor.
 
 As noted above under YAML Specification Differences, the full SVD can be saved in a merged
-configuration. YAML config will be under Device.ConfigData.ConfigData and XML config will be
-under Device.RuntimeData.RuntimeData.
+configuration. Config will be stored in individual tags under each variable name.
 
 For saving to/loading from a binary file, the merged config will create a list of UEFI variables
 that will look as such:
@@ -124,35 +131,20 @@ that will look as such:
 |   XML Var 2  |
 |      ...     |
 |   XML Var N  |
-| YML Var List |
+|   YML Var 1  |
+|   YML Var 2  |
+|      ...     |
+|   YML Var N  |
 
-Where XML Var N looks like:
+(Order not guaranteed)
 
-|   Name Size   |
-|   Data Size   |
-|      Name     |
-|      GUID     |
-|      Data     |
-|      CRC      |
+Where XML/YML Var N looks like:
 
-And YML Var List is:
+|   UINT32   Name Size   |
+|   UINT32   Data Size   |
+|   CHAR16   *Name       |
+|   EFI_GUID GUID        |
+|   VOID     *Data       |
+|   UINT32   CRC         |
 
-|              Name Size              |
-|              Data Size              |
-|      DFCI_SETTINGS_REQUEST_NAME     |
-|      DFCI_SETTINGS_REQUEST_GUID     |
-|     Base64 Encoded YAML Only SVD    |
-|                 CRC                 |
-
-Where the Base64 Encoded YAML Only SVD is the Full SVD produced by the ConfigEditor app, containing
-only the YAML configurations, and then base64 encoded, as this is the format DFCI expects.
-
-The save to/load from raw bin option is for YAML only configurations and will save the raw binary
-as is used by the build process.
-
-The SVD is intended for use with the UEFI [Conf App](../../ConfApp/), which can take the SVD as input
-and give an SVD describing the current UEFI settings as an output. The SVD is formatted to be compatible
-with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
-
-The variable list output is intended for use with runtime configuration, to be consumed directly by
-components that deal with runtime configuration.
+YAML only configuration (or XML only) is the same as the above. The ConfApp uses YAML only configuration.

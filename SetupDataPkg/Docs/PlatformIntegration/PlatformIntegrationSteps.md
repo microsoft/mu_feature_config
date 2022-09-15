@@ -23,6 +23,8 @@ data from configuration variables convert to policy data.
 1. [Configuration App Code Integration](#configuration-app-code-integration) - How to best integrate the `SetupDataPkg`
 collateral into a platform firmware.
 
+1. [Profiles Integration](#profiles-integration) - How to integrate Configuration Profiles into platform firmware.
+
 ## Configuration Apps Changes
 
 The Configuration Applications are based on the framework of policy services and DFCI from Project MU. Start with the fundamentals
@@ -108,7 +110,9 @@ will omit the integration steps for these features. For more information about D
   gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0x86, 0x40, 0x62, 0xe3, 0xcd, 0x4f, 0x6e, 0x44, 0x9d, 0x7, 0xb6, 0xb9, 0x13, 0x79, 0x20, 0x71 }
 
 [LibraryClasses]
-  ConfigDataLib|SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
+  ConfigBlobBaseLib         |SetupDataPkg/Library/ConfigBlobBaseLib/ConfigBlobBaseLib.inf
+  ConfigDataLib             |SetupDataPkg/Library/ConfigDataLib/ConfigDataLib.inf
+  ConfigVariableListLib     |SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
 
 [Components.X64, Components.AARCH64]
   #
@@ -154,4 +158,113 @@ will omit the integration steps for these features. For more information about D
 ``` bash
 [FV.YOUR_DXE_FV]
   # INF MdeModulePkg/Application/UiApp/UiApp.inf
+```
+
+## Profiles Integration
+
+In order to use configuration profiles, the platform must include the above changes as well as include a YAML file that
+contains the default values for the generic profile. If additional profiles are required, the platform must include YAML
+delta files (.dlt) for each profile that are overrides on top of the generic profile.
+
+### PlatformBuild.py Changes
+
+Add or update the PlatformBuild.py environment variables below, where `DELTA_CONF_POLICY` is a semicolon delimited
+list of the delta files representing additional profiles.
+
+``` bash
+def SetPlatformEnv(self):
+  ...
+  self.env.SetValue("YAML_CONF_FILE", self.mws.join(self.ws, "PlatformPkg", "CfgData", "CfgDataDef.yaml"), "Platform Hardcoded")
+  self.env.SetValue("DELTA_CONF_POLICY", self.mws.join(self.ws, "PlatformPkg", "CfgData", "Profile1.dlt") + ";" +\
+                    self.mws.join(self.ws, "PlatformPkg", "CfgData", "Profile2.dlt") + ";" +\
+                    ...
+                    self.mws.join(self.ws, "PlatformPkg", "CfgData", "ProfileN.dlt"), "Platform Hardcoded")
+  ...
+```
+
+### Platform DEC Changes
+
+The platform must define file GUIDs for each additional profile beyond the generic profile (which has a defined GUID
+in SetupDataPkg).
+
+```bash
+  [Guids]
+  ...
+  ## Example Profile 1 will be stored in FV under this GUID
+  gPlatformPkgProfile1Guid = { SOME_GUID }
+  ## Example Profile 2 will be stored in FV under this GUID
+  gPlatformPkgProfile2Guid = { SOME_GUID }
+  ...
+   ## Example Profile N will be stored in FV under this GUID
+  gPlatformPkgProfileNGuid = { SOME_GUID }
+  ...
+```
+
+### Platform DSC Changes
+
+The platform must add ActiveProfileSelectorLib (whether the null instance or a platform specific instance):
+
+```bash
+  [LibraryClasses]
+    ...
+    # Platform can override to non-Null Lib
+    ActiveProfileSelectorLib|SetupDataPkg/Library/ActiveProfileSelectorLibNull/ActiveProfileSelectorLibNull.inf
+    ...
+```
+
+The platform must build ConfProfileMgrDxe:
+
+```bash
+  [Components.X64, Components.AARCH64]
+    ...
+    # Profile Enforcement
+    SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf
+    ...
+```
+
+The platform must also override the below PCD:
+
+```bash
+  [PcdsFixedAtBuild]
+    ...
+    ## List of valid Profile GUIDs
+    ## gSetupDataPkgGenericProfileGuid is defaulted to in case retrieved GUID is not in this list
+    gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{ GUID("SOME_GUID"), GUID("SOME_GUID"), ..., GUID("SOME_GUID") }
+    ...
+```
+
+The platform can optionally override the below default value (only useful if using ActiveProfileSelectorLibNull):
+
+```bash
+  [PcdsDynamicExDefault]
+    ...
+    # Default this to gSetupDataPkgGenericProfileGuid
+    gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile|{ GUID("SOME_GUID") }
+    ...
+```
+
+### Platform FDF Changes
+
+The platform must add ConfProfileMgrDxe and the profiles to the FDF for each desired profile and the generic profile.
+
+```bash
+  [FV.DXEFV]
+    ...
+    INF SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf
+    ...
+
+    FILE FREEFORM = gSetupDataPkgGenericProfileGuid {
+    SECTION RAW = $(CONF_BIN_FILE_0)
+    }
+    FILE FREEFORM = gPlatformPkgProfile1Guid {
+      SECTION RAW = $(CONF_BIN_FILE_1)
+    }
+    FILE FREEFORM = gPlatformPkgProfile2Guid {
+      SECTION RAW = $(CONF_BIN_FILE_2)
+    }
+    ...
+    FILE FREEFORM = gPlatformPkgProfileNGuid {
+      SECTION RAW = $(CONF_BIN_FILE_N)
+    }
+    ...
 ```
