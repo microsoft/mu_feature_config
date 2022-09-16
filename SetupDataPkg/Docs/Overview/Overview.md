@@ -23,6 +23,7 @@ This document is intended to describe the Setup Variable design on applicable pl
 | ------------ | --------- | ------------------|
 | Kun Qin   | 09/28/2021| First draft |
 | Oliver Smith-Denny | 7/22/2022 | Add Merged YAML/XML Support |
+| Oliver Smith-Denny | 9/15/2022 | Add Profile Support |
 
 ## Terms
 
@@ -162,32 +163,43 @@ firmware volume.
 - **BDS**: Project MU BDS will provide specific event signals and platform entrypoints that are customized for DFCI settings.
 - **DFCI**: DFCI framework will be used to accept and validate incoming configuration against platform identity associated
 certificates.
+- **MFCI**: The MFCI framework will be used to check what mode the system is in, manufacturing mode or customer mode.
 - **Settings Manager**: Settings manager together with DFCI framework would apply the configuration data through platform
 configured settings providers.
 - **Policy Manager**: Policy manager controls the policy publication and revoke. Silicon policy and platform configuration
 should all conform to policy setter and getter APIs.
+- **Profile Manager**: ConfProfileMgrDxe validates and enforces profiles (collections of configuration settings for
+different use cases) when the system is in MFCI Customer Mode.
 
 ### Platform and Silicon Code
 
 - **Silicon Drivers**: Silicon code needs to be updated to pull policy settings from silicon policy data when needed.
 - **Platform Policy Drivers**: Platform owners will first create PEI modules to populate default silicon policy into Policy
 managers provided by Project MU.
-- **Platform YAML/XML Configurations**: Platform owners should then design the configuration YAML/XML files. This would expose
+- **Platform YAML Configurations**: Platform owners should then design the configuration YAML files. This would expose
 certain configuration "knobs" from silicon policy to be configurable through setup variable flow.
 - **Platform Settings Providers**: Accordingly, platform owners will develop modules to parse the configuration data and
-translate the exposed configurations in YAML/XML file to/from standard silicon policies through the interface of Settings
+translate the exposed configurations in YAML file to/from standard silicon policies through the interface of Settings
 Provider (see example from [Project MU](../../../Common/MU/DfciPkg/Library/DfciSampleProvider/DfciSampleProvider.c)).
+
+## Profiles
+
+See the [Profiles doc](../Profiles/Overview.md) for details.
 
 ## Configuration Related UEFI Boot Flow
 
 ![UEFI Build](Images/uefi_boot_flow.png)
 
+### Settings Update Boot Flow
+
 - Formatted update configuration data from USB, serial port or OS application will first be stored to UEFI variable storage,
 followed by a system reboot.
-- Upon next boot, stored formatted variable will be authenticated and decoded by DFCI framework. Decoded configuration
-data will be dispatched to corresponding platform authored setting provider.
+- On the next reboot, the formatted configuration data from UEFI variable storage will be authenticated (if the
+[DFCI Unsigned Settings](https://github.com/microsoft/mu_plus/blob/release/202202/DfciPkg/Docs/PlatformIntegration/PlatformIntegrationOverview.md#unsigned-settings-packets)
+feature is not used) and decoded by DFCI framework. Decoded configuration data will be dispatched to corresponding
+platform authored setting provider.
 - Platform configuration setting provider will perform sanity check on incoming data and store this data as UEFI variable
-with the following specifications (source code reference [here](../../../Common/MU_CONF_APPS/SetupDataPkg/Include/Library/ConfigDataLib.h)),
+with the following specifications (source code reference [here](../../Include/Library/ConfigDataLib.h)),
 followed by a system reboot:
 
 | Variable Name | Variable GUID | Variable Attributes |

@@ -14,14 +14,20 @@ policy and serialize them into printable strings.
 `ConfApp` is a UEFI application that replaces traditional UI application to display basic system information and provide
 minimal functionalities, including updating system configuration data.
 
+`ConfProfileMgrDxe` is a DXE driver that validates and enforces the active configuration profile in MFCI Customer Mode.
+
 For more general background about the steps necessary to integrate the configuration modules, please review the
 [Platform Integration Steps](PlatformIntegrationSteps.md).
+
+`ActiveProfileSelectorLib` is a library class that should be overwritten by the platform. It provides an interface to
+retrieve the active configuration profile for this boot.
 
 ## DXE Drivers
 
 | Driver | Location |
 | ---| ---|
 | ConfDataSettingProvider | SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf |
+| ConfProfileMgrDxe | SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf |
 
 ## UEFI Applications
 
@@ -35,3 +41,4 @@ For more general background about the steps necessary to integrate the configura
 | --- | ---|
 | ConfigBlobBaseLib | SetupDataPkg/Include/Library/ConfigBlobBaseLib.h |
 | ConfigDataLib | SetupDataPkg/Include/Library/ConfigDataLib.h |
+| ActiveProfileSelectorLib | SetupDataPkg/Include/Library/ActiveProfileSelectorLib.h |
