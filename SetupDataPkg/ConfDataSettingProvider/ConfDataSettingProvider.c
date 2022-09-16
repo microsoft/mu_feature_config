@@ -508,6 +508,12 @@ RegisterSingleConfigVariable (
     goto Exit;
   }
 
+  if (IsSystemInManufacturingMode ()) {
+    // As promised, configuration variables will not be protected under MFG mode. Thus branch to the wrap up logic.
+    DEBUG ((DEBUG_WARN, "%a System in manufacturing mode, not applying variable policies!\n", __FUNCTION__));
+    goto Exit;
+  }
+
   Status = RegisterVarStateVariablePolicy (
              mVariablePolicy,
              &VarListEntry->Guid,
@@ -591,12 +597,6 @@ SettingsProviderSupportProtocolNotify (
     // Should not be here, but...
     DEBUG ((DEBUG_ERROR, "%a Retrieved config data is NULL.\n", __FUNCTION__));
     Status = EFI_COMPROMISED_DATA;
-    goto Done;
-  }
-
-  if (IsSystemInManufacturingMode ()) {
-    // As promised, configuration variables will not be protected under MFG mode. Thus branch to the wrap up logic.
-    DEBUG ((DEBUG_WARN, "%a System in manufacturing mode, not applying variable policies!\n", __FUNCTION__));
     goto Done;
   }
 
