@@ -145,7 +145,6 @@ XML can be saved as CSV files.
   Load a previously save change file into the UI, overwriting any values from the base YAML/XML. It must be loaded onto
   a YAML/XML that has the configuration knobs present in the change file.
 
-
 ## Merged YAML and XML Operations
 
 One YAML and one XML file may be loaded at the same time via the CLI as such:
@@ -179,9 +178,9 @@ Where XML/YML Var N looks like:
 
 |   UINT32   Name Size   |
 |   UINT32   Data Size   |
-|   CHAR16   *Name       |
+|   CHAR16   \*Name       |
 |   EFI_GUID GUID        |
-|   VOID     *Data       |
+|   VOID     \*Data       |
 |   UINT32   CRC         |
 
 YAML only configuration (or XML only) is the same as the above. The ConfApp uses YAML only configuration.
