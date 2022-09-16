@@ -594,6 +594,11 @@ SettingsProviderSupportProtocolNotify (
     goto Done;
   }
 
+  if (IsSystemInManufacturingMode ()) {
+    // As promised, configuration variables will not be protected under MFG mode. Thus branch to the wrap up logic.
+    goto Done;
+  }
+
   for (Index = 0; Index < VarListCount; Index++) {
     // Using default blob to initialize individual setting providers
     Status = RegisterSingleConfigVariable (&VarList[Index]);
