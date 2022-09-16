@@ -131,7 +131,7 @@ with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
 
 ### Change Files (Delta or CSV)
 
-Profiles are repesented as delta files on top of the generic profile (for more info see the
+Profiles are represented as delta files on top of the generic profile (for more info see the
 [Profiles](../Profiles/Overview.md) doc). In addition, the XML differences between what is set in the UI and the base
 XML can be saved as CSV files.
 
