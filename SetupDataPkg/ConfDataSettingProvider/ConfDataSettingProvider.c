@@ -596,6 +596,7 @@ SettingsProviderSupportProtocolNotify (
 
   if (IsSystemInManufacturingMode ()) {
     // As promised, configuration variables will not be protected under MFG mode. Thus branch to the wrap up logic.
+    DEBUG ((DEBUG_WARN, "%a System in manufacturing mode, not applying variable policies!\n", __FUNCTION__));
     goto Done;
   }
 
