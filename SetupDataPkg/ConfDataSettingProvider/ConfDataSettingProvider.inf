@@ -37,6 +37,7 @@
   VariablePolicyHelperLib
   SafeIntLib
   ConfigVariableListLib
+  ConfigSystemModeLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
