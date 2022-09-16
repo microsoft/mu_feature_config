@@ -41,11 +41,10 @@ This document describes the requirements, design considerations and APIs for UEF
 ### Configuration Profiles
 
 UEFI Configuration Profiles, historically called BIOS Flavors, are sets of defined values for UEFI configuration variables.
-Such profiles are useful in the datacenter case where different owners may use the same hardware but have different
-requirements for UEFI configuration variables, such as one owner requiring Secure Boot enabled and SMT disabled and
-another owner requiring Secure Boot disabled and SMT enabled. Configuration profiles are provided by the FW as a means
-to allow both groups to use the same hardware and FW, but choosing different profiles with the set of configuration they
-require.
+Such profiles are useful where different owners may use the same hardware but have different requirements for UEFI
+configuration variables, such as one owner requiring Secure Boot enabled and SMT disabled and another owner requiring
+Secure Boot disabled and SMT enabled. Configuration profiles are provided by the FW as a means to allow both groups to
+use the same hardware and FW, but choosing different profiles with the set of configuration they require.
 
 ## Design
 

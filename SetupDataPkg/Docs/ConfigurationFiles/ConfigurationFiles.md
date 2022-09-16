@@ -69,22 +69,6 @@ size.
 to denote an array ID tag value. [GenCfgData.py](../../Tools/GenCfgData.py) will automatically populate the `CFGHDR_TMPL`
 content to backend database and generate the same binary data blob.
 
-- MU version of ConfigEditor supports 3 more option for loading from and saving to SVD (Setup Variable Data) files:
-  - Save Full Config Data to SVD File:
-      Saving the entire defined YAML/XML structure into encoded binary settings format. This format is useful when many
-      tags of settings need updating at once, but this will save *all* configurations defined.
-  - Save Config Changes to SVD File:
-      Saving only the changed tag setting into corresponding encoded binary value. This will allow the target system to
-      update only the changed tag setting (i.e. Only disable GFX controllers, and leave USB ports on the same system
-      intact)
-  - Load Config Data from SVD File:
-      Once the target system has dumped current configuration from ConfApp, the output data can be viewed in
-      the ConfigEditor on a host system or saved SVDs from the ConfigEditor can be loaded again.
-
-The SVD is intended for use with the UEFI [Conf App](../../ConfApp/), which can take the SVD as input
-and give an SVD describing the current UEFI settings as an output. The SVD is formatted to be compatible
-with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
-
 ## XML Specification
 
 See [sampleschema.xml](../../Tools/sampleschema.xml) for an example XML schema.
@@ -108,6 +92,59 @@ Supported data types are:
 - float (note that floats are imprecise, doubles are recommend to avoid rounding errors)
 - double
 - bool
+
+## Config Editor Operations
+
+![Config Editor Options](./Images/ConfigEditorOptions.png)
+
+All of these options except for Load Config File are only available after one or more configuration files have been
+loaded.
+
+### Variable List Binaries
+
+As described in (#merged-yaml-and-xml-operations), the Config Editor can output variable list binaries. These are
+created by the [GenSetupDataBin.py](../../Plugins/GenSetupDataBin/GenSetupDataBin.py) build plugin to generate
+profiles (see the [Profiles](../Profiles/Overview.md) doc for more information).
+
+- Save Config Data to Var List Binary:
+  Create a variable list binary to be used for testing or to load later in the Config Editor tool
+- Load Config Data from Var List Binary:
+  Load a saved variable list binary (of the same format as the loaded YAML/XML file) into the UI. This can be used
+  to load previously stored configuration or validate the output of GenSetupDataBin.py.
+
+### SVD Files
+
+The SVD is intended for use with the UEFI [Conf App](../../ConfApp/), which can take the SVD as input
+and give an SVD describing the current UEFI settings as an output. The SVD is formatted to be compatible
+with [DFCI](https://github.com/microsoft/mu_plus/tree/release/202202/DfciPkg).
+
+- Save Full Config Data to SVD File:
+    Saving the entire defined YAML/XML structure into encoded binary settings format. This format is useful when many
+    tags of settings need updating at once, but this will save *all* configurations defined.
+- Save Config Changes to SVD File:
+    Saving only the changed tag setting into corresponding encoded binary value. This will allow the target system to
+    update only the changed tag setting (i.e. Only disable GFX controllers, and leave USB ports on the same system
+    intact)
+- Load Config Data from SVD File:
+    Once the target system has dumped current configuration from ConfApp, the output data can be viewed in
+    the ConfigEditor on a host system or saved SVDs from the ConfigEditor can be loaded again.
+
+### Change Files (Delta or CSV)
+
+Profiles are repesented as delta files on top of the generic profile (for more info see the
+[Profiles](../Profiles/Overview.md) doc). In addition, the XML differences between what is set in the UI and the base
+XML can be saved as CSV files.
+
+- Save Full Config Data to Change File
+  Save all configuration knobs to the change file, even if they do not have a change over the base YAML/XML. This is
+  helpful to see the whole state of configuration from one file.
+- Save Config Changes to Change File
+  Save only configuration knobs that have a different value from the base YAML/XML to a change file. This is helpful to
+  have smaller change files, but looking just at a change file does not describe the whole state.
+- Load Config from Change File
+  Load a previously save change file into the UI, overwriting any values from the base YAML/XML. It must be loaded onto
+  a YAML/XML that has the configuration knobs present in the change file.
+
 
 ## Merged YAML and XML Operations
 

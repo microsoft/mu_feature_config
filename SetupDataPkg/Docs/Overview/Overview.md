@@ -194,7 +194,7 @@ See the [Profiles doc](../Profiles/Overview.md) for details.
 
 - Formatted update configuration data from USB, serial port or OS application will first be stored to UEFI variable storage,
 followed by a system reboot.
-- Upon next boot, stored formatted variable will be authenticated (if the
+- On the next reboot, the formatted configuration data from UEFI variable storage will be authenticated (if the
 [DFCI Unsigned Settings](https://github.com/microsoft/mu_plus/blob/release/202202/DfciPkg/Docs/PlatformIntegration/PlatformIntegrationOverview.md#unsigned-settings-packets)
 feature is not used) and decoded by DFCI framework. Decoded configuration data will be dispatched to corresponding
 platform authored setting provider.

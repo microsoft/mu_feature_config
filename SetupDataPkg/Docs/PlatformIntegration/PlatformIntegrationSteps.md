@@ -164,7 +164,10 @@ Remove the FDF sections below.
 
 In order to use configuration profiles, the platform must include the above changes as well as include a YAML file that
 contains the default values for the generic profile. If additional profiles are required, the platform must include YAML
-delta files (.dlt) for each profile that are overrides on top of the generic profile.
+delta files for each profile that are overrides on top of the generic profile. These are created through the
+[Config Editor UI tool](../../Tools/ConfigEditor.py) by choosing `Save Config Changes to Change File` or
+`Save Full Config to Change File` (more details in the
+[Configuration Files doc](../ConfigurationFiles/ConfigurationFiles.md)).
 
 ### PlatformBuild.py Changes
 
@@ -184,7 +187,7 @@ def SetPlatformEnv(self):
 
 ### Platform DEC Changes
 
-The platform must define file GUIDs for each additional profile beyond the generic profile (which has a defined GUID
+The platform must define GUIDs for each additional profile beyond the generic profile (which has a defined GUID
 in SetupDataPkg).
 
 ```bash

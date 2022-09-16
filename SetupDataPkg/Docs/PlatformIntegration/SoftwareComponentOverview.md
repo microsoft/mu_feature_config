@@ -19,6 +19,9 @@ minimal functionalities, including updating system configuration data.
 For more general background about the steps necessary to integrate the configuration modules, please review the
 [Platform Integration Steps](PlatformIntegrationSteps.md).
 
+`ActiveProfileSelectorLib` is a library class that should be overwritten by the platform. It provides an interface to
+retrieve the active configuration profile for this boot.
+
 ## DXE Drivers
 
 | Driver | Location |
@@ -38,3 +41,4 @@ For more general background about the steps necessary to integrate the configura
 | --- | ---|
 | ConfigBlobBaseLib | SetupDataPkg/Include/Library/ConfigBlobBaseLib.h |
 | ConfigDataLib | SetupDataPkg/Include/Library/ConfigDataLib.h |
+| ActiveProfileSelectorLib | SetupDataPkg/Include/Library/ActiveProfileSelectorLib.h |
