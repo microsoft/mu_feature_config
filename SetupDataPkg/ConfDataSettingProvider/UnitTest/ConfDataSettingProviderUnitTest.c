@@ -1145,6 +1145,7 @@ SettingsProviderNotifyShouldComplete (
     expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
     expect_memory (MockGetVariable, VariableName, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
     will_return (MockGetVariable, mKnownGoodTags[Index].DataSize);
+    will_return (IsSystemInManufacturingMode, FALSE);
     expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
     expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
     expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, CDATA_NV_VAR_ATTR);
@@ -1163,6 +1164,7 @@ SettingsProviderNotifyShouldComplete (
   expect_value (MockSetVariable, DataSize, mKnownGoodTags[Index].DataSize);
   expect_memory (MockSetVariable, Data, mKnownGoodTags[Index].Data, mKnownGoodTags[Index].DataSize);
   will_return (MockSetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
   expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
   expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodTags[Index].DataSize);
   expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, CDATA_NV_VAR_ATTR);
@@ -1173,6 +1175,7 @@ SettingsProviderNotifyShouldComplete (
     expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index + KNOWN_GOOD_TAG_COUNT]);
     expect_memory (MockGetVariable, VariableName, Ctx->VarListPtr[Index + KNOWN_GOOD_TAG_COUNT].Name, mKnownGoodRuntimeVars[Index].NameSize * sizeof (CHAR16));
     will_return (MockGetVariable, mKnownGoodRuntimeVars[Index].DataSize);
+    will_return (IsSystemInManufacturingMode, FALSE);
     expect_memory (RegisterVarStateVariablePolicy, Name, Ctx->VarListPtr[Index + KNOWN_GOOD_TAG_COUNT].Name, mKnownGoodRuntimeVars[Index].NameSize * sizeof (CHAR16));
     expect_value (RegisterVarStateVariablePolicy, MinSize, mKnownGoodRuntimeVars[Index].DataSize);
     expect_value (RegisterVarStateVariablePolicy, AttributesMustHave, (CDATA_NV_VAR_ATTR | EFI_VARIABLE_RUNTIME_ACCESS));
@@ -1182,6 +1185,65 @@ SettingsProviderNotifyShouldComplete (
 
   Index = 0;
   while (Index < KNOWN_GOOD_TAG_COUNT + KNOWN_GOOD_RUNTIME_VAR_COUNT) {
+    FreePool (ComparePtr[Index]);
+    Index++;
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SettingsProviderSupportProtocolNotify of ConfDataSettingProvider.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+SettingsProviderNotifyInMfgShouldComplete (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CHAR8         *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  UINTN         Index = 0;
+  CONTEXT_DATA  *Ctx;
+
+  UT_ASSERT_NOT_NULL (Context);
+  Ctx = (CONTEXT_DATA *)Context;
+  UT_ASSERT_EQUAL (Ctx->VarListCnt, KNOWN_GOOD_TAG_COUNT + KNOWN_GOOD_RUNTIME_VAR_COUNT);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingsProviderSupportProtocolGuid);
+  will_return (MockLocateProtocol, &mMockDfciSetting);
+
+  expect_value (MockLocateProtocol, Protocol, &gEdkiiVariablePolicyProtocolGuid);
+  will_return (MockLocateProtocol, &mMockDfciSetting);
+
+  will_return (RetrieveActiveConfigVarList, Ctx->VarListPtr);
+  will_return (RetrieveActiveConfigVarList, KNOWN_GOOD_TAG_COUNT);
+  will_return (RetrieveActiveConfigVarList, EFI_SUCCESS);
+
+  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
+    ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    expect_string (MockDfciRegisterProvider, Provider->Id, ComparePtr[Index]);
+    expect_memory (MockGetVariable, VariableName, Ctx->VarListPtr[Index].Name, SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
+    will_return (MockGetVariable, mKnownGoodTags[Index].DataSize);
+    will_return (IsSystemInManufacturingMode, TRUE);
+  }
+
+  SettingsProviderSupportProtocolNotify (NULL, NULL);
+
+  Index = 0;
+  while (Index < KNOWN_GOOD_TAG_COUNT) {
     FreePool (ComparePtr[Index]);
     Index++;
   }
@@ -1252,6 +1314,7 @@ UnitTestingEntry (
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
   AddTestCase (MiscTests, "Protocol notify routine should succeed", "ProtocolNotify", SettingsProviderNotifyShouldComplete, ConfSettingProviderPrerequisite, NULL, &Context);
+  AddTestCase (MiscTests, "Protocol notify routine in MFG mode should succeed", "ProtocolNotify", SettingsProviderNotifyInMfgShouldComplete, ConfSettingProviderPrerequisite, NULL, &Context);
 
   AddTestCase (SingleSettingTests, "Get Single ConfData Default should return full blob", "SingleGetFullDefaultNormal", SingleConfDataGetDefaultNormal, ConfSettingProviderPrerequisite, NULL, &Context);
   AddTestCase (SingleSettingTests, "Get Single ConfData Default should fail with null provider", "SingleGetFullDefaultNull", SingleConfDataGetDefaultNull, NULL, NULL, NULL);
