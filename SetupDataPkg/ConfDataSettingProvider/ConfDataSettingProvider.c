@@ -28,6 +28,7 @@
 #include <Library/VariablePolicyHelperLib.h>
 #include <Library/SafeIntLib.h>
 #include <Library/ConfigVariableListLib.h>
+#include <Library/ConfigSystemModeLib.h>
 
 DFCI_SETTING_PROVIDER_SUPPORT_PROTOCOL  *mSettingProviderProtocol = NULL;
 EDKII_VARIABLE_POLICY_PROTOCOL          *mVariablePolicy          = NULL;
@@ -505,6 +506,12 @@ RegisterSingleConfigVariable (
   } else {
     DEBUG ((DEBUG_ERROR, "Unexpected result from GetVariable - %r.\n", Status));
     Status = EFI_DEVICE_ERROR;
+    goto Exit;
+  }
+
+  if (IsSystemInManufacturingMode ()) {
+    // As promised, configuration variables will not be protected under MFG mode. Thus branch to the wrap up logic.
+    DEBUG ((DEBUG_WARN, "%a System in manufacturing mode, not applying variable policies!\n", __FUNCTION__));
     goto Exit;
   }
 
