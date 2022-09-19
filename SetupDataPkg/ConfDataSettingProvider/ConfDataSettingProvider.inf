@@ -21,7 +21,6 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   DfciPkg/DfciPkg.dec
-  PolicyServicePkg/PolicyServicePkg.dec
   SetupDataPkg/SetupDataPkg.dec
   MsCorePkg/MsCorePkg.dec
 
