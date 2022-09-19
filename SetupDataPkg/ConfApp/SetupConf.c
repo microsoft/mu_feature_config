@@ -538,7 +538,8 @@ ProcessDfciUsbInput (
       DEBUG ((DEBUG_ERROR, "Error processing Dfci Usb Request. Code=%r\n", Status));
     } else {
       DEBUG ((DEBUG_INFO, "DfciUsb Request processed normally\n"));
-      Status = ApplySettings (XmlString, XmlStringSize);
+      // The XmlStringSize returned will be NULL terminated, thus trim off the tail.
+      Status = ApplySettings (XmlString, XmlStringSize - 1);
       if (Status == EFI_MEDIA_CHANGED) {
         // MEDIA_CHANGED is a good return, It means that a JSON element updated a mailbox.
         Status = EFI_SUCCESS;
