@@ -42,7 +42,6 @@
   gSetupConfigPolicyVariableGuid
 
 [Protocols]
-  gPolicyProtocolGuid
   gDfciSettingsProviderSupportProtocolGuid
   gEdkiiVariablePolicyProtocolGuid
 
