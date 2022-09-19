@@ -7,6 +7,7 @@
 **/
 
 #include <Uefi.h>
+#include <Protocol/FirmwareManagement.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
@@ -16,7 +17,6 @@
 #include <Library/MuUefiVersionLib.h>
 #include <Library/UefiLib.h>
 #include <Library/ConfigDataLib.h>
-#include <Library/FmpDeviceLib.h>
 
 #include "ConfApp.h"
 

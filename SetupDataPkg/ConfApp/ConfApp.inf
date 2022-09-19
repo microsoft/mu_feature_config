@@ -37,7 +37,6 @@
   XmlSupportPkg/XmlSupportPkg.dec
   PolicyServicePkg/PolicyServicePkg.dec
   SecurityPkg/SecurityPkg.dec
-  FmpDevicePkg/FmpDevicePkg.dec
 
 [LibraryClasses]
   BaseLib

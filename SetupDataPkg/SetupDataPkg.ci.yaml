@@ -40,7 +40,6 @@
             "PcBdsPkg/PcBdsPkg.dec",
             "XmlSupportPkg/XmlSupportPkg.dec",
             "SecurityPkg/SecurityPkg.dec",
-            "FmpDevicePkg/FmpDevicePkg.dec",
             "SetupDataPkg/SetupDataPkg.dec"
         ],
         # For host based unit tests
