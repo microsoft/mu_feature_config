@@ -228,8 +228,8 @@ class CGenNCCfgData:
         xml_list = []
 
         # ensure that read in variables are part of schema, otherwise ignore them
-        loaded_barray = self.generate_binary_array(True)
-        loaded_vars = read_vlist_from_buffer(loaded_barray)
+        loaded_bytearray = self.generate_binary_array(True)
+        loaded_vars = read_vlist_from_buffer(loaded_bytearray)
         for var in var_list:
             for loaded_var in loaded_vars:
                 if (loaded_var.guid == var.guid and loaded_var.name == var.name):
