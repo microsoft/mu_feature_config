@@ -31,8 +31,6 @@ from VariableList import (
     get_delta_vlist
 )
 
-from GenCfgData import SETUP_CONFIG_POLICY_VAR_GUID
-
 
 class CGenNCCfgData:
     def __init__(self):
