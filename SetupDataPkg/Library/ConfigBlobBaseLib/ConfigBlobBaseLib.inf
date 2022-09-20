@@ -26,7 +26,6 @@
 [Packages]
   MdePkg/MdePkg.dec
   SetupDataPkg/SetupDataPkg.dec
-  PolicyServicePkg/PolicyServicePkg.dec
 
 [LibraryClasses]
   BaseLib

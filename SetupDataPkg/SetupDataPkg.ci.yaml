@@ -34,13 +34,11 @@
         "AcceptableDependencies": [
             "MdePkg/MdePkg.dec",
             "MdeModulePkg/MdeModulePkg.dec",
-            "PolicyServicePkg/PolicyServicePkg.dec",
             "MsCorePkg/MsCorePkg.dec",
             "DfciPkg/DfciPkg.dec",
             "PcBdsPkg/PcBdsPkg.dec",
             "XmlSupportPkg/XmlSupportPkg.dec",
             "SecurityPkg/SecurityPkg.dec",
-            "FmpDevicePkg/FmpDevicePkg.dec",
             "SetupDataPkg/SetupDataPkg.dec"
         ],
         # For host based unit tests

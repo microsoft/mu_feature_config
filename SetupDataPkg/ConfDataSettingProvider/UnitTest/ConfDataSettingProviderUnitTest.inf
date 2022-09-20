@@ -43,7 +43,6 @@
   PrintLib
   SafeIntLib
   ConfigVariableListLib
-  ConfigSystemModeLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid

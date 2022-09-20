@@ -34,7 +34,6 @@
   PcBdsPkg/PcBdsPkg.dec
   SecurityPkg/SecurityPkg.dec
   SetupDataPkg/SetupDataPkg.dec
-  FmpDevicePkg/FmpDevicePkg.dec
 
 [LibraryClasses]
   UefiBootServicesTableLib

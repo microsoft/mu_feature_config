@@ -21,7 +21,6 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   DfciPkg/DfciPkg.dec
-  PolicyServicePkg/PolicyServicePkg.dec
   SetupDataPkg/SetupDataPkg.dec
   MsCorePkg/MsCorePkg.dec
 
@@ -37,14 +36,12 @@
   VariablePolicyHelperLib
   SafeIntLib
   ConfigVariableListLib
-  ConfigSystemModeLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gSetupConfigPolicyVariableGuid
 
 [Protocols]
-  gPolicyProtocolGuid
   gDfciSettingsProviderSupportProtocolGuid
   gEdkiiVariablePolicyProtocolGuid
 
