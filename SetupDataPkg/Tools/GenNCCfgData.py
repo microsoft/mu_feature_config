@@ -228,10 +228,16 @@ class CGenNCCfgData:
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
         xml_list = []
-        # YAML variables are included in list, XML tree should not process them
+
+        # ensure that read in variables are part of schema, otherwise ignore them
+        loaded_barray = self.generate_binary_array(True)
+        loaded_vars = read_vlist_from_buffer(loaded_barray)
         for var in var_list:
-            if str(var.guid).lower() != SETUP_CONFIG_POLICY_VAR_GUID.lower():
-                xml_list.append(var)
+            for loaded_var in loaded_vars:
+                if (loaded_var.guid == var.guid and loaded_var.name == var.name):
+                    xml_list.append(var)
+                    break
+
         uefi_variables_to_knobs(self.schema, xml_list)
         self.sync_shim_and_schema()
 
