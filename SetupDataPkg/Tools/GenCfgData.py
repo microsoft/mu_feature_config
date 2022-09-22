@@ -2048,7 +2048,8 @@ class CGenCfgData:
             if idx > 0:
                 last_struct = struct_list[idx - 1]['node']['$STRUCT']
                 curr_struct = each['node']['$STRUCT']
-                if struct_list[idx - 1]['alias'] == each['alias'] and \
+                if 'struct' not in curr_struct and \
+                   struct_list[idx - 1]['alias'] == each['alias'] and \
                    curr_struct['length'] == last_struct['length'] and \
                    curr_struct['offset'] == last_struct['offset'] + last_struct['length']:
                     for idx2 in range(idx - 1, -1, -1):
