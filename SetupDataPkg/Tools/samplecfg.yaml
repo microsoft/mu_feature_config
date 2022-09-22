@@ -33,7 +33,7 @@ configs:
     - PlatformName   :
         name         : Platform Name
         length       : 0x08
-        value        : 'CCv1'
+        value        : 'PLAT'
 
   - GFX_CFG_DATA :
     - IdTag          : 0x300
