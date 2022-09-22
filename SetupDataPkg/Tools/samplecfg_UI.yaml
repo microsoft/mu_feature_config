@@ -17,10 +17,17 @@ template:
         help         : >
                         GFX port power configuration
 
+  GPIO_TMPL: >
+    - Overdrive     :
+        type         : Combo
+        option       : 0x0:Disable, 0x1:Enable, 0x2:Overdrive
+        help         : >
+                      Enable/Disable ACPI feature. 1:ACPI Enabled, 0:ACPI Disabled
+
 
 configs:
   - $ACTION      :
-      page         : PLT::"Platform", GFX::"GFX Configuration"
+      page         : PLT::"Platform", GIO::"GPIO Configuration", GFX::"GFX Configuration"
 
   - $ACTION      :
       page         : PLT
@@ -30,6 +37,15 @@ configs:
         type         : EditText
         help         : >
                        Specify platform name here
+
+  - $ACTION      :
+      page         : GIO
+
+  - GPIO_CFG_DATA  :
+    - Half0:
+      - !expand { GPIO_TMPL : [ GPIO_0                 , 0x000500c5] }
+    - Half1:
+      - !expand { GPIO_TMPL : [ GPIO_1                 , 0x000508c5] }
 
   - $ACTION      :
       page         : GFX
