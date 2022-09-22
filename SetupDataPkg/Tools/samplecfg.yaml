@@ -16,13 +16,13 @@ template:
         length       : 0x02
         value        : $(2)
 
-  GPIO_TMPL: >
+  IO_TMPL: >
     - $STRUCT      :
-        name         : GPIO $(1) Half0
-        struct       : GPIO_DATA
+        name         : IO Port $(1)
+        struct       : IO_DATA
         length       : 0x02
     - Overdrive    :
-        name         : GPIO $(1) Overdrive
+        name         : IO $(1) Overdrive
         length       : 2
         value        : $(2)
 
@@ -35,13 +35,17 @@ configs:
         length       : 0x08
         value        : 'CCv1'
 
-  - GPIO_CFG_DATA    :
-    - IdTag          : 0x380
-    - Half0:
-      - !expand { GPIO_TMPL : [ 0 , 1] }
-    - Half1:
-      - !expand { GPIO_TMPL : [ 1 , 2] }
-
   - GFX_CFG_DATA :
     - IdTag          : 0x300
     - !expand { GFX_CONF_TMPL : [ 0, 1 ] }
+
+  - IO_CFG_DATA    :
+    - IdTag          : 0x380
+    - Flags:
+        name         : IO port flags
+        length       : 0x02
+        value        : 0xBEEF
+    - Port0:
+      - !expand { IO_TMPL : [ 0 , 1] }
+    - Port1:
+      - !expand { IO_TMPL : [ 1 , 2] }
