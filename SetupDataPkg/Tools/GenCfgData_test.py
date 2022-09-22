@@ -14,7 +14,7 @@ from GenCfgData import CGenCfgData
 from GenNCCfgData import CGenNCCfgData
 
 
-class UncoreCfgUnitTests(unittest.TestCase):
+class UefiCfgUnitTests(unittest.TestCase):
 
     # General test for loading yml file and making sure all config is there
     def test_yml_to_config(self):
