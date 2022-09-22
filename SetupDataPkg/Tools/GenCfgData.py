@@ -1411,16 +1411,33 @@ class CGenCfgData:
 
         if name is None:
             raise Exception("Can't find name of exec")
-        item = self.get_item_by_index(exec[name]["indx"])
-        itype = item["type"].split(",")[0]
-        if itype == "Combo":
-            # combo is an index into combo options
-            self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
-        elif itype in ["EditNum", "EditText"]:
-            self.set_config_item_value(item, bin_data.decode())
-        elif itype in ["Table"]:
-            new_value = bytes_to_bracket_str(bin_data)
-            self.set_config_item_value(item, new_value)
+
+        # need to handle embedded structs case, where the indx is buried inside inner components
+        item = None
+        if "indx" in exec[name]:
+            item = self.get_item_by_index(exec[name]["indx"])
+            itype = item["type"].split(",")[0]
+            if itype == "Combo":
+                # combo is an index into combo options
+                self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
+            elif itype in ["EditNum", "EditText"]:
+                self.set_config_item_value(item, bin_data.decode().rstrip('\0'))
+            elif itype in ["Table"]:
+                new_value = bytes_to_bracket_str(bin_data)
+                self.set_config_item_value(item, new_value)
+        else:
+            for each in exec[name]:
+                if "indx" in exec[name][each]:
+                    item = self.get_item_by_index(exec[name][each]["indx"])
+                    itype = item["type"].split(",")[0]
+                    if itype == "Combo":
+                        # combo is an index into combo options
+                        self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
+                    elif itype in ["EditNum", "EditText"]:
+                        self.set_config_item_value(item, bin_data.decode())
+                    elif itype in ["Table"]:
+                        new_value = bytes_to_bracket_str(bin_data)
+                        self.set_config_item_value(item, new_value)
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         # binary may be passed in variable list format or raw binary format
@@ -2048,7 +2065,8 @@ class CGenCfgData:
             if idx > 0:
                 last_struct = struct_list[idx - 1]['node']['$STRUCT']
                 curr_struct = each['node']['$STRUCT']
-                if struct_list[idx - 1]['alias'] == each['alias'] and \
+                if 'struct' not in curr_struct and \
+                   struct_list[idx - 1]['alias'] == each['alias'] and \
                    curr_struct['length'] == last_struct['length'] and \
                    curr_struct['offset'] == last_struct['offset'] + last_struct['length']:
                     for idx2 in range(idx - 1, -1, -1):

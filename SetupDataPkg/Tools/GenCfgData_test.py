@@ -14,7 +14,7 @@ from GenCfgData import CGenCfgData
 from GenNCCfgData import CGenNCCfgData
 
 
-class UncoreCfgUnitTests(unittest.TestCase):
+class UefiCfgUnitTests(unittest.TestCase):
 
     # General test for loading yml file and making sure all config is there
     def test_yml_to_config(self):
@@ -54,7 +54,20 @@ class UncoreCfgUnitTests(unittest.TestCase):
             exec = cdata.locate_exec_from_item(cfg_item)
             # we only want to check the values that are in YML, not metadata
             if item['type'] != 'Reserved':
-                self.assertEqual(exec[item['cname']]['value'], item['value'])
+                # for multiple embedded structs of the same kind, multiple instances of the same cname will show up in^M
+                # the exec. We will need to find ours.^M
+                if not item['cname'] in exec:
+                    found_in_exec = False
+                    for each in exec:
+                        if item['cname'] in exec[each]:
+                            if exec[each][item['cname']]['value'] == item['value']:
+                                found_in_exec = True
+                                break
+                else:
+                    found_in_exec = True
+                    self.assertEqual(exec[item['cname']]['value'], item['value'])
+
+                self.assertEqual(found_in_exec, True)
                 self.assertEqual(item['value'], cfg_item['value'])
 
     # test to load yml, change config, generate a delta file, and load it again
@@ -234,7 +247,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        self.assertEqual("'PlatName'", item['value'])
+        self.assertEqual("'PLAT'", item['value'])
 
         # Test Full SVD
         settings = []
@@ -275,7 +288,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        self.assertEqual("'PlatName'", item['value'])
+        self.assertEqual("'PLAT'", item['value'])
 
     # Test to create/load varlist bins for YML only
     def test_yml_generate_load_bin(self):
@@ -335,7 +348,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        self.assertEqual("'PlatName'", item['value'])
+        self.assertEqual("'PLAT'", item['value'])
 
     # General test to load both yml and xml and confirm the config
     def test_merged_yml_xml_generate_load_svd(self):
@@ -651,7 +664,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         os.remove(path)
 
         item = ydata.get_item_by_path('PLATFORM_CFG_DATA.PlatformName')
-        self.assertEqual("'PlatName'", item['value'])
+        self.assertEqual("'PLAT'", item['value'])
 
         item = ydata.get_item_by_path('GFX_CFG_DATA.PowerOnPort0')
         self.assertEqual('0', item['value'])
