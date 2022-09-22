@@ -55,7 +55,7 @@ class UefiCfgUnitTests(unittest.TestCase):
             # we only want to check the values that are in YML, not metadata
             if item['type'] != 'Reserved':
                 # for multiple embedded structs of the same kind, multiple instances of the same cname will show up in^M
-               # the exec. We will need to find ours.^M
+                # the exec. We will need to find ours.^M
                 if not item['cname'] in exec:
                     found_in_exec = False
                     for each in exec:
