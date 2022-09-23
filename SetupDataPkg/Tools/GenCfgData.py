@@ -1446,7 +1446,7 @@ class CGenCfgData:
 
         # update the exec itself
         exec = self.locate_exec_from_tag(tag_id)
-        self.set_field_value(exec, bin_data) 
+        self.set_field_value(exec, bin_data)
         _update_tree(exec, bin_data)
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):

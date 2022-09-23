@@ -38,7 +38,7 @@ template:
             type: EditText
             help: >
                   SpecifyText
-    
+
 configs:
   - $ACTION      :
       page         : PLT::"Platform", IO::"IO Configuration", GFX::"GFX Configuration"
