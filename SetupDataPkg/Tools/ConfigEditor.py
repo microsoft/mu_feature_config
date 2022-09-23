@@ -843,12 +843,12 @@ class application(tkinter.Frame):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
 
-        try:
-            for idx in self.cfg_data_list:
-                self.reload_config_data_from_bin(bin_data, idx, True)
-        except Exception as e:
-            messagebox.showerror("LOADING ERROR", str(e))
-            return
+        # try:
+        for idx in self.cfg_data_list:
+            self.reload_config_data_from_bin(bin_data, idx, True)
+        # except Exception as e:
+        #     messagebox.showerror("LOADING ERROR", str(e))
+        #     return
 
     def load_cfg_file(self, path, file_id):
         self.cfg_data_list[file_id] = cfg_data()
