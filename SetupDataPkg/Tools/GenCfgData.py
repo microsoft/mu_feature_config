@@ -14,6 +14,7 @@ import string
 import operator as op
 import ast
 import uuid
+import binascii
 from datetime import date
 from collections import OrderedDict
 
@@ -1432,9 +1433,12 @@ class CGenCfgData:
                         # combo is an index into combo options
                         val = str(int.from_bytes(bin_data[offset:end_offset], "little"))
                         self.set_config_item_value(item, val)
-                    elif itype in ["EditNum", "EditText"]:
+                    elif itype == "EditNum":
+                        value = '0x%X' % int.from_bytes(bin_data[offset:end_offset], "little")
+                        self.set_config_item_value(item, value)
+                    elif itype == "EditText":
                         self.set_config_item_value(item, bin_data[offset:end_offset].decode().rstrip('\0'))
-                    elif itype in ["Table"]:
+                    elif itype == "Table":
                         new_value = bytes_to_bracket_str(bin_data[offset:end_offset])
                         self.set_config_item_value(item, new_value)
                     offset = end_offset

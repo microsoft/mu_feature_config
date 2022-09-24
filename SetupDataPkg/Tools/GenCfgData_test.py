@@ -125,10 +125,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'New'", item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '2')
+        cdata.set_config_item_value(item, '0xBEEF')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xBEEF', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '0')
@@ -159,10 +159,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'NewNew'", item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '5')
+        cdata.set_config_item_value(item, '0x5')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('5', item['value'])
+        self.assertEqual('0x0005', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '1')
@@ -196,7 +196,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0x0005', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -288,7 +288,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0x0005', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -357,10 +357,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '2')
+        cdata.set_config_item_value(item, '0xDEAD')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '0')
@@ -416,10 +416,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '5')
+        cdata.set_config_item_value(item, '0xA5')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('5', item['value'])
+        self.assertEqual('0x00A5', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '1')
@@ -450,7 +450,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'PLAT'", item['value'].rstrip('\0'))
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -553,7 +553,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'PLAT'", item['value'].rstrip('\0'))
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -619,10 +619,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '2')
+        cdata.set_config_item_value(item, '0xDEAD')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '0')
@@ -654,10 +654,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '5')
+        cdata.set_config_item_value(item, '0x5AFF')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('5', item['value'])
+        self.assertEqual('0x5AFF', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '1')
@@ -689,7 +689,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'PLAT'", item['value'].rstrip('\0'))
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -770,10 +770,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'New'", item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        ydata.set_config_item_value(item, '2')
+        ydata.set_config_item_value(item, '0xDEAD')
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         ydata.set_config_item_value(item, '0')
@@ -843,10 +843,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'NewNew'", item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        ydata.set_config_item_value(item, '5')
+        ydata.set_config_item_value(item, '0x5A')
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('5', item['value'])
+        self.assertEqual('0x005A', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         ydata.set_config_item_value(item, '1')
@@ -891,7 +891,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -1031,7 +1031,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -1120,10 +1120,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("0", item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        ydata.set_config_item_value(item, '2')
+        ydata.set_config_item_value(item, '0xDEAD')
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         ydata.set_config_item_value(item, '0')
@@ -1173,10 +1173,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("1", item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        ydata.set_config_item_value(item, '5')
+        ydata.set_config_item_value(item, '0x5A')
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('5', item['value'])
+        self.assertEqual('0x005A', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         ydata.set_config_item_value(item, '1')
@@ -1220,7 +1220,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('2', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = ydata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])

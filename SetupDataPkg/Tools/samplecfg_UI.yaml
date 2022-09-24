@@ -33,7 +33,7 @@ template:
             type: Combo
             option: 0x0:Disable, 0x1:Enable
             help: >
-                  yay
+                  Enable/Disable Port
         - PortQoSMapping:
             type: EditText
             help: >
@@ -63,8 +63,7 @@ configs:
 
   - IO_CFG_DATA  :
     - Flags:
-        type         : Combo
-        option       : 0x0:Yes, 0x1:No, 0x2:Maybe, 0x3:Probably
+        type         : EditNum
         help         : >
                        Specify IO flags here
     - !expand { IO_TMPL : [ 0 , 1, 0, 'A'] }

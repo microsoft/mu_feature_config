@@ -61,7 +61,7 @@ configs:
     - IdTag          : 0x380
     - Flags:
         name         : IO port flags
-        length       : 0x01
-        value        : 1
+        length       : 0x02
+        value        : 0xBEEF
     - !expand { IO_TMPL : [ 0 , 1, 0, 'A'] }
     - !expand { IO_TMPL : [ 1 , 2, 1, '2'] }
