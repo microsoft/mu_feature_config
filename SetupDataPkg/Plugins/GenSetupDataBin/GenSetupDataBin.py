@@ -57,7 +57,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
     #                      additional profiles. Only valid if YAML_CONF_FILE is populated and multiple profiles desired.
     def do_pre_build(self, thebuilder):
         # Generate Generic Profile
-        ret = self.generate_profile(thebuilder, None, None, 0)
+        ret = self.generate_profile(thebuilder, None, 0)
 
         if ret != 0:
             return ret
@@ -70,7 +70,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
 
             for idx in range(len(delta_conf)):
                 # Generate the profile
-                ret = self.generate_profile(thebuilder, delta_conf[idx], None, idx + 1)
+                ret = self.generate_profile(thebuilder, delta_conf[idx], idx + 1)
 
                 if ret != 0:
                     return ret
