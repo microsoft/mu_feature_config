@@ -125,10 +125,10 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual("'New'", item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        cdata.set_config_item_value(item, '0xBEEF')
+        cdata.set_config_item_value(item, '0xDEAD')
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('0xBEEF', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         cdata.set_config_item_value(item, '0')
@@ -196,7 +196,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('1', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('0x0005', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
@@ -288,7 +288,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         self.assertEqual('0', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Flags')
-        self.assertEqual('0x0005', item['value'])
+        self.assertEqual('0xDEAD', item['value'])
 
         item = cdata.get_item_by_path('IO_CFG_DATA.Port0.Overdrive')
         self.assertEqual('0', item['value'])
