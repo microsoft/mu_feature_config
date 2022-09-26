@@ -14,7 +14,6 @@ import string
 import operator as op
 import ast
 import uuid
-import binascii
 from datetime import date
 from collections import OrderedDict
 
