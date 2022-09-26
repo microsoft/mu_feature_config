@@ -169,10 +169,10 @@ class IntValueFormat(DataFormat):
         return struct.calcsize(self.pack_format)
 
     def check_bounds(self, value, min, max):
-        if value is not None and min is not None:
+        if value is not None:
             if value < min:
                 raise InvalidRangeError("Value {} below minimum of {}".format(value, min))
-        if value is not None and max is not None:
+        if value is not None:
             if value > max:
                 raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
 
