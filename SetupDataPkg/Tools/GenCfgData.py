@@ -1416,17 +1416,13 @@ class CGenCfgData:
                 # only recurse if this is a struct
                 if type(exec) is OrderedDict and "indx" not in exec[key]:
                     _update_tree(exec[key], bin_data)
-                name = key
-
-                if name is None:
-                    raise Exception("Can't find name of exec")
 
                 # need to handle embedded structs case, where the indx is buried inside inner components
                 item = None
-                if "indx" in exec[name]:
-                    item = self.get_item_by_index(exec[name]["indx"])
+                if "indx" in exec[key]:
+                    item = self.get_item_by_index(exec[key]["indx"])
                     itype = item["type"].split(",")[0]
-                    val_len = int(exec[name]['length'], 0)
+                    val_len = int(exec[key]['length'], 0)
                     end_offset = offset + val_len
                     if itype == "Combo":
                         # combo is an index into combo options
