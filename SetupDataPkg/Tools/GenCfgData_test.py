@@ -19,18 +19,18 @@ class UefiCfgUnitTests(unittest.TestCase):
 
     # General test for loading yml file and making sure all config is there
     def test_yml_to_config(self):
-        def _search_exec(exec, item):
-            for key in exec.keys():
+        def _search_tree(node, item):
+            for key in node.keys():
                 # ignore the $STRUCT, CFG_HDR, and CondValue metadata
                 if key in DICT_KEYS_KEYWORDS:
                     continue
                 # only recurse if this is a struct
-                if type(exec) is OrderedDict and "indx" not in exec[key]:
-                    result = _search_exec(exec[key], item)
+                if type(node) is OrderedDict and "indx" not in node[key]:
+                    result = _search_tree(node[key], item)
                     if result is True:
                         return result
                 if item['cname'] == key:
-                    if exec[key]['value'] == item['value']:
+                    if node[key]['value'] == item['value']:
                         return True
             return False
 
@@ -73,7 +73,7 @@ class UefiCfgUnitTests(unittest.TestCase):
                 # for multiple embedded structs of the same kind, multiple instances of the same cname will show up in
                 # the exec. We will need to find ours.
                 if not item['cname'] in exec:
-                    found_in_exec = _search_exec(exec, item)
+                    found_in_exec = _search_tree(exec, item)
                 else:
                     found_in_exec = True
                     self.assertEqual(exec[item['cname']]['value'], item['value'])

@@ -1402,9 +1402,9 @@ class CGenCfgData:
         # It recurses through each binary data for each tag, where each tag may represent a multilevel nested struct,
         # among other objects
         offset = 0
+
         def _update_tree(exec, bin_data):
             nonlocal offset
-            name = None
             # exec dict is organized into well known keys and one key that is the name of the exec
             # we need to extract the index from this name key to find the item and change the
             # object that is used to show updated info, as the exec only tracks the default
