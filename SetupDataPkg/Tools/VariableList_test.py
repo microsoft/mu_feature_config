@@ -12,8 +12,6 @@ from xml.dom.minidom import parseString
 from VariableList import Schema, ParseError, InvalidNameError, InvalidRangeError
 
 
-    
-
 class SchemaParseUnitTests(unittest.TestCase):
     schemaTemplate = """<ConfigSchema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:noNamespaceSchemaLocation="configschema.xsd">
@@ -175,7 +173,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 
   </Knobs>
 
-</ConfigSchema>"""
+</ConfigSchema>""" # noqa
 
     # Generates a dom with an xml snippet added to the template
     # This helper is used by tests to inject extra snippets in to the base
@@ -257,27 +255,26 @@ class SchemaParseUnitTests(unittest.TestCase):
         # with the single value modified
         self.assertEqual(knob.value['m_uint8_t_c5_max10'], [1, 10, 3, 4, 5])
         # Verify the default hasn't changed
-        self.assertEqual(knob.default['m_uint8_t_c5_max10'], [1, 2, 3, 4, 5])    
-
+        self.assertEqual(knob.default['m_uint8_t_c5_max10'], [1, 2, 3, 4, 5])
 
     def validate_min_bound(self, schema, knobname, default, limit):
-        schema.get_knob(knobname).value = default # Set to a good value
-        self.assertEqual(schema.get_knob(knobname).value, default) # Verify it is set
-        schema.get_knob(knobname).value = limit # Try setting to the limit
-        self.assertEqual(schema.get_knob(knobname).value, limit) # Verify it is set
+        schema.get_knob(knobname).value = default  # Set to a good value
+        self.assertEqual(schema.get_knob(knobname).value, default)  # Verify it is set
+        schema.get_knob(knobname).value = limit  # Try setting to the limit
+        self.assertEqual(schema.get_knob(knobname).value, limit)  # Verify it is set
         with pytest.raises(InvalidRangeError):
-          schema.get_knob(knobname).value = limit - 1 # Try setting beyond the limit
-        self.assertEqual(schema.get_knob(knobname).value, limit) # Verify it had no efffect
+            schema.get_knob(knobname).value = limit - 1  # Try setting beyond the limit
+        self.assertEqual(schema.get_knob(knobname).value, limit)  # Verify it had no efffect
 
     def validate_max_bound(self, schema, knobname, default, limit):
-        schema.get_knob(knobname).value = default # Set to a good value
-        self.assertEqual(schema.get_knob(knobname).value, default) # Verify it is set
-        schema.get_knob(knobname).value = limit # Try setting to the limit
-        self.assertEqual(schema.get_knob(knobname).value, limit) # Verify it is set
+        schema.get_knob(knobname).value = default  # Set to a good value
+        self.assertEqual(schema.get_knob(knobname).value, default)  # Verify it is set
+        schema.get_knob(knobname).value = limit  # Try setting to the limit
+        self.assertEqual(schema.get_knob(knobname).value, limit)  # Verify it is set
         with pytest.raises(InvalidRangeError):
-          schema.get_knob(knobname).value = limit + 1 # Try setting beyond the limit
-        self.assertEqual(schema.get_knob(knobname).value, limit) # Verify it had no efffect
-        
+            schema.get_knob(knobname).value = limit + 1  # Try setting beyond the limit
+        self.assertEqual(schema.get_knob(knobname).value, limit)  # Verify it had no efffect
+
     def test_basic_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
 
@@ -294,34 +291,34 @@ class SchemaParseUnitTests(unittest.TestCase):
         self.validate_min_bound(schema, "k_int32_t_d1000000_minn500000_max2000000", 1000000, -500000)
         self.validate_max_bound(schema, "k_int32_t_d1000000_minn500000_max2000000", 1000000, 2000000)
         self.validate_min_bound(schema, "k_uint64_t_d10000000000_min5000000000_max20000000000", 10000000000, 5000000000)
-        self.validate_max_bound(schema, "k_uint64_t_d10000000000_min5000000000_max20000000000", 10000000000, 20000000000)
+        self.validate_max_bound(schema, "k_uint64_t_d10000000000_min5000000000_max20000000000", 10000000000, 20000000000)  # noqa: E501
         self.validate_min_bound(schema, "k_int64_t_d10000000000_minn500000000_max20000000000", 10000000000, -5000000000)
         self.validate_max_bound(schema, "k_int64_t_d10000000000_minn500000000_max20000000000", 10000000000, 20000000000)
         self.validate_min_bound(schema, "k_float_d10_5_minn5_5_max20_5", 10.5, -5.5)
         self.validate_max_bound(schema, "k_float_d10_5_minn5_5_max20_5", 10.5, 20.5)
         self.validate_min_bound(schema, "k_double_d10_5_minn5_5_max20_5", 10.5, -5.5)
         self.validate_max_bound(schema, "k_double_d10_5_minn5_5_max20_5", 10.5, 20.5)
-    
+
     def test_enum_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
 
-        schema.get_knob("k_e_continuous_t").value = 0 # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 0) # Verify it applied
-        schema.get_knob("k_e_continuous_t").value = 1 # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 1) # Verify it applied
-        schema.get_knob("k_e_continuous_t").value = 2 # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2) # Verify it applied
+        schema.get_knob("k_e_continuous_t").value = 0  # Set a valid value
+        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 0)  # Verify it applied
+        schema.get_knob("k_e_continuous_t").value = 1  # Set a valid value
+        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 1)  # Verify it applied
+        schema.get_knob("k_e_continuous_t").value = 2  # Set a valid value
+        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2)  # Verify it applied
         with pytest.raises(InvalidRangeError):
-          schema.get_knob("k_e_continuous_t").value = 3 # Set an invalid
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2) # Verify it didn't have an effect
+            schema.get_knob("k_e_continuous_t").value = 3  # Set an invalid
+        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2)  # Verify it didn't have an effect
 
-        schema.get_knob("k_e_discontinuous_t").value = 0 # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 0) # Verify it applied
-        schema.get_knob("k_e_discontinuous_t").value = 2 # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2) # Verify it applied
+        schema.get_knob("k_e_discontinuous_t").value = 0  # Set a valid value
+        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 0)  # Verify it applied
+        schema.get_knob("k_e_discontinuous_t").value = 2  # Set a valid value
+        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2)  # Verify it applied
         with pytest.raises(InvalidRangeError):
-          schema.get_knob("k_e_discontinuous_t").value = 1 # Set an invalid
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2) # Verify it didn't have an effect
+            schema.get_knob("k_e_discontinuous_t").value = 1  # Set an invalid
+        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2)  # Verify it didn't have an effect
 
     def test_array_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
@@ -338,8 +335,8 @@ class SchemaParseUnitTests(unittest.TestCase):
         subknob.value = 10
         self.assertEqual(subknob.value, 10)
         with pytest.raises(InvalidRangeError):
-          subknob.value = 20 # Try setting a value out of range
-        self.assertEqual(subknob.value, 10) # Verify there was no effect
+            subknob.value = 20  # Try setting a value out of range
+        self.assertEqual(subknob.value, 10)  # Verify there was no effect
 
     def test_array_shorthand(self):
         # Verify that arrays specified with the single element shorthand
@@ -375,8 +372,8 @@ class SchemaParseUnitTests(unittest.TestCase):
         subknob.value = 5
         self.assertEqual(subknob.value, 5)
         with pytest.raises(InvalidRangeError):
-          subknob.value = 4 # Try setting a value out of range
-        self.assertEqual(subknob.value, 5) # Verify there was no effect
+            subknob.value = 4  # Try setting a value out of range
+        self.assertEqual(subknob.value, 5)  # Verify there was no effect
 
     def test_default_out_of_range_knob(self):
         dom = self.insert_xml("""
@@ -384,7 +381,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="uint8_t" name="k_uint8_t_d1_min5" default="1" min="5" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_default_out_of_type_range_knob(self):
         dom = self.insert_xml("""
@@ -392,7 +389,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="uint8_t" name="k_uint8_t_d1000" default="1000" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_min_out_of_type_range_knob(self):
         dom = self.insert_xml("""
@@ -400,7 +397,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="uint8_t" name="k_uint8_t_minn5" min="-5" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_max_out_of_type_range_knob(self):
         dom = self.insert_xml("""
@@ -408,8 +405,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="uint8_t" name="k_uint8_t_max1000" max="1000" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
-
+            Schema(dom)
 
     def test_nodefault_out_of_range_knob(self):
         dom = self.insert_xml("""
@@ -417,7 +413,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="uint8_t" name="k_uint8_t_min5" min="5" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_default_out_of_range_struct(self):
         dom = self.insert_xml("""
@@ -428,7 +424,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Struct>
 </Structs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_min_out_of_type_range_struct(self):
         dom = self.insert_xml("""
@@ -439,7 +435,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Struct>
 </Structs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
 
     def test_max_out_of_type_range_struct(self):
         dom = self.insert_xml("""
@@ -450,7 +446,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Struct>
 </Structs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)        
+            Schema(dom)
 
     def test_more_restrictive_knob_limit(self):
         # If a knob has more restricitive limits than its type
@@ -476,8 +472,8 @@ class SchemaParseUnitTests(unittest.TestCase):
         subknob.value = 10
         self.assertEqual(subknob.value, 10)
         with pytest.raises(InvalidRangeError):
-          subknob.value = 9 # Try setting a value out of range
-        self.assertEqual(subknob.value, 10) # Verify there was no effect
+            subknob.value = 9  # Try setting a value out of range
+        self.assertEqual(subknob.value, 10)  # Verify there was no effect
 
     def test_less_restrictive_knob_limit(self):
         # If a knob has less restrictive limits than its type,
@@ -487,7 +483,8 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="s_limits_t" name="k_s_limits_t_invalid" min="{0,0,0,0,,}" />
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
-          schema = Schema(dom)
+            Schema(dom)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -35,9 +35,11 @@ class InvalidKnobError(ParseError):
     def __init__(self, message):
         super().__init__(message)
 
+
 class InvalidRangeError(Exception):
     def __init__(self, message):
         super().__init__(message)
+
 
 # The evaluation context is used to determine how to construct implicit values from types
 # When an empty string is evaluated in a "default" tag, it will implicitly be interpreted as
@@ -47,6 +49,7 @@ class StringEvaluationContext(Enum):
     DEFAULT = 1
     MIN = 2
     MAX = 3
+
 
 # Decodes a comma separated list within curly braces in to a list
 # "{1,2, 3,{A, B}} " -> ["1", "2", "3", "{A, B}"]
@@ -166,13 +169,12 @@ class IntValueFormat(DataFormat):
         return struct.calcsize(self.pack_format)
 
     def check_bounds(self, value, min, max):
-        if value != None and min != None:
+        if value is not None and min is not None:
             if value < min:
                 raise InvalidRangeError("Value {} below minimum of {}".format(value, min))
-        if value != None and max != None:
+        if value is not None and max is not None:
             if value > max:
                 raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
-
 
 
 # Represents all data types that have an object representation as a
@@ -215,12 +217,12 @@ class FloatValueFormat(DataFormat):
 
     def size_in_bytes(self):
         return struct.calcsize(self.pack_format)
-    
+
     def check_bounds(self, value, min, max):
-        if value != None and min != None:
+        if value is not None and min is not None:
             if value < min:
                 raise InvalidRangeError("Value {} below minimum of {}".format(value, min))
-        if value != None and max != None:
+        if value is not None and max is not None:
             if value > max:
                 raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
 
@@ -260,25 +262,25 @@ class BoolFormat(DataFormat):
         return struct.calcsize("<?")
 
     def check_bounds(self, value, min, max):
-        if min != None:
+        if min is not None:
             raise ParseError("bool may not have min value of {}".format(min))
-        if max != None:
+        if max is not None:
             raise ParseError("bool may not have max value of {}".format(max))
         pass
 
 
 builtin_types = {
-    'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', min=0, max=0xff, pack_format='<B')), # noqa: E203, E501
-    'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', min=-0x80, max=0x7f, pack_format='<b')), # noqa: E203, E501
-    'uint16_t' : (lambda: IntValueFormat(c_type='uint16_t', min=0, max=0xffff, pack_format='<H')), # noqa: E203, E501
-    'int16_t'  : (lambda: IntValueFormat(c_type='int16_t', min=-0x8000, max=0x7fff, pack_format='<h')), # noqa: E203, E501
-    'uint32_t' : (lambda: IntValueFormat(c_type='uint32_t', min=0, max=0xffffffff, pack_format='<I', c_suffix="ul")), # noqa: E203, E501
-    'int32_t'  : (lambda: IntValueFormat(c_type='int32_t', min=-0x80000000, max=0x7fffffff, pack_format='<i', c_suffix="l")), # noqa: E203, E501
-    'uint64_t' : (lambda: IntValueFormat(c_type='uint64_t', min=0, max=0xffffffffffffffff, pack_format='<Q', c_suffix="ull")), # noqa: E203, E501
-    'int64_t'  : (lambda: IntValueFormat(c_type='int64_t', min=-0x8000000000000000, max=0x7fffffffffffffff, pack_format='<q', c_suffix="ll")), # noqa: E203, E501
-    'float'    : (lambda: FloatValueFormat(c_type='float', pack_format='<f', c_suffix="f")), # noqa: E203, E501
-    'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')), # noqa: E203, E501
-    'bool'     : (lambda: BoolFormat()), # noqa: E203, E501
+    'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', min=0, max=0xff, pack_format='<B')),  # noqa: E203, E501
+    'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', min=-0x80, max=0x7f, pack_format='<b')),  # noqa: E203, E501
+    'uint16_t' : (lambda: IntValueFormat(c_type='uint16_t', min=0, max=0xffff, pack_format='<H')),  # noqa: E203, E501
+    'int16_t'  : (lambda: IntValueFormat(c_type='int16_t', min=-0x8000, max=0x7fff, pack_format='<h')),  # noqa: E203, E501
+    'uint32_t' : (lambda: IntValueFormat(c_type='uint32_t', min=0, max=0xffffffff, pack_format='<I', c_suffix="ul")),  # noqa: E203, E501
+    'int32_t'  : (lambda: IntValueFormat(c_type='int32_t', min=-0x80000000, max=0x7fffffff, pack_format='<i', c_suffix="l")),  # noqa: E203, E501
+    'uint64_t' : (lambda: IntValueFormat(c_type='uint64_t', min=0, max=0xffffffffffffffff, pack_format='<Q', c_suffix="ull")),  # noqa: E203, E501
+    'int64_t'  : (lambda: IntValueFormat(c_type='int64_t', min=-0x8000000000000000, max=0x7fffffffffffffff, pack_format='<q', c_suffix="ll")),  # noqa: E203, E501
+    'float'    : (lambda: FloatValueFormat(c_type='float', pack_format='<f', c_suffix="f")),  # noqa: E203, E501
+    'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')),  # noqa: E203, E501
+    'bool'     : (lambda: BoolFormat()),  # noqa: E203, E501
 }
 
 
@@ -322,7 +324,7 @@ class EnumFormat(DataFormat):
         for value in xml_node.getElementsByTagName('Value'):
             enumvalue = EnumValue(self.name, value)
             self.values.append(enumvalue)
-            if self.default == None:
+            if self.default is None:
                 self.default = enumvalue.number
 
         self.default = self.string_to_object(xml_node.getAttribute("default"))
@@ -376,12 +378,12 @@ class EnumFormat(DataFormat):
         return struct.calcsize("<i")
 
     def check_bounds(self, value, min, max):
-        if min != None:
+        if min is not None:
             raise ParseError("Enum {} may not have min value of {}".format(self.name, min))
-        if max != None:
+        if max is not None:
             raise ParseError("Enum {} may not have max value of {}".format(self.name, max))
 
-        if value != None:
+        if value is not None:
             found = False
             for member_value in self.values:
                 if value == member_value.number:
@@ -389,6 +391,7 @@ class EnumFormat(DataFormat):
                     break
             if not found:
                 raise InvalidRangeError("{} is not a valid value of {}".format(value, self.name))
+
 
 # Represents a user defined struct
 class ArrayFormat(DataFormat):
@@ -480,6 +483,7 @@ class ArrayFormat(DataFormat):
             except InvalidRangeError as e:
                 raise InvalidRangeError("At index {}: {}".format(i, e))
 
+
 # Represents a member of a user defined struct
 # Each member may be of any type, and may also have a count
 # value to treat it as an array
@@ -546,6 +550,7 @@ class StructMember:
         except InvalidRangeError as e:
             raise InvalidRangeError("Member {} of {}: {}".format(self.name, self.struct_name, e))
 
+
 # Represents a user defined struct
 class StructFormat(DataFormat):
     def __init__(self, schema, xml_node):
@@ -570,7 +575,7 @@ class StructFormat(DataFormat):
             raise ParseError("Struct {} may not have a 'min' attribute".format(self.name))
         if xml_node.getAttribute("max") != "":
             raise ParseError("Struct {} may not have a 'max' attribute".format(self.name))
-        
+
         # Construct the default value from the members
         self.default = self.string_to_object('')
 
@@ -710,6 +715,7 @@ class StructFormat(DataFormat):
             member_max = max[member.name]
             member.check_bounds(member_value, member_min, member_max)
 
+
 # Represents a "knob", a modifiable variable
 class Knob:
     def __init__(self, schema, xml_node, namespace):
@@ -752,7 +758,7 @@ class Knob:
                     self.name, e
                 )
             )
-        
+
         self.format.check_bounds(self._min, self.format.min, self.format.max)
 
         try:
@@ -763,7 +769,7 @@ class Knob:
                     self.name, e
                 )
             )
-        
+
         self.format.check_bounds(self._max, self.format.min, self.format.max)
 
         self.format.check_bounds(self._default, self._min, self._max)
@@ -810,7 +816,7 @@ class Knob:
 
     @value.setter
     def value(self, new_value):
-        if new_value != None:
+        if new_value is not None:
             self.format.check_bounds(new_value, self._min, self._max)
         self._value = new_value
 
@@ -918,10 +924,11 @@ class SubKnob:
     @property
     def min(self):
         return self.knob._get_child_value(self.name, self.knob.min)
-    
+
     @property
     def max(self):
         return self.knob._get_child_value(self.name, self.knob.max)
+
 
 class Schema:
     def __init__(self, dom, origin_path=""):
