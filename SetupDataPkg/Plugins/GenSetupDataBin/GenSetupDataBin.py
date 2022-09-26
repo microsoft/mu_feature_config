@@ -14,7 +14,7 @@ from edk2toollib.utility_functions import RunPythonScript
 
 class GenSetupDataBin(IUefiBuildPlugin):
 
-    def generate_profile(self, thebuilder, dlt_filename, csv_filename, idx):
+    def generate_profile(self, thebuilder, dlt_filename, idx):
         # Set up a playground
         op_dir = thebuilder.mws.join(thebuilder.ws, thebuilder.env.GetValue("BUILD_OUTPUT_BASE"), "ConfPolicy")
         if not os.path.isdir(op_dir):
@@ -30,7 +30,7 @@ class GenSetupDataBin(IUefiBuildPlugin):
             return -1
 
         # Can also add the dlt file application step if supplied
-        if dlt_filename is not None:
+        if dlt_filename is not None and dlt_filename != '':
             if not os.path.isfile(dlt_filename):
                 return -1
             conf_file = '"' + conf_file + ";" + dlt_filename + '"'
