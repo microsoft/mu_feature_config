@@ -1398,46 +1398,55 @@ class CGenCfgData:
         a.iterate_each_setting(path, handler)
 
     def update_exec_and_item_from_tag(self, tag_id, bin_data):
-        exec = self.locate_exec_from_tag(tag_id)
-        self.set_field_value(exec, bin_data)
-        name = None
-        # exec dict is organized into well known keys and one key that is the name of the exec
-        # we need to extract the index from this name key to find the item and change the
-        # object that is used to show updated info, as the exec only tracks the default
-        # info for generating a delta file/svd from
-        for key in exec.keys():
-            if (key not in DICT_KEYS_KEYWORDS):
-                name = key
+        # This function updates both the executive and cfg tree's values when we are loading a bin or svd file.
+        # It recurses through each binary data for each tag, where each tag may represent a multilevel nested struct,
+        # among other objects
+        offset = 0
 
-        if name is None:
-            raise Exception("Can't find name of exec")
+        def _update_tree(exec, bin_data):
+            nonlocal offset
+            # exec dict is organized into well known keys and one key that is the name of the exec
+            # we need to extract the index from this name key to find the item and change the
+            # object that is used to show updated info, as the exec only tracks the default
+            # info for generating a delta file/svd from
+            for key in exec.keys():
+                # ignore the $STRUCT, CFG_HDR, and CondValue metadata
+                if key in DICT_KEYS_KEYWORDS:
+                    continue
+                # only recurse if this is a struct
+                if type(exec) is OrderedDict and "indx" not in exec[key]:
+                    _update_tree(exec[key], bin_data)
 
-        # need to handle embedded structs case, where the indx is buried inside inner components
-        item = None
-        if "indx" in exec[name]:
-            item = self.get_item_by_index(exec[name]["indx"])
-            itype = item["type"].split(",")[0]
-            if itype == "Combo":
-                # combo is an index into combo options
-                self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
-            elif itype in ["EditNum", "EditText"]:
-                self.set_config_item_value(item, bin_data.decode().rstrip('\0'))
-            elif itype in ["Table"]:
-                new_value = bytes_to_bracket_str(bin_data)
-                self.set_config_item_value(item, new_value)
-        else:
-            for each in exec[name]:
-                if "indx" in exec[name][each]:
-                    item = self.get_item_by_index(exec[name][each]["indx"])
+                # need to handle embedded structs case, where the indx is buried inside inner components
+                item = None
+                if "indx" in exec[key]:
+                    item = self.get_item_by_index(exec[key]["indx"])
                     itype = item["type"].split(",")[0]
+                    val_len = int(exec[key]['length'], 0)
+                    end_offset = offset + val_len
                     if itype == "Combo":
                         # combo is an index into combo options
-                        self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
-                    elif itype in ["EditNum", "EditText"]:
-                        self.set_config_item_value(item, bin_data.decode())
-                    elif itype in ["Table"]:
-                        new_value = bytes_to_bracket_str(bin_data)
+                        val = str(int.from_bytes(bin_data[offset:end_offset], "little"))
+                        self.set_config_item_value(item, val)
+                    elif itype == "EditNum":
+                        value = '0x%X' % int.from_bytes(bin_data[offset:end_offset], "little")
+                        self.set_config_item_value(item, value)
+                    elif itype == "EditText":
+                        self.set_config_item_value(item, bin_data[offset:end_offset].decode().rstrip('\0'))
+                    elif itype == "Table":
+                        new_value = bytes_to_bracket_str(bin_data[offset:end_offset])
                         self.set_config_item_value(item, new_value)
+                    offset = end_offset
+
+                    # we need to handle the offset to correctly reset it for the next component. bin_data consists
+                    # of all the data for the struct, so we build up the offset, once we finish it, reset it
+                    if offset >= len(bin_data):
+                        offset = 0
+
+        # update the exec itself
+        exec = self.locate_exec_from_tag(tag_id)
+        self.set_field_value(exec, bin_data)
+        _update_tree(exec, bin_data)
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         # binary may be passed in variable list format or raw binary format
@@ -1976,7 +1985,7 @@ class CGenCfgData:
                     field = CGenCfgData.format_struct_field_name(field, struct_dict[field][1])
 
                 if append:
-                    line = self.create_field(None, field, 0, 0, struct, '', '', '')
+                    line = self.create_field(None, field, 0, 0, struct, struct_info['name'], '', '')
                     lines.append('  %s' % line)
                     last = struct
                 continue
