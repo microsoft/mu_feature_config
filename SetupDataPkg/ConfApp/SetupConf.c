@@ -26,7 +26,6 @@
 #include <Library/DfciXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
-#include <Library/ConfigSystemModeLib.h>
 
 #include "ConfApp.h"
 #include "DfciUsb/DfciUsb.h"
@@ -148,7 +147,7 @@ PrintOptions (
   Print (L"Setup Configuration Options:\n");
   Print (L"\n");
 
-  if (!IsSystemInManufacturingMode ()) {
+  if (IsPostReadyToBoot ()) {
     gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK));
     Print (L"Updating configuration is not allowed per platform policy:\n");
     SetupConfStateOptions[0].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
