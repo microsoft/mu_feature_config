@@ -405,6 +405,8 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -471,6 +473,8 @@ ConfAppEntrySelect2 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -537,6 +541,8 @@ ConfAppEntrySelect3 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -603,6 +609,8 @@ ConfAppEntrySelect4 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -670,6 +678,8 @@ ConfAppEntrySelectH (
   EFI_KEY_DATA              KeyData3;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -739,6 +749,8 @@ ConfAppEntrySelectEsc (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -803,6 +815,8 @@ ConfAppEntrySelectOther (
   EFI_KEY_DATA              KeyData3;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
+  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -835,6 +849,70 @@ ConfAppEntrySelectOther (
   KeyData3.Key.UnicodeChar = 'y';
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when system in MFG mode.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntryMfg (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (IsSystemInManufacturingMode, TRUE);
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
+  will_return (MockLocateProtocol, NULL);
+
+  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
+  will_return (MockLocateProtocol, &MockAuthProtocol);
+
+  will_return (MockAuthWithPW, 0xFEEDF00D);
+  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = CHAR_NULL;
+  KeyData1.Key.ScanCode    = SCAN_ESC;
+  will_return (MockReadKey, &KeyData1);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
 
   will_return (ResetCold, &JumpBuf);
 
@@ -897,6 +975,7 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "ConfApp Select h should reprint the options", "SelectH", ConfAppEntrySelectH, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select ESC should confirm reboot", "SelectEsc", ConfAppEntrySelectEsc, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select other should do nothing", "SelectOther", ConfAppEntrySelectOther, NULL, ConfAppCleanup, NULL);
+  AddTestCase (MiscTests, "ConfApp entry on MFG mode should not signal ready to boot event", "EntryMFG", ConfAppEntryMfg, NULL, ConfAppCleanup, NULL);
 
   //
   // Execute the tests.
