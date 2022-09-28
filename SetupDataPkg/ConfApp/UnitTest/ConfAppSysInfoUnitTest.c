@@ -150,9 +150,7 @@ MockGetTime (
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .GetTime = MockGetTime
-};
+extern EFI_RUNTIME_SERVICES  MockRuntime;
 
 /**
   Mock version of Print.
@@ -721,6 +719,8 @@ UnitTestingEntry (
     Status = EFI_OUT_OF_RESOURCES;
     goto EXIT;
   }
+
+  MockRuntime.GetTime = MockGetTime;
 
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------

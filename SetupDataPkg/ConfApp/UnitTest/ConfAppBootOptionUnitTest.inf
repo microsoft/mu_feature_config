@@ -21,6 +21,7 @@
 [Sources]
   ConfAppBootOptionUnitTest.c
   ConInConOut.c
+  ConfAppUnitTestCommon.c
   ../ConfApp.c
   ../ConfApp.h
   ../BootOptions.c
@@ -45,6 +46,8 @@
   PrintLib
   ResetSystemLib
   SecureBootKeyStoreLib
+  PerformanceLib
+  ConfigSystemModeLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
@@ -54,3 +57,5 @@
 
 [Guids]
   gSetupConfigPolicyVariableGuid
+  gMuVarPolicyDxePhaseGuid
+  gEfiEventReadyToBootGuid
