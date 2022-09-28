@@ -33,7 +33,8 @@ EfiSignalEventReadyToBoot (
   VOID
   )
 {
-  EFI_STATUS Status = (EFI_STATUS)mock ();
+  EFI_STATUS  Status = (EFI_STATUS)mock ();
+
   ASSERT_EFI_ERROR (Status);
 }
 

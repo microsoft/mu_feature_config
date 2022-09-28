@@ -527,9 +527,9 @@ ConfAppSetupConfSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS      Status;
-  EFI_KEY_DATA    KeyData1;
-  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
+  EFI_STATUS       Status;
+  EFI_KEY_DATA     KeyData1;
+  POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -580,9 +580,9 @@ ConfAppSetupConfSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS      Status;
-  EFI_KEY_DATA    KeyData1;
-  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
+  EFI_STATUS       Status;
+  EFI_KEY_DATA     KeyData1;
+  POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -883,12 +883,12 @@ ConfAppSetupConfDumpSerial (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS      Status;
-  EFI_KEY_DATA    KeyData1;
-  CHAR8           *ComparePtr[KNOWN_GOOD_TAG_COUNT];
-  UINTN           Index;
-  CONTEXT_DATA    *Ctx;
-  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
+  EFI_STATUS       Status;
+  EFI_KEY_DATA     KeyData1;
+  CHAR8            *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  UINTN            Index;
+  CONTEXT_DATA     *Ctx;
+  POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
 
   UT_ASSERT_NOT_NULL (Context);
   Ctx = (CONTEXT_DATA *)Context;
@@ -970,9 +970,9 @@ ConfAppSetupConfNonMfg (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS      Status;
-  EFI_KEY_DATA    KeyData1;
-  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
+  EFI_STATUS       Status;
+  EFI_KEY_DATA     KeyData1;
+  POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
