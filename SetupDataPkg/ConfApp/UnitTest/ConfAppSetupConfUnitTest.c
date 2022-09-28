@@ -50,7 +50,6 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
-extern BOOLEAN                            mInitialized;
 
 typedef struct {
   UINTN    Tag;
@@ -463,7 +462,6 @@ SetupConfCleanup (
   mSetupConfState = SetupConfExit;
   SetupConfMgr ();
   mSetupConfState = SetupConfInit;
-  mInitialized    = FALSE;
 }
 
 /**

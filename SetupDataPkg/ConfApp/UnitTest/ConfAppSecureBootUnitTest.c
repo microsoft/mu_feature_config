@@ -37,7 +37,6 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SecureBootState_t                  mSecBootState;
-extern BOOLEAN                            mInitialized;
 
 /**
   State machine for system information page. It will display fundamental information, including
@@ -258,7 +257,6 @@ SecureBootCleanup (
   )
 {
   mSecBootState = SecureBootInit;
-  mInitialized  = FALSE;
 }
 
 /**

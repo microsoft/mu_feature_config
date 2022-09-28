@@ -89,7 +89,6 @@ CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
 ConfState_t                        mConfState       = MainInit;
 EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx = NULL;
 DFCI_SETTING_ACCESS_PROTOCOL       *mSettingAccess  = NULL;
-BOOLEAN                            mInitialized     = FALSE;
 DFCI_AUTH_TOKEN                    mAuthToken;
 DFCI_IDENTITY_MASK                 mIdMask;          // Identities installed
 SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
@@ -111,21 +110,18 @@ IsPostReadyToBoot (
   UINT32           Attributes;
   PHASE_INDICATOR  Indicator;
   UINTN            Size;
-  static BOOLEAN   Result = FALSE;
+  BOOLEAN          Result = FALSE;
 
   Size = sizeof (Indicator);
 
-  if (!mInitialized) {
-    Status = gRT->GetVariable (
-                    READY_TO_BOOT_INDICATOR_VAR_NAME,
-                    &gMuVarPolicyDxePhaseGuid,
-                    &Attributes,
-                    &Size,
-                    &Indicator
-                    );
-    Result       = (!EFI_ERROR (Status) && (Attributes == READY_TO_BOOT_INDICATOR_VAR_ATTR));
-    mInitialized = TRUE;
-  }
+  Status = gRT->GetVariable (
+                  READY_TO_BOOT_INDICATOR_VAR_NAME,
+                  &gMuVarPolicyDxePhaseGuid,
+                  &Attributes,
+                  &Size,
+                  &Indicator
+                  );
+  Result = (!EFI_ERROR (Status) && (Attributes == READY_TO_BOOT_INDICATOR_VAR_ATTR));
 
   return Result;
 } // IsPostReadyToBoot()
