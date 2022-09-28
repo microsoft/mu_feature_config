@@ -16,6 +16,7 @@
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
 #include <DfciSystemSettingTypes.h>
+#include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Protocol/VariablePolicy.h>
 #include <Protocol/DfciSettingsProvider.h>
 
@@ -49,6 +50,7 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
+extern BOOLEAN                            mInitialized;
 
 typedef struct {
   UINTN    Tag;
@@ -362,9 +364,7 @@ MockGetTime (
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .GetTime = MockGetTime
-};
+extern EFI_RUNTIME_SERVICES  MockRuntime;
 
 /**
   Mocked version of MockWaitForEvent.
@@ -463,6 +463,7 @@ SetupConfCleanup (
   mSetupConfState = SetupConfExit;
   SetupConfMgr ();
   mSetupConfState = SetupConfInit;
+  mInitialized    = FALSE;
 }
 
 /**
@@ -491,7 +492,9 @@ ConfAppSetupConfInit (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -524,13 +527,16 @@ ConfAppSetupConfSelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
+  EFI_STATUS      Status;
+  EFI_KEY_DATA    KeyData1;
+  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -574,13 +580,16 @@ ConfAppSetupConfSelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
+  EFI_STATUS      Status;
+  EFI_KEY_DATA    KeyData1;
+  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   expect_any (MockSetCursorPosition, Column);
   expect_any (MockSetCursorPosition, Row);
@@ -635,7 +644,9 @@ ConfAppSetupConfSelectUsb (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, TRUE);
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -716,7 +727,9 @@ ConfAppSetupConfSelectSerial (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, TRUE);
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -800,7 +813,9 @@ ConfAppSetupConfSelectSerialEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, TRUE);
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -868,11 +883,12 @@ ConfAppSetupConfDumpSerial (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
-  CHAR8         *ComparePtr[KNOWN_GOOD_TAG_COUNT];
-  UINTN         Index;
-  CONTEXT_DATA  *Ctx;
+  EFI_STATUS      Status;
+  EFI_KEY_DATA    KeyData1;
+  CHAR8           *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  UINTN           Index;
+  CONTEXT_DATA    *Ctx;
+  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
 
   UT_ASSERT_NOT_NULL (Context);
   Ctx = (CONTEXT_DATA *)Context;
@@ -880,7 +896,9 @@ ConfAppSetupConfDumpSerial (
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   // Expect the prints twice
   expect_any_count (MockSetCursorPosition, Column, 2);
@@ -952,13 +970,16 @@ ConfAppSetupConfNonMfg (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData1;
+  EFI_STATUS      Status;
+  EFI_KEY_DATA    KeyData1;
+  POLICY_LOCK_VAR LockVar = PHASE_INDICATOR_SET;
 
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
-  will_return (IsSystemInManufacturingMode, FALSE);
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
 
   // Expect the prints twice
   expect_any (MockSetCursorPosition, Column);
@@ -1056,6 +1077,8 @@ UnitTestingEntry (
     Status = EFI_OUT_OF_RESOURCES;
     goto EXIT;
   }
+
+  MockRuntime.GetTime = MockGetTime;
 
   //
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
