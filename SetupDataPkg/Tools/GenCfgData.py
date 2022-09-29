@@ -1454,7 +1454,6 @@ class CGenCfgData:
 
         # update the exec itself
         exec = self.locate_exec_from_tag(tag_id)
-        # print (f"bin_data: {bin_data} exec: {exec} tag_id: {tag_id}")
         self.set_field_value(exec, bin_data)
         _update_tree(exec, bin_data)
 
@@ -1523,7 +1522,6 @@ class CGenCfgData:
                 bit_len = struct_info['length']
 
             value_bytes = self.parse_value(value_str, bit_len)
-            # print (top)
             self.set_field_value(top, value_bytes, True)
 
             if path == 'PLATFORMID_CFG_DATA.PlatformId':
