@@ -36,6 +36,7 @@ __copyright_tmp__ = """/** @file
 
 SETUP_CONFIG_POLICY_VAR_GUID = '9F556476-9E82-E848-A473-F12ADAD1DDD2'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
+HEADER_TEMPLATE = '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}'
 
 
 def get_copyright_header(file_type, allow_modify=False):
@@ -99,6 +100,15 @@ def array_str_to_value(val_str):
         each = each.strip()
         value = (value << 8) | int(each, 0)
     return value
+
+
+def extract_tag_val(val_str):
+    if HEADER_TEMPLATE != '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}':
+        raise Exception ("Did you just update the header template? The calculation below might need to change!")
+
+    raw_val = array_str_to_value (val_str)
+    tag_val = (raw_val >> 28) & 0xFFF
+    return tag_val
 
 
 def write_lines(lines, file):
@@ -509,7 +519,7 @@ class CFG_YAML():
                             # for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x05'
-                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}' %\
+                            cfg_hdr['value'] = HEADER_TEMPLATE %\
                                                (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
@@ -1590,7 +1600,7 @@ class CGenCfgData:
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
             cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
-            tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
+            tag_val = extract_tag_val (cfg_hdr['value'])
             name = "Device.ConfigData.TagID_%08x" % tag_val
             var = UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
             buf = create_vlist_buffer(var)
@@ -1690,7 +1700,7 @@ class CGenCfgData:
                 exec[0] = cfgs
                 if CGenCfgData.STRUCT in cfgs:
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = array_str_to_value(cfg_hdr['value']) >> 20
+                    tag_val = extract_tag_val (cfg_hdr['value'])
                     if tag_val == tag:
                         exec[1] = exec[0]
 
@@ -2023,8 +2033,7 @@ class CGenCfgData:
                 if 'CfgHeader' in cfgs:
                     # collect CFGDATA TAG IDs
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    # This is to accomodate the header struct length field change
-                    tag_val = array_str_to_value(cfg_hdr['value']) >> 28
+                    tag_val = extract_tag_val (cfg_hdr['value'])
                     tag_dict[name] = tag_val
                     if level == 1:
                         tag_curr[0] = tag_val
