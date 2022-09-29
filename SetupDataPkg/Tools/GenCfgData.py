@@ -104,9 +104,9 @@ def array_str_to_value(val_str):
 
 def extract_tag_val(val_str):
     if HEADER_TEMPLATE != '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}':
-        raise Exception ("Did you just update the header template? The calculation below might need to change!")
+        raise Exception("Did you just update the header template? The calculation below might need to change!")
 
-    raw_val = array_str_to_value (val_str)
+    raw_val = array_str_to_value(val_str)
     tag_val = (raw_val >> 28) & 0xFFF
     return tag_val
 
@@ -1455,6 +1455,7 @@ class CGenCfgData:
 
         # update the exec itself
         exec = self.locate_exec_from_tag(tag_id)
+        # print (f"bin_data: {bin_data} exec: {exec} tag_id: {tag_id}")
         self.set_field_value(exec, bin_data)
         _update_tree(exec, bin_data)
 
@@ -1523,6 +1524,7 @@ class CGenCfgData:
                 bit_len = struct_info['length']
 
             value_bytes = self.parse_value(value_str, bit_len)
+            # print (top)
             self.set_field_value(top, value_bytes, True)
 
             if path == 'PLATFORMID_CFG_DATA.PlatformId':
@@ -1600,7 +1602,7 @@ class CGenCfgData:
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
             cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
-            tag_val = extract_tag_val (cfg_hdr['value'])
+            tag_val = extract_tag_val(cfg_hdr['value'])
             name = "Device.ConfigData.TagID_%08x" % tag_val
             var = UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
             buf = create_vlist_buffer(var)
@@ -1700,7 +1702,7 @@ class CGenCfgData:
                 exec[0] = cfgs
                 if CGenCfgData.STRUCT in cfgs:
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = extract_tag_val (cfg_hdr['value'])
+                    tag_val = extract_tag_val(cfg_hdr['value'])
                     if tag_val == tag:
                         exec[1] = exec[0]
 
@@ -2033,7 +2035,7 @@ class CGenCfgData:
                 if 'CfgHeader' in cfgs:
                     # collect CFGDATA TAG IDs
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = extract_tag_val (cfg_hdr['value'])
+                    tag_val = extract_tag_val(cfg_hdr['value'])
                     tag_dict[name] = tag_val
                     if level == 1:
                         tag_curr[0] = tag_val
