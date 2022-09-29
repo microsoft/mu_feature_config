@@ -519,8 +519,7 @@ class CFG_YAML():
                             # for now
                             cfg_hdr = OrderedDict()
                             cfg_hdr['length'] = '0x05'
-                            cfg_hdr['value'] = HEADER_TEMPLATE %\
-                                               (parent_name, 0 if key == "IdTag" else 1, value_str)
+                            cfg_hdr['value'] = HEADER_TEMPLATE % (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
                             cnd_val = OrderedDict()
