@@ -16,6 +16,16 @@ template:
         length       : 0x02
         value        : $(2)
 
+  IO_TMPL: >
+    - $STRUCT      :
+        name         : IO Port $(1)
+        struct       : IO_DATA
+        length       : 0x02
+    - Overdrive    :
+        name         : IO $(1) Overdrive
+        length       : 2
+        value        : $(2)
+
 
 configs:
   - PLATFORM_CFG_DATA :
@@ -23,8 +33,19 @@ configs:
     - PlatformName   :
         name         : Platform Name
         length       : 0x08
-        value        : 'PlatName'
+        value        : 'PLAT'
 
   - GFX_CFG_DATA :
     - IdTag          : 0x300
     - !expand { GFX_CONF_TMPL : [ 0, 1 ] }
+
+  - IO_CFG_DATA    :
+    - IdTag          : 0x380
+    - Flags:
+        name         : IO port flags
+        length       : 0x02
+        value        : 0xBEEF
+    - Port0:
+      - !expand { IO_TMPL : [ 0 , 1] }
+    - Port1:
+      - !expand { IO_TMPL : [ 1 , 2] }
