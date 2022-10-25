@@ -84,6 +84,18 @@ STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does no
 #pragma pack (pop)
 
 /**
+  Quick helper function to see if ReadyToBoot has already been signalled.
+
+  @retval     TRUE    ReadyToBoot has been signalled.
+  @retval     FALSE   Otherwise...
+
+**/
+BOOLEAN
+IsPostReadyToBoot (
+  VOID
+  );
+
+/**
   Polling function for key that was pressed.
 
   @param[in]  EnableTimeOut     Flag indicating whether a timeout is needed to wait for key stroke.

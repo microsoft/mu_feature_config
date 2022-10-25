@@ -21,6 +21,7 @@
 [Sources]
   ConfAppSetupConfUnitTest.c
   ConInConOut.c
+  ConfAppUnitTestCommon.c
   ../ConfApp.c
   ../ConfApp.h
   ../SetupConf.c
@@ -65,3 +66,5 @@
 
 [Guids]
   gSetupConfigPolicyVariableGuid
+  gMuVarPolicyDxePhaseGuid
+  gEfiEventReadyToBootGuid

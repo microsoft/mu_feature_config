@@ -157,13 +157,13 @@ PrintVersion (
     if (FmpImageInfoBuf->ImageIdName != NULL) {
       Status = Print (L"\t%s:\t", FmpImageInfoBuf->ImageIdName);
     } else {
-      DEBUG ((DEBUG_ERROR, "%a - FMP ImageIdName is null\n"));
+      DEBUG ((DEBUG_ERROR, "%a - FMP ImageIdName is null\n", __FUNCTION__));
     }
 
     if (FmpImageInfoBuf->VersionName != NULL) {
       Status = Print (L"%s\n", FmpImageInfoBuf->VersionName);
     } else {
-      DEBUG ((DEBUG_ERROR, "%a - FMP VersionName is null\n"));
+      DEBUG ((DEBUG_ERROR, "%a - FMP VersionName is null\n", __FUNCTION__));
     }
 
 FmpCleanUp:

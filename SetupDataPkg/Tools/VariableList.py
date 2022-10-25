@@ -13,6 +13,7 @@ import uuid
 import zlib
 import copy
 from xml.dom.minidom import parse, parseString
+from enum import Enum
 
 
 class ParseError(Exception):
@@ -33,6 +34,21 @@ class InvalidTypeError(ParseError):
 class InvalidKnobError(ParseError):
     def __init__(self, message):
         super().__init__(message)
+
+
+class InvalidRangeError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+# The evaluation context is used to determine how to construct implicit values from types
+# When an empty string is evaluated in a "default" tag, it will implicitly be interpreted as
+# the default for that type. Similarly, if an empty string is evaluated in a "min" tag, it will
+# implicitly be interpreted as the "min" value of the type.
+class StringEvaluationContext(Enum):
+    DEFAULT = 1
+    MIN = 2
+    MAX = 3
 
 
 # Decodes a comma separated list within curly braces in to a list
@@ -102,19 +118,31 @@ class StringFormatOptions:
 class DataFormat:
     def __init__(self, c_type):
         self.c_type = c_type
+        self.min = None
+        self.max = None
         pass
 
 
 # Represents all data types that have an object representation as a
 # Python int
 class IntValueFormat(DataFormat):
-    def __init__(self, c_type, pack_format, c_suffix=""):
+    def __init__(self, c_type, min, max, pack_format, c_suffix=""):
         super().__init__(c_type)
         self.pack_format = pack_format
         self.c_suffix = c_suffix
         self.default = 0
+        self.min = min
+        self.max = max
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        if string_representation == "":
+            if eval_context == StringEvaluationContext.DEFAULT:
+                return self.default
+            elif eval_context == StringEvaluationContext.MIN:
+                return self.min
+            elif eval_context == StringEvaluationContext.MAX:
+                return self.max
+
         try:
             return int(string_representation, 0)
         except ValueError:
@@ -140,6 +168,14 @@ class IntValueFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize(self.pack_format)
 
+    def check_bounds(self, value, min, max):
+        if value is not None:
+            if value < min:
+                raise InvalidRangeError("Value {} below minimum of {}".format(value, min))
+        if value is not None:
+            if value > max:
+                raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
+
 
 # Represents all data types that have an object representation as a
 # Python float
@@ -154,7 +190,14 @@ class FloatValueFormat(DataFormat):
         self.c_suffix = c_suffix
         self.default = 0.0
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        if string_representation == "":
+            if eval_context == StringEvaluationContext.DEFAULT:
+                return self.default
+            elif eval_context == StringEvaluationContext.MIN:
+                return self.min
+            elif eval_context == StringEvaluationContext.MAX:
+                return self.max
         return float(string_representation)
 
     def object_to_string(
@@ -175,6 +218,14 @@ class FloatValueFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize(self.pack_format)
 
+    def check_bounds(self, value, min, max):
+        if value is not None and min is not None:
+            if value < min:
+                raise InvalidRangeError("Value {} below minimum of {}".format(value, min))
+        if value is not None and max is not None:
+            if value > max:
+                raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
+
 
 # Represents all data types that have an object representation as a Python bool
 class BoolFormat(DataFormat):
@@ -182,7 +233,14 @@ class BoolFormat(DataFormat):
         super().__init__(c_type='bool')
         self.default = False
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        if string_representation == "":
+            if eval_context == StringEvaluationContext.DEFAULT:
+                return self.default
+            elif eval_context == StringEvaluationContext.MIN:
+                return self.min
+            elif eval_context == StringEvaluationContext.MAX:
+                return self.max
         return string_representation.strip().lower() in ['true', '1', 'yes']
 
     def object_to_string(
@@ -203,19 +261,26 @@ class BoolFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize("<?")
 
+    def check_bounds(self, value, min, max):
+        if min is not None:
+            raise ParseError("bool may not have min value of {}".format(min))
+        if max is not None:
+            raise ParseError("bool may not have max value of {}".format(max))
+        pass
+
 
 builtin_types = {
-    'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', pack_format='<B')),                   # noqa: E203, E501
-    'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', pack_format='<b')),                    # noqa: E203, E501
-    'uint16_t' : (lambda: IntValueFormat(c_type='uint16_t', pack_format='<H')),                  # noqa: E203, E501
-    'int16_t'  : (lambda: IntValueFormat(c_type='int16_t', pack_format='<h')),                   # noqa: E203, E501
-    'uint32_t' : (lambda: IntValueFormat(c_type='uint32_t', pack_format='<I', c_suffix="ul")),    # noqa: E203, E501
-    'int32_t'  : (lambda: IntValueFormat(c_type='int32_t', pack_format='<i', c_suffix="l")),      # noqa: E203, E501
-    'uint64_t' : (lambda: IntValueFormat(c_type='uint64_t', pack_format='<Q', c_suffix="ull")),   # noqa: E203, E501
-    'int64_t'  : (lambda: IntValueFormat(c_type='int64_t', pack_format='<q', c_suffix="ll")),     # noqa: E203, E501
-    'float'    : (lambda: FloatValueFormat(c_type='float', pack_format='<f', c_suffix="f")),      # noqa: E203, E501
-    'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')),                  # noqa: E203, E501
-    'bool'     : (lambda: BoolFormat()),                                                        # noqa: E203, E501
+    'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', min=0, max=0xff, pack_format='<B')),  # noqa: E203, E501
+    'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', min=-0x80, max=0x7f, pack_format='<b')),  # noqa: E203, E501
+    'uint16_t' : (lambda: IntValueFormat(c_type='uint16_t', min=0, max=0xffff, pack_format='<H')),  # noqa: E203, E501
+    'int16_t'  : (lambda: IntValueFormat(c_type='int16_t', min=-0x8000, max=0x7fff, pack_format='<h')),  # noqa: E203, E501
+    'uint32_t' : (lambda: IntValueFormat(c_type='uint32_t', min=0, max=0xffffffff, pack_format='<I', c_suffix="ul")),  # noqa: E203, E501
+    'int32_t'  : (lambda: IntValueFormat(c_type='int32_t', min=-0x80000000, max=0x7fffffff, pack_format='<i', c_suffix="l")),  # noqa: E203, E501
+    'uint64_t' : (lambda: IntValueFormat(c_type='uint64_t', min=0, max=0xffffffffffffffff, pack_format='<Q', c_suffix="ull")),  # noqa: E203, E501
+    'int64_t'  : (lambda: IntValueFormat(c_type='int64_t', min=-0x8000000000000000, max=0x7fffffffffffffff, pack_format='<q', c_suffix="ll")),  # noqa: E203, E501
+    'float'    : (lambda: FloatValueFormat(c_type='float', pack_format='<f', c_suffix="f")),  # noqa: E203, E501
+    'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')),  # noqa: E203, E501
+    'bool'     : (lambda: BoolFormat()),  # noqa: E203, E501
 }
 
 
@@ -231,7 +296,7 @@ class EnumValue:
                     self.name))
 
         try:
-            self.number = int(xml_node.getAttribute("value"))
+            self.number = int(xml_node.getAttribute("value"), 0)
         except ValueError:
             raise ParseError(
                 "Enum '{}' value '{}' does not have a valid value number"
@@ -252,15 +317,34 @@ class EnumFormat(DataFormat):
 
         self.help = xml_node.getAttribute("help")
         self.values = []
-        self.default = 0
+        self.default = None
 
         super().__init__(c_type=self.name)
 
         for value in xml_node.getElementsByTagName('Value'):
-            self.values.append(EnumValue(self.name, value))
+            enumvalue = EnumValue(self.name, value)
+            self.values.append(enumvalue)
+            if self.default is None:
+                self.default = enumvalue.number
+
+        self.default = self.string_to_object(xml_node.getAttribute("default"))
+
+        if xml_node.getAttribute("min") != "":
+            raise ParseError("Enum {} may not have a 'min' attribute".format(self.name))
+        if xml_node.getAttribute("max") != "":
+            raise ParseError("Enum {} may not have a 'max' attribute".format(self.name))
+
         pass
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        if string_representation == "":
+            if eval_context == StringEvaluationContext.DEFAULT:
+                return self.default
+            elif eval_context == StringEvaluationContext.MIN:
+                return self.min
+            elif eval_context == StringEvaluationContext.MAX:
+                return self.max
+
         try:
             return int(string_representation)
         except ValueError:
@@ -293,6 +377,21 @@ class EnumFormat(DataFormat):
     def size_in_bytes(self):
         return struct.calcsize("<i")
 
+    def check_bounds(self, value, min, max):
+        if min is not None:
+            raise ParseError("Enum {} may not have min value of {}".format(self.name, min))
+        if max is not None:
+            raise ParseError("Enum {} may not have max value of {}".format(self.name, max))
+
+        if value is not None:
+            found = False
+            for member_value in self.values:
+                if value == member_value.number:
+                    found = True
+                    break
+            if not found:
+                raise InvalidRangeError("{} is not a valid value of {}".format(value, self.name))
+
 
 # Represents a user defined struct
 class ArrayFormat(DataFormat):
@@ -305,13 +404,38 @@ class ArrayFormat(DataFormat):
         super().__init__(c_type=child_format.c_type)
 
         self.default = []
+        self.min = []
+        self.max = []
         for i in range(self.count):
             self.default.append(self.format.default)
+            self.min.append(self.format.min)
+            self.max.append(self.format.max)
         pass
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        if string_representation == "":
+            if eval_context == StringEvaluationContext.DEFAULT:
+                return self.default
+            elif eval_context == StringEvaluationContext.MIN:
+                return self.min
+            elif eval_context == StringEvaluationContext.MAX:
+                return self.max
+
+        object_array = []
+
+        # If an array is specified with "{1,2,3}" and the number of elements
+        #   matches the expected number for the array, decode the array
+        # If an array is specified with only a single element "{4}" treat
+        #   that as an array in which all elements are set to that value
         segments = split_braces(string_representation)
-        if len(segments) != self.count:
+        if len(segments) == 1:
+            repeated_element = self.format.string_to_object(segments[0], eval_context)
+            for element in range(self.count):
+                object_array.append(repeated_element)
+        elif len(segments) == self.count:
+            for element in segments:
+                object_array.append(self.format.string_to_object(element, eval_context))
+        else:
             raise ParseError(
                 "Member '{}' of struct '{}' should have {} elements, "
                 "but {} were found"
@@ -321,9 +445,6 @@ class ArrayFormat(DataFormat):
                     self.count,
                     len(segments)))
 
-        object_array = []
-        for element in segments:
-            object_array.append(self.format.string_to_object(element))
         return object_array
 
     def object_to_string(
@@ -354,6 +475,13 @@ class ArrayFormat(DataFormat):
 
     def size_in_bytes(self):
         return self.format.size_in_bytes() * self.count
+
+    def check_bounds(self, value, min, max):
+        for i in range(self.count):
+            try:
+                self.format.check_bounds(value[i], min[i], max[i])
+            except InvalidRangeError as e:
+                raise InvalidRangeError("At index {}: {}".format(i, e))
 
 
 # Represents a member of a user defined struct
@@ -390,14 +518,16 @@ class StructMember:
         else:
             self.format = format
 
-        default_string = xml_node.getAttribute("default")
-        if default_string == "":
-            self.default = self.format.default
-        else:
-            self.default = self.format.string_to_object(default_string)
+        self.default = self.format.string_to_object(xml_node.getAttribute("default"))
+        self.min = self.format.string_to_object(xml_node.getAttribute("min"), StringEvaluationContext.MIN)
+        self.max = self.format.string_to_object(xml_node.getAttribute("max"), StringEvaluationContext.MAX)
 
-    def string_to_object(self, string_representation):
-        return self.format.string_to_object(string_representation)
+        self.format.check_bounds(self.min, self.format.min, self.format.max)
+        self.format.check_bounds(self.max, self.format.min, self.format.max)
+        self.format.check_bounds(self.default, self.min, self.max)
+
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
+        return self.format.string_to_object(string_representation, eval_context)
 
     def object_to_string(
             self,
@@ -413,6 +543,12 @@ class StructMember:
 
     def size_in_bytes(self):
         return self.format.size_in_bytes()
+
+    def check_bounds(self, value, min, max):
+        try:
+            self.format.check_bounds(value, min, max)
+        except InvalidRangeError as e:
+            raise InvalidRangeError("Member {} of {}: {}".format(self.name, self.struct_name, e))
 
 
 # Represents a user defined struct
@@ -430,7 +566,25 @@ class StructFormat(DataFormat):
         for member in xml_node.getElementsByTagName('Member'):
             self.members.append(StructMember(schema, self.name, member))
 
-        self.default = self.string_to_object(xml_node.getAttribute("default"))
+        # Struct definitions themselves should not include default/min/max tags
+        # The default/min/max values are interpreted from the struct members
+
+        if xml_node.getAttribute("default") != "":
+            raise ParseError("Struct {} may not have a 'default' attribute".format(self.name))
+        if xml_node.getAttribute("min") != "":
+            raise ParseError("Struct {} may not have a 'min' attribute".format(self.name))
+        if xml_node.getAttribute("max") != "":
+            raise ParseError("Struct {} may not have a 'max' attribute".format(self.name))
+
+        # Construct the default value from the members
+        self.default = self.string_to_object('')
+
+        self.min = OrderedDict()
+        self.max = OrderedDict()
+
+        for member in self.members:
+            self.min[member.name] = member.min
+            self.max[member.name] = member.max
 
         pass
 
@@ -478,7 +632,7 @@ class StructFormat(DataFormat):
                             ))
         return subknobs
 
-    def string_to_object(self, string_representation):
+    def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
         obj = OrderedDict()
 
         segments = split_braces(string_representation)
@@ -486,7 +640,12 @@ class StructFormat(DataFormat):
         # Get the defaults from the member values
         if len(segments) == 0 or (len(segments) == 1 and segments[0] == ""):
             for member in self.members:
-                obj[member.name] = member.default
+                if eval_context == StringEvaluationContext.DEFAULT:
+                    obj[member.name] = member.default
+                elif eval_context == StringEvaluationContext.MIN:
+                    obj[member.name] = member.min
+                elif eval_context == StringEvaluationContext.MAX:
+                    obj[member.name] = member.max
             return obj
 
         if len(self.members) > len(segments):
@@ -503,7 +662,7 @@ class StructFormat(DataFormat):
                     self.name))
 
         for (member, value) in zip(self.members, segments):
-            obj[member.name] = member.string_to_object(value)
+            obj[member.name] = member.string_to_object(value, eval_context)
         return obj
 
     def object_to_string(
@@ -549,6 +708,13 @@ class StructFormat(DataFormat):
             total_size += member.size_in_bytes()
         return total_size
 
+    def check_bounds(self, value, min, max):
+        for member in self.members:
+            member_value = value[member.name]
+            member_min = min[member.name]
+            member_max = max[member.name]
+            member.check_bounds(member_value, member_min, member_max)
+
 
 # Represents a "knob", a modifiable variable
 class Knob:
@@ -570,23 +736,43 @@ class Knob:
         # user defined enum or struct
         self.format = schema.get_format(data_type)
 
-        self.value = None
+        self._value = None
 
-        default_string = xml_node.getAttribute("default")
-        if default_string == "":
-            self._default = self.format.default
-        else:
-            # Use the format to decode the default value from its
-            # string representation
-            try:
-                self._default = self.format.string_to_object(default_string)
-            except ParseError as e:
-                # Capture the ParseError and create a more specific error
-                # message
-                raise ParseError(
-                    "Unable to parse default value of '{}': {}".format(
-                        self.name,
-                        e))
+        # Use the format to decode the default value from its
+        # string representation
+        try:
+            self._default = self.format.string_to_object(xml_node.getAttribute("default"))
+        except ParseError as e:
+            # Capture the ParseError and create a more specific error
+            # message
+            raise ParseError(
+                "Unable to parse default value of '{}': {}".format(
+                    self.name,
+                    e))
+
+        try:
+            self._min = self.format.string_to_object(xml_node.getAttribute("min"), StringEvaluationContext.MIN)
+        except ParseError as e:
+            raise ParseError(
+                "Unable to parse the min value of '{}': {}".format(
+                    self.name, e
+                )
+            )
+
+        self.format.check_bounds(self._min, self.format.min, self.format.max)
+
+        try:
+            self._max = self.format.string_to_object(xml_node.getAttribute("max"), StringEvaluationContext.MAX)
+        except ParseError as e:
+            raise ParseError(
+                "Unable to parse the max value of '{}': {}".format(
+                    self.name, e
+                )
+            )
+
+        self.format.check_bounds(self._max, self.format.min, self.format.max)
+
+        self.format.check_bounds(self._default, self._min, self._max)
 
         self.subknobs = []
         if isinstance(self.format, StructFormat):
@@ -616,40 +802,23 @@ class Knob:
         # object don't affect the default value of the knob
         return copy.deepcopy(self._default)
 
-    def generate_header(self, out):
-        out.write("// {} knob\n".format(self.name))
-        if self.help != "":
-            out.write("// {}\n".format(self.help))
+    @property
+    def min(self):
+        return copy.deepcopy(self._min)
 
-        format_options = StringFormatOptions()
-        format_options.c_format = True
+    @property
+    def max(self):
+        return copy.deepcopy(self._max)
 
-        out.write("// Namespace GUID for {}\n".format(self.name))
-        out.write("#define CONFIG_NAMESPACE_{} \"{}\"\n\n".format(self.name, self.namespace))  # noqa: E501
+    @property
+    def value(self):
+        return copy.deepcopy(self._value)
 
-        out.write("// Get the default value of {}\n".format(self.name))
-        out.write("inline {} config_get_default_{}() {{\n".format(self.format.c_type, self.name))  # noqa: E501
-        out.write("    return {};\n".format(self.format.object_to_string(self.default, format_options)))  # noqa: E501
-        out.write("}\n")
-        out.write("// Get the current value of {}\n".format(self.name))
-        out.write("inline {} config_get_{}() {{\n".format(self.format.c_type, self.name))  # noqa: E501
-        out.write("    {} result = config_get_default_{}();\n".format(self.format.c_type, self.name))  # noqa: E501
-        out.write("    size_t value_size = sizeof(result);\n")  # noqa: E501
-        out.write("    config_result_t read_result = _config_get_knob_value_by_name(\"{}\", CONFIG_NAMESPACE_{}, &value_size, (unsigned char*)&result);\n".format(self.name, self.name))  # noqa: E501
-        out.write("    // i.e. an enum may be stored as a single byte, or four bytes; it may use however many bytes are needed\n")  # noqa: E501
-        out.write("    if (read_result == CONFIG_RESULT_SUCCESS && value_size == sizeof(read_result)) {\n")  # noqa: E501
-        out.write("        return result;\n")
-        out.write("    } else {\n")
-        out.write("        return config_get_default_{}();\n".format(self.name))  # noqa: E501
-        out.write("    }\n")
-        out.write("}\n")
-        out.write("#ifdef CONFIG_SET_VALUES\n")
-        out.write("// Set the current value of {}\n".format(self.name))
-        out.write("inline config_result_t config_set_{}({} value) {{\n".format(self.name, self.format.c_type))  # noqa: E501
-        out.write("    return _config_set_knob_value_by_name(\"{}\", CONFIG_NAMESPACE_{}, sizeof(value), (unsigned char*)&value);\n".format(self.name, self.name))  # noqa: E501
-        out.write("}\n")
-        out.write("#endif\n")
-        out.write("\n\n")
+    @value.setter
+    def value(self, new_value):
+        if new_value is not None:
+            self.format.check_bounds(new_value, self._min, self._max)
+        self._value = new_value
 
     def _get_child_value(self, child_path, base_value):
         path_elements = child_path.split(".")
@@ -705,6 +874,8 @@ class Knob:
             else:
                 child_object[name][index] = value
 
+            self.value = child_object
+
     def _decode_subpath(self, subpath_segment):
         match = re.match(
             r'^(?P<name>[a-zA-Z_][0-9a-zA-Z_]*)(\[(?P<index>[0-9]+)\])?$',
@@ -749,6 +920,14 @@ class SubKnob:
     @property
     def default(self):
         return self.knob._get_child_value(self.name, self.knob.default)
+
+    @property
+    def min(self):
+        return self.knob._get_child_value(self.name, self.knob.min)
+
+    @property
+    def max(self):
+        return self.knob._get_child_value(self.name, self.knob.max)
 
 
 class Schema:
