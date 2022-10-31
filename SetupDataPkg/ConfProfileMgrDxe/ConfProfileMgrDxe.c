@@ -185,7 +185,6 @@ ConfProfileMgrDxeEntry (
   UINT32      i;
   UINT32      NumProfiles        = 0;
   EFI_GUID    *ValidGuids        = NULL;
-  UINTN       GuidsSize          = 0;
   UINTN       Size               = sizeof (EFI_GUID);
   UINT32      Attributes         = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS;
   BOOLEAN     FoundProfileInList = FALSE;
@@ -238,11 +237,10 @@ ConfProfileMgrDxeEntry (
     NumProfiles /= sizeof (EFI_GUID);
 
     ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
-    GuidsSize  = PcdGetSize (PcdConfigurationProfileList);
 
     // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
     // we need to fail back to the default profile
-    if ((ValidGuids == NULL) || ((GuidsSize % sizeof (EFI_GUID)) != 0)) {
+    if (ValidGuids == NULL) {
       DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs, using generic profile\n", __FUNCTION__));
       ASSERT (FALSE);
       CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
