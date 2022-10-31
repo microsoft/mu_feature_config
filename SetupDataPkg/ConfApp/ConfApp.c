@@ -9,6 +9,7 @@
 #include <Uefi.h>
 #include <UefiSecureBoot.h>
 #include <DfciSystemSettingTypes.h>
+#include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Protocol/DfciAuthentication.h>
 
 #include <Library/DebugLib.h>
@@ -21,6 +22,8 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/SecureBootKeyStoreLib.h>
+#include <Library/PerformanceLib.h>
+#include <Library/ConfigSystemModeLib.h>
 
 #include "ConfApp.h"
 
@@ -90,6 +93,38 @@ DFCI_AUTH_TOKEN                    mAuthToken;
 DFCI_IDENTITY_MASK                 mIdMask;          // Identities installed
 SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
 UINT8                              mSecureBootKeysCount;
+
+/**
+  Quick helper function to see if ReadyToBoot has already been signalled.
+
+  @retval     TRUE    ReadyToBoot has been signalled.
+  @retval     FALSE   Otherwise...
+
+**/
+BOOLEAN
+IsPostReadyToBoot (
+  VOID
+  )
+{
+  EFI_STATUS       Status;
+  UINT32           Attributes;
+  PHASE_INDICATOR  Indicator;
+  UINTN            Size;
+  BOOLEAN          Result = FALSE;
+
+  Size = sizeof (Indicator);
+
+  Status = gRT->GetVariable (
+                  READY_TO_BOOT_INDICATOR_VAR_NAME,
+                  &gMuVarPolicyDxePhaseGuid,
+                  &Attributes,
+                  &Size,
+                  &Indicator
+                  );
+  Result = (!EFI_ERROR (Status) && (Attributes == READY_TO_BOOT_INDICATOR_VAR_ATTR));
+
+  return Result;
+} // IsPostReadyToBoot()
 
 /**
   Polling function for key that was pressed.
@@ -361,6 +396,14 @@ ConfAppEntry (
 {
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData;
+
+  // First thing first, try to see tell the operation mode
+  if (!IsSystemInManufacturingMode ()) {
+    // If not, we will not allow updating configuration or secure boot keys
+    PERF_EVENT_SIGNAL_BEGIN (&gEfiEventReadyToBootGuid);
+    EfiSignalEventReadyToBoot ();
+    PERF_EVENT_SIGNAL_END (&gEfiEventReadyToBootGuid);
+  }
 
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
 

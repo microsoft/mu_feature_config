@@ -17,10 +17,31 @@ template:
         help         : >
                         GFX port power configuration
 
+  IO_TMPL: >
+    - Port$(1) :
+      - Overdrive     :
+        type         : Combo
+        option       : 0x0:Disable, 0x1:Enable, 0x2:Overdrive
+        help         : >
+                      Enable/Disable IO feature. 2:Overdrive, 1: Enabled, 0: Disabled
+      - PortDescription      :
+          type        : EditText
+          help       : >
+                      Specify something
+      - PortEnable:
+        - EnablePort:
+            type: Combo
+            option: 0x0:Disable, 0x1:Enable
+            help: >
+                  Enable/Disable Port
+        - PortQoSMapping:
+            type: EditText
+            help: >
+                  SpecifyText
 
 configs:
   - $ACTION      :
-      page         : PLT::"Platform", GFX::"GFX Configuration"
+      page         : PLT::"Platform", IO::"IO Configuration", GFX::"GFX Configuration"
 
   - $ACTION      :
       page         : PLT
@@ -36,3 +57,14 @@ configs:
 
   - GFX_CFG_DATA  :
     - !expand { GFX_CONF_TMPL : [ 0, 1 ] }
+
+  - $ACTION      :
+      page         : IO
+
+  - IO_CFG_DATA  :
+    - Flags:
+        type         : EditNum
+        help         : >
+                       Specify IO flags here
+    - !expand { IO_TMPL : [ 0 , 1, 0, 'A'] }
+    - !expand { IO_TMPL : [ 1 , 2, 1, '2'] }

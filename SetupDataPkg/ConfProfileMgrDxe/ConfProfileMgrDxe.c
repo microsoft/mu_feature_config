@@ -219,7 +219,7 @@ ConfProfileMgrDxeEntry (
     DEBUG ((DEBUG_ERROR, "%a RetrieveActiveProfileGuid failed (%r)! Attempting to use cached profile\n", __FUNCTION__, Status));
 
     if (!FoundCachedProfile) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to retrieve cached profile, using generic profile\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a Failed to retrieve cached profile, using generic profile\n", __FUNCTION__));
     }
 
     CopyMem (&ActiveProfileGuid, &CachedProfile, Size);

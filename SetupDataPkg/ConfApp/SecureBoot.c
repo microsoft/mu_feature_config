@@ -9,7 +9,6 @@
 #include <Uefi.h>
 #include <UefiSecureBoot.h>
 #include <Guid/ImageAuthentication.h>
-#include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
@@ -61,43 +60,6 @@ UINT8              mSelectedKeyIndex     = MU_SB_CONFIG_NONE;
 CHAR16             *mKeyNameBuffer       = NULL;
 SecureBootState_t  mSecBootState         = SecureBootInit;
 UINTN              mCurrentState         = (UINTN)-1;
-BOOLEAN            mInitialized          = FALSE;
-
-/**
-  Quick helper function to see if ReadyToBoot has already been signalled.
-
-  @retval     TRUE    ReadyToBoot has been signalled.
-  @retval     FALSE   Otherwise...
-
-**/
-STATIC
-BOOLEAN
-IsPostReadyToBoot (
-  VOID
-  )
-{
-  EFI_STATUS       Status;
-  UINT32           Attributes;
-  PHASE_INDICATOR  Indicator;
-  UINTN            Size;
-  static BOOLEAN   Result = FALSE;
-
-  Size = sizeof (Indicator);
-
-  if (!mInitialized) {
-    Status = gRT->GetVariable (
-                    READY_TO_BOOT_INDICATOR_VAR_NAME,
-                    &gMuVarPolicyDxePhaseGuid,
-                    &Attributes,
-                    &Size,
-                    &Indicator
-                    );
-    Result       = (!EFI_ERROR (Status) && (Attributes == READY_TO_BOOT_INDICATOR_VAR_ATTR));
-    mInitialized = TRUE;
-  }
-
-  return Result;
-} // IsPostReadyToBoot()
 
 /**
   Helper internal function to reset all local variable in this file.
