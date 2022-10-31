@@ -4,7 +4,3 @@ pytest-cov
 flake8~=5.0.0 # MU_CHANGE - update to 5.0.0 or later
 pyopenssl
 pefile
-xmlschema
-edk2-pytool-library
-edk2-pytool-extensions
-edk2-basetools
