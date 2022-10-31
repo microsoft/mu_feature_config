@@ -34,8 +34,9 @@ __copyright_tmp__ = """/** @file
 **/
 """
 
-SETUP_CONFIG_POLICY_VAR_GUID = '9F556476-9E82-E848-A473-F12ADAD1DDD2'
+SETUP_CONFIG_POLICY_VAR_GUID = '7664559F-829E-48E8-A473-F12ADAD1DDD2'
 DICT_KEYS_KEYWORDS = {'$STRUCT', 'CfgHeader', 'CondValue'}
+HEADER_TEMPLATE = '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}'
 
 
 def get_copyright_header(file_type, allow_modify=False):
@@ -99,6 +100,15 @@ def array_str_to_value(val_str):
         each = each.strip()
         value = (value << 8) | int(each, 0)
     return value
+
+
+def extract_tag_val(val_str):
+    if HEADER_TEMPLATE != '{0x01:2b, (_LENGTH_%s_):18b, %d:4b, 0:4b, %s:12b}':
+        raise Exception("Did you just update the header template? The calculation below might need to change!")
+
+    raw_val = array_str_to_value(val_str)
+    tag_val = (raw_val >> 28) & 0xFFF
+    return tag_val
 
 
 def write_lines(lines, file):
@@ -508,9 +518,8 @@ class CFG_YAML():
                             # Insert the headers corresponds to this ID tag from here, most contents are hardcoded
                             # for now
                             cfg_hdr = OrderedDict()
-                            cfg_hdr['length'] = '0x04'
-                            cfg_hdr['value'] = '{0x01:2b, (_LENGTH_%s_):10b, %d:4b, 0:4b, %s:12b}' %\
-                                               (parent_name, 0 if key == "IdTag" else 1, value_str)
+                            cfg_hdr['length'] = '0x05'
+                            cfg_hdr['value'] = HEADER_TEMPLATE % (parent_name, 0 if key == "IdTag" else 1, value_str)
                             curr['CfgHeader'] = cfg_hdr
 
                             cnd_val = OrderedDict()
@@ -1398,29 +1407,55 @@ class CGenCfgData:
         a.iterate_each_setting(path, handler)
 
     def update_exec_and_item_from_tag(self, tag_id, bin_data):
+        # This function updates both the executive and cfg tree's values when we are loading a bin or svd file.
+        # It recurses through each binary data for each tag, where each tag may represent a multilevel nested struct,
+        # among other objects
+        offset = 0
+
+        def _update_tree(exec, bin_data):
+            nonlocal offset
+            # exec dict is organized into well known keys and one key that is the name of the exec
+            # we need to extract the index from this name key to find the item and change the
+            # object that is used to show updated info, as the exec only tracks the default
+            # info for generating a delta file/svd from
+            for key in exec.keys():
+                # ignore the $STRUCT, CFG_HDR, and CondValue metadata
+                if key in DICT_KEYS_KEYWORDS:
+                    continue
+                # only recurse if this is a struct
+                if type(exec) is OrderedDict and "indx" not in exec[key]:
+                    _update_tree(exec[key], bin_data)
+
+                # need to handle embedded structs case, where the indx is buried inside inner components
+                item = None
+                if "indx" in exec[key]:
+                    item = self.get_item_by_index(exec[key]["indx"])
+                    itype = item["type"].split(",")[0]
+                    val_len = int(exec[key]['length'], 0)
+                    end_offset = offset + val_len
+                    if itype == "Combo":
+                        # combo is an index into combo options
+                        val = str(int.from_bytes(bin_data[offset:end_offset], "little"))
+                        self.set_config_item_value(item, val)
+                    elif itype == "EditNum":
+                        value = '0x%X' % int.from_bytes(bin_data[offset:end_offset], "little")
+                        self.set_config_item_value(item, value)
+                    elif itype == "EditText":
+                        self.set_config_item_value(item, bin_data[offset:end_offset].decode().rstrip('\0'))
+                    elif itype == "Table":
+                        new_value = bytes_to_bracket_str(bin_data[offset:end_offset])
+                        self.set_config_item_value(item, new_value)
+                    offset = end_offset
+
+                    # we need to handle the offset to correctly reset it for the next component. bin_data consists
+                    # of all the data for the struct, so we build up the offset, once we finish it, reset it
+                    if offset >= len(bin_data):
+                        offset = 0
+
+        # update the exec itself
         exec = self.locate_exec_from_tag(tag_id)
         self.set_field_value(exec, bin_data)
-        name = None
-        # exec dict is organized into well known keys and one key that is the name of the exec
-        # we need to extract the index from this name key to find the item and change the
-        # object that is used to show updated info, as the exec only tracks the default
-        # info for generating a delta file/svd from
-        for key in exec.keys():
-            if (key not in DICT_KEYS_KEYWORDS):
-                name = key
-
-        if name is None:
-            raise Exception("Can't find name of exec")
-        item = self.get_item_by_index(exec[name]["indx"])
-        itype = item["type"].split(",")[0]
-        if itype == "Combo":
-            # combo is an index into combo options
-            self.set_config_item_value(item, str(int.from_bytes(bin_data, "little")))
-        elif itype in ["EditNum", "EditText"]:
-            self.set_config_item_value(item, bin_data.decode())
-        elif itype in ["Table"]:
-            new_value = bytes_to_bracket_str(bin_data)
-            self.set_config_item_value(item, new_value)
+        _update_tree(exec, bin_data)
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         # binary may be passed in variable list format or raw binary format
@@ -1564,7 +1599,7 @@ class CGenCfgData:
             offset += int(exec['CfgHeader']['length'], 0)
             offset += int(exec['CondValue']['length'], 0)
             cfg_hdr = self.get_item_by_index(exec["CfgHeader"]["indx"])
-            tag_val = array_str_to_value(cfg_hdr["value"]) >> 20
+            tag_val = extract_tag_val(cfg_hdr['value'])
             name = "Device.ConfigData.TagID_%08x" % tag_val
             var = UEFIVariable(name, uuid.UUID(SETUP_CONFIG_POLICY_VAR_GUID), bytes[offset:], attributes=3)
             buf = create_vlist_buffer(var)
@@ -1664,7 +1699,7 @@ class CGenCfgData:
                 exec[0] = cfgs
                 if CGenCfgData.STRUCT in cfgs:
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = array_str_to_value(cfg_hdr['value']) >> 20
+                    tag_val = extract_tag_val(cfg_hdr['value'])
                     if tag_val == tag:
                         exec[1] = exec[0]
 
@@ -1959,7 +1994,7 @@ class CGenCfgData:
                     field = CGenCfgData.format_struct_field_name(field, struct_dict[field][1])
 
                 if append:
-                    line = self.create_field(None, field, 0, 0, struct, '', '', '')
+                    line = self.create_field(None, field, 0, 0, struct, struct_info['name'], '', '')
                     lines.append('  %s' % line)
                     last = struct
                 continue
@@ -1997,7 +2032,7 @@ class CGenCfgData:
                 if 'CfgHeader' in cfgs:
                     # collect CFGDATA TAG IDs
                     cfg_hdr = self.get_item_by_index(cfgs['CfgHeader']['indx'])
-                    tag_val = array_str_to_value(cfg_hdr['value']) >> 20
+                    tag_val = extract_tag_val(cfg_hdr['value'])
                     tag_dict[name] = tag_val
                     if level == 1:
                         tag_curr[0] = tag_val
@@ -2048,7 +2083,8 @@ class CGenCfgData:
             if idx > 0:
                 last_struct = struct_list[idx - 1]['node']['$STRUCT']
                 curr_struct = each['node']['$STRUCT']
-                if struct_list[idx - 1]['alias'] == each['alias'] and \
+                if 'struct' not in curr_struct and \
+                   struct_list[idx - 1]['alias'] == each['alias'] and \
                    curr_struct['length'] == last_struct['length'] and \
                    curr_struct['offset'] == last_struct['offset'] + last_struct['length']:
                     for idx2 in range(idx - 1, -1, -1):

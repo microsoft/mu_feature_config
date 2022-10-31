@@ -741,7 +741,7 @@ class application(tkinter.Frame):
             if "dlt" in ftype or 'csv' in ftype:
                 question = ""
             elif ftype == "bin":
-                question = 'All configuration will be reloaded from binary blob, continue ?'
+                question = ''
             elif ftype == 'svd':
                 question = ''
             elif 'yaml' in ftype or 'yml' in ftype or 'xml' in ftype:
@@ -842,15 +842,6 @@ class application(tkinter.Frame):
     def load_bin_file(self, path):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
-        bin_len = 0
-        for idx in self.cfg_data_list:
-            bin_len += len(self.cfg_data_list[idx].org_cfg_data_bin)
-
-        if len(bin_data) < bin_len:
-            messagebox.showerror(
-                "Binary file size is smaller than what YAML requires !"
-            )
-            return
 
         try:
             for idx in self.cfg_data_list:
