@@ -240,10 +240,10 @@ ConfProfileMgrDxeEntry (
     ValidGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationProfileList);
     GuidsSize  = PcdGetSize (PcdConfigurationProfileList);
 
+      DEBUG ((DEBUG_ERROR, "%a Here %d\n", __FUNCTION__, GuidsSize));
     // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
     // we need to fail back to the default profile
     if ((ValidGuids == NULL) || ((GuidsSize % sizeof (EFI_GUID)) != 0)) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs, using generic profile\n", __FUNCTION__));
       ASSERT (FALSE);
       CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
     } else {
