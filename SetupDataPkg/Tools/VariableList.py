@@ -1025,7 +1025,7 @@ def create_vlist_buffer(variable):
     # Null terminated UTF-16LE encoded name
     name = (variable.name + "\0").encode("utf-16le")
     data = variable.data
-    guid = variable.guid.bytes
+    guid = variable.guid.bytes_le
     attributes = variable.attributes
 
     payload = struct.pack("<ii", len(name), len(data)) + \
@@ -1116,7 +1116,7 @@ def read_vlist_from_buffer(array):
         # Decode the elements of the payload
         name = payload[8:(name_size + 8)].decode(encoding="UTF-16LE").strip("\0")
         guid_bytes = payload[(name_size + 8):(name_size + 8 + 16)]
-        guid = uuid.UUID(bytes=guid_bytes)
+        guid = uuid.UUID(bytes_le=guid_bytes)
         attributes_bytes = payload[(name_size + 8 + 16):(name_size + 8 + 16 + 4)]
         attributes = struct.unpack("<I", attributes_bytes)[0]
         data = payload[(name_size + 8 + 16 + 4):]
