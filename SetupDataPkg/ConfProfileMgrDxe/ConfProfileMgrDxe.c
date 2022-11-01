@@ -240,7 +240,7 @@ ConfProfileMgrDxeEntry (
 
     // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
     // we need to fail back to the default profile
-    if ((ValidGuids == NULL) || (((UINTN)ValidGuids & BIT0) != 0)) {
+    if (ValidGuids == NULL) {
       DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs, using generic profile\n", __FUNCTION__));
       ASSERT (FALSE);
       CopyMem (&ActiveProfileGuid, (EFI_GUID *)&gSetupDataPkgGenericProfileGuid, Size);
