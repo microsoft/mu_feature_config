@@ -7,10 +7,8 @@
 ##
 
 import sys
-import os
 from collections import OrderedDict
 import base64
-import xmlschema
 
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib  # noqa: E402
 from CommonUtility import bytes_to_value
