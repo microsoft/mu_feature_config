@@ -282,11 +282,21 @@ class CGenNCCfgData:
 
         return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full)
 
+    def find_data_file(self, filename):
+        if getattr(sys, "frozen", False):
+            # The application is frozen
+            datadir = os.path.dirname(sys.executable)
+        else:
+            # The application is not frozen
+            # Change this bit to match where you store your data files:
+            datadir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(datadir, filename)
+
     def load_xml(self, cfg_file):
         self.initialize()
         # TODO: re-enable the xsd validation once updated
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        xsd = xmlschema.XMLSchema(os.path.join(dir_path, "configschema.xsd"))
+        # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
+        xsd = xmlschema.XMLSchema(self.find_data_file("configschema.xsd"))
         # raises exception if validation fails
         xsd.validate(cfg_file)
         self.schema = Schema.load(cfg_file)
