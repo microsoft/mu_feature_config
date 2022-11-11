@@ -7,10 +7,8 @@
 ##
 
 import sys
-import os
 from collections import OrderedDict
 import base64
-import xmlschema
 
 from SettingSupport.DFCI_SupportLib import DFCI_SupportLib  # noqa: E402
 from CommonUtility import bytes_to_value
@@ -294,11 +292,6 @@ class CGenNCCfgData:
 
     def load_xml(self, cfg_file):
         self.initialize()
-        # TODO: re-enable the xsd validation once updated
-        # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
-        xsd = xmlschema.XMLSchema(self.find_data_file("configschema.xsd"))
-        # raises exception if validation fails
-        xsd.validate(cfg_file)
         self.schema = Schema.load(cfg_file)
 
         # Assign all values to their defaults
