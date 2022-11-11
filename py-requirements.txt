@@ -5,4 +5,4 @@ flake8~=5.0.0 # MU_CHANGE - update to 5.0.0 or later
 pyopenssl
 pefile
 wheel
-cx_Freeze
+cx_Freeze~=6.13.1
