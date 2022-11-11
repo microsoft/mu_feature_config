@@ -657,11 +657,11 @@ CreateXmlStringFromCurrentSettings (
   XmlNode                *CurrentSettingsListNode = NULL;
   CHAR8                  LsvString[20];
   EFI_TIME               Time;
-  UINT32                 Lsv      = 1;
-  UINTN                  DataSize = 0;
-  CHAR8                  *EncodedBuffer;
-  UINTN                  EncodedSize = 0;
-  VOID                   *Data       = NULL;
+  UINT32                 Lsv            = 1;
+  UINTN                  DataSize       = 0;
+  CHAR8                  *EncodedBuffer = NULL;
+  UINTN                  EncodedSize    = 0;
+  VOID                   *Data          = NULL;
   UINT8                  Dummy;
   DFCI_SETTING_FLAGS     Flags;
   CHAR8                  *AsciiName;
