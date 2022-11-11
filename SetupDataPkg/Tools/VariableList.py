@@ -12,6 +12,8 @@ from collections import OrderedDict
 import uuid
 import zlib
 import copy
+import os
+import xmlschema
 from xml.dom.minidom import parse, parseString
 from enum import Enum
 
@@ -958,6 +960,14 @@ class Schema:
 
     # Load a schema given a path to a schema xml file
     def load(path):
+
+        # Get the XML schema from the current path
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        xsd = xmlschema.XMLSchema(os.path.join(dir_path, "configschema.xsd"))
+
+        # raises exception if validation fails
+        xsd.validate(path)
+
         return Schema(parse(path), path)
 
     # Parse a schema given a string representation of the xml content

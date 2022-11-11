@@ -284,11 +284,6 @@ class CGenNCCfgData:
 
     def load_xml(self, cfg_file):
         self.initialize()
-        # TODO: re-enable the xsd validation once updated
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        xsd = xmlschema.XMLSchema(os.path.join(dir_path, "configschema.xsd"))
-        # raises exception if validation fails
-        xsd.validate(cfg_file)
         self.schema = Schema.load(cfg_file)
 
         # Assign all values to their defaults
