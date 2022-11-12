@@ -9,7 +9,8 @@ import os
 from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
-build_exe_options = {"packages": ["os"]}
+include_files = ["configschema.xsd"]
+build_exe_options = {"packages": ["os"], "include_files": include_files}
 
 setup(
     name="MuConfigEditor",

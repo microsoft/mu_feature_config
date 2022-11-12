@@ -958,12 +958,22 @@ class Schema:
 
         pass
 
+    def find_data_file(filename):
+        if getattr(sys, "frozen", False):
+            # The application is frozen
+            datadir = os.path.dirname(sys.executable)
+        else:
+            # The application is not frozen
+            # Change this bit to match where you store your data files:
+            datadir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(datadir, filename)
+
     # Load a schema given a path to a schema xml file
     def load(path):
 
         # Get the XML schema from the current path
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        xsd = xmlschema.XMLSchema(os.path.join(dir_path, "configschema.xsd"))
+        # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
+        xsd = xmlschema.XMLSchema(Schema.find_data_file("configschema.xsd"))
 
         # raises exception if validation fails
         xsd.validate(path)
