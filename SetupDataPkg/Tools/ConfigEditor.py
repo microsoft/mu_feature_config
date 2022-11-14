@@ -883,10 +883,9 @@ class application(tkinter.Frame):
         for menu in self.menu_string:
             # if we have an xml only setting, don't enable it in the UI
             # if we are loading a yaml file
-            if menu in self.xml_specific_setting and \
-                (len(self.cfg_data_list) != 1 or \
-                self.cfg_data_list[file_id].config_type == 'yml'):
-                    self.file_menu.entryconfig(menu, state="disabled")
+            if menu in self.xml_specific_setting and (len(self.cfg_data_list) != 1 or
+                    self.cfg_data_list[file_id].config_type == 'yml'):
+                self.file_menu.entryconfig(menu, state="disabled")
             else:
                 self.file_menu.entryconfig(menu, state="normal")
 
