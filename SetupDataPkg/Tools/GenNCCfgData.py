@@ -249,6 +249,15 @@ class CGenNCCfgData:
     def generate_binary_array(self, is_variable_list_format):
         return vlist_to_binary(self.schema)
 
+    def generate_delta_binary_array(self):
+        bin = b''
+        list = get_delta_vlist(self.schema)[1]
+
+        for var in list:
+            bin += var
+
+        return bin
+
     def generate_binary(self, bin_file_name):
         bin_file = open(bin_file_name, "wb")
         bin_file.write(self.generate_binary_array(True))

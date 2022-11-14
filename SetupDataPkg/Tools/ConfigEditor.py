@@ -399,14 +399,19 @@ class application(tkinter.Frame):
         tkinter.Frame.__init__(self, master, borderwidth=2)
 
         self.menu_string = [
-            "Save Config Data to Var List Binary",
-            "Load Config Data from Var List Binary",
+            'Save Full Config Data to Binary',
+            'Save Config Changes to Binary',
+            'Load Config Data from Binary',
             'Save Full Config Data to SVD File',
             'Save Config Changes to SVD File',
             'Load Config from SVD File',
             'Save Full Config Data to Change File',
             'Save Config Changes to Change File',
             'Load Config from Change File',
+        ]
+
+        self.xml_specific_setting = [
+            'Save Config Changes to Binary'
         ]
 
         root.geometry("1200x800")
@@ -473,25 +478,28 @@ class application(tkinter.Frame):
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[1], command=self.load_from_bin, state="disabled"
+            label=self.menu_string[1], command=self.save_delta_to_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[2], command=self.save_full_to_svd, state="disabled"
+            label=self.menu_string[2], command=self.load_from_bin, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[3], command=self.save_delta_to_svd, state="disabled"
+            label=self.menu_string[3], command=self.save_full_to_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[4], command=self.load_from_svd, state="disabled"
+            label=self.menu_string[4], command=self.save_delta_to_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[5], command=self.save_full_to_delta, state="disabled"
+            label=self.menu_string[5], command=self.load_from_svd, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[6], command=self.save_to_delta, state="disabled"
+            label=self.menu_string[6], command=self.save_full_to_delta, state="disabled"
         )
         file_menu.add_command(
-            label=self.menu_string[7], command=self.load_from_delta, state="disabled"
+            label=self.menu_string[7], command=self.save_to_delta, state="disabled"
+        )
+        file_menu.add_command(
+            label=self.menu_string[8], command=self.load_from_delta, state="disabled"
         )
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -873,7 +881,14 @@ class application(tkinter.Frame):
         self.build_config_page_tree(self.cfg_data_list[file_id].cfg_data_obj.get_cfg_page()["root"], "", file_id)
 
         for menu in self.menu_string:
-            self.file_menu.entryconfig(menu, state="normal")
+            # if we have an xml only setting, don't enable it in the UI
+            # if we are loading a yaml file
+            if menu in self.xml_specific_setting and \
+                (len(self.cfg_data_list) != 1 or \
+                self.cfg_data_list[file_id].config_type == 'yml'):
+                    self.file_menu.entryconfig(menu, state="disabled")
+            else:
+                self.file_menu.entryconfig(menu, state="normal")
 
         return 0
 
@@ -971,6 +986,27 @@ class application(tkinter.Frame):
 
     def save_full_to_delta(self):
         self.save_delta_file(True)
+
+    def save_delta_to_bin(self):
+        # XML only function to save the changed values to a binary
+        path = self.get_save_file_name("bin")
+        if not path:
+            return
+
+        self.update_config_data_on_page()
+
+        index = -1
+        for idx in self.cfg_data_list:
+            if self.cfg_data_list[idx].config_type == 'xml':
+                index = idx
+                break
+
+        if index == -1:
+            raise Exception('Saving delta bin not supported for YAML!')
+
+        with open(path, "wb") as fd:
+            bin = self.cfg_data_list[index].cfg_data_obj.generate_delta_binary_array()
+            fd.write(bin)
 
     def save_to_bin(self):
         path = self.get_save_file_name("bin")
