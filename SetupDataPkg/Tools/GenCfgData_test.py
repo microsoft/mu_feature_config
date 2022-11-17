@@ -748,7 +748,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         ydata.update_def_value()
 
         # Create xml obj
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -1101,7 +1101,7 @@ class UefiCfgUnitTests(unittest.TestCase):
         ydata.update_def_value()
 
         # Create xml obj
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
