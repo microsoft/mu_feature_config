@@ -279,9 +279,11 @@ class CGenNCCfgData:
         self.sync_shim_and_schema()
         return 0
 
-    def generate_delta_file_from_bin(self, delta_file, old_data, new_data, full=False):
+    def generate_delta_file_from_bin(self, delta_file, old_data, new_data, full, subknobs=False):
         self.load_default_from_bin(new_data, True)
-        write_csv(self.schema, delta_file, subknobs=full)
+        # by default, create smaller csv files with only the full knobs. If more detail is required
+        # this default can be changed to include the subknobs
+        write_csv(self.schema, delta_file, full, subknobs=subknobs)
         return 0
 
     def generate_csv_file(self, delta_file, bin_file, bin_file2, full=False):
@@ -297,7 +299,7 @@ class CGenNCCfgData:
             new_data = bytearray(fd.read())
             fd.close()
 
-        return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full)
+        return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full, True)
 
     def load_xml(self, cfg_file):
         self.initialize(cfg_file)

@@ -1178,24 +1178,29 @@ def read_csv(schema, csv_path):
             knob.value = knob.format.string_to_object(knob_value_string)
 
 
-def write_csv(schema, csv_path, subknobs=True):
+def write_csv(schema, csv_path, full, subknobs=True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
+
+        # delta_vlist is a tuple of name_list, var_list
+        delta_vlist = get_delta_vlist(schema)
 
         if subknobs:
             writer.writerow(['Knob', 'Value', 'Help'])
             for subknob in schema.subknobs:
-                writer.writerow([
-                    subknob.name,
-                    subknob.format.object_to_string(subknob.value),
-                    subknob.help])
+                if full or subknob.name in delta_vlist[0]:
+                    writer.writerow([
+                        subknob.name,
+                        subknob.format.object_to_string(subknob.value),
+                        subknob.help])
         else:
             writer.writerow(['Knob', 'Value', 'Help'])
             for knob in schema.knobs:
-                writer.writerow([
-                    knob.name,
-                    knob.format.object_to_string(knob.value),
-                    knob.help])
+                if full or knob.name in delta_vlist[0]:
+                    writer.writerow([
+                        knob.name,
+                        knob.format.object_to_string(knob.value),
+                        knob.help])
 
 
 def write_vlist(schema, vlist_path):
