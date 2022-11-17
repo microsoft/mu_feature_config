@@ -299,7 +299,7 @@ class CGenNCCfgData:
             new_data = bytearray(fd.read())
             fd.close()
 
-        return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full, True)
+        return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full, False)
 
     def load_xml(self, cfg_file):
         self.initialize(cfg_file)
