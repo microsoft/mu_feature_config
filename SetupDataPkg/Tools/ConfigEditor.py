@@ -9,6 +9,7 @@ import os
 import sys
 import marshal
 import base64
+import re
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -475,6 +476,9 @@ class application(tkinter.Frame):
             label="Open Config file...", command=self.load_from_ml
         )
         file_menu.add_command(
+            label="Open Config file and Clear Old Config", command=self.load_from_ml_and_clear
+        )
+        file_menu.add_command(
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
         file_menu.add_command(
@@ -507,6 +511,8 @@ class application(tkinter.Frame):
 
         root.config(menu=menubar)
 
+        idx = 0
+
         if len(sys.argv) > 1:
             path = sys.argv[1]
             if not path.endswith('.yaml') and not path.endswith('.yml') \
@@ -514,18 +520,17 @@ class application(tkinter.Frame):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
-                self.load_cfg_file(path, 0)
+                self.load_cfg_file(path, idx, False)
 
         for i in range(2, len(sys.argv)):
+            idx += 1
             path = sys.argv[i]
             if path.endswith(".dlt") or path.endswith(".csv"):
                 self.load_delta_file(path)
-            elif path.endswith(".bin,raw"):
-                self.load_bin_file(path, False)
-            elif path.endswith(".bin,varlist"):
+            elif path.endswith(".bin"):
                 self.load_bin_file(path, True)
             elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
-                self.load_cfg_file(path, 1)
+                self.load_cfg_file(path, idx, False)
             else:
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
                 return
@@ -723,7 +728,7 @@ class application(tkinter.Frame):
             gen_cfg_data.build_var_dict()
             gen_cfg_data.update_def_value()
         elif file_name.endswith('.xml'):
-            gen_cfg_data = CGenNCCfgData()
+            gen_cfg_data = CGenNCCfgData(file_name)
             if gen_cfg_data.load_xml(file_name) != 0:
                 raise Exception(gen_cfg_data.get_last_error())
         else:
@@ -793,18 +798,23 @@ class application(tkinter.Frame):
         self.load_delta_file(path)
 
     def load_delta_file(self, path):
-        # assumption is that there is only one yaml file and one delta file
-        # while is applied to that yaml file and one xml file and one csv applied
-        # to that xml file
+        # assumption is there is only one yaml file (deprecated) but there may be multiple xml files
+        # so we can only load this delta file if the file name matches to this xml data
         file_id = -1
         yml_id = -1
         xml_id = -1
         is_variable_list_format = True
         for idx in self.cfg_data_list:
+            # if we have a yaml, fall back to old behavior
+            # if loading xml, ensure that the file path we have matches the csv
+            # we are trying to load
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
-            else:
+            elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page + ".csv", path) is not None:
                 xml_id = idx
+
+        if xml_id == -1:
+            raise Exception('Unsupported file "%s" not found in loaded config!' % path)
 
         if path.endswith('.dlt'):
             file_id = yml_id
@@ -858,7 +868,13 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
-    def load_cfg_file(self, path, file_id):
+    def load_cfg_file(self, path, file_id, clear_config):
+        # Clear out old config if requested
+        if clear_config is True:
+            self.clear_widgets_inLayout()
+            self.left.delete(*self.left.get_children())
+            self.cfg_data_list = {}
+
         self.cfg_data_list[file_id] = cfg_data()
 
         # Set up the config type to begin with
@@ -866,11 +882,6 @@ class application(tkinter.Frame):
             self.cfg_data_list[file_id].config_type = 'xml'
         else:
             self.cfg_data_list[file_id].config_type = 'yml'
-
-        # If not first config file, save current values in widget and clear database
-        if file_id == 0:
-            self.clear_widgets_inLayout()
-            self.left.delete(*self.left.get_children())
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
@@ -880,23 +891,41 @@ class application(tkinter.Frame):
         )
         self.build_config_page_tree(self.cfg_data_list[file_id].cfg_data_obj.get_cfg_page()["root"], "", file_id)
 
+        yaml_loaded = False
+
+        for file_id in self.cfg_data_list:
+            if self.cfg_data_list[file_id].config_type == 'yml':
+                yaml_loaded = True
+
         for menu in self.menu_string:
             # if we have an xml only setting, don't enable it in the UI
             # if we are loading a yaml file
-            if menu in self.xml_specific_setting and (len(self.cfg_data_list) != 1
-                                                      or self.cfg_data_list[file_id].config_type == 'yml'):
+            if menu in self.xml_specific_setting and yaml_loaded is True:
                 self.file_menu.entryconfig(menu, state="disabled")
             else:
                 self.file_menu.entryconfig(menu, state="normal")
 
         return 0
 
+    def load_from_ml_and_clear(self):
+        path = self.get_open_file_name('yaml,yml,xml')
+        if not path:
+            return
+
+        # we are opening a new file and clearing out the other ones, start at 0
+        file_id = 0
+
+        self.load_cfg_file(path, file_id, True)
+
     def load_from_ml(self):
         path = self.get_open_file_name('yaml,yml,xml')
         if not path:
             return
 
-        self.load_cfg_file(path, 0)
+        # we are opening a new file, so increment the file_id
+        file_id = len(self.cfg_data_list)
+
+        self.load_cfg_file(path, file_id, False)
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -925,8 +954,8 @@ class application(tkinter.Frame):
             if self.cfg_data_list[file_id].config_type == 'yml':
                 dlt_path = path
             else:
-                # replace .dlt with .csv
-                dlt_path = path[:-4] + ".csv"
+                # replace .dlt with .csv and append unique filename identifier
+                dlt_path = path[:-4] + self.cfg_data_list[file_id].cfg_data_obj._cur_page + ".csv"
 
             new_data = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
             self.cfg_data_list[file_id].cfg_data_obj.generate_delta_file_from_bin(
@@ -994,17 +1023,12 @@ class application(tkinter.Frame):
 
         self.update_config_data_on_page()
 
-        index = -1
+        bin = b''
         for idx in self.cfg_data_list:
             if self.cfg_data_list[idx].config_type == 'xml':
-                index = idx
-                break
-
-        if index == -1:
-            raise Exception('Saving delta bin not supported for YAML!')
+                bin += self.cfg_data_list[idx].cfg_data_obj.generate_delta_binary_array()
 
         with open(path, "wb") as fd:
-            bin = self.cfg_data_list[index].cfg_data_obj.generate_delta_binary_array()
             fd.write(bin)
 
     def save_to_bin(self):
