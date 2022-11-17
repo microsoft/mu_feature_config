@@ -476,6 +476,9 @@ class application(tkinter.Frame):
             label="Open Config file...", command=self.load_from_ml
         )
         file_menu.add_command(
+            label="Open Config file and Clear Old Config", command=self.load_from_ml_and_clear
+        )
+        file_menu.add_command(
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
         file_menu.add_command(
@@ -517,7 +520,7 @@ class application(tkinter.Frame):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
-                self.load_cfg_file(path, idx)
+                self.load_cfg_file(path, idx, False)
 
         for i in range(2, len(sys.argv)):
             idx += 1
@@ -527,7 +530,7 @@ class application(tkinter.Frame):
             elif path.endswith(".bin"):
                 self.load_bin_file(path, True)
             elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
-                self.load_cfg_file(path, idx)
+                self.load_cfg_file(path, idx, False)
             else:
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
                 return
@@ -802,6 +805,9 @@ class application(tkinter.Frame):
         xml_id = -1
         is_variable_list_format = True
         for idx in self.cfg_data_list:
+            # if we have a yaml, fall back to old behavior
+            # if loading xml, ensure that the file path we have matches the csv
+            # we are trying to load
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
             elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page + ".csv", path) is not None:
@@ -862,7 +868,13 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
-    def load_cfg_file(self, path, file_id):
+    def load_cfg_file(self, path, file_id, clear_config):
+        # Clear out old config if requested
+        if clear_config is True:
+            self.clear_widgets_inLayout()
+            self.left.delete(*self.left.get_children())
+            self.cfg_data_list = {}
+
         self.cfg_data_list[file_id] = cfg_data()
 
         # Set up the config type to begin with
@@ -870,12 +882,6 @@ class application(tkinter.Frame):
             self.cfg_data_list[file_id].config_type = 'xml'
         else:
             self.cfg_data_list[file_id].config_type = 'yml'
-
-        # If not first config file, save current values in widget and clear database
-        # OSDDEBUG revisit for loading multiple xmls from UI
-        # if file_id == 0:
-        #     self.clear_widgets_inLayout()
-        #     self.left.delete(*self.left.get_children())
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
@@ -901,15 +907,25 @@ class application(tkinter.Frame):
 
         return 0
 
+    def load_from_ml_and_clear(self):
+        path = self.get_open_file_name('yaml,yml,xml')
+        if not path:
+            return
+
+        # we are opening a new file and clearing out the other ones, start at 0
+        file_id = 0
+
+        self.load_cfg_file(path, file_id, True)
+
     def load_from_ml(self):
         path = self.get_open_file_name('yaml,yml,xml')
         if not path:
             return
 
         # we are opening a new file, so increment the file_id
-        file_id = len(self.cfg_data_list) + 1
+        file_id = len(self.cfg_data_list)
 
-        self.load_cfg_file(path, file_id)
+        self.load_cfg_file(path, file_id, False)
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
