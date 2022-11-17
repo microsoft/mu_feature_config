@@ -7,6 +7,7 @@
 ##
 
 import sys
+import re
 from collections import OrderedDict
 import base64
 
@@ -31,12 +32,16 @@ from VariableList import (
 
 
 class CGenNCCfgData:
-    def __init__(self):
-        self.initialize()
+    def __init__(self, file_name):
+        self.initialize(file_name)
 
-    def initialize(self):
+    def initialize(self, file_name):
         self._cfg_page = {"root": {"title": "", "child": []}}
-        self._cur_page = "Non-core"
+        # name of this page is filename minus suffix, get rid of full path if present
+        match_res = re.search(r".*[\\/]", file_name)
+        if match_res is not None:
+            file_name = file_name[match_res.end():]
+        self._cur_page = file_name[:-4]
         self._cfg_page["root"]["child"].append(
             {self._cur_page: {"title": self._cur_page, "child": []}}
         )
@@ -133,7 +138,7 @@ class CGenNCCfgData:
                 return each
         return None
 
-    def add_cfg_page(self, child, parent="Non-core", title=""):
+    def add_cfg_page(self, child, parent, title=""):
         def _add_cfg_page(cfg_page, child, parent):
             key = next(iter(cfg_page))
             if parent == key:
@@ -159,7 +164,7 @@ class CGenNCCfgData:
                 title=knob.name,
             ):
                 # The parent page may not exist yet
-                self.add_cfg_page(child=knob.namespace, title=knob.namespace)
+                self.add_cfg_page(child=knob.namespace, parent=self._cur_page, title=knob.namespace)
                 if not self.add_cfg_page(
                     child=".".join([knob.namespace, knob.name]),
                     parent=knob.namespace,
@@ -207,14 +212,26 @@ class CGenNCCfgData:
         # return list of UEFI vars in buffers that have changed data and list of names of vars
         return get_delta_vlist(self.schema)
 
+    def get_var_list_for_instance(self, var_list):
+        loaded_vars = read_vlist_from_buffer(self.generate_binary_array(True))
+        actual_var_list = []
+        for var in var_list:
+            for loaded_var in loaded_vars:
+                if loaded_var.guid == var.guid and loaded_var.name == var.name:
+                    actual_var_list.append(var)
+                    break
+        return actual_var_list
+
     def load_from_svd(self, path):
         def handler(id, value):
             # ignore YAML entries
-            if id is not None and not id.startswith("Device.ConfigData."):
+            if id is not None:
                 # this is an xml section
                 base64_val = value.strip()
                 bin_data = base64.b64decode(base64_val)
-                uefi_variables_to_knobs(self.schema, read_vlist_from_buffer(bin_data))
+                var_list = read_vlist_from_buffer(bin_data)
+                actual_var_list = self.get_var_list_for_instance(var_list)
+                uefi_variables_to_knobs(self.schema, actual_var_list)
                 self.sync_shim_and_schema()
 
         a = DFCI_SupportLib()
@@ -223,18 +240,11 @@ class CGenNCCfgData:
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
-        xml_list = []
 
         # ensure that read in variables are part of schema, otherwise ignore them
-        loaded_bytearray = self.generate_binary_array(True)
-        loaded_vars = read_vlist_from_buffer(loaded_bytearray)
-        for var in var_list:
-            for loaded_var in loaded_vars:
-                if (loaded_var.guid == var.guid and loaded_var.name == var.name):
-                    xml_list.append(var)
-                    break
+        actual_var_list = self.get_var_list_for_instance(var_list)
 
-        uefi_variables_to_knobs(self.schema, xml_list)
+        uefi_variables_to_knobs(self.schema, actual_var_list)
         self.sync_shim_and_schema()
 
     def get_var_by_index(self, index):
@@ -290,7 +300,7 @@ class CGenNCCfgData:
         return self.generate_delta_file_from_bin(delta_file, old_data, new_data, full)
 
     def load_xml(self, cfg_file):
-        self.initialize()
+        self.initialize(cfg_file)
         self.schema = Schema.load(cfg_file)
 
         # Assign all values to their defaults
