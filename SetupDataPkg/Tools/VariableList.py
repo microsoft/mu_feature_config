@@ -1272,8 +1272,8 @@ def main():
             for knob in schema.knobs:
                 knob.value = knob.default
 
-            # Write the vlist
-            write_csv(schema, csv_path)
+            # Write the full vlist with complete knobs
+            write_csv(schema, csv_path, True, False)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
@@ -1285,8 +1285,8 @@ def main():
             # Read values from the vlist
             read_vlist(schema, vlist_path)
 
-            # Write the CSV
-            write_csv(schema, csv_path)
+            # Write the full vlist CSV with complete knobs
+            write_csv(schema, csv_path, True, False)
         else:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
