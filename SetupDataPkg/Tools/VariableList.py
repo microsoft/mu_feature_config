@@ -1178,24 +1178,29 @@ def read_csv(schema, csv_path):
             knob.value = knob.format.string_to_object(knob_value_string)
 
 
-def write_csv(schema, csv_path, subknobs=True):
+def write_csv(schema, csv_path, full, subknobs=True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
+
+        # get_delta_vlist is a tuple of name_list, var_list
+        name_list = get_delta_vlist(schema)[0]
 
         if subknobs:
             writer.writerow(['Knob', 'Value', 'Help'])
             for subknob in schema.subknobs:
-                writer.writerow([
-                    subknob.name,
-                    subknob.format.object_to_string(subknob.value),
-                    subknob.help])
+                if full or subknob.name in name_list:
+                    writer.writerow([
+                        subknob.name,
+                        subknob.format.object_to_string(subknob.value),
+                        subknob.help])
         else:
             writer.writerow(['Knob', 'Value', 'Help'])
             for knob in schema.knobs:
-                writer.writerow([
-                    knob.name,
-                    knob.format.object_to_string(knob.value),
-                    knob.help])
+                if full or knob.name in name_list:
+                    writer.writerow([
+                        knob.name,
+                        knob.format.object_to_string(knob.value),
+                        knob.help])
 
 
 def write_vlist(schema, vlist_path):
@@ -1267,8 +1272,8 @@ def main():
             for knob in schema.knobs:
                 knob.value = knob.default
 
-            # Write the vlist
-            write_csv(schema, csv_path)
+            # Write the full vlist with complete knobs
+            write_csv(schema, csv_path, True, False)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
@@ -1280,8 +1285,8 @@ def main():
             # Read values from the vlist
             read_vlist(schema, vlist_path)
 
-            # Write the CSV
-            write_csv(schema, csv_path)
+            # Write the full vlist CSV with complete knobs
+            write_csv(schema, csv_path, True, False)
         else:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
