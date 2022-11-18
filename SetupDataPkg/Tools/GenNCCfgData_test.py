@@ -17,7 +17,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # This is a general test for loading xml file and make sure all pages are there
     def test_xml_knob_to_page(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -41,9 +41,9 @@ class UncoreCfgUnitTests(unittest.TestCase):
         #     }]
         # }
         non_core_pages = cdata._cfg_page['root']['child'][0]
-        self.assertTrue('Non-core' in non_core_pages)
-        non_core_page = non_core_pages['Non-core']
-        self.assertEqual('Non-core', non_core_page['title'])
+        self.assertTrue('sampleschema' in non_core_pages)
+        non_core_page = non_core_pages['sampleschema']
+        self.assertEqual('sampleschema', non_core_page['title'])
 
         knob_list = copy.deepcopy(cdata.schema.knobs)
         namespaces = non_core_page['child'][0]
@@ -62,7 +62,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # This is a test for loading xml file and make sure all subknobs have a shim instance for rendering
     def test_xml_subknob_to_shim(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -92,7 +92,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Retrieving all items with a given page_id, should return all the subknobs under that id
     def test_xml_get_cfg_list(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -126,7 +126,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Retrieving values for all shim items, should return the same value from the underlying knob
     def test_xml_get_cfg_item_value(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -144,7 +144,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Reformat a value string should return properly
     def test_xml_reformat_value_str(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -184,7 +184,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Get value should return subknob value, matching the corresponding shim entry
     def test_xml_get_value(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -202,7 +202,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Set item value should update the subknob value
     def test_xml_set_item_value(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -248,7 +248,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Get item options should reflect the available enum or boolean options
     def test_xml_get_cfg_item_options(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
@@ -273,7 +273,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Sync function should sync up the value for shim and underlying knobs
     def test_xml_sync_shim_and_schema(self):
-        cdata = CGenNCCfgData()
+        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
             cdata.load_xml("sampleschema.xml")
