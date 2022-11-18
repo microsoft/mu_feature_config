@@ -46,6 +46,12 @@ class SchemaParseUnitTests(unittest.TestCase):
         <Value name="v_1" value="1" />
         <Value name="v_n1" value="-1" />
     </Enum>
+
+    <Enum name="OPTION_MODE" help="Modes of the option">
+      <Value name="FIRST" value="0" help="First mode" />
+      <Value name="SECOND" value="1" help="Second mode" />
+      <Value name="THIRD" value="2" help="Third mode" />
+    </Enum>
   </Enums>
 
   <Structs>
@@ -69,6 +75,19 @@ class SchemaParseUnitTests(unittest.TestCase):
 
     <Struct name="s_array_structs_t">
         <Member name="m_s_simple_t_c5" type="s_simple_t" count="5" />
+    </Struct>
+
+
+    <Struct name="simple_t" help="Simple struct">
+      <Member name="value" count="2" type="uint32_t" />
+    </Struct>
+    <Struct name="child_t" help="Embedded struct">
+      <Member name="data" type="uint8_t" count="5" help="Bytes" />
+      <Member name="mode" type="OPTION_MODE" />
+    </Struct>
+    <Struct name="sample_t" help="Sample struct">
+      <Member name="counter" type="uint32_t" help="Number value" />
+      <Member name="children" type="child_t" count="2" help="Child data" />
     </Struct>
 
   </Structs>
@@ -170,6 +189,9 @@ class SchemaParseUnitTests(unittest.TestCase):
     <Knob type="s_array_t" name="k_s_array_t_d5" default="{{5}}"/>
 
     <Knob type="s_array_structs_t" name="k_s_array_structs_t" />
+
+    
+    <Knob name="COMPLEX_KNOB2" type="sample_t" default="{2,{{{1,2,3, 4,5 },FIRST },{{6,7,8, 9,10 },SECOND }}}" help="Complex type" />
 
   </Knobs>
 
@@ -447,6 +469,22 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Structs>""")
         with pytest.raises(InvalidRangeError):
             Schema(dom)
+
+    def test_sample_config(self):
+        schema = Schema.parse(self.schemaTemplate)
+
+        # Get the a subknob and modify a single element
+        subknob = schema.get_knob("COMPLEX_KNOB2.counter")
+        subknob.value = 4
+        self.assertEqual(subknob.value, 4)
+
+    def test_sample_config2(self):
+        schema = Schema.parse(self.schemaTemplate)
+
+        # Get the a subknob and modify a single element
+        subknob = schema.get_knob("COMPLEX_KNOB2.children[0].data[0]")
+        subknob.value = 4
+        self.assertEqual(subknob.value, 4)
 
     def test_more_restrictive_knob_limit(self):
         # If a knob has more restrictive limits than its type

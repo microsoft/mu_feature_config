@@ -851,6 +851,11 @@ class Knob:
             if child_object is None:
                 child_object = self.default
 
+            # The full object is the entire object represented by the knob
+            # the child object will be updated to point to sub-objects within the full object
+            # until the final value can be updated
+            full_object = child_object
+
             first_element = path_elements[0]
             if first_element != self.name:
                 raise Exception(
@@ -870,13 +875,17 @@ class Knob:
                 else:
                     child_object = child_object[name][index]
 
+            # The last iteration is in reference to a value, not an object, so we
+            # will use the last child_object pointer to update the value
             (name, index) = self._decode_subpath(final_element)
             if index is None:
                 child_object[name] = value
             else:
                 child_object[name][index] = value
 
-            self.value = child_object
+            # Update the knob to the value of the full_object, which has been modified by virtue of
+            # updating the child object (which was a pointer to an internal structure of the full object)
+            self.value = full_object
 
     def _decode_subpath(self, subpath_segment):
         match = re.match(
@@ -913,9 +922,6 @@ class SubKnob:
 
     @value.setter
     def value(self, value):
-        if self.knob.value is None:
-            self.knob.value = self.knob.default
-
         self.knob._set_child_value(self.name, value)
         pass
 
