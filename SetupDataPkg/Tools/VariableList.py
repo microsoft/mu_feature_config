@@ -1182,13 +1182,13 @@ def write_csv(schema, csv_path, full, subknobs=True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
 
-        # delta_vlist is a tuple of name_list, var_list
-        delta_vlist = get_delta_vlist(schema)
+        # get_delta_vlist is a tuple of name_list, var_list
+        name_list = get_delta_vlist(schema)[0]
 
         if subknobs:
             writer.writerow(['Knob', 'Value', 'Help'])
             for subknob in schema.subknobs:
-                if full or subknob.name in delta_vlist[0]:
+                if full or subknob.name in name_list:
                     writer.writerow([
                         subknob.name,
                         subknob.format.object_to_string(subknob.value),
@@ -1196,7 +1196,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
         else:
             writer.writerow(['Knob', 'Value', 'Help'])
             for knob in schema.knobs:
-                if full or knob.name in delta_vlist[0]:
+                if full or knob.name in name_list:
                     writer.writerow([
                         knob.name,
                         knob.format.object_to_string(knob.value),
