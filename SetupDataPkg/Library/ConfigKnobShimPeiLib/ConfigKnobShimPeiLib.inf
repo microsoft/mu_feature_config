@@ -1,0 +1,41 @@
+## @file
+# Library interface for the autogen XML config header to call into to fetch a config value when the system
+# is in MFCI manufacturing mode. In MFCI customer mode, the autogen XML config header contains the default values
+# for each configuration profile and will return those values.
+#
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfigKnobShimPeiLib
+  FILE_GUID           = 9E332BFB-7178-4F49-B88B-9D94B3571B14
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = PEIM
+  LIBRARY_CLASS       = ConfigKnobShimLib
+
+#
+# The following information is for reference only and not required by the
+# build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
+
+[Sources]
+  ConfigKnobShimPeiLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  PeiServicesLib
+
+[Ppis]
+  gEfiPeiReadOnlyVariable2PpiGuid    ## CONSUMES
+
+[Depex]
+  gEfiPeiReadOnlyVariable2PpiGuid

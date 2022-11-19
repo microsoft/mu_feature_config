@@ -1,0 +1,39 @@
+## @file
+# Unit tests of the ConfigKnobShimPeiLib instance.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ConfigKnobShimPeiUnitTest
+  FILE_GUID                      = 94116449-0814-4312-9DF6-1DAE4408D1BC
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
+
+[Sources]
+  ConfigKnobShimPeiLibUnitTest.c
+  ../ConfigKnobShimPeiLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  PeiServicesLib
+  UnitTestLib
+
+[Ppis]
+  gEfiPeiReadOnlyVariable2PpiGuid    ## CONSUMES
