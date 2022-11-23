@@ -3,7 +3,7 @@
   <xs:element name="ConfigSchema">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="Enums" maxOccurs="1">
+        <xs:element name="Enums" minOccurs="0" maxOccurs="1">
           <xs:complexType>
             <xs:sequence>
               <xs:element name="Enum" maxOccurs="unbounded">
@@ -26,7 +26,7 @@
             </xs:sequence>
           </xs:complexType>
         </xs:element>
-        <xs:element name="Structs" maxOccurs="1">
+        <xs:element name="Structs" minOccurs="0" maxOccurs="1">
           <xs:complexType>
             <xs:sequence>
               <xs:element name="Struct" maxOccurs="unbounded">
