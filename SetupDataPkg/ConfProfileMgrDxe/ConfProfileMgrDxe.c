@@ -105,7 +105,16 @@ ValidateActiveProfile (
       }
     }
 
-    if (VariableInvalid || (0 != CompareMem (Data, VarList[i].Data, VarList[i].DataSize))) {
+    if (!VariableInvalid && !IsSystemInManufacturingMode ()) {
+      DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
+      if (0 != CompareMem (Data, VarList[i].Data, VarList[i].DataSize)) {
+        VariableInvalid = TRUE;
+      }
+    } else {
+      DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
+    }
+
+    if (VariableInvalid) {
       DEBUG ((DEBUG_ERROR, "%a variable %s does not match profile, overwriting!\n", __FUNCTION__, VarList[i].Name));
       // either the variable was previously deleted and needs to be written or the Attributes and DataSize were fine
       // but the Data does not match, so it can be rewritten without being deleted
@@ -298,12 +307,7 @@ ConfProfileMgrDxeEntry (
   // ValidateProfile does not return a status, in case of failure, it writes the chosen profile to flash
   // and resets the system. Only validate the profile if we are in CUSTOMER_MODE (not manufacturing mode),
   // as in debug and bringup scenarios the profile may be expected to not match
-  if (!IsSystemInManufacturingMode ()) {
-    DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
-    ValidateActiveProfile ();
-  } else {
-    DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
-  }
+  ValidateActiveProfile ();
 
   // Publish protocol for the configuration settings provider to be able to load with the correct profile in the PCD
   Status = gBS->InstallProtocolInterface (
