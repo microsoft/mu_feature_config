@@ -1051,9 +1051,9 @@ ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
   EFI_STATUS  Status;
   UINT32      i;
 
-  // Getting cached variable, it should not write variable
+  // Getting cached variable, force it to write variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, &gZeroGuid);
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
@@ -1231,7 +1231,6 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
 
   return UNIT_TEST_PASSED;
 }
-
 
 /**
   Unit test for ConfProfileMgrDxe.
