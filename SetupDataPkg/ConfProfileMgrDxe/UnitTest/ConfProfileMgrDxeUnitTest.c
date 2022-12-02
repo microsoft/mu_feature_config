@@ -596,6 +596,9 @@ ConfProfileMgrDxeShouldAssert (
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+ 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
   expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
@@ -724,6 +727,9 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
   expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
@@ -744,6 +750,9 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
@@ -841,6 +850,9 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
   expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
@@ -861,6 +873,9 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
@@ -964,6 +979,9 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
 
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
+
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
   expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
@@ -984,6 +1002,9 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  // Cause data to be validated
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
