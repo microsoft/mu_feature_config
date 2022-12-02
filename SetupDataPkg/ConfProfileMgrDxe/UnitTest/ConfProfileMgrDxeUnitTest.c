@@ -607,7 +607,7 @@ ConfProfileMgrDxeShouldAssert (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
- 
+
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
   expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
@@ -1029,7 +1029,7 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
 
 /**
   Unit test for ConfProfileMgrDxe.
-  
+
   @param[in]  Context    [Optional] An optional parameter that enables:
                          1) test-case reuse with varied parameters and
                          2) test-case re-entry for Target tests that need a
