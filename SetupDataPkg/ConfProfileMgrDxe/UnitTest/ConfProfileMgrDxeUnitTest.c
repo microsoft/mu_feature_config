@@ -644,9 +644,6 @@ ConfProfileMgrDxeShouldAssert (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
-
-    // Cause profile to be validated
-    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   // Fail to set protocol
@@ -707,6 +704,7 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -824,6 +822,7 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -947,6 +946,7 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -1325,9 +1325,6 @@ ConfProfileMgrDxeShouldAssertMfgMode (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile size and attribute to be validated
-  will_return (IsSystemInManufacturingMode, TRUE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -1341,6 +1338,7 @@ ConfProfileMgrDxeShouldAssertMfgMode (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   // Fail to set protocol
