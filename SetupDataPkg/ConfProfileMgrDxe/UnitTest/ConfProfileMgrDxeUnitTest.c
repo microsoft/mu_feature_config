@@ -643,7 +643,6 @@ ConfProfileMgrDxeShouldAssert (
       will_return (MockGetVariable, 7);
     }
 
-    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -1228,132 +1227,6 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
 }
 
 /**
-  Unit test for ConfProfileMgrDxe.
-
-  @param[in]  Context    [Optional] An optional parameter that enables:
-                         1) test-case reuse with varied parameters and
-                         2) test-case re-entry for Target tests that need a
-                         reboot.  This parameter is a VOID* and it is the
-                         responsibility of the test author to ensure that the
-                         contents are well understood by all test cases that may
-                         consume it.
-
-  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
-                                        case was successful.
-  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
-**/
-UNIT_TEST_STATUS
-EFIAPI
-ConfProfileMgrDxeShouldAssertMfgMode (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  UINT32  i;
-
-  // Getting cached variable, it should not write variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 3);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  // Make set PCD fail
-  will_return (LibPcdSetPtrS, EFI_OUT_OF_RESOURCES);
-
-  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
-
-  // Getting cached variable, it should not write variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 3);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Force assert if SetVariable fails
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  will_return (LibPcdSetPtrS, EFI_SUCCESS);
-
-  // All the GetVariable calls...
-  for (i = 0; i < 9; i++) {
-    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
-    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
-
-    if (i < 2) {
-      will_return (MockGetVariable, 3);
-    } else {
-      // XML part of blob
-      will_return (MockGetVariable, 7);
-    }
-
-    if (i == 8) {
-      will_return (MockGetVariable, EFI_NOT_FOUND);
-    } else {
-      will_return (MockGetVariable, EFI_SUCCESS);
-    }
-
-    // Cause profile size and attribute to be validated
-    will_return (IsSystemInManufacturingMode, TRUE);
-  }
-
-  // delete var
-  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, 0);
-  expect_value (MockSetVariable, Data, NULL);
-  will_return (MockSetVariable, EFI_SUCCESS);
-
-  // set var
-  expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
-  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[8]);
-  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[8], mKnown_Good_VarList_DataSizes[8]);
-  will_return (MockSetVariable, EFI_NOT_FOUND);
-
-  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
-
-  // Getting cached variable, it should not write variable
-  will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
-  will_return (MockGetVariable, 3);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Force assert in Protocol Install failure
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
-
-  will_return (LibPcdSetPtrS, EFI_SUCCESS);
-
-  // All the GetVariable calls...
-  for (i = 0; i < 9; i++) {
-    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
-    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
-
-    if (i < 2) {
-      will_return (MockGetVariable, 3);
-    } else {
-      // XML part of blob
-      will_return (MockGetVariable, 7);
-    }
-
-    will_return (IsSystemInManufacturingMode, TRUE);
-    will_return (MockGetVariable, EFI_SUCCESS);
-  }
-
-  // Fail to set protocol
-  will_return (MockInstallProtocolInterface, EFI_OUT_OF_RESOURCES);
-
-  UT_EXPECT_ASSERT_FAILURE (ConfProfileMgrDxeEntry (NULL, NULL), NULL);
-
-  return UNIT_TEST_PASSED;
-}
-
-/**
   Initialize the unit test framework, suite, and unit tests for ConfProfileMgrDxe
   and run the unit tests.
 
@@ -1437,11 +1310,6 @@ UnitTestingEntry (
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the retrieved active profile in Mfg Mode", "ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode", ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the cached profile in Mfg Mode", "ConfProfileMgrDxeShouldUseCachedProfileMfgMode", ConfProfileMgrDxeShouldUseCachedProfileMfgMode, NULL, NULL, NULL);
   AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should use the generic profile in Mfg Mode", "ConfProfileMgrDxeShouldUseGenericProfileMfgMode", ConfProfileMgrDxeShouldUseGenericProfileMfgMode, NULL, NULL, NULL);
-
-  //
-  // ConfProfileMgrDxe hits assert path in MfgMode
-  //
-  AddTestCase (ConfProfileMgrDxeTests, "ConfProfileMgrDxe should assert in Mfg Mode", "ConfProfileMgrDxeShouldAssertMfgMode", ConfProfileMgrDxeShouldAssertMfgMode, NULL, NULL, NULL);
 
   //
   // Execute the tests.
