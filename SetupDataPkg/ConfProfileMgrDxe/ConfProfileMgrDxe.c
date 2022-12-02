@@ -105,13 +105,15 @@ ValidateActiveProfile (
       }
     }
 
-    if (!VariableInvalid && !IsSystemInManufacturingMode ()) {
-      DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
-      if (0 != CompareMem (Data, VarList[i].Data, VarList[i].DataSize)) {
-        VariableInvalid = TRUE;
+    if (!VariableInvalid) {
+      if (!IsSystemInManufacturingMode ()) {
+        DEBUG ((DEBUG_INFO, "%a System not in MFG Mode, validating profile matches variable storage\n", __FUNCTION__));
+        if (0 != CompareMem (Data, VarList[i].Data, VarList[i].DataSize)) {
+          VariableInvalid = TRUE;
+        }
+      } else {
+        DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
       }
-    } else {
-      DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
     }
 
     if (VariableInvalid) {
