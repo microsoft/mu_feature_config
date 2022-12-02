@@ -643,6 +643,7 @@ ConfProfileMgrDxeShouldAssert (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
