@@ -630,7 +630,6 @@ ConfProfileMgrDxeShouldAssert (
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
-  will_return (IsSystemInManufacturingMode, FALSE);
 
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
@@ -644,6 +643,7 @@ ConfProfileMgrDxeShouldAssert (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -713,7 +713,6 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
   will_return (MockSetVariable, EFI_SUCCESS);
-  will_return (IsSystemInManufacturingMode, FALSE);
 
   for (i = 1; i < 7; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -726,6 +725,7 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -832,7 +832,6 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
   will_return (MockSetVariable, EFI_SUCCESS);
-  will_return (IsSystemInManufacturingMode, FALSE);
 
   for (i = 1; i < 7; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -845,6 +844,7 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -957,7 +957,6 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[0]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[0], mKnown_Good_VarList_DataSizes[0]);
   will_return (MockSetVariable, EFI_SUCCESS);
-  will_return (IsSystemInManufacturingMode, FALSE);
 
   for (i = 1; i < 7; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -970,6 +969,7 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -1341,6 +1341,7 @@ ConfProfileMgrDxeShouldAssertMfgMode (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, TRUE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
