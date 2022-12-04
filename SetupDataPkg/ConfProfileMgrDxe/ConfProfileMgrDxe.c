@@ -112,7 +112,7 @@ ValidateActiveProfile (
           VariableInvalid = TRUE;
         }
       } else {
-        DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile matches variable storage\n", __FUNCTION__));
+        DEBUG ((DEBUG_INFO, "%a System in MFG Mode, not validating profile data matches variable storage data, only validating size and attributes\n", __FUNCTION__));
       }
     }
 
@@ -307,8 +307,8 @@ ConfProfileMgrDxeEntry (
 
   // We have the active profile guid, we need to load it and validate the contents against flash.
   // ValidateProfile does not return a status, in case of failure, it writes the chosen profile to flash
-  // and resets the system. Only validate the profile if we are in CUSTOMER_MODE (not manufacturing mode),
-  // as in debug and bringup scenarios the profile may be expected to not match
+  // and resets the system. Validate size, attribute and data of the profile if we are in CUSTOMER_MODE (not manufacturing mode),
+  // and just check size and attribute if in manufacturing mode.
   ValidateActiveProfile ();
 
   // Publish protocol for the configuration settings provider to be able to load with the correct profile in the PCD
