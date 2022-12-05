@@ -643,8 +643,10 @@ ConfProfileMgrDxeShouldAssert (
       will_return (MockGetVariable, 7);
     }
 
-    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   // Fail to set protocol
