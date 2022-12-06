@@ -23,3 +23,9 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UnitTestLib

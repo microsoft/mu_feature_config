@@ -55,7 +55,7 @@
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   ConfigSystemModeLib|SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
   ActiveProfileSelectorLib|SetupDataPkg/Library/ActiveProfileSelectorLibNull/ActiveProfileSelectorLibNull.inf
-  ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
+  ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
@@ -73,7 +73,7 @@
   PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLib/PeiServicesTablePointerLib.inf
   HobLib|MdePkg/Library/PeiHobLib/PeiHobLib.inf
   MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf
-  ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
+  ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
 
 [LibraryClasses.common.UEFI_APPLICATION]
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
@@ -89,8 +89,8 @@
   SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
   SetupDataPkg/Library/ActiveProfileSelectorLibNull/ActiveProfileSelectorLibNull.inf
-  SetupDataPkg/Library/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
-  SetupDataPkg/Library/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
 
   SetupDataPkg/ConfDfciUnsignedListInit/ConfDfciUnsignedListInit.inf
   SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf

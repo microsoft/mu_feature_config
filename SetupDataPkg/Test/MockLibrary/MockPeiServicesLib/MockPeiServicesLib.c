@@ -6,8 +6,17 @@
 
 **/
 
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
+
 #include <Uefi.h>
 #include <PiPei.h>
+#include <Library/UnitTestLib.h>
+#include <MockPeiServicesLib.h>
 
 /**
   This service enables PEIMs to discover a given instance of an interface.
@@ -31,8 +40,8 @@ PeiServicesLocatePpi (
   IN OUT VOID                    **Ppi
   )
 {
-  extern EFI_PEI_SERVICES  MockPeiServices;
+  PPI_STATUS  *PpiStatus = (PPI_STATUS *)mock ();
 
-  *Ppi = &MockPeiServices;
-  return EFI_SUCCESS;
+  *Ppi = PpiStatus->Ppi;
+  return PpiStatus->Status;
 }

@@ -19,8 +19,9 @@
 #
 
 [Sources]
-  ConfigKnobShimPeiLibUnitTest.c
+  ../../UnitTest/ConfigKnobShimLibUnitTestCommon.c
   ../ConfigKnobShimPeiLib.c
+  ../../ConfigKnobShimLibCommon.c
 
 [Packages]
   MdePkg/MdePkg.dec
