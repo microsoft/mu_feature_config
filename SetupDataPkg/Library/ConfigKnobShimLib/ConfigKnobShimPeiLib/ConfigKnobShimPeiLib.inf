@@ -10,10 +10,10 @@
 
 [Defines]
   INF_VERSION         = 0x00010017
-  BASE_NAME           = ConfigKnobShimDxeLib
-  FILE_GUID           = 0C18EAC8-23C0-4562-9096-9368A56D1FF0
+  BASE_NAME           = ConfigKnobShimPeiLib
+  FILE_GUID           = 9E332BFB-7178-4F49-B88B-9D94B3571B14
   VERSION_STRING      = 1.0
-  MODULE_TYPE         = DXE_DRIVER
+  MODULE_TYPE         = PEIM
   LIBRARY_CLASS       = ConfigKnobShimLib
 
 #
@@ -24,7 +24,8 @@
 #
 
 [Sources]
-  ConfigKnobShimDxeLib.c
+  ConfigKnobShimPeiLib.c
+  ../ConfigKnobShimLibCommon.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -32,4 +33,13 @@
 [LibraryClasses]
   BaseLib
   DebugLib
-  UefiRuntimeServicesTableLib
+  BaseMemoryLib
+  PeiServicesLib
+
+[Ppis]
+  gEfiPeiReadOnlyVariable2PpiGuid    ## CONSUMES
+
+[Depex]
+  # Do not put gEfiPeiReadOnlyVariable2PpiGuid here as it is not a failure if we do not find the Ppi
+  # we will simply return the profile default value
+  TRUE 
