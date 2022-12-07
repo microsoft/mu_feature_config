@@ -17,7 +17,7 @@ resources:
       type: github
       endpoint: microsoft
       name: microsoft/mu_devops
-      ref: refs/tags/v1.1.1
+      ref: refs/tags/v1.3.0
 
 variables:
 - group: architectures-arm-64-x86-64
@@ -30,12 +30,13 @@ jobs:
     do_ci_build: true
     do_ci_setup: false
     extra_steps:
-    - script: sudo apt-get install mingw-w64
+    - script: sudo microdnf install --assumeyes mingw64-gcc
       displayName: Install Windows Resource Compiler for Linux
     packages: SetupDataPkg
     target_list: DEBUG,RELEASE,NO-TARGET,NOOPT
     tool_chain_tag: $(tool_chain_tag)
     vm_image: $(vm_image)
+    container_build: true
 
 - template: Jobs/Python/RunDevTests.yml@mu_devops
   parameters:
