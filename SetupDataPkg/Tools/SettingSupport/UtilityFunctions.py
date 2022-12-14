@@ -19,48 +19,22 @@ import shutil
 import threading
 import subprocess
 
-#
-#  set signtool path --
-#  Requires the windows 8.1 kit.
-#  only works on 64bit systems but all dev machines should be 64bit by now.
-gSignToolPath = os.path.join(
-    os.getenv("ProgramFiles(x86)"),
-    "Windows Kits",
-    "10",
-    "bin",
-    "10.0.18362.0",
-    "x64",
-    "signtool.exe",
-)
+import edk2toollib.windows.locate_tools as locate_tools
 
-#
-# Cert Manager is used for deleting the cert when add/removing certs
-#
-gCertMgrPath = os.path.join(
-    os.getenv("ProgramFiles(x86)"),
-    "Windows Kits",
-    "10",
-    "bin",
-    "10.0.18363.0",
-    "x64",
-    "certmgr.exe",
-)
+gSignToolPath = locate_tools.FindToolInWinSdk("signtool.exe")
+if gSignToolPath is None:
+    logging.critical("Cannot find WinSdk installation of signtool.exe\n")
+
+
+gCertMgrPath = locate_tools.FindToolInWinSdk("certmgr.exe")
+if gCertMgrPath is None:
+    logging.critical("Cannot find WinSdk installation of certmgr.exe\n")
+
 
 #
 # Cert Util is used to import PFX into cert store
 #
 gCertUtilPath = "CertUtil.exe"
-
-#
-# check Windows Kit files and try using 8.1 if not in 10
-#
-# check the tool path and update it
-if not os.path.exists(gCertMgrPath):
-    gCertMgrPath = gCertMgrPath.replace("10", "8.1")
-
-# check the tool path and update it
-if not os.path.exists(gSignToolPath):
-    gSignToolPath = gSignToolPath.replace("10", "8.1")
 
 
 #
