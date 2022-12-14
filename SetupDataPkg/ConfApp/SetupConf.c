@@ -180,8 +180,8 @@ PrintOptions (
 STATIC
 EFI_STATUS
 WriteSVDSetting (
-  IN        UINTN  ValueSize,
-  IN  CONST UINT8  *Value
+  IN  CONST UINT8  *Value,
+  IN        UINTN  ValueSize
   )
 {
   EFI_STATUS           Status          = EFI_SUCCESS;
@@ -209,6 +209,7 @@ WriteSVDSetting (
     {
       // the NameSize and DataSize have bad values and are pushing us past the end of the binary
       DEBUG ((DEBUG_ERROR, "SVD settings had bad NameSize or DataSize, unable to process all settings\n"));
+      Status = EFI_COMPROMISED_DATA;
       break;
     }
 
@@ -216,7 +217,7 @@ WriteSVDSetting (
      * Var List is in DmpStore format:
      *
      *  struct {
-     *    RUNTIME_VAR_LIST_HDR VarList;
+     *    CONFIG_VAR_LIST_HDR VarList;
      *    CHAR16 Name[VarList->NameSize/2];
      *    EFI_GUID Guid;
      *    UINT32 Attributes;
