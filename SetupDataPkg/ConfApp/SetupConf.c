@@ -541,7 +541,7 @@ ApplySettings (
       }
     } else {
       // this is not a DFCI variable, just write the variable
-      Status = WriteSVDSetting (ValueSize, SetValue);
+      Status = WriteSVDSetting (SetValue, ValueSize);
     }
 
     DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
