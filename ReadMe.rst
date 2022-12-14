@@ -69,15 +69,15 @@ SetupDataPkg's Tools
 ===============
 The SetupDataPkg/Tools folder contains Utilities that can enable working with Setup data GetPackagesPath
 
-=================================== =================
- Utility Name and Location          Use             
-=================================== =================
-SetupDataPkg\Tools\ConfigEditor.py| Configuration utility for creating/modifying SVD,XML configurations| 
-SetupDataPkg\Tools\GenCfgData.py  | Utility to generate output configuration structres from input YAML configurations|
-SetupDataPkg\Tools\GenNCCfgData_test.py|Utility to generate output configuration fron input XML configuration|
-SetupDataPkg\Tools\VariableList.py| Utility to generate EFI dmpstore foramtted binaries, or csv file based on XML configuration|
-SetupDataPkg\Tools\WrapAndSetSvd.py| Utility to generate Dfci formatted output from input SVD file.|  
-=================================== =================
+
+| Utility Name and Location | Usage |
+| --- | -- |
+|SetupDataPkg\Tools\ConfigEditor.py| Configuration utility for creating/modifying SVD,XML configurations| 
+|SetupDataPkg\Tools\GenCfgData.py  | Utility to generate output configuration structres from input YAML configurations|
+|SetupDataPkg\Tools\GenNCCfgData_test.py|Utility to generate output configuration fron input XML configuration|
+|SetupDataPkg\Tools\VariableList.py| Utility to generate EFI dmpstore foramtted binaries, or csv file based on XML configuration|
+|SetupDataPkg\Tools\WrapAndSetSvd.py| Utility to generate Dfci formatted output from input SVD file.|  
+
 
 Note: There is a separate pip-requirements.txt which is necessary to run to fufill the tools requirements.
 This is due to the tools having windows specific python dependencies. 
