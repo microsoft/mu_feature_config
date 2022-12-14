@@ -72,10 +72,10 @@ The SetupDataPkg/Tools folder contains Utilities that can enable working with Se
 ========================================== ===========================================================================================
  Utility                                   Usage
 ========================================== ===========================================================================================
-SetupDataPkg\Tools\ConfigEditor.py         Configuration utility for creating/modifying SVD,XML configurations
-SetupDataPkg\Tools\GenCfgData.py           Utility to generate output configuration structres from input YAML configurations
-SetupDataPkg\Tools\VariableList.py         Utility to generate EFI dmpstore foramtted binaries, or csv file based on XML configuration
-SetupDataPkg\Tools\WrapAndSetSvd.py        Utility to generate Dfci formatted output from input SVD file.
+SetupDataPkg/Tools/ConfigEditor.py         Configuration utility for creating/modifying SVD,XML configurations
+SetupDataPkg/Tools/GenCfgData.py           Utility to generate output configuration structres from input YAML configurations
+SetupDataPkg/Tools/VariableList.py         Utility to generate EFI dmpstore foramtted binaries, or csv file based on XML configuration
+SetupDataPkg/Tools/WrapAndSetSvd.py        Utility to generate Dfci formatted output from input SVD file.
 ========================================== ===========================================================================================
 
 Note: There is a separate pip-requirements.txt which is necessary to run to fufill the tools requirements.
