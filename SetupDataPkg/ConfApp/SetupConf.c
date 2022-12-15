@@ -48,27 +48,18 @@ ConfAppKeyOptions  SetupConfStateOptions[SETUP_CONF_STATE_OPTIONS] = {
   {
     .KeyName             = L"2",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description         = L"Update from Network.",
-    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '2',
-    .ScanCode            = SCAN_NULL,
-    .EndState            = SetupConfUpdateNetwork
-  },
-  {
-    .KeyName             = L"3",
-    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
     .Description         = L"Update from Serial Port.",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '3',
+    .UnicodeChar         = '2',
     .ScanCode            = SCAN_NULL,
     .EndState            = SetupConfUpdateSerialHint
   },
   {
-    .KeyName             = L"4",
+    .KeyName             = L"3",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
     .Description         = L"Dump Current Configuration.\n",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '4',
+    .UnicodeChar         = '3',
     .ScanCode            = SCAN_NULL,
     .EndState            = SetupConfDumpSerial
   },
@@ -121,10 +112,7 @@ ResetGlobals (
   SetupConfStateOptions[0].EndState            = SetupConfUpdateUsb;
 
   SetupConfStateOptions[1].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
-  SetupConfStateOptions[1].EndState            = SetupConfUpdateNetwork;
-
-  SetupConfStateOptions[2].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
-  SetupConfStateOptions[2].EndState            = SetupConfUpdateSerialHint;
+  SetupConfStateOptions[1].EndState            = SetupConfUpdateSerialHint;
 
   mConfDataSize   = 0;
   mConfDataOffset = 0;
@@ -155,9 +143,6 @@ PrintOptions (
 
     SetupConfStateOptions[1].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
     SetupConfStateOptions[1].EndState            = SetupConfError;
-
-    SetupConfStateOptions[2].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
-    SetupConfStateOptions[2].EndState            = SetupConfError;
   }
 
   Status = PrintAvailableOptions (SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS);
@@ -1046,12 +1031,6 @@ SetupConfMgr (
         ASSERT (FALSE);
       }
 
-      mSetupConfState = SetupConfExit;
-      break;
-    case SetupConfUpdateNetwork:
-      // TODO: This should not return to previous settings,
-      //       it should reboot if configuration changed
-      Print (L"This function is still under construction, please stay tuned for more features!\n");
       mSetupConfState = SetupConfExit;
       break;
     case SetupConfUpdateSerialHint:

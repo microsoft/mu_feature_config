@@ -57,7 +57,6 @@ typedef enum SetupConfState_t_def {
   SetupConfInit,
   SetupConfWait,
   SetupConfUpdateUsb,
-  SetupConfUpdateNetwork,
   SetupConfUpdateSerialHint,
   SetupConfUpdateSerial,
   SetupConfDumpSerial,

@@ -741,7 +741,7 @@ ConfAppSetupConfSelectSerial (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -828,7 +828,7 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -928,7 +928,7 @@ ConfAppSetupConfSelectSerialEsc (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -1011,7 +1011,7 @@ ConfAppSetupConfDumpSerial (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '4';
+  KeyData1.Key.UnicodeChar = '3';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -1107,19 +1107,6 @@ ConfAppSetupConfNonMfg (
 
   // Selecting 2 should fail
   KeyData1.Key.UnicodeChar = '2';
-  KeyData1.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData1);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfError);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
-
-  // Selecting 3 should fail
-  KeyData1.Key.UnicodeChar = '3';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
