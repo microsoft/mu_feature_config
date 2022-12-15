@@ -809,9 +809,6 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   CHAR8                     *KnowGoodXml;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  UT_ASSERT_NOT_NULL (Context);
-  Ctx = (CONTEXT_DATA *)Context;
-
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
