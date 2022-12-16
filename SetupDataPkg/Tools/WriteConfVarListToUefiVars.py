@@ -12,26 +12,18 @@ import argparse
 import struct
 import uuid
 import ctypes
-from SettingSupport.UefiVariablesSupportLib import UefiVariable  # noqa: E402
+from SettingSupport.UefiVariablesSupportLib import UefiVariable
 
-gEfiGlobalVariableGuid ="8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
+gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
 def option_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-guid",
-        "--guid",
-        dest="InputGuid",
-        type=str,
-        help="""Input Guid File""",
-    )
-
-    parser.add_argument(
         "-l",
         "--load",
         dest="setting_file",
-        required=True,  
+        required=True,
         type=str,
         default='""',
         help="""Specify the input setting file""",
@@ -49,10 +41,9 @@ def option_parser():
 # Create an unpack statement formatted to address the variable length
 # paramters in the var store (Data and Unicode Name)
 def create_unpackstatement(NameStringSize, DataBufferSize):
-
     #
-    # Dmpstore Format taken from AppendSingleVariableToFile() in 
-    # MU_BASECORE\ShellPkg\Library\UefiShellDebug1CommandsLib\DmpStore.c
+    # Dmpstore Format taken from AppendSingleVariableToFile() in
+    # ShellPkg\Library\UefiShellDebug1CommandsLib\DmpStore.c
     # NameSize
     # DataSize
     # Name[NameSize]
@@ -78,18 +69,24 @@ def create_unpackstatement(NameStringSize, DataBufferSize):
 # Return the size of the un
 #
 def extract_single_var_from_file_and_write_nvram(var):
+    # check that the passed byte array has at least enough space for the NameSize and DataSize
     if len(var) > 8:
         (NameSize, DataSize) = struct.unpack("<II", var[0:8])
-        
+
         unpack_statement = create_unpackstatement(NameSize, DataSize)
+
+        # check that the input byte array has at least enough space for unpack statement
+        if struct.calcsize(unpack_statement) > len(var):
+            logging.critical("Input File Parsing error: input buffer is smaller than unpack size")
+            return len(var)
+
         result = struct.unpack(unpack_statement, var[0: struct.calcsize(unpack_statement)])
 
         VarName = result[2].decode('utf16')
         Guid = uuid.UUID(bytes_le=result[3])
         Attributes = result[4]
         Data = result[5]
-    
- 
+
         logging.debug(f"Found Variable: {VarName} {Guid} {Attributes}")
 
         UefiVar = UefiVariable()
@@ -120,7 +117,7 @@ def main():
         var = file.read()
 
         # go through the entire file parsing each dmpstore variable
-        start = 0;
+        start = 0
         while len(var[start:]) != 0:
             start = start + extract_single_var_from_file_and_write_nvram(var[start:])
 
@@ -135,14 +132,13 @@ if __name__ == "__main__":
     console = logging.StreamHandler()
     console.setLevel(logging.CRITICAL)
 
-    # check the priviledge level and report error 
+    # check the priviledge level and report error
     if not ctypes.windll.shell32.IsUserAnAdmin():
         print("Administrator priviledge required. Please launch from an Administrator priviledge level.")
         sys.exit(1)
 
     # call main worker function
     retcode = main()
-
 
     logging.shutdown()
     sys.exit(retcode)
