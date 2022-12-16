@@ -75,7 +75,7 @@ MockGetVariable (
   UINTN  Size;
   VOID   *RetData;
 
-  assert_ptr_equal (VendorGuid, &gMuVarPolicyDxePhaseGuid);
+  assert_memory_equal (VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
   assert_memory_equal (VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
   assert_non_null (Attributes);
 
@@ -153,10 +153,73 @@ MockSetVariable (
   return (EFI_STATUS)mock ();
 }
 
+/**
+  Enumerates the current variable names.
+
+  @param[in, out]  VariableNameSize The size of the VariableName buffer. The size must be large
+                                    enough to fit input string supplied in VariableName buffer.
+  @param[in, out]  VariableName     On input, supplies the last VariableName that was returned
+                                    by GetNextVariableName(). On output, returns the Nullterminated
+                                    string of the current variable.
+  @param[in, out]  VendorGuid       On input, supplies the last VendorGuid that was returned by
+                                    GetNextVariableName(). On output, returns the
+                                    VendorGuid of the current variable.
+
+  @retval EFI_SUCCESS           The function completed successfully.
+  @retval EFI_NOT_FOUND         The next variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL  The VariableNameSize is too small for the result.
+                                VariableNameSize has been updated with the size needed to complete the request.
+  @retval EFI_INVALID_PARAMETER VariableNameSize is NULL.
+  @retval EFI_INVALID_PARAMETER VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER The input values of VariableName and VendorGuid are not a name and
+                                GUID of an existing variable.
+  @retval EFI_INVALID_PARAMETER Null-terminator is not found in the first VariableNameSize bytes of
+                                the input VariableName buffer.
+  @retval EFI_DEVICE_ERROR      The variable could not be retrieved due to a hardware error.
+
+**/
+EFI_STATUS
+EFIAPI
+MockGetNextVariableName (
+  IN OUT UINTN     *VariableNameSize,
+  IN OUT CHAR16    *VariableName,
+  IN OUT EFI_GUID  *VendorGuid
+  )
+{
+  UINTN     Size;
+  VOID      *RetData;
+  EFI_GUID  *GuidData;
+
+  assert_non_null (VariableNameSize);
+  assert_non_null (VariableName);
+  assert_non_null (VendorGuid);
+
+  Size = (UINTN)mock ();
+  if (Size > *VariableNameSize) {
+    // Genuinely does not fit, bail with the expected size
+    *VariableNameSize = Size;
+    return EFI_BUFFER_TOO_SMALL;
+  } else if (Size == 0) {
+    // Probably some other plans, directly return
+    return (EFI_STATUS)mock ();
+  }
+
+  // Give them what they need
+  *VariableNameSize = Size;
+  RetData           = (VOID *)mock ();
+  GuidData          = (EFI_GUID *)mock ();
+  CopyMem (VendorGuid, GuidData, sizeof (EFI_GUID));
+  CopyMem (VariableName, RetData, Size);
+
+  return EFI_SUCCESS;
+}
+
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
 EFI_RUNTIME_SERVICES  MockRuntime = {
-  .GetVariable = MockGetVariable,
-  .SetVariable = MockSetVariable,
+  .GetVariable         = MockGetVariable,
+  .SetVariable         = MockSetVariable,
+  .GetNextVariableName = MockGetNextVariableName
 };

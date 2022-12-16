@@ -985,12 +985,10 @@ ConfAppSetupConfDumpSerial (
   EFI_STATUS       Status;
   EFI_KEY_DATA     KeyData1;
   CHAR8            *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  CHAR16           *CompareUnicodePtr[KNOWN_GOOD_TAG_COUNT];
   UINTN            Index;
-  CONTEXT_DATA     *Ctx;
+  UINTN            ReturnUnicodeSize;
   POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
-
-  UT_ASSERT_NOT_NULL (Context);
-  Ctx = (CONTEXT_DATA *)Context;
 
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -1021,19 +1019,43 @@ ConfAppSetupConfDumpSerial (
 
   mSettingAccess = &MockSettingAccess;
 
-  will_return (RetrieveActiveConfigVarList, Ctx->VarListPtr);
-  will_return (RetrieveActiveConfigVarList, Ctx->VarListCnt);
-  will_return (RetrieveActiveConfigVarList, EFI_SUCCESS);
+  // This is to mimic a non config managed variable
+  will_return (MockGetNextVariableName, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  will_return (MockGetNextVariableName, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  will_return (MockGetNextVariableName, READY_TO_BOOT_INDICATOR_VAR_NAME);
+  will_return (MockGetNextVariableName, &gMuVarPolicyDxePhaseGuid);
 
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // This is to mimic config setting variables
   for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
-    ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    ComparePtr[Index]        = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    CompareUnicodePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
     AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    ReturnUnicodeSize = UnicodeSPrintAsciiFormat (CompareUnicodePtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16), SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+
+    // Only the first iteration needs to extend the var name buffer
+    if (Index == 0) {
+      will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
+    }
+
+    will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
+    will_return (MockGetNextVariableName, CompareUnicodePtr[Index]);
+    will_return (MockGetNextVariableName, &gEfiCallerIdGuid);
+
     expect_string (MockGet, Id, ComparePtr[Index]);
     will_return (MockGet, mKnownGoodTags[Index].DataSize);
     expect_string (MockGet, Id, ComparePtr[Index]);
     will_return (MockGet, mKnownGoodTags[Index].DataSize);
     will_return (MockGet, mKnownGoodTags[Index].Data);
   }
+
+  // End the queries with a EFI_NOT_FOUND
+  will_return (MockGetNextVariableName, 0);
+  will_return (MockGetNextVariableName, EFI_NOT_FOUND);
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
