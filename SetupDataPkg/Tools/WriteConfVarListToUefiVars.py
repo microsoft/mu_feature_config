@@ -135,9 +135,9 @@ if __name__ == "__main__":
     console = logging.StreamHandler()
     console.setLevel(logging.CRITICAL)
 
-    # check the priviledge level and report error
+    # check the privilege level and report error
     if not ctypes.windll.shell32.IsUserAnAdmin():
-        print("Administrator priviledge required. Please launch from an Administrator priviledge level.")
+        print("Administrator privilege required. Please launch from an Administrator privilege level.")
         sys.exit(1)
 
     # call main worker function
