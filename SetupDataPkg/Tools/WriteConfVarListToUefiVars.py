@@ -16,6 +16,7 @@ from SettingSupport.UefiVariablesSupportLib import UefiVariable
 
 gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
+
 def option_parser():
     parser = argparse.ArgumentParser()
 
@@ -36,6 +37,7 @@ def option_parser():
         sys.exit(1)
 
     return arguments
+
 
 #
 # Create an unpack statement formatted to address the variable length
@@ -61,6 +63,7 @@ def create_unpackstatement(NameStringSize, DataBufferSize):
 
     logging.debug(f"Created unpack statement {unpack_statement}")
     return unpack_statement
+
 
 #
 # Using the passed byte array, extract the variable data and
