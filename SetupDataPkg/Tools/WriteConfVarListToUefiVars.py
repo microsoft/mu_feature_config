@@ -1,6 +1,6 @@
 # @file
 #
-# Set a dumpbin formatted set of variables to NVRAM
+# Set a dmpstore formatted set of variables to NVRAM
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
