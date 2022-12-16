@@ -1,6 +1,6 @@
 # @file
 #
-# Set a dumpbin formated set of variables to NVRAM
+# Set a dumpbin formatted set of variables to NVRAM
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -41,8 +41,8 @@ def option_parser():
 
 #
 # Create an unpack statement formatted to address the variable length
-# paramters in the var store (Data and Unicode Name)
-def create_unpackstatement(NameStringSize, DataBufferSize):
+# parameters in the var store (Data and Unicode Name)
+def create_unpack_statement(NameStringSize, DataBufferSize):
     #
     # Dmpstore Format taken from AppendSingleVariableToFile() in
     # ShellPkg\Library\UefiShellDebug1CommandsLib\DmpStore.c
@@ -76,7 +76,7 @@ def extract_single_var_from_file_and_write_nvram(var):
     if len(var) > 8:
         (NameSize, DataSize) = struct.unpack("<II", var[0:8])
 
-        unpack_statement = create_unpackstatement(NameSize, DataSize)
+        unpack_statement = create_unpack_statement(NameSize, DataSize)
 
         # check that the input byte array has at least enough space for unpack statement
         if struct.calcsize(unpack_statement) > len(var):
@@ -104,7 +104,7 @@ def extract_single_var_from_file_and_write_nvram(var):
 
         return struct.calcsize(unpack_statement)
     else:
-        logging.critical("var buffer was too small to be a valid dmstore")
+        logging.critical("var buffer was too small to be a valid dmpstore")
 
     return len(var)
 
