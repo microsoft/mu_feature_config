@@ -13,6 +13,8 @@
 
 #include <Uefi.h>
 
+#include <Generated/ConfigClientGenerated.h>
+
 /**
   GetConfigKnob returns the cached configuration knob if it is already cached, otherwise the config knob
   is fetched from variable storage and cached in a policy.
