@@ -1192,20 +1192,26 @@ def write_csv(schema, csv_path, full, subknobs=True):
         name_list = get_delta_vlist(schema)[0]
 
         if subknobs:
-            writer.writerow(['Knob', 'Value', 'Help'])
+            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
             for subknob in schema.subknobs:
                 if full or subknob.name in name_list:
+                    binary = subknob.format.object_to_binary(subknob.value)
+                    string_binary = " ".join(map("%2.2x".__mod__, binary))
                     writer.writerow([
                         subknob.name,
                         subknob.format.object_to_string(subknob.value),
+                        string_binary,
                         subknob.help])
         else:
-            writer.writerow(['Knob', 'Value', 'Help'])
+            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
             for knob in schema.knobs:
                 if full or knob.name in name_list:
+                    binary = knob.format.object_to_binary(knob.value)
+                    string_binary = " ".join(map("%2.2x".__mod__, binary))
                     writer.writerow([
                         knob.name,
                         knob.format.object_to_string(knob.value),
+                        string_binary,
                         knob.help])
 
 

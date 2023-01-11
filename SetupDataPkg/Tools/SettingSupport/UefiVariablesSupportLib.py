@@ -15,9 +15,9 @@ from ctypes import (
     WinError,
 )
 import logging
-import win32api
-import win32process
-import win32security
+from win32 import win32api
+from win32 import win32process
+from win32 import win32security
 
 kernel32 = windll.kernel32
 EFI_VAR_MAX_BUFFER_SIZE = 1024 * 1024
