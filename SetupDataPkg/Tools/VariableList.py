@@ -1187,32 +1187,59 @@ def read_csv(schema, csv_path):
 def write_csv(schema, csv_path, full, subknobs=True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
+        guid = None
 
         # get_delta_vlist is a tuple of name_list, var_list
         name_list = get_delta_vlist(schema)[0]
 
         if subknobs:
-            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
+            writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Help'])
             for subknob in schema.subknobs:
                 if full or subknob.name in name_list:
                     binary = subknob.format.object_to_binary(subknob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
-                    writer.writerow([
-                        subknob.name,
-                        subknob.format.object_to_string(subknob.value),
-                        string_binary,
-                        subknob.help])
+                    if subknob.namespace != guid:
+                        # We print the guid on the first row and then only print
+                        # another guid if it changes
+                        guid = subknob.namespace
+
+                        writer.writerow([
+                            guid,
+                            subknob.name,
+                            subknob.format.object_to_string(subknob.value),
+                            string_binary,
+                            subknob.help])
+                    else:
+                        writer.writerow([
+                            '*',
+                            subknob.name,
+                            subknob.format.object_to_string(subknob.value),
+                            string_binary,
+                            subknob.help])
         else:
-            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
+            writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Help'])
             for knob in schema.knobs:
                 if full or knob.name in name_list:
-                    binary = knob.format.object_to_binary(knob.value)
+                    binary = subknob.format.object_to_binary(subknob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
-                    writer.writerow([
-                        knob.name,
-                        knob.format.object_to_string(knob.value),
-                        string_binary,
-                        knob.help])
+                    if knob.namespace != guid: 
+                        # We print the guid on the first row and then only print
+                        # another guid if it changes
+                        guid = knob.namespace
+
+                        writer.writerow([
+                            guid,
+                            knob.name,
+                            knob.format.object_to_string(knob.value),
+                            string_binary,
+                            knob.help])
+                    else:
+                        writer.writerow([
+                            '*',
+                            knob.name,
+                            knob.format.object_to_string(knob.value),
+                            string_binary,
+                            knob.help])
 
 
 def write_vlist(schema, vlist_path):
