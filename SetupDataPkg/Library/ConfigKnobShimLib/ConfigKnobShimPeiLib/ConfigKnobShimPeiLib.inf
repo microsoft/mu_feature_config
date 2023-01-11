@@ -29,6 +29,7 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
 
 [LibraryClasses]
   BaseLib

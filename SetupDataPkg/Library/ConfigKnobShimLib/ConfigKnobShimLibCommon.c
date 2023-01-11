@@ -12,6 +12,12 @@
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
 
+#define CONFIG_INCLUDE_CACHE
+#include <Generated/ConfigClientGenerated.h>
+#include <Generated/ConfigServiceGenerated.h>
+
+#define CONFIG_KNOB_NAME_MAX_LENGTH  64
+
 #include "ConfigKnobShimLibCommon.h"
 
 /**
@@ -53,7 +59,7 @@ GetConfigKnob (
   )
 {
   EFI_STATUS  Status;
-  UINTN       VariableSize;
+  UINTN       VariableSize = ConfigKnobDataSize;
 
   if ((ConfigKnobGuid == NULL) || (ConfigKnobName == NULL) || (ConfigKnobData == NULL) ||
       (ConfigKnobDataSize == 0) || (ProfileDefaultValue == NULL) || (ProfileDefaultSize == 0))
@@ -106,4 +112,60 @@ GetConfigKnob (
 
 Exit:
   return Status;
+}
+
+C_ASSERT (sizeof (EFI_GUID) == sizeof (config_guid_t));
+
+// Get the raw knob value
+//
+// This function is called by the generated functions and uses the generated knob metadata to call into the generic
+// GetConfigKnob function to get the knob value.
+void *
+get_knob_value (
+  knob_t  knob
+  )
+{
+  ASSERT (knob < KNOB_MAX);
+  knob_data_t  *knob_data = &g_knob_data[(int)knob];
+
+  // Convert the name to a CHAR16 string
+  CHAR16  name[CONFIG_KNOB_NAME_MAX_LENGTH];
+  int     i = 0;
+
+  for (i = 0; i < CONFIG_KNOB_NAME_MAX_LENGTH; i++) {
+    name[i] = (CHAR16)knob_data->name[i];
+    if (knob_data->name[i] == '\0') {
+      break;
+    }
+  }
+
+  // The name should be null terminated
+  ASSERT (i < CONFIG_KNOB_NAME_MAX_LENGTH);
+
+  // Get the knob value
+  EFI_STATUS  result = GetConfigKnob (
+                         (EFI_GUID *)&knob_data->vendor_namespace,
+                         name,
+                         knob_data->cache_value_address,
+                         knob_data->value_size,
+                         (void *)knob_data->default_value_address,
+                         knob_data->value_size
+                         );
+
+  // This function should not fail for us
+  // If the knob is not found in storage, or has the wrong size or attributes, it will return the default value
+  // The only failure cases are invalid parameters, which should not happen
+  ASSERT (result == EFI_SUCCESS);
+
+  // Validate the value from flash meets the constraints of the knob
+  if (knob_data->validator != NULL) {
+    if (!knob_data->validator (knob_data->cache_value_address)) {
+      // If it doesn't, we will set the value to the default value
+      DEBUG ((DEBUG_ERROR, "Config knob %a failed validation!\n", knob_data->name));
+      CopyMem (knob_data->cache_value_address, knob_data->default_value_address, knob_data->value_size);
+    }
+  }
+
+  // Return a pointer to the data, the generated functions will cast this to the correct type
+  return knob_data->cache_value_address;
 }

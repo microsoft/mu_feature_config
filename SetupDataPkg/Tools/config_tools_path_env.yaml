@@ -1,0 +1,11 @@
+## @file
+# Set shell variable MU_CONFIG_TOOLS to this folder
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+{
+  "scope": "configdata_ci",
+  "flags": ["set_shell_var", "set_build_var"],
+  "var_name": "MU_SCHEMA_DIR"
+}

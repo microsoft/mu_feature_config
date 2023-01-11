@@ -387,6 +387,79 @@ GetConfigKnobFromVariableStorageFailPpiTest (
   return UNIT_TEST_PASSED;
 }
 
+UNIT_TEST_STATUS
+EFIAPI
+GetConfigKnobFromGeneratedNotInStorageTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  PPI_STATUS  PpiStatus = { .Ppi = NULL, .Status = EFI_NOT_FOUND };
+
+  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+
+  // in this case, DXE only, as PEI failed to find variable service
+  will_return_maybe (MockGetVariable, EFI_NOT_FOUND);
+
+  // Call the generated function
+  int16_t  value = config_get_k_int16_t_d1000 ();
+
+  // Expect the default value
+  UT_ASSERT_EQUAL (value, 1000);
+
+  return UNIT_TEST_PASSED;
+}
+
+UNIT_TEST_STATUS
+EFIAPI
+GetConfigKnobFromGeneratedSucceedTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  UINT16      OverrideValue = 500;
+  PPI_STATUS  PpiStatus     = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+
+  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+
+  will_return (MockGetVariable, sizeof (OverrideValue));
+  will_return (MockGetVariable, &OverrideValue);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Call the generated function
+  int16_t  value = config_get_k_int16_t_d1000 ();
+
+  // Expect the overridden value
+  UT_ASSERT_EQUAL (value, OverrideValue);
+
+  return UNIT_TEST_PASSED;
+}
+
+UNIT_TEST_STATUS
+EFIAPI
+GetConfigKnobFromGeneratedOutOfRangeTest (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  INT16       OverrideValue = -600;
+  PPI_STATUS  PpiStatus     = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+
+  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+
+  will_return (MockGetVariable, sizeof (OverrideValue));
+  will_return (MockGetVariable, &OverrideValue);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Call the generated function
+  int16_t  value = config_get_k_int16_t_d1000_minn500 ();
+
+  // Expect the value to be the default (since the override is out of range)
+  UT_ASSERT_EQUAL (value, 1000);
+
+  return UNIT_TEST_PASSED;
+}
+
 /**
   Initialize the unit test framework, suite, and unit tests for the
   ConfigKnobShimLibCommon and run the ConfigKnobShimLibCommon unit test.
@@ -446,6 +519,9 @@ UnitTestingEntry (
   AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailTest", GetConfigKnobFromVariableStorageFailTest, NULL, NULL, NULL);
   AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailSizeTest", GetConfigKnobFromVariableStorageFailSizeTest, NULL, NULL, NULL);
   AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailPpiTest", GetConfigKnobFromVariableStorageFailPpiTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving non-overridden value using generated header should succeed (with default)", "GetConfigKnobFromGeneratedNotInStorageTest", GetConfigKnobFromGeneratedNotInStorageTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving overridden value using generated header should succeed", "GetConfigKnobFromGeneratedSucceedTest", GetConfigKnobFromGeneratedSucceedTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving an out of range overridden value using generated header should return default", "GetConfigKnobFromGeneratedOutOfRangeTest", GetConfigKnobFromGeneratedOutOfRangeTest, NULL, NULL, NULL);
 
   //
   // Execute the tests.
