@@ -974,6 +974,9 @@ CreateXmlStringFromCurrentSettings (
 
       // They should still match in size...
       ASSERT (Offset == NeededSize);
+
+      // Then pacify the value of DataSize used below
+      DataSize = NeededSize;
     }
 
     // First encode the binary blob
