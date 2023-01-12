@@ -33,6 +33,7 @@ def get_type_string(type_name, uefi=False):
 
     return type_name
 
+
 # Converts a value from standard C to UEFI
 def get_value_string(value, uefi=False):
     if value == "true" and uefi:
