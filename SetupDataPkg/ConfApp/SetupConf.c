@@ -855,6 +855,7 @@ CreateXmlStringFromCurrentSettings (
 
       Status   = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
     }
+
     NameSize = NewNameSize;
 
     if (Status == EFI_NOT_FOUND) {
