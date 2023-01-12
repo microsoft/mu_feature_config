@@ -45,7 +45,7 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             logging.error(f"XML schema file \"{schema_file}\" specified is not found!!!")
             return -1
 
-        params = ["generateheader"]
+        params = ["generateheader_efi"]
 
         params.append(schema_file)
 

@@ -11,16 +11,50 @@ import uuid
 import VariableList
 
 
-def generate_public_header(schema, header_path):
+# Converts a type name from standard C to UEFI
+def get_type_string(type_name, uefi=False):
+    uefi_types = {
+        "int8_t": "INT8",
+        "int16_t": "INT16",
+        "int32_t": "INT32",
+        "int64_t": "INT64",
+        "uint8_t": "UINT8",
+        "uint16_t": "UINT16",
+        "uint32_t": "UINT32",
+        "uint64_t": "UINT64",
+        "bool": "BOOLEAN",
+        "float": "float",
+        "double": "double",
+        "size_t": "UINTN"
+    }
+    if uefi:
+        if type_name in uefi_types:
+            return uefi_types[type_name]
+
+    return type_name
+
+# Converts a value from standard C to UEFI
+def get_value_string(value, uefi=False):
+    if value == "true" and uefi:
+        return "TRUE"
+    elif value == "false" and uefi:
+        return "FALSE"
+    else:
+        return value
+
+
+def generate_public_header(schema, header_path, efi_type=False):
 
     format_options = VariableList.StringFormatOptions()
     format_options.c_format = True
+    format_options.efi_format = efi_type
 
     with open(header_path, 'w') as out:
         out.write("#pragma once\n")
-        out.write("#include <stdint.h>\n")
-        out.write("#include <stddef.h>\n")
-        out.write("#include <stdbool.h>\n")
+        if not efi_type:
+            out.write("#include <stdint.h>\n")
+            out.write("#include <stddef.h>\n")
+            out.write("#include <stdbool.h>\n")
         out.write("// Generated Header\n")
         out.write("//  Script: {}\n".format(sys.argv[0]))
         out.write("//  Schema: {}\n".format(schema.path))
@@ -61,7 +95,7 @@ def generate_public_header(schema, header_path):
                 out.write("    _{}_PADDING = 0xffffffff // Force packing to int size\n".format(enum.name))
             out.write("}} {};\n".format(enum.name))
             out.write("\n")
-            out.write("C_ASSERT(sizeof({}) == sizeof(uint32_t));\n".format(enum.name))
+            out.write(f"C_ASSERT(sizeof({enum.name}) == sizeof({get_type_string('uint32_t', efi_type)}));\n")
             out.write("\n")
             pass
 
@@ -75,11 +109,11 @@ def generate_public_header(schema, header_path):
                     out.write("    // {}\n".format(member.help))
                 if member.count == 1:
                     out.write("    {} {};\n".format(
-                        member.format.c_type,
+                        get_type_string(member.format.c_type, efi_type),
                         member.name))
                 else:
                     out.write("    {} {}[{}];\n".format(
-                        member.format.c_type,
+                        get_type_string(member.format.c_type, efi_type),
                         member.name,
                         member.count))
 
@@ -111,15 +145,16 @@ def generate_public_header(schema, header_path):
             out.write("\n")
             out.write("// Get the current value of the {} knob\n".format(knob.name))
             out.write("{} config_get_{}();\n".format(
-                knob.format.c_type,
+                get_type_string(knob.format.c_type, efi_type),
                 knob.name))
             out.write("\n")
 
             out.write("#ifdef CONFIG_SET_VARIABLES\n")
             out.write("// Set the current value of the {} knob\n".format(knob.name))
-            out.write("bool config_set_{}({} value);\n".format(
+            out.write("{} config_set_{}({} value);\n".format(
+                get_type_string('bool', efi_type),
                 knob.name,
-                knob.format.c_type,
+                get_type_string(knob.format.c_type, efi_type),
             ))
             out.write("#endif // CONFIG_SET_VARIABLES\n")
             out.write("\n")
@@ -144,7 +179,7 @@ def generate_public_header(schema, header_path):
         out.write("    int set_count;\n")
         out.write("} knob_statistics_t;\n")
         out.write("\n")
-        out.write("typedef bool(knob_validation_fn)(const void*);")
+        out.write(f"typedef {get_type_string('bool', efi_type)}(knob_validation_fn)(const void*);")
         out.write("\n")
         out.write("typedef struct {\n")
         out.write("    knob_t knob;\n")
@@ -194,7 +229,7 @@ def format_guid(guid):
         hex(byte_sequence[7]))
 
 
-def generate_cached_implementation(schema, header_path):
+def generate_cached_implementation(schema, header_path, efi_type=False):
     with open(header_path, 'w') as out:
         out.write("#pragma once\n")
         out.write("// The config public header must be included prior to this file")
@@ -206,13 +241,14 @@ def generate_cached_implementation(schema, header_path):
         out.write("typedef struct {\n")
         for knob in schema.knobs:
             out.write("    {} {};\n".format(
-                knob.format.c_type,
+                get_type_string(knob.format.c_type, efi_type),
                 knob.name))
         out.write("} knob_values_t;\n")
         out.write("\n")
 
         format_options = VariableList.StringFormatOptions()
         format_options.c_format = True
+        format_options.efi_format = efi_type
 
         out.write("const knob_values_t g_knob_default_values = {\n")
         for knob in schema.knobs:
@@ -239,21 +275,30 @@ def generate_cached_implementation(schema, header_path):
                 if value.number > highest_value:
                     highest_value = value.number
 
-            out.write("bool validate_enum_value_{}({} value)\n".format(enum.name, enum.name))
+            out.write("{} validate_enum_value_{}({} value)\n".format(
+                get_type_string('bool', efi_type),
+                enum.name,
+                enum.name))
             out.write("{\n")
 
             if highest_value - lowest_value > len(enum.values):
                 out.write("    switch (value) {\n")
 
                 for value in enum.values:
-                    out.write("        case {}_{}: return true;\n".format(enum.name, value.name))
-                # out.write("        default: return false;\n")
+                    out.write("        case {}_{}: return {};\n".format(
+                        enum.name,
+                        value.name,
+                        get_value_string('true', efi_type)))
                 out.write("    }\n")
-                out.write("    return false;\n")
+                out.write("    return {};\n".format(get_value_string('false', efi_type)))
             else:
                 out.write("    int numeric_value = (int)value;\n")
-                out.write("    if (numeric_value < {}) return false;\n".format(lowest_value))
-                out.write("    if (numeric_value > {}) return false;\n".format(highest_value))
+                out.write("    if (numeric_value < {}) return {};\n".format(
+                    lowest_value,
+                    get_value_string('false', efi_type)))
+                out.write("    if (numeric_value > {}) return {};\n".format(
+                    highest_value,
+                    get_value_string('false', efi_type)))
                 for i in range(lowest_value, highest_value):
                     found = False
                     for value in enum.values:
@@ -261,17 +306,19 @@ def generate_cached_implementation(schema, header_path):
                             found = True
                             break
                     if not found:
-                        out.write("    if (numeric_value == {}) return false;\n".format(i))
-                out.write("    return true;\n")
+                        out.write("    if (numeric_value == {}) return {};\n".format(
+                            i,
+                            get_value_string('false', efi_type)))
+                out.write("    return {};\n".format(get_value_string('true', efi_type)))
             out.write("}\n")
             out.write("\n")
 
         out.write("\n")
 
-        out.write("bool validate_knob_no_constraints(const void* buffer)\n")
+        out.write("{} validate_knob_no_constraints(const void* buffer)\n".format(get_type_string('bool', efi_type)))
         out.write("{\n")
         out.write("    (void)buffer;\n")
-        out.write("    return true;\n")
+        out.write("    return {};\n".format(get_value_string('true', efi_type)))
         out.write("}\n")
         out.write("\n")
         for knob in schema.knobs:
@@ -287,27 +334,33 @@ def generate_cached_implementation(schema, header_path):
                             constraint_present = True
 
             if constraint_present:
-                out.write("bool validate_knob_content_{}(const void* buffer)\n".format(knob.name))
+                out.write("{} validate_knob_content_{}(const void* buffer)\n".format(
+                    get_type_string('bool', efi_type),
+                    knob.name))
                 out.write("{\n")
-                out.write("    {}* value = ({}*)buffer;\n".format(knob.format.c_type, knob.format.c_type))
+                out.write("    {}* value = ({}*)buffer;\n".format(
+                    get_type_string(knob.format.c_type, efi_type),
+                    get_type_string(knob.format.c_type, efi_type)))
 
                 for subknob in knob.subknobs:
                     if subknob.leaf:
                         path = subknob.name[len(knob.name):]
                         define_name = subknob.name.replace('[', '_').replace(']', '_').replace('.', '__')
                         if isinstance(subknob.format, VariableList.EnumFormat):
-                            out.write("    if ( !validate_enum_value_{}( (*value){} ) ) return false;\n".format(
-                                subknob.format.name, path))
+                            out.write("    if ( !validate_enum_value_{}( (*value){} ) ) return {};\n".format(
+                                subknob.format.name, path, get_value_string('false', efi_type)))
                         else:
                             if subknob.min != subknob.format.min:
-                                out.write("    if ( (*value){} < KNOB__{}__MIN ) return false;\n".format(
+                                out.write("    if ( (*value){} < KNOB__{}__MIN ) return {};\n".format(
                                     path,
-                                    define_name))
+                                    define_name,
+                                    get_value_string('false', efi_type)))
                             if subknob.max != subknob.format.max:
-                                out.write("    if ( (*value){} > KNOB__{}__MAX ) return false;\n".format(
+                                out.write("    if ( (*value){} > KNOB__{}__MAX ) return {};\n".format(
                                     path,
-                                    define_name))
-                out.write("    return true;\n")
+                                    define_name,
+                                    get_value_string('false', efi_type)))
+                out.write("    return {};\n".format(get_value_string('true', efi_type)))
                 out.write("}\n")
                 out.write("\n")
             else:
@@ -321,7 +374,7 @@ def generate_cached_implementation(schema, header_path):
             out.write("       KNOB_{},\n".format(knob.name))
             out.write("       &g_knob_default_values.{},\n".format(knob.name))
             out.write("       CONFIG_CACHE_ADDRESS({}),\n".format(knob.name))
-            out.write("       sizeof({}),\n".format(knob.format.c_type))
+            out.write("       sizeof({}),\n".format(get_type_string(knob.format.c_type, efi_type)))
             out.write("       \"{}\",\n".format(knob.name))
             out.write("       {}, // Length of name (including NULL terminator)\n".format(len(knob.name) + 1))
             out.write("       {}, // {}\n".format(format_guid(knob.namespace), knob.namespace))
@@ -347,7 +400,7 @@ def generate_cached_implementation(schema, header_path):
         out.write("void* get_knob_value(knob_t knob);\n")
         out.write("\n")
         out.write("#ifdef CONFIG_SET_VARIABLES\n")
-        out.write("bool set_knob_value(knob_t knob, void* value);\n")
+        out.write("{} set_knob_value(knob_t knob, void* value);\n".format(get_type_string('bool', efi_type)))
         out.write("#endif // CONFIG_SET_VARIABLES\n")
         out.write("\n")
         out.write("// Schema-defined knobs\n\n")
@@ -358,17 +411,18 @@ def generate_cached_implementation(schema, header_path):
 
             out.write("// Get the current value of the {} knob\n".format(knob.name))
             out.write("{} config_get_{}() {{\n".format(
-                knob.format.c_type,
+                get_type_string(knob.format.c_type, efi_type),
                 knob.name))
             out.write("    return *(({}*)get_knob_value(KNOB_{}));\n".format(
-                knob.format.c_type,
+                get_type_string(knob.format.c_type, efi_type),
                 knob.name
             ))
             out.write("}\n")
             out.write("\n")
             out.write("#ifdef CONFIG_SET_VARIABLES\n")
             out.write("// Set the current value of the {} knob\n".format(knob.name))
-            out.write("bool config_set_{}({} value) {{\n".format(
+            out.write("{} config_set_{}({} value) {{\n".format(
+                get_type_string('bool', efi_type),
                 knob.name,
                 knob.format.c_type))
             out.write("    return set_knob_value(KNOB_{}, &value);\n".format(
@@ -380,7 +434,7 @@ def generate_cached_implementation(schema, header_path):
             pass
 
 
-def generate_profiles(schema, profile_header_path, profile_paths):
+def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
     with open(profile_header_path, 'w') as out:
         out.write("#pragma once\n")
         out.write("// The config public header must be included prior to this file")
@@ -394,6 +448,7 @@ def generate_profiles(schema, profile_header_path, profile_paths):
 
         format_options = VariableList.StringFormatOptions()
         format_options.c_format = True
+        format_options.efi_format = efi_type
 
         profiles = []
         for profile_path in profile_paths:
@@ -462,9 +517,9 @@ def generate_profiles(schema, profile_header_path, profile_paths):
         out.write("};\n")
 
 
-def generate_sources(schema, public_header, service_header):
-    generate_public_header(schema, public_header)
-    generate_cached_implementation(schema, service_header)
+def generate_sources(schema, public_header, service_header, efi_types):
+    generate_public_header(schema, public_header, efi_types)
+    generate_cached_implementation(schema, service_header, efi_types)
 
 
 def usage():
@@ -482,12 +537,14 @@ def main():
         sys.exit(1)
         return
 
-    if sys.argv[1].lower() == "generateheader":
+    if sys.argv[1].lower() == "generateheader" or sys.argv[1].lower() == "generateheader_efi":
         if len(sys.argv) < 5:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
+
+        efi_types = sys.argv[1].lower() == "generateheader_efi"
 
         schema_path = sys.argv[2]
         header_path = sys.argv[3]
@@ -496,13 +553,13 @@ def main():
         # Load the schema
         schema = VariableList.Schema.load(schema_path)
 
-        generate_sources(schema, header_path, service_path)
+        generate_sources(schema, header_path, service_path, efi_types)
 
         if len(sys.argv) >= 6:
             profile_header_path = sys.argv[5]
             profile_paths = sys.argv[6:]
 
-            generate_profiles(schema, profile_header_path, profile_paths)
+            generate_profiles(schema, profile_header_path, profile_paths, efi_types)
         return 0
 
 

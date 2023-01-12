@@ -402,7 +402,7 @@ GetConfigKnobFromGeneratedNotInStorageTest (
   will_return_maybe (MockGetVariable, EFI_NOT_FOUND);
 
   // Call the generated function
-  int16_t  value = config_get_k_int16_t_d1000 ();
+  INT16  value = config_get_k_int16_t_d1000 ();
 
   // Expect the default value
   UT_ASSERT_EQUAL (value, 1000);
@@ -427,7 +427,7 @@ GetConfigKnobFromGeneratedSucceedTest (
   will_return (MockGetVariable, EFI_SUCCESS);
 
   // Call the generated function
-  int16_t  value = config_get_k_int16_t_d1000 ();
+  INT16  value = config_get_k_int16_t_d1000 ();
 
   // Expect the overridden value
   UT_ASSERT_EQUAL (value, OverrideValue);
@@ -452,7 +452,7 @@ GetConfigKnobFromGeneratedOutOfRangeTest (
   will_return (MockGetVariable, EFI_SUCCESS);
 
   // Call the generated function
-  int16_t  value = config_get_k_int16_t_d1000_minn500 ();
+  INT16  value = config_get_k_int16_t_d1000_minn500 ();
 
   // Expect the value to be the default (since the override is out of range)
   UT_ASSERT_EQUAL (value, 1000);
