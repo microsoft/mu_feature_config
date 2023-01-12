@@ -810,11 +810,11 @@ class application(tkinter.Frame):
             # we are trying to load
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
-            elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page + ".csv", path) is not None:
+            elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page, path) is not None:
                 xml_id = idx
 
         if xml_id == -1:
-            raise Exception('Unsupported file "%s" not found in loaded config!' % path)
+            raise Exception('Associated XML not found! CSV filename must have the XML filename as a prefix')
 
         if path.endswith('.dlt'):
             file_id = yml_id
