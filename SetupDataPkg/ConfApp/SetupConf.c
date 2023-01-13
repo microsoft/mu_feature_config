@@ -853,9 +853,10 @@ CreateXmlStringFromCurrentSettings (
         goto EXIT;
       }
 
-      Status   = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
-      NameSize = NewNameSize;
+      Status = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
     }
+
+    NameSize = NewNameSize;
 
     if (Status == EFI_NOT_FOUND) {
       break;
@@ -974,6 +975,9 @@ CreateXmlStringFromCurrentSettings (
 
       // They should still match in size...
       ASSERT (Offset == NeededSize);
+
+      // Then pacify the value of DataSize used below
+      DataSize = NeededSize;
     }
 
     // First encode the binary blob
