@@ -853,7 +853,7 @@ CreateXmlStringFromCurrentSettings (
         goto EXIT;
       }
 
-      Status   = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
+      Status = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
     }
 
     NameSize = NewNameSize;
