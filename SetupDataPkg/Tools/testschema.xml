@@ -112,6 +112,9 @@
     <Knob type="int64_t" name="k_int64_t_d10000000000_max20000000000" default="10000000000" max="20000000000" />
     <Knob type="int64_t" name="k_int64_t_d10000000000_minn500000000_max20000000000" default="10000000000" min="-5000000000" max="20000000000" />
 
+    <!-- 
+    Not all environments support float/double
+    
     <Knob type="float" name="k_float" />
     <Knob type="float" name="k_float_d10_5" default="10.5" />
     <Knob type="float" name="k_float_dn10_5" default="-10.5" />
@@ -125,6 +128,7 @@
     <Knob type="double" name="k_double_d10_5_minn5_5" default="10.5" min="-5.5" />
     <Knob type="double" name="k_double_d10_5_max20_5" default="10.5" max="20.5" />
     <Knob type="double" name="k_double_d10_5_minn5_5_max20_5" default="10.5" min="-5.5" max="20.5" />
+    -->
 
     <Knob type="bool" name="k_bool" />
     <Knob type="bool" name="k_bool_dtrue" default="true" />
