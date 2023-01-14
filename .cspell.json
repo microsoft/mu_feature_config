@@ -112,6 +112,7 @@
       "configschema",
       "configdata",
       "generateheader",
-      "GENCSV"
+      "GENCSV",
+      "dtrue"
   ]
 }
