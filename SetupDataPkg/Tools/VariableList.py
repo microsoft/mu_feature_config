@@ -954,7 +954,7 @@ class Schema:
                 self.structs.append(StructFormat(self, struct_node))
 
         for section in dom.getElementsByTagName('Knobs'):
-            namespace = section.getAttribute('namespace')
+            namespace = re.sub('[{}]', '', section.getAttribute('namespace'))
             for knob in section.getElementsByTagName('Knob'):
                 self.knobs.append(Knob(self, knob, namespace))
 
@@ -994,7 +994,7 @@ class Schema:
     def get_knob(self, guid, knob_name):
         for knob in self.subknobs:
             # namespace guid lives at the Knob level, not the subknob level
-            if knob.knob.namespace == guid and knob.name == knob_name:
+            if str(knob.knob.namespace).upper() == str(guid).upper() and knob.name == knob_name:
                 return knob
 
         return None
@@ -1237,7 +1237,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
             writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Help'])
             for knob in schema.knobs:
                 if full or knob.name in name_list:
-                    binary = subknob.format.object_to_binary(subknob.value)
+                    binary = knob.format.object_to_binary(knob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
                     if knob.namespace != guid: 
                         # We print the guid on the first row and then only print
