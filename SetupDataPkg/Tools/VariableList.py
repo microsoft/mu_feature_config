@@ -991,12 +991,13 @@ class Schema:
         return Schema(parseString(string))
 
     # Get a knob by name
-    def get_knob(self, knob_name):
+    def get_knob(self, guid, knob_name):
         for knob in self.subknobs:
-            if knob.name == knob_name:
+            # namespace guid lives at the Knob level, not the subknob level
+            if knob.knob.namespace == guid and knob.name == knob_name:
                 return knob
 
-        raise InvalidKnobError("Knob '{}' is not defined".format(knob_name))
+        return None
 
     # Get a format by name
     def get_format(self, type_name):
@@ -1155,17 +1156,27 @@ def read_vlist_from_buffer(array):
 
 def uefi_variables_to_knobs(schema, variables):
     for variable in variables:
-        knob = schema.get_knob(variable.name)
-        knob.value = knob.format.binary_to_object(variable.data)
+        knob = schema.get_knob(variable.guid, variable.name)
+        if knob is not None:
+            knob.value = knob.format.binary_to_object(variable.data)
 
 
 def read_csv(schema, csv_path):
+    updated_knobs = 0
     with open(csv_path, 'r') as csv_file:
+        guid = None
         reader = csv.reader(csv_file)
         header = next(reader)
 
         knob_index = 0
         value_index = 0
+        guid_index = 0
+
+        try:
+            guid_index = header.index('Guid')
+        except ValueError:
+            raise ParseError("CSV is missing 'Guid' column header. Ensure CSV was generated with latest changes.")
+
         try:
             knob_index = header.index('Knob')
         except ValueError:
@@ -1177,11 +1188,17 @@ def read_csv(schema, csv_path):
             raise ParseError("CSV is missing 'Value' column header")
 
         for row in reader:
+            read_guid = row[guid_index]
+            if read_guid != '*':
+                guid = read_guid
             knob_name = row[knob_index]
             knob_value_string = row[value_index]
 
-            knob = schema.get_knob(knob_name)
-            knob.value = knob.format.string_to_object(knob_value_string)
+            knob = schema.get_knob(guid, knob_name)
+            if knob is not None:
+                knob.value = knob.format.string_to_object(knob_value_string)
+                updated_knobs += 1
+    return updated_knobs
 
 
 def write_csv(schema, csv_path, full, subknobs=True):
