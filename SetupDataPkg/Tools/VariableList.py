@@ -13,7 +13,6 @@ import uuid
 import zlib
 import copy
 import os
-import xmlschema
 from xml.dom.minidom import parse, parseString
 from enum import Enum
 
@@ -964,25 +963,21 @@ class Schema:
 
         pass
 
-    def find_data_file(filename):
-        if getattr(sys, "frozen", False):
-            # The application is frozen
-            datadir = os.path.dirname(sys.executable)
-        else:
-            # The application is not frozen
-            # Change this bit to match where you store your data files:
-            datadir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(datadir, filename)
-
     # Load a schema given a path to a schema xml file
     def load(path):
 
-        # Get the XML schema from the current path
-        # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
-        xsd = xmlschema.XMLSchema(Schema.find_data_file("configschema.xsd"))
+        if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
+            # The application is frozen
+            print("Running bundled VariableList!\n")
+        else:
+            # The application is not frozen, perform schema check
+            import xmlschema
+            # Get the XML schema from the current path
+            # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
+            xsd = xmlschema.XMLSchema(os.path.dirname(os.path.abspath(__file__)))
 
-        # raises exception if validation fails
-        xsd.validate(path)
+            # raises exception if validation fails
+            xsd.validate(path)
 
         return Schema(parse(path), path)
 
