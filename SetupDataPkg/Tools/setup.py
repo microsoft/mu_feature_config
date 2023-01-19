@@ -19,31 +19,34 @@ def main():
 
     parser = argparse.ArgumentParser(description='Create single executable for Configuration Editor')
 
-    parser.add_argument("--ConfFolderPath", dest="ConfFolderPath", help="Path to all configuration definitions to"
-                        "be embedded, subfolder structure will be kept", default=None)
-    parser.add_argument("--OutputFilePath", dest="OutputFilePath", help="Path to output executable, default will be"
-                        "./dist/", default=None)
+    parser.add_argument("--ConfFolderPath", dest="ConfFolderPath", help="Absolute path to all configuration definitions "
+                        "to be embedded, subfolder structure will be kept", default=None)
+    parser.add_argument("--OutputFilePath", dest="OutputFilePath", help="Absolute path to output executable, default "
+                        "will be./dist/", default=None)
 
     options = parser.parse_args()
 
     args = [os.path.join(os.path.dirname(os.path.realpath(__file__)), "ConfigEditor.py")]
+    args.append("--clean")
+    args.append("--onefile")
 
     if options.ConfFolderPath is not None:
-        for subdir, _, files in os.walk(os.path.join(options.ConfFolderPath)):
+        for subdir, _, files in os.walk(options.ConfFolderPath):
             for file in files:
                 sub_path = os.path.join(subdir, file)
-                args += "--add-data='" + sub_path + "'" + os.pathsep + "'" + os.path.join("ConfDefinitions" + subdir) +\
-                        "'"
+                rel_path = os.path.relpath(subdir, options.ConfFolderPath)
+                args.append(f"--add-data={sub_path + os.pathsep + os.path.join('ConfDefinitions', rel_path)}")
 
     if options.OutputFilePath is not None:
         if os.path.isdir:
-            args += f"--distpath=%s" % options.OutputFilePath
+            args.append(f"--distpath={options.OutputFilePath}")
         else:
             return -1
 
     PyInstaller.__main__.run(args)
 
     return 0
+
 
 if __name__ == '__main__':
     # setup main console as logger
