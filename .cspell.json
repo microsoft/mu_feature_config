@@ -108,7 +108,11 @@
       "Uncore",
       "ydata",
       "xmlschema",
+      "testschema",
       "configschema",
-      "GENCSV"
+      "configdata",
+      "generateheader",
+      "GENCSV",
+      "dtrue"
   ]
 }
