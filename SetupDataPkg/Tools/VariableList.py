@@ -112,6 +112,10 @@ class StringFormatOptions:
     # When false, format the values for use in the XML
     c_format = False
 
+    # When true, boolean values are formatted as "TRUE" and "FALSE" instead
+    # of "true" and "false"
+    efi_format = False
+
 
 # A DataFormat defines how a variable element is serialized
 # * to/from strings (as in the XML attributes) as well as
@@ -249,10 +253,16 @@ class BoolFormat(DataFormat):
             self,
             object_representation,
             options=StringFormatOptions()):
-        if object_representation:
-            return 'true'
+        if options.efi_format:
+            if object_representation:
+                return 'TRUE'
+            else:
+                return 'FALSE'
         else:
-            return 'false'
+            if object_representation:
+                return 'true'
+            else:
+                return 'false'
 
     def object_to_binary(self, object_representation):
         return struct.pack("<?", object_representation)
