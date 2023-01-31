@@ -208,6 +208,11 @@ class Settings(
                 "Path": "MU_TIANO_PLUS",
                 "Url": "https://github.com/microsoft/mu_tiano_plus.git",
                 "Branch": "release/202208"
+            },
+            {
+                "Path": "MU_FEATURE_DFCI",
+                "Url": "https://github.com/microsoft/mu_feature_dfci.git",
+                "Branch": "main"
             }
         ]
         return []
