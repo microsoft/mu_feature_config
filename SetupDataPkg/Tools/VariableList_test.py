@@ -337,7 +337,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         schema = Schema.parse(self.schemaTemplate)
 
         # Set a valid value
-        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 0 
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 0
         # Verify it applied
         self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value, 0)
         # Set a valid value
