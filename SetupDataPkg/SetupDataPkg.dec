@@ -23,7 +23,6 @@
 
 [LibraryClasses]
   ConfigDataLib|Include/Library/ConfigDataLib.h
-  ConfigBlobBaseLib|Include/Library/ConfigBlobBaseLib.h
   ConfigVariableListLib|Include/Library/ConfigVariableListLib.h
   ConfigSystemModeLib|Include/Library/ConfigSystemModeLib.h
   ActiveProfileSelectorLib|Include/Library/ActiveProfileSelectorLib.h
