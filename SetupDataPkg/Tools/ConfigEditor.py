@@ -544,10 +544,9 @@ class application(tkinter.Frame):
             for subdir, _, files in os.walk(os.path.join(bundle_dir, "ConfDefinitions")):
                 for file in files:
                     sub_path = os.path.join(subdir, file)
-                    print (sub_path)
-                    # if sub_path.endswith(".xml") or sub_path.endswith(".yaml") or sub_path.endswith(".yml"):
-                    #     idx += 1
-                    #     self.load_cfg_file(sub_path, idx, False)
+                    if sub_path.endswith(".xml"):
+                        idx += 1
+                        self.load_cfg_file(sub_path, idx, False)
 
     def set_object_name(self, widget, name, file_id):
         # associate the name of the widget with the file it came from, in case of name conflicts
