@@ -22,7 +22,6 @@
   Test/Include
 
 [LibraryClasses]
-  ConfigDataLib|Include/Library/ConfigDataLib.h
   ConfigVariableListLib|Include/Library/ConfigVariableListLib.h
   ConfigSystemModeLib|Include/Library/ConfigSystemModeLib.h
   ActiveProfileSelectorLib|Include/Library/ActiveProfileSelectorLib.h
