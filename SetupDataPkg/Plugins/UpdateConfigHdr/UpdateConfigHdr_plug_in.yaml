@@ -1,0 +1,12 @@
+## @file UpdateConfigHdr/UpdateConfigHdr_plug_in.yaml
+# This plugin generates config header files
+# from platform supplied YAML configurations.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+{
+  "scope": "configdata",
+  "name": "Update Config Headers",
+  "module": "UpdateConfigHdr"
+}

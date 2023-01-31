@@ -135,6 +135,8 @@ class Settings(
                 "cibuild",
                 "edk2-build",
                 "host-based-test",
+                "configdata",
+                "configdata_ci"
             )
 
             self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue(
