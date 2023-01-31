@@ -976,6 +976,7 @@ class Schema:
     # Load a schema given a path to a schema xml file
     def load(path):
 
+        # Per instructions from PyInstaller: https://pyinstaller.org/en/stable/runtime-information.html#run-time-information
         if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
             # The application is frozen
             print("Running bundled VariableList!\n")
@@ -983,7 +984,6 @@ class Schema:
             # The application is not frozen, perform schema check
             import xmlschema
             # Get the XML schema from the current path
-            # Per instructions from cx_freeze: https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
             xsd = xmlschema.XMLSchema(os.path.dirname(os.path.abspath(__file__)))
 
             # raises exception if validation fails
