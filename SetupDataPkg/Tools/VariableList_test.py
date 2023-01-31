@@ -261,7 +261,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     def test_default_get_set(self):
         schema = Schema.parse(self.schemaTemplate)
 
-        knob = schema.get_knob("k_s_array_t")
+        knob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_array_t")
 
         # The initial value will be None
         self.assertEqual(knob.value, None)
@@ -269,7 +269,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         self.assertEqual(knob.default['m_uint8_t_c5_max10'], [1, 2, 3, 4, 5])
 
         # Get the a subknob and modify a single element
-        subknob = schema.get_knob("k_s_array_t.m_uint8_t_c5_max10[1]")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_array_t.m_uint8_t_c5_max10[1]")
         subknob.value = 10
         self.assertEqual(subknob.value, 10)
 
@@ -280,22 +280,34 @@ class SchemaParseUnitTests(unittest.TestCase):
         self.assertEqual(knob.default['m_uint8_t_c5_max10'], [1, 2, 3, 4, 5])
 
     def validate_min_bound(self, schema, knob_name, default, limit):
-        schema.get_knob(knob_name).value = default  # Set to a good value
-        self.assertEqual(schema.get_knob(knob_name).value, default)  # Verify it is set
-        schema.get_knob(knob_name).value = limit  # Try setting to the limit
-        self.assertEqual(schema.get_knob(knob_name).value, limit)  # Verify it is set
+        # Set to a good value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = default
+        # Verify it is set
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, default)
+        # Try setting to the limit
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = limit
+        # Verify it is set
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, limit)
         with pytest.raises(InvalidRangeError):
-            schema.get_knob(knob_name).value = limit - 1  # Try setting beyond the limit
-        self.assertEqual(schema.get_knob(knob_name).value, limit)  # Verify it had no effect
+            # Try setting beyond the limit
+            schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = limit - 1
+            #  Verify it had no effect
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, limit)
 
     def validate_max_bound(self, schema, knob_name, default, limit):
-        schema.get_knob(knob_name).value = default  # Set to a good value
-        self.assertEqual(schema.get_knob(knob_name).value, default)  # Verify it is set
-        schema.get_knob(knob_name).value = limit  # Try setting to the limit
-        self.assertEqual(schema.get_knob(knob_name).value, limit)  # Verify it is set
+        # Set to a good value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = default
+        # Verify it is set
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, default)
+        # Try setting to the limit
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = limit
+        # Verify it is set
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, limit)
         with pytest.raises(InvalidRangeError):
-            schema.get_knob(knob_name).value = limit + 1  # Try setting beyond the limit
-        self.assertEqual(schema.get_knob(knob_name).value, limit)  # Verify it had no effect
+            # Try setting beyond the limit
+            schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value = limit + 1
+        # Verify it had no effect
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', knob_name).value, limit)
 
     def test_basic_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
@@ -324,28 +336,42 @@ class SchemaParseUnitTests(unittest.TestCase):
     def test_enum_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
 
-        schema.get_knob("k_e_continuous_t").value = 0  # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 0)  # Verify it applied
-        schema.get_knob("k_e_continuous_t").value = 1  # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 1)  # Verify it applied
-        schema.get_knob("k_e_continuous_t").value = 2  # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2)  # Verify it applied
+        # Set a valid value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 0
+        # Verify it applied
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value, 0)
+        # Set a valid value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 1
+        # Verify it applied
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value, 1)
+        # Set a valid value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 2
+        # Verify it applied
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value, 2)
         with pytest.raises(InvalidRangeError):
-            schema.get_knob("k_e_continuous_t").value = 3  # Set an invalid
-        self.assertEqual(schema.get_knob("k_e_continuous_t").value, 2)  # Verify it didn't have an effect
+            # Set an invalid
+            schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value = 3
+        # Verify it didn't have an effect
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_continuous_t").value, 2)
 
-        schema.get_knob("k_e_discontinuous_t").value = 0  # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 0)  # Verify it applied
-        schema.get_knob("k_e_discontinuous_t").value = 2  # Set a valid value
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2)  # Verify it applied
+        # Set a valid value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value = 0
+        # Verify it applied
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value, 0)
+        # Set a valid value
+        schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value = 2
+        # Verify it applied
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value, 2)
         with pytest.raises(InvalidRangeError):
-            schema.get_knob("k_e_discontinuous_t").value = 1  # Set an invalid
-        self.assertEqual(schema.get_knob("k_e_discontinuous_t").value, 2)  # Verify it didn't have an effect
+            # Set an invalid
+            schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value = 1
+        # Verify it didn't have an effect
+        self.assertEqual(schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_e_discontinuous_t").value, 2)
 
     def test_array_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
 
-        knob = schema.get_knob("k_s_array_t")
+        knob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_array_t")
 
         # The initial value will be None
         self.assertEqual(knob.value, None)
@@ -353,7 +379,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         self.assertEqual(knob.default['m_uint8_t_c5_max10'], [1, 2, 3, 4, 5])
 
         # Get the a subknob and modify a single element
-        subknob = schema.get_knob("k_s_array_t.m_uint8_t_c5_max10[1]")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_array_t.m_uint8_t_c5_max10[1]")
         subknob.value = 10
         self.assertEqual(subknob.value, 10)
         with pytest.raises(InvalidRangeError):
@@ -367,7 +393,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         #  implicit that that element be used for all elements of the array)
         schema = Schema.parse(self.schemaTemplate)
 
-        knob = schema.get_knob("k_s_array_t_d5")
+        knob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_array_t_d5")
 
         # The initial value will be None
         self.assertEqual(knob.value, None)
@@ -377,7 +403,7 @@ class SchemaParseUnitTests(unittest.TestCase):
     def test_struct_ranges(self):
         schema = Schema.parse(self.schemaTemplate)
 
-        knob = schema.get_knob("k_s_limits_t")
+        knob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_limits_t")
 
         # The initial value will be None
         self.assertEqual(knob.value, None)
@@ -390,7 +416,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         self.assertEqual(knob.default['m_e_continuous_t_dv_1'], 1)
 
         # Get the a subknob and modify a single element
-        subknob = schema.get_knob("k_s_limits_t.m_uint8_t_d10_min5")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_limits_t.m_uint8_t_d10_min5")
         subknob.value = 5
         self.assertEqual(subknob.value, 5)
         with pytest.raises(InvalidRangeError):
@@ -474,7 +500,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         schema = Schema.parse(self.schemaTemplate)
 
         # Get the a subknob and modify a single element
-        subknob = schema.get_knob("COMPLEX_KNOB2.counter")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "COMPLEX_KNOB2.counter")
         subknob.value = 4
         self.assertEqual(subknob.value, 4)
 
@@ -482,7 +508,7 @@ class SchemaParseUnitTests(unittest.TestCase):
         schema = Schema.parse(self.schemaTemplate)
 
         # Get the a subknob and modify a single element
-        subknob = schema.get_knob("COMPLEX_KNOB2.children[0].data[0]")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "COMPLEX_KNOB2.children[0].data[0]")
         subknob.value = 4
         self.assertEqual(subknob.value, 4)
 
@@ -492,7 +518,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 
         schema = Schema.parse(self.schemaTemplate)
 
-        knob = schema.get_knob("k_s_limits_t_min")
+        knob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_limits_t_min")
 
         # The initial value will be None
         self.assertEqual(knob.value, None)
@@ -506,7 +532,7 @@ class SchemaParseUnitTests(unittest.TestCase):
 
         # Get the a subknob and modify a single element
         # The knob has made the limit more restrictive, so the min is actually 10
-        subknob = schema.get_knob("k_s_limits_t_min.m_uint8_t_d10_min5")
+        subknob = schema.get_knob('FE3ED49F-B173-41ED-9076-356661D46A42', "k_s_limits_t_min.m_uint8_t_d10_min5")
         subknob.value = 10
         self.assertEqual(subknob.value, 10)
         with pytest.raises(InvalidRangeError):

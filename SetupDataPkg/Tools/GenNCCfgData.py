@@ -275,9 +275,9 @@ class CGenNCCfgData:
         return 0
 
     def override_default_value(self, csv_file):
-        read_csv(self.schema, csv_file)
+        updated_knobs = read_csv(self.schema, csv_file)
         self.sync_shim_and_schema()
-        return 0
+        return updated_knobs
 
     def generate_delta_file_from_bin(self, delta_file, old_data, new_data, full, subknobs=False):
         self.load_default_from_bin(new_data, True)

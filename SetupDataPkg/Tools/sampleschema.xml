@@ -42,4 +42,21 @@
 
   </Knobs>
 
+  <!-- Second knob namespace -->
+  <Knobs namespace="{8CF777E5-0D01-479D-9255-19B1F07328D4}">
+    <!-- Example knobs of different types -->
+
+    <Knob name="COMPLEX_KNOB1b" type="child_t" default="{{3,3,3,3,3},FIRST}" help="Complex knob" />
+    
+    <Knob name="COMPLEX_KNOB3b" type="child_t" default="{{2,2,2,2,2},SECOND}" help="Complex type" />
+
+    <Knob name="COMPLEX_KNOB4" type="sample_t" default="{1,{{{5,5,5,5,5},FIRST},{{6,7,7,7,7},SECOND}}}" help="Complex type" />
+
+    <Knob name="INTEGER_KNOB2" type="uint32_t" default="89" help="Integer type" />
+    <Knob name="BOOLEAN_KNOB2" type="bool" default="false" help="Boolean type" />
+    <Knob name="DOUBLE_KNOB2" type="double" default="10.00281456" help="Double type" />
+    <Knob name="FLOAT_KNOB2" type="float" default="4.56" help="Float type" />
+
+  </Knobs>
+
 </ConfigSchema>
