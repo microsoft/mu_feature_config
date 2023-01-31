@@ -117,7 +117,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual(len(ret), len(cdata.schema.get_knob(
             "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a").knob.subknobs))
         for shim_entry, subknob_entry in zip(ret, cdata.schema.get_knob(
-            "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a").knob.subknobs):
+                "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a").knob.subknobs):
             shim_entry['name'] = subknob_entry.name
             shim_entry['inst'] = subknob_entry
 
