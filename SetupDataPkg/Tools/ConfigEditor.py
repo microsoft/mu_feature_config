@@ -292,8 +292,8 @@ class custom_table(ttk.Treeview):
         # Load binary from file
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
-            title="Load binary file",
-            filetypes=(("Binary files", "*.bin"), ("binary files", "*.bin")),
+            title="Load variable list file",
+            filetypes=(("variable list files", "*.vl"), ("variable list files", "*.vl")),
         )
         if path:
             self.last_dir = os.path.dirname(path)
@@ -526,7 +526,7 @@ class application(tkinter.Frame):
             path = sys.argv[i]
             if path.endswith(".dlt") or path.endswith(".csv"):
                 self.load_delta_file(path)
-            elif path.endswith(".bin"):
+            elif path.endswith(".vl"):
                 self.load_bin_file(path, True)
             elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
                 self.load_cfg_file(path, idx, False)
@@ -752,7 +752,7 @@ class application(tkinter.Frame):
         if self.is_config_data_loaded():
             if "dlt" in ftype or 'csv' in ftype:
                 question = ""
-            elif ftype == "bin":
+            elif ftype == "vl":
                 question = ''
             elif ftype == 'svd':
                 question = ''
@@ -837,13 +837,13 @@ class application(tkinter.Frame):
         self.refresh_config_data_page()
 
     def load_from_raw_bin(self):
-        path = self.get_open_file_name("bin")
+        path = self.get_open_file_name("vl")
         if not path:
             return
         self.load_bin_file(path, False)
 
     def load_from_bin(self):
-        path = self.get_open_file_name("bin")
+        path = self.get_open_file_name("vl")
         if not path:
             return
         self.load_bin_file(path)
@@ -1016,7 +1016,7 @@ class application(tkinter.Frame):
 
     def save_delta_to_bin(self):
         # XML only function to save the changed values to a binary
-        path = self.get_save_file_name("bin")
+        path = self.get_save_file_name("vl")
         if not path:
             return
 
@@ -1031,7 +1031,7 @@ class application(tkinter.Frame):
             fd.write(bin)
 
     def save_to_bin(self):
-        path = self.get_save_file_name("bin")
+        path = self.get_save_file_name("vl")
         if not path:
             return
 
