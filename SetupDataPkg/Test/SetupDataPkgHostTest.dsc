@@ -76,12 +76,6 @@
       gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{GUID("8464A6FF-A984-4899-A375-3DC1DB3D4227")}
   }
 
-  SetupDataPkg/ConfDataSettingProvider/UnitTest/ConfDataSettingProviderUnitTest.inf {
-    <LibraryClasses>
-      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-  }
-
   SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {
     <LibraryClasses>
       UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
