@@ -9,7 +9,6 @@ import os
 import sys
 import marshal
 import base64
-import re
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -800,40 +799,40 @@ class application(tkinter.Frame):
     def load_delta_file(self, path):
         # assumption is there is only one yaml file (deprecated) but there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
-        file_id = -1
         yml_id = -1
-        xml_id = -1
+        updated_knobs = 0
         is_variable_list_format = True
         for idx in self.cfg_data_list:
             # if we have a yaml, fall back to old behavior
-            # if loading xml, ensure that the file path we have matches the csv
-            # we are trying to load
+            # if loading xml, ensure that knobs GUID + name exist in any loaded XML
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
-            elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page, path) is not None:
-                xml_id = idx
-
-        if xml_id == -1:
-            raise Exception('Associated XML not found! CSV filename must have the XML filename as a prefix')
+            else:
+                try:
+                    updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
+                except Exception as e:
+                    messagebox.showerror("LOADING ERROR", str(e))
+                    return
 
         if path.endswith('.dlt'):
-            file_id = yml_id
             is_variable_list_format = False
+            self.reload_config_data_from_bin(
+                self.cfg_data_list[yml_id].org_cfg_data_bin,
+                yml_id,
+                is_variable_list_format
+            )
+            try:
+                self.cfg_data_list[yml_id].cfg_data_obj.override_default_value(path)
+            except Exception as e:
+                messagebox.showerror("LOADING ERROR", str(e))
+                return
         elif path.endswith('.csv'):
-            file_id = xml_id
+            if updated_knobs == 0:
+                messagebox.showerror('CSV Loading Error', 'Loaded CSV did not apply to any loaded config file!')
+                return
         else:
             raise Exception('Unsupported file "%s" !' % path)
 
-        # if not found_yml:
-        # we didn't find a yml file, cannot apply delta file
-        # messagebox.showerror("LOADING ERROR", "Could not find YAML file to apply delta to")
-        # return
-        self.reload_config_data_from_bin(self.cfg_data_list[file_id].org_cfg_data_bin, file_id, is_variable_list_format)
-        try:
-            self.cfg_data_list[file_id].cfg_data_obj.override_default_value(path)
-        except Exception as e:
-            messagebox.showerror("LOADING ERROR", str(e))
-            return
         self.update_last_dir(path)
         self.refresh_config_data_page()
 

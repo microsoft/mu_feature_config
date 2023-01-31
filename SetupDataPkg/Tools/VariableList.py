@@ -964,7 +964,7 @@ class Schema:
                 self.structs.append(StructFormat(self, struct_node))
 
         for section in dom.getElementsByTagName('Knobs'):
-            namespace = section.getAttribute('namespace')
+            namespace = re.sub('[{}]', '', section.getAttribute('namespace'))
             for knob in section.getElementsByTagName('Knob'):
                 self.knobs.append(Knob(self, knob, namespace))
 
@@ -1001,12 +1001,13 @@ class Schema:
         return Schema(parseString(string))
 
     # Get a knob by name
-    def get_knob(self, knob_name):
+    def get_knob(self, guid, knob_name):
         for knob in self.subknobs:
-            if knob.name == knob_name:
+            # namespace guid lives at the Knob level, not the subknob level
+            if str(knob.knob.namespace).upper() == str(guid).upper() and knob.name == knob_name:
                 return knob
 
-        raise InvalidKnobError("Knob '{}' is not defined".format(knob_name))
+        return None
 
     # Get a format by name
     def get_format(self, type_name):
@@ -1165,17 +1166,27 @@ def read_vlist_from_buffer(array):
 
 def uefi_variables_to_knobs(schema, variables):
     for variable in variables:
-        knob = schema.get_knob(variable.name)
-        knob.value = knob.format.binary_to_object(variable.data)
+        knob = schema.get_knob(variable.guid, variable.name)
+        if knob is not None:
+            knob.value = knob.format.binary_to_object(variable.data)
 
 
 def read_csv(schema, csv_path):
+    updated_knobs = 0
     with open(csv_path, 'r') as csv_file:
+        guid = None
         reader = csv.reader(csv_file)
         header = next(reader)
 
         knob_index = 0
         value_index = 0
+        guid_index = 0
+
+        try:
+            guid_index = header.index('Guid')
+        except ValueError:
+            raise ParseError("CSV is missing 'Guid' column header. Ensure CSV was generated with latest changes.")
+
         try:
             knob_index = header.index('Knob')
         except ValueError:
@@ -1187,42 +1198,75 @@ def read_csv(schema, csv_path):
             raise ParseError("CSV is missing 'Value' column header")
 
         for row in reader:
+            read_guid = row[guid_index]
+            if read_guid != '*':
+                guid = read_guid
             knob_name = row[knob_index]
             knob_value_string = row[value_index]
 
-            knob = schema.get_knob(knob_name)
-            knob.value = knob.format.string_to_object(knob_value_string)
+            knob = schema.get_knob(guid, knob_name)
+            if knob is not None:
+                knob.value = knob.format.string_to_object(knob_value_string)
+                updated_knobs += 1
+    return updated_knobs
 
 
 def write_csv(schema, csv_path, full, subknobs=True):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
+        guid = None
 
         # get_delta_vlist is a tuple of name_list, var_list
         name_list = get_delta_vlist(schema)[0]
 
         if subknobs:
-            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
+            writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Help'])
             for subknob in schema.subknobs:
                 if full or subknob.name in name_list:
                     binary = subknob.format.object_to_binary(subknob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
-                    writer.writerow([
-                        subknob.name,
-                        subknob.format.object_to_string(subknob.value),
-                        string_binary,
-                        subknob.help])
+                    if subknob.namespace != guid:
+                        # We print the guid on the first row and then only print
+                        # another guid if it changes
+                        guid = subknob.namespace
+
+                        writer.writerow([
+                            guid,
+                            subknob.name,
+                            subknob.format.object_to_string(subknob.value),
+                            string_binary,
+                            subknob.help])
+                    else:
+                        writer.writerow([
+                            '*',
+                            subknob.name,
+                            subknob.format.object_to_string(subknob.value),
+                            string_binary,
+                            subknob.help])
         else:
-            writer.writerow(['Knob', 'Value', 'Binary', 'Comment'])
+            writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Help'])
             for knob in schema.knobs:
                 if full or knob.name in name_list:
                     binary = knob.format.object_to_binary(knob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
-                    writer.writerow([
-                        knob.name,
-                        knob.format.object_to_string(knob.value),
-                        string_binary,
-                        knob.help])
+                    if knob.namespace != guid:
+                        # We print the guid on the first row and then only print
+                        # another guid if it changes
+                        guid = knob.namespace
+
+                        writer.writerow([
+                            guid,
+                            knob.name,
+                            knob.format.object_to_string(knob.value),
+                            string_binary,
+                            knob.help])
+                    else:
+                        writer.writerow([
+                            '*',
+                            knob.name,
+                            knob.format.object_to_string(knob.value),
+                            string_binary,
+                            knob.help])
 
 
 def write_vlist(schema, vlist_path):

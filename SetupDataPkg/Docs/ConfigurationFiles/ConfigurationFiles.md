@@ -149,6 +149,15 @@ will be correctly applied to the appropriate loaded XML file.
   Load a previously save change file into the UI, overwriting any values from the base YAML/XML. It must be loaded onto
   a YAML/XML that has the configuration knobs present in the change file.
 
+CSV files have the following format:
+
+GUID, Name, Value, Help
+
+Where GUID is the namespace GUID, Name is the knob name, Value is the data associated with the knob, and help
+is a general description of the knob. Help is optional. The GUID is only printed once, to save space, and all other
+knobs sharing the same GUID simply print `*` in the GUID field, indicating they use whichever GUID is printed above the
+line of `*`s.
+
 ## Merged YAML and XML Operations
 
 One YAML and one XML file may be loaded at the same time via the CLI as such:

@@ -46,10 +46,10 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual('sampleschema', non_core_page['title'])
 
         knob_list = copy.deepcopy(cdata.schema.knobs)
-        namespaces = non_core_page['child'][0]
+        namespaces = non_core_page['child']
         for namespace in namespaces:
-            self.assertEqual('{FE3ED49F-B173-41ED-9076-356661D46A42}', namespace)
-            for each in namespaces[namespace]['child']:
+            guid = list(namespace.keys())[0]
+            for each in namespace[guid]['child']:
                 # the page id here should be namespace.knob
                 for page in each:
                     page_ns, name = page.split('.')
@@ -108,21 +108,24 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual(ret, cdata.knob_shim)
 
         # Get only a struct knob
-        ret = cdata.get_cfg_list('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1a')
+        ret = cdata.get_cfg_list('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1a')
         self.assertGreater(len(ret), 1)
         self.assertEqual(ret[0]['name'], 'COMPLEX_KNOB1a')
         self.assertEqual(ret[0]['type'], 'STRUCT_KNOB')
-        self.assertEqual(cdata.schema.get_knob("COMPLEX_KNOB1a"), ret[0]['inst'])
-        self.assertEqual(len(ret), len(cdata.schema.get_knob("COMPLEX_KNOB1a").knob.subknobs))
-        for shim_entry, subknob_entry in zip(ret, cdata.schema.get_knob("COMPLEX_KNOB1a").knob.subknobs):
+        self.assertEqual(cdata.schema.get_knob(
+            "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a"), ret[0]['inst'])
+        self.assertEqual(len(ret), len(cdata.schema.get_knob(
+            "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a").knob.subknobs))
+        for shim_entry, subknob_entry in zip(ret, cdata.schema.get_knob(
+                "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a").knob.subknobs):
             shim_entry['name'] = subknob_entry.name
             shim_entry['inst'] = subknob_entry
 
         # Get only a simple knob
-        ret = cdata.get_cfg_list('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_cfg_list('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         self.assertEqual(len(ret), 1)
         self.assertEqual(ret[0]['name'], 'INTEGER_KNOB')
-        self.assertEqual(cdata.schema.get_knob("INTEGER_KNOB"), ret[0]['inst'])
+        self.assertEqual(cdata.schema.get_knob("FE3ED49F-B173-41ED-9076-356661D46A42", "INTEGER_KNOB"), ret[0]['inst'])
 
     # Retrieving values for all shim items, should return the same value from the underlying knob
     def test_xml_get_cfg_item_value(self):
@@ -156,27 +159,27 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an integer knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         val_str = '1234'
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
         self.assertEqual(val_str, ret_str)
 
         # Run on an enum knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
         self.assertEqual(val_str, ret_str)
 
         # Run on a boolean knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         val_str = 'false'
         self.assertEqual(ret['type'], 'BOOL_KNOB')
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
         self.assertEqual(val_str, ret_str)
 
         # Run on a float knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.FLOAT_KNOB')
         val_str = '0.618'
         self.assertEqual(ret['type'], 'FLOAT_KNOB')
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
@@ -214,14 +217,14 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an integer knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         val_str = '1234'
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 1234)
 
         # Run on an enum knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -229,7 +232,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         self.assertEqual(ret['inst'].value, 2)
 
         # Run on a boolean knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         val_str = 'false'
         self.assertEqual(ret['type'], 'BOOL_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -239,7 +242,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         # Run on a float knob
         # floats are by nature imprecise if this is read back again from cdata, it will
         # likely show a different value, due to rounding errors. Doubles are recommended instead.
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.FLOAT_KNOB')
         val_str = '0.618'
         self.assertEqual(ret['type'], 'FLOAT_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -260,13 +263,13 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an enum knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_list = cdata.get_cfg_item_options(item=ret)
         self.assertEqual(ret_list, ["FIRST", "SECOND", "THIRD"])
 
         # Run on a boolean knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         self.assertEqual(ret['type'], 'BOOL_KNOB')
         ret_list = cdata.get_cfg_item_options(item=ret)
         self.assertEqual(ret_list, ["true", "false"])
@@ -285,13 +288,13 @@ class UncoreCfgUnitTests(unittest.TestCase):
             cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
 
         # Run on an integer knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         int_str = '1234'
         ret_str = cdata.set_item_value(int_str, item=ret)
         self.assertNotEqual(ret_str, ret['value'])
 
         # Run on an enum knob
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         enum_str = 'THIRD'
         ret_str = cdata.set_item_value(enum_str, item=ret)
         self.assertNotEqual(ret_str, ret['value'])
