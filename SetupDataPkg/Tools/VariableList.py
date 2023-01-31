@@ -1239,7 +1239,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                 if full or knob.name in name_list:
                     binary = knob.format.object_to_binary(knob.value)
                     string_binary = " ".join(map("%2.2x".__mod__, binary))
-                    if knob.namespace != guid: 
+                    if knob.namespace != guid:
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace

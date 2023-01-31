@@ -231,7 +231,6 @@ class CGenNCCfgData:
                 bin_data = base64.b64decode(base64_val)
                 var_list = read_vlist_from_buffer(bin_data)
                 actual_var_list = self.get_var_list_for_instance(var_list)
-                print("OSDDEBUG actual_var_list: ", actual_var_list)
                 uefi_variables_to_knobs(self.schema, actual_var_list)
                 self.sync_shim_and_schema()
 

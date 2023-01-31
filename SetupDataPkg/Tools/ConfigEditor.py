@@ -9,7 +9,6 @@ import os
 import sys
 import marshal
 import base64
-import re
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -809,7 +808,6 @@ class application(tkinter.Frame):
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
             else:
-                self.reload_config_data_from_bin(self.cfg_data_list[idx].org_cfg_data_bin, idx, is_variable_list_format)
                 try:
                     updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
                 except Exception as e:
@@ -818,7 +816,11 @@ class application(tkinter.Frame):
 
         if path.endswith('.dlt'):
             is_variable_list_format = False
-            self.reload_config_data_from_bin(self.cfg_data_list[yml_id].org_cfg_data_bin, yml_id, is_variable_list_format)
+            self.reload_config_data_from_bin(
+                self.cfg_data_list[yml_id].org_cfg_data_bin,
+                yml_id,
+                is_variable_list_format
+            )
             try:
                 self.cfg_data_list[yml_id].cfg_data_obj.override_default_value(path)
             except Exception as e:
@@ -826,10 +828,11 @@ class application(tkinter.Frame):
                 return
         elif path.endswith('.csv'):
             if updated_knobs == 0:
-                raise RuntimeError('Loaded CSV did not apply to any loaded config file!')
+                messagebox.showerror('CSV Loading Error', 'Loaded CSV did not apply to any loaded config file!')
+                return
         else:
             raise Exception('Unsupported file "%s" !' % path)
- 
+
         self.update_last_dir(path)
         self.refresh_config_data_page()
 
