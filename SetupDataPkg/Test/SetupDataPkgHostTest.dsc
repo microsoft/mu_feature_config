@@ -61,21 +61,6 @@
       PeiServicesLib|SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
   }
 
-  SetupDataPkg/ConfProfileMgrDxe/UnitTest/ConfProfileMgrDxeUnitTest.inf {
-    <LibraryClasses>
-      UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-      UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-      ResetUtilityLib|SetupDataPkg/Test/MockLibrary/MockResetUtilityLib/MockResetUtilityLib.inf
-      PcdLib|SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
-      ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
-      DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
-      DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
-      UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
-      HobLib|MdeModulePkg/Library/BaseHobLibNull/BaseHobLibNull.inf
-    <PcdsFixedAtBuild>
-      gSetupDataPkgTokenSpaceGuid.PcdConfigurationProfileList|{GUID("8464A6FF-A984-4899-A375-3DC1DB3D4227")}
-  }
-
   SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {
     <LibraryClasses>
       UefiBootServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
