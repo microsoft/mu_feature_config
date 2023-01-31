@@ -984,7 +984,7 @@ class Schema:
             # The application is not frozen, perform schema check
             import xmlschema
             # Get the XML schema from the current path
-            xsd = xmlschema.XMLSchema(os.path.dirname(os.path.abspath(__file__)))
+            xsd = xmlschema.XMLSchema(os.path.join(os.path.dirname(os.path.abspath(__file__)), "configschema.xsd"))
 
             # raises exception if validation fails
             xsd.validate(path)
