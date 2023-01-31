@@ -89,8 +89,6 @@
   SetupDataPkg/Library/ActiveProfileSelectorLibNull/ActiveProfileSelectorLibNull.inf
   SetupDataPkg/Library/Examples/ConfigKnobShimExampleLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
 
-  SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf
-
 [Components.X64, Components.AARCH64]
   SetupDataPkg/Library/Examples/ConfigKnobShimExampleLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   SetupDataPkg/ConfApp/ConfApp.inf
