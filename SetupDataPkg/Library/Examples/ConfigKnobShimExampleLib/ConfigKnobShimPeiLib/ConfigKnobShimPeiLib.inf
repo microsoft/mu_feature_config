@@ -1,0 +1,47 @@
+## @file
+# Library interface for the autogen XML config header to call into to fetch a config value.
+#
+# This is an example library that should not be consumed directly. Instead, the platform should implement this
+# library according to its needs at the platform layer.
+#
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfigKnobShimExamplePeiLib
+  FILE_GUID           = 9E332BFB-7178-4F49-B88B-9D94B3571B14
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = PEIM
+  LIBRARY_CLASS       = ConfigKnobShimLib
+
+#
+# The following information is for reference only and not required by the
+# build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
+
+[Sources]
+  ConfigKnobShimPeiLib.c
+  ../ConfigKnobShimLibCommon.c
+  ../ConfigKnobShimLibCommon.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  BaseMemoryLib
+  PeiServicesLib
+
+[Ppis]
+  gEfiPeiReadOnlyVariable2PpiGuid    ## CONSUMES
+
+[Depex]
+  # Platforms can decide whether variable services are a hard dependency for config or not
+  gEfiPeiReadOnlyVariable2PpiGuid 
