@@ -91,7 +91,6 @@
 
   SetupDataPkg/ConfDfciUnsignedListInit/ConfDfciUnsignedListInit.inf
   SetupDataPkg/ConfProfileMgrDxe/ConfProfileMgrDxe.inf
-  SetupDataPkg/ConfDataSettingProvider/ConfDataSettingProvider.inf
 
 [Components.X64, Components.AARCH64]
   SetupDataPkg/Library/Examples/ConfigKnobShimExampleLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
