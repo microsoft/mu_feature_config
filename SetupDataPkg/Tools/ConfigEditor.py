@@ -7,7 +7,6 @@
 
 import os
 import sys
-import marshal
 import base64
 from pathlib import Path
 
@@ -19,8 +18,7 @@ import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
 from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
 from GenNCCfgData import CGenNCCfgData                          # noqa: E402
-from GenCfgData import (                                        # noqa: E402
-    CGenCfgData,
+from CommonUtility import (                                     # noqa: E402
     bytes_to_value,
     bytes_to_bracket_str,
     value_to_bytes,
@@ -514,8 +512,7 @@ class application(tkinter.Frame):
 
         if len(sys.argv) > 1:
             path = sys.argv[1]
-            if not path.endswith('.yaml') and not path.endswith('.yml') \
-                    and not path.endswith('.pkl') and not path.endswith('.xml'):
+            if not path.endswith('.xml'):
                 messagebox.showerror('LOADING ERROR', "Unsupported file '%s' !" % path)
                 return
             else:
@@ -524,11 +521,11 @@ class application(tkinter.Frame):
         for i in range(2, len(sys.argv)):
             idx += 1
             path = sys.argv[i]
-            if path.endswith(".dlt") or path.endswith(".csv"):
+            if path.endswith(".csv"):
                 self.load_delta_file(path)
             elif path.endswith(".vl"):
                 self.load_bin_file(path, True)
-            elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
+            elif path.endswith(".xml"):
                 self.load_cfg_file(path, idx, False)
             else:
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
@@ -717,30 +714,7 @@ class application(tkinter.Frame):
             row += 2
 
     def load_config_data(self, file_name):
-        gen_cfg_data = CGenCfgData()
-        if file_name.endswith(".pkl"):
-            with open(file_name, "rb") as pkl_file:
-                gen_cfg_data.__dict__ = marshal.load(pkl_file)
-            gen_cfg_data.prepare_marshal(False)
-        elif file_name.endswith(".yaml") or file_name.endswith('.yml'):
-            if gen_cfg_data.load_yaml(file_name, shallow_load=True) != 0:
-                raise Exception(gen_cfg_data.get_last_error())
-            nl = file_name.split(".")
-            nl[-2] += "_UI"
-            ui_file_name = ".".join(nl)
-            if os.path.isfile(ui_file_name):
-                ui_gen_cfg_data = CGenCfgData()
-                if ui_gen_cfg_data.load_yaml(ui_file_name, shallow_load=True) != 0:
-                    raise Exception(ui_gen_cfg_data.get_last_error())
-                # Merge the UI cfg and data cfg objects
-                merged_cfg_tree = gen_cfg_data.merge_cfg_tree(
-                    gen_cfg_data.get_cfg_tree(), ui_gen_cfg_data.get_cfg_tree()
-                )
-                gen_cfg_data.set_cfg_tree(merged_cfg_tree)
-            gen_cfg_data.build_cfg_list({'offset': 0})
-            gen_cfg_data.build_var_dict()
-            gen_cfg_data.update_def_value()
-        elif file_name.endswith('.xml'):
+        if file_name.endswith('.xml'):
             gen_cfg_data = CGenNCCfgData(file_name)
             if gen_cfg_data.load_xml(file_name) != 0:
                 raise Exception(gen_cfg_data.get_last_error())
@@ -764,13 +738,13 @@ class application(tkinter.Frame):
 
     def get_open_file_name(self, ftype):
         if self.is_config_data_loaded():
-            if "dlt" in ftype or 'csv' in ftype:
+            if 'csv' in ftype:
                 question = ""
             elif ftype == "vl":
                 question = ''
             elif ftype == 'svd':
                 question = ''
-            elif 'yaml' in ftype or 'yml' in ftype or 'xml' in ftype:
+            elif 'xml' in ftype:
                 question = ''
             else:
                 raise Exception("Unsupported file type !")
@@ -781,13 +755,10 @@ class application(tkinter.Frame):
 
         file_type = ''
         file_ext = ''
-        if 'yaml' in ftype or 'yml' in ftype:
-            file_type = 'YAML PKL'
-            file_ext = 'pkl yaml'
         if 'xml' in ftype:
             file_type += ' XML'
             file_ext += ' xml'
-        if 'xml' not in ftype and 'yaml' not in ftype and 'yml' not in ftype:
+        else:
             file_type = ftype.upper()
             file_ext = ftype
 
@@ -805,42 +776,27 @@ class application(tkinter.Frame):
             return None
 
     def load_from_delta(self):
-        path = self.get_open_file_name("dlt csv")
+        path = self.get_open_file_name("csv")
         if not path:
+            return
+        elif not path.endswith('.csv'):
+            messagebox.showerror("LOADING ERROR", "Unsupported file type %s" % path)
             return
         self.load_delta_file(path)
 
     def load_delta_file(self, path):
-        # assumption is there is only one yaml file (deprecated) but there may be multiple xml files
+        # assumption is there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
-        yml_id = -1
         updated_knobs = 0
-        is_variable_list_format = True
         for idx in self.cfg_data_list:
-            # if we have a yaml, fall back to old behavior
             # if loading xml, ensure that knobs GUID + name exist in any loaded XML
-            if self.cfg_data_list[idx].config_type == 'yml':
-                yml_id = idx
-            else:
-                try:
-                    updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
-                except Exception as e:
-                    messagebox.showerror("LOADING ERROR", str(e))
-                    return
-
-        if path.endswith('.dlt'):
-            is_variable_list_format = False
-            self.reload_config_data_from_bin(
-                self.cfg_data_list[yml_id].org_cfg_data_bin,
-                yml_id,
-                is_variable_list_format
-            )
             try:
-                self.cfg_data_list[yml_id].cfg_data_obj.override_default_value(path)
+                updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
             except Exception as e:
                 messagebox.showerror("LOADING ERROR", str(e))
                 return
-        elif path.endswith('.csv'):
+
+        if path.endswith('.csv'):
             if updated_knobs == 0:
                 messagebox.showerror('CSV Loading Error', 'Loaded CSV did not apply to any loaded config file!')
                 return
@@ -894,7 +850,7 @@ class application(tkinter.Frame):
         if path.lower().endswith('.xml'):
             self.cfg_data_list[file_id].config_type = 'xml'
         else:
-            self.cfg_data_list[file_id].config_type = 'yml'
+            raise Exception("Unsupported file format")
 
         self.cfg_data_list[file_id].cfg_data_obj = self.load_config_data(path)
 
@@ -904,24 +860,13 @@ class application(tkinter.Frame):
         )
         self.build_config_page_tree(self.cfg_data_list[file_id].cfg_data_obj.get_cfg_page()["root"], "", file_id)
 
-        yaml_loaded = False
-
-        for file_id in self.cfg_data_list:
-            if self.cfg_data_list[file_id].config_type == 'yml':
-                yaml_loaded = True
-
         for menu in self.menu_string:
-            # if we have an xml only setting, don't enable it in the UI
-            # if we are loading a yaml file
-            if menu in self.xml_specific_setting and yaml_loaded is True:
-                self.file_menu.entryconfig(menu, state="disabled")
-            else:
-                self.file_menu.entryconfig(menu, state="normal")
+            self.file_menu.entryconfig(menu, state="normal")
 
         return 0
 
     def load_from_ml_and_clear(self):
-        path = self.get_open_file_name('yaml,yml,xml')
+        path = self.get_open_file_name('xml')
         if not path:
             return
 
@@ -931,7 +876,7 @@ class application(tkinter.Frame):
         self.load_cfg_file(path, file_id, True)
 
     def load_from_ml(self):
-        path = self.get_open_file_name('yaml,yml,xml')
+        path = self.get_open_file_name('xml')
         if not path:
             return
 
@@ -955,24 +900,21 @@ class application(tkinter.Frame):
             return None
 
     def save_delta_file(self, full=False):
-        path = self.get_save_file_name("dlt csv")
+        path = self.get_save_file_name("csv")
         if not path:
             return
 
-        # assumption is there is one yaml file and one xml file
-        # yml changes get saved to dlt, xml changes get saved to csv
+        # assumption is there may be multiple xml file
+        # xml changes get saved to csv
         for file_id in self.cfg_data_list:
             self.update_config_data_on_page()
 
-            if self.cfg_data_list[file_id].config_type == 'yml':
-                dlt_path = path
-            else:
-                # replace .dlt with .csv and append unique filename identifier
-                dlt_path = path[:-4] + self.cfg_data_list[file_id].cfg_data_obj._cur_page + ".csv"
+            # replace .dlt with .csv and append unique filename identifier
+            csv_path = path[:-4] + self.cfg_data_list[file_id].cfg_data_obj._cur_page + ".csv"
 
             new_data = self.cfg_data_list[file_id].cfg_data_obj.generate_binary_array(False)
             self.cfg_data_list[file_id].cfg_data_obj.generate_delta_file_from_bin(
-                dlt_path, self.cfg_data_list[file_id].org_cfg_data_bin, new_data, full
+                csv_path, self.cfg_data_list[file_id].org_cfg_data_bin, new_data, full
             )
 
     def save_to_svd(self, full):
@@ -1053,12 +995,7 @@ class application(tkinter.Frame):
         with open(path, "wb") as fd:
             bins = b''
             for idx in self.cfg_data_list:
-                bin = None
-                if self.cfg_data_list[idx].config_type == 'yml':
-                    # the YAML is not natively in var list format
-                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_var_list()
-                else:
-                    bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
+                bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
 
                 bins += bin
 
