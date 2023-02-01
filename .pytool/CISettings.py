@@ -195,15 +195,33 @@ class Settings(
             ReferencePath: <optional> Workspace relative path to git repo to use as "reference"
         }
         """
+        return [
+            {
+                "Path": "MU_BASECORE",
+                "Url": "https://github.com/microsoft/mu_basecore.git",
+                "Branch": "release/202208"
+            },
+            {
+                "Path": "MU_PLUS",
+                "Url": "https://github.com/microsoft/mu_plus.git",
+                "Branch": "release/202208"
+            },
+            {
+                "Path": "MU_TIANO_PLUS",
+                "Url": "https://github.com/microsoft/mu_tiano_plus.git",
+                "Branch": "release/202208"
+            },
+            {
+                "Path": "MU_FEATURE_DFCI",
+                "Url": "https://github.com/microsoft/mu_feature_dfci.git",
+                "Branch": "main"
+            }
+        ]
         return []
 
     def GetPackagesPath(self):
         """Return a list of workspace relative paths that should be mapped as edk2 PackagesPath"""
-        result = [
-            shell_environment.GetBuildVars().GetValue("BASECORE_PATH", ""),
-            shell_environment.GetBuildVars().GetValue("MU_PLUS_PATH", ""),
-            shell_environment.GetBuildVars().GetValue("MU_TIANO_PATH", ""),
-        ]
+        result = []
         for a in self.GetDependencies():
             result.append(a["Path"])
         return result
