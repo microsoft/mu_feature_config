@@ -10,9 +10,7 @@
 ##
 # Import Modules
 #
-import os
 import string
-from importlib.machinery import SourceFileLoader
 
 
 def print_bytes(data, indent=0, offset=0, show_ascii=False):
@@ -53,6 +51,27 @@ def set_bits_to_bytes(bytes, start, length, bvalue):
     bytes[byte_start:byte_end + 1] = value_to_bytearray(val, byte_end + 1 - byte_start)
 
 
+def check_quote(text):
+    if (text[0] == "'" and text[-1] == "'") or (text[0] == '"' and text[-1] == '"'):
+        return True
+    return False
+
+
+def strip_quote(text):
+    new_text = text.strip()
+    if check_quote(new_text):
+        return new_text[1:-1]
+    return text
+
+
+def strip_delimiter(text, delim):
+    new_text = text.strip()
+    if new_text:
+        if new_text[0] == delim[0] and new_text[-1] == delim[-1]:
+            return new_text[1:-1]
+    return text
+
+
 def value_to_bytes(value, length):
     return value.to_bytes(length, 'little')
 
@@ -65,37 +84,16 @@ def value_to_bytearray(value, length):
     return bytearray(value_to_bytes(value, length))
 
 
-def get_aligned_value(value, alignment=4):
-    if alignment != (1 << (alignment.bit_length() - 1)):
-        raise Exception('Alignment (0x%x) should to be power of 2 !' % alignment)
-    value = (value + (alignment - 1)) & ~(alignment - 1)
+def bytes_to_bracket_str(bytes):
+    return '{ %s }' % (', '.join('0x%02x' % i for i in bytes))
+
+
+def array_str_to_value(val_str):
+    val_str = val_str.strip()
+    val_str = strip_delimiter(val_str, '{}')
+    val_str = strip_quote(val_str)
+    value = 0
+    for each in val_str.split(',')[::-1]:
+        each = each.strip()
+        value = (value << 8) | int(each, 0)
     return value
-
-
-def get_padding_length(data_len, alignment=4):
-    new_data_len = get_aligned_value(data_len, alignment)
-    return new_data_len - data_len
-
-
-def get_file_data(file, mode='rb'):
-    return open(file, mode).read()
-
-
-def gen_file_from_object(file, object):
-    open(file, 'wb').write(object)
-
-
-def gen_file_with_size(file, size):
-    open(file, 'wb').write(b'\xFF' * size)
-
-
-def check_files_exist(base_name_list, dir='', ext=''):
-    for each in base_name_list:
-        if not os.path.exists(os.path.join(dir, each + ext)):
-            return False
-    return True
-
-
-def load_source(name, filepath):
-    mod = SourceFileLoader(name, filepath).load_module()
-    return mod
