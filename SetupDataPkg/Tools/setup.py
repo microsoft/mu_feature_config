@@ -19,8 +19,8 @@ def main():
 
     parser = argparse.ArgumentParser(description='Create single executable for Configuration Editor')
 
-    parser.add_argument("--ConfFolderPath", dest="ConfFolderPath", help="Absolute path to all configuration definitions "
-                        "to be embedded, subfolder structure will be kept", default=None)
+    parser.add_argument("--ConfFolderPath", dest="ConfFolderPath", help="Absolute path to all configuration "
+                        "definitions to be embedded, subfolder structure will be kept", default=None)
     parser.add_argument("--OutputFilePath", dest="OutputFilePath", help="Absolute path to output executable, default "
                         "will be./dist/", default=None)
 
