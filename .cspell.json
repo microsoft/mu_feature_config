@@ -116,6 +116,7 @@
       "AUTOGEN",
       "stdlibc",
       "onefile",
-      "distpath"
+      "distpath",
+      "MEIPASS"
   ]
 }
