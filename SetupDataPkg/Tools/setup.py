@@ -1,5 +1,5 @@
 # @file
-# Setup script to binarize ConfigEditor.
+# Setup script to publish binary ConfigEditor.
 #
 # Copyright (c) Microsoft Corporation.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
