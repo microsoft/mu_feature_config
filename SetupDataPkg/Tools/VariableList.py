@@ -976,7 +976,8 @@ class Schema:
     # Load a schema given a path to a schema xml file
     def load(path):
 
-        # Per instructions from PyInstaller: https://pyinstaller.org/en/stable/runtime-information.html#run-time-information
+        # Per instructions from PyInstaller:
+        # https://pyinstaller.org/en/stable/runtime-information.html#run-time-information
         if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
             # The application is frozen
             print("Running bundled VariableList!\n")
