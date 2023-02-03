@@ -114,6 +114,9 @@
       "GENCSV",
       "dtrue",
       "AUTOGEN",
-      "stdlibc"
+      "stdlibc",
+      "onefile",
+      "distpath",
+      "MEIPASS"
   ]
 }

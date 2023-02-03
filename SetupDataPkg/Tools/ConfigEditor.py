@@ -534,6 +534,20 @@ class application(tkinter.Frame):
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
                 return
 
+        if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
+            # The application is frozen, pre-populate collected definition files
+            print("Running bundled ConfigEditor! Load pre-populated definition files.\n")
+
+            bundle_dir = sys._MEIPASS
+
+            # The collected definitions will be put under "ConfDefinitions" folder in the bundle directory
+            for subdir, _, files in os.walk(os.path.join(bundle_dir, "ConfDefinitions")):
+                for file in files:
+                    sub_path = os.path.join(subdir, file)
+                    if sub_path.endswith(".xml"):
+                        idx += 1
+                        self.load_cfg_file(sub_path, idx, False)
+
     def set_object_name(self, widget, name, file_id):
         # associate the name of the widget with the file it came from, in case of name conflicts
         self.conf_list[id(widget)] = (name, file_id)
