@@ -9,7 +9,6 @@ import os
 import sys
 import marshal
 import base64
-import re
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -293,8 +292,8 @@ class custom_table(ttk.Treeview):
         # Load binary from file
         path = filedialog.askopenfilename(
             initialdir=self.last_dir,
-            title="Load binary file",
-            filetypes=(("Binary files", "*.bin"), ("binary files", "*.bin")),
+            title="Load variable list file",
+            filetypes=(("variable list files", "*.vl"), ("variable list files", "*.vl")),
         )
         if path:
             self.last_dir = os.path.dirname(path)
@@ -527,13 +526,27 @@ class application(tkinter.Frame):
             path = sys.argv[i]
             if path.endswith(".dlt") or path.endswith(".csv"):
                 self.load_delta_file(path)
-            elif path.endswith(".bin"):
+            elif path.endswith(".vl"):
                 self.load_bin_file(path, True)
             elif path.endswith(".xml") or path.endswith(".yaml") or path.endswith(".yml"):
                 self.load_cfg_file(path, idx, False)
             else:
                 messagebox.showerror("LOADING ERROR", "Unsupported file '%s' !" % path)
                 return
+
+        if getattr(sys, "frozen", False) and hasattr(sys, '_MEIPASS'):
+            # The application is frozen, pre-populate collected definition files
+            print("Running bundled ConfigEditor! Load pre-populated definition files.\n")
+
+            bundle_dir = sys._MEIPASS
+
+            # The collected definitions will be put under "ConfDefinitions" folder in the bundle directory
+            for subdir, _, files in os.walk(os.path.join(bundle_dir, "ConfDefinitions")):
+                for file in files:
+                    sub_path = os.path.join(subdir, file)
+                    if sub_path.endswith(".xml"):
+                        idx += 1
+                        self.load_cfg_file(sub_path, idx, False)
 
     def set_object_name(self, widget, name, file_id):
         # associate the name of the widget with the file it came from, in case of name conflicts
@@ -753,7 +766,7 @@ class application(tkinter.Frame):
         if self.is_config_data_loaded():
             if "dlt" in ftype or 'csv' in ftype:
                 question = ""
-            elif ftype == "bin":
+            elif ftype == "vl":
                 question = ''
             elif ftype == 'svd':
                 question = ''
@@ -800,51 +813,51 @@ class application(tkinter.Frame):
     def load_delta_file(self, path):
         # assumption is there is only one yaml file (deprecated) but there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
-        file_id = -1
         yml_id = -1
-        xml_id = -1
+        updated_knobs = 0
         is_variable_list_format = True
         for idx in self.cfg_data_list:
             # if we have a yaml, fall back to old behavior
-            # if loading xml, ensure that the file path we have matches the csv
-            # we are trying to load
+            # if loading xml, ensure that knobs GUID + name exist in any loaded XML
             if self.cfg_data_list[idx].config_type == 'yml':
                 yml_id = idx
-            elif re.search(self.cfg_data_list[idx].cfg_data_obj._cur_page + ".csv", path) is not None:
-                xml_id = idx
-
-        if xml_id == -1:
-            raise Exception('Unsupported file "%s" not found in loaded config!' % path)
+            else:
+                try:
+                    updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
+                except Exception as e:
+                    messagebox.showerror("LOADING ERROR", str(e))
+                    return
 
         if path.endswith('.dlt'):
-            file_id = yml_id
             is_variable_list_format = False
+            self.reload_config_data_from_bin(
+                self.cfg_data_list[yml_id].org_cfg_data_bin,
+                yml_id,
+                is_variable_list_format
+            )
+            try:
+                self.cfg_data_list[yml_id].cfg_data_obj.override_default_value(path)
+            except Exception as e:
+                messagebox.showerror("LOADING ERROR", str(e))
+                return
         elif path.endswith('.csv'):
-            file_id = xml_id
+            if updated_knobs == 0:
+                messagebox.showerror('CSV Loading Error', 'Loaded CSV did not apply to any loaded config file!')
+                return
         else:
             raise Exception('Unsupported file "%s" !' % path)
 
-        # if not found_yml:
-        # we didn't find a yml file, cannot apply delta file
-        # messagebox.showerror("LOADING ERROR", "Could not find YAML file to apply delta to")
-        # return
-        self.reload_config_data_from_bin(self.cfg_data_list[file_id].org_cfg_data_bin, file_id, is_variable_list_format)
-        try:
-            self.cfg_data_list[file_id].cfg_data_obj.override_default_value(path)
-        except Exception as e:
-            messagebox.showerror("LOADING ERROR", str(e))
-            return
         self.update_last_dir(path)
         self.refresh_config_data_page()
 
     def load_from_raw_bin(self):
-        path = self.get_open_file_name("bin")
+        path = self.get_open_file_name("vl")
         if not path:
             return
         self.load_bin_file(path, False)
 
     def load_from_bin(self):
-        path = self.get_open_file_name("bin")
+        path = self.get_open_file_name("vl")
         if not path:
             return
         self.load_bin_file(path)
@@ -1017,7 +1030,7 @@ class application(tkinter.Frame):
 
     def save_delta_to_bin(self):
         # XML only function to save the changed values to a binary
-        path = self.get_save_file_name("bin")
+        path = self.get_save_file_name("vl")
         if not path:
             return
 
@@ -1032,7 +1045,7 @@ class application(tkinter.Frame):
             fd.write(bin)
 
     def save_to_bin(self):
-        path = self.get_save_file_name("bin")
+        path = self.get_save_file_name("vl")
         if not path:
             return
 

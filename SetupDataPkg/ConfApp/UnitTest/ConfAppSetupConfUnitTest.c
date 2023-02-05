@@ -741,7 +741,7 @@ ConfAppSetupConfSelectSerial (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -772,6 +772,107 @@ ConfAppSetupConfSelectSerial (
   expect_string (MockSet, Id, DFCI_OEM_SETTING_ID__CONF);
   expect_value (MockSet, ValueSize, sizeof (mKnown_Good_Config_Data));
   expect_memory (MockSet, Value, mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data));
+
+  will_return (ResetCold, &JumpBuf);
+
+  if (!SetJump (&JumpBuf)) {
+    SetupConfMgr ();
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SetupConf page when selecting configure from serial and passing in arbitrary SVD variables.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSetupConfSelectSerialWithArbitrarySVD (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  UINTN                     Index;
+  CHAR8                     *KnowGoodXml;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  will_return (MockGetVariable, 0);
+  will_return (MockGetVariable, NULL);
+  will_return (MockGetVariable, EFI_NOT_FOUND);
+
+  // Expect the prints twice
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  // Initial run
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '2';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfUpdateSerialHint);
+
+  Index       = 0;
+  KnowGoodXml = KNOWN_GOOD_VARLIST_XML;
+  while (KnowGoodXml[Index] != 0) {
+    KeyData1.Key.UnicodeChar = KnowGoodXml[Index];
+    KeyData1.Key.ScanCode    = SCAN_NULL;
+    will_return (MockReadKey, &KeyData1);
+    Status = SetupConfMgr ();
+    Index++;
+  }
+
+  KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return_always (MockSetVariable, EFI_SUCCESS);
+
+  // first time through is delete
+  expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_value (MockSetVariable, DataSize, 0x00);
+  expect_value (MockSetVariable, Data, NULL);
+
+  expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_value (MockSetVariable, DataSize, 0x09);
+  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[0], 0x09);
+
+  // first time through is delete
+  expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_value (MockSetVariable, DataSize, 0x00);
+  expect_value (MockSetVariable, Data, NULL);
+
+  expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_value (MockSetVariable, DataSize, 0x04);
+  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[1], 0x04);
 
   will_return (ResetCold, &JumpBuf);
 
@@ -827,7 +928,7 @@ ConfAppSetupConfSelectSerialEsc (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -884,12 +985,10 @@ ConfAppSetupConfDumpSerial (
   EFI_STATUS       Status;
   EFI_KEY_DATA     KeyData1;
   CHAR8            *ComparePtr[KNOWN_GOOD_TAG_COUNT];
+  CHAR16           *CompareUnicodePtr[KNOWN_GOOD_TAG_COUNT];
   UINTN            Index;
-  CONTEXT_DATA     *Ctx;
+  UINTN            ReturnUnicodeSize;
   POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
-
-  UT_ASSERT_NOT_NULL (Context);
-  Ctx = (CONTEXT_DATA *)Context;
 
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -910,7 +1009,7 @@ ConfAppSetupConfDumpSerial (
 
   mSimpleTextInEx = &MockSimpleInput;
 
-  KeyData1.Key.UnicodeChar = '4';
+  KeyData1.Key.UnicodeChar = '3';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -920,19 +1019,43 @@ ConfAppSetupConfDumpSerial (
 
   mSettingAccess = &MockSettingAccess;
 
-  will_return (RetrieveActiveConfigVarList, Ctx->VarListPtr);
-  will_return (RetrieveActiveConfigVarList, Ctx->VarListCnt);
-  will_return (RetrieveActiveConfigVarList, EFI_SUCCESS);
+  // This is to mimic a non config managed variable
+  will_return (MockGetNextVariableName, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  will_return (MockGetNextVariableName, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  will_return (MockGetNextVariableName, READY_TO_BOOT_INDICATOR_VAR_NAME);
+  will_return (MockGetNextVariableName, &gMuVarPolicyDxePhaseGuid);
 
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // This is to mimic config setting variables
   for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
-    ComparePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    ComparePtr[Index]        = AllocatePool (SINGLE_CONF_DATA_ID_LEN);
+    CompareUnicodePtr[Index] = AllocatePool (SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16));
     AsciiSPrint (ComparePtr[Index], SINGLE_CONF_DATA_ID_LEN, SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+    ReturnUnicodeSize = UnicodeSPrintAsciiFormat (CompareUnicodePtr[Index], SINGLE_CONF_DATA_ID_LEN * sizeof (CHAR16), SINGLE_SETTING_PROVIDER_TEMPLATE, mKnownGoodTags[Index].Tag);
+
+    // Only the first iteration needs to extend the var name buffer
+    if (Index == 0) {
+      will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
+    }
+
+    will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
+    will_return (MockGetNextVariableName, CompareUnicodePtr[Index]);
+    will_return (MockGetNextVariableName, &gEfiCallerIdGuid);
+
     expect_string (MockGet, Id, ComparePtr[Index]);
     will_return (MockGet, mKnownGoodTags[Index].DataSize);
     expect_string (MockGet, Id, ComparePtr[Index]);
     will_return (MockGet, mKnownGoodTags[Index].DataSize);
     will_return (MockGet, mKnownGoodTags[Index].Data);
   }
+
+  // End the queries with a EFI_NOT_FOUND
+  will_return (MockGetNextVariableName, 0);
+  will_return (MockGetNextVariableName, EFI_NOT_FOUND);
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -1017,19 +1140,6 @@ ConfAppSetupConfNonMfg (
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
 
-  // Selecting 3 should fail
-  KeyData1.Key.UnicodeChar = '3';
-  KeyData1.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData1);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfError);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
-
   return UNIT_TEST_PASSED;
 }
 
@@ -1086,6 +1196,7 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Setup Configuration page select others should do nothing", "SelectOther", ConfAppSetupConfSelectOther, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should setup configuration from USB", "SelectUsb", ConfAppSetupConfSelectUsb, SetupConfPrerequisite, SetupConfCleanup, &Context);
   AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerial", ConfAppSetupConfSelectSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
+  AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerialWithArbitrarySVD", ConfAppSetupConfSelectSerialWithArbitrarySVD, SetupConfPrerequisite, SetupConfCleanup, &Context);
   AddTestCase (MiscTests, "Setup Configuration page should return with ESC key during serial transport", "SelectSerial", ConfAppSetupConfSelectSerialEsc, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
   AddTestCase (MiscTests, "Setup Configuration page should ignore updating configurations when in non-mfg mode", "ConfNonMfg", ConfAppSetupConfNonMfg, NULL, SetupConfCleanup, NULL);

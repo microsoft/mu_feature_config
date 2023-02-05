@@ -367,9 +367,6 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -383,6 +380,9 @@ ConfProfileMgrDxeShouldUseRetrievedProfile (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
@@ -432,9 +432,6 @@ ConfProfileMgrDxeShouldUseCachedProfile (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -448,6 +445,9 @@ ConfProfileMgrDxeShouldUseCachedProfile (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
@@ -503,9 +503,6 @@ ConfProfileMgrDxeShouldUseGenericProfile (
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -519,6 +516,9 @@ ConfProfileMgrDxeShouldUseGenericProfile (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
@@ -579,9 +579,6 @@ ConfProfileMgrDxeShouldAssert (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -599,6 +596,9 @@ ConfProfileMgrDxeShouldAssert (
     } else {
       will_return (MockGetVariable, EFI_SUCCESS);
     }
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   // delete var
@@ -631,9 +631,6 @@ ConfProfileMgrDxeShouldAssert (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // All the GetVariable calls...
   for (i = 0; i < 9; i++) {
     will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
@@ -647,6 +644,9 @@ ConfProfileMgrDxeShouldAssert (
     }
 
     will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile to be validated
+    will_return (IsSystemInManufacturingMode, FALSE);
   }
 
   // Fail to set protocol
@@ -701,15 +701,13 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // Force profile to not match flash with bad entry
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -729,6 +727,7 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -741,6 +740,8 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
@@ -762,6 +763,8 @@ ConfProfileMgrDxeShouldWriteReceivedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
@@ -821,15 +824,13 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // Force profile to not match flash with bad entry
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -849,6 +850,7 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -861,6 +863,8 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
@@ -882,6 +886,8 @@ ConfProfileMgrDxeShouldWriteCachedProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
@@ -947,15 +953,13 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  // Cause profile to be validated
-  will_return (IsSystemInManufacturingMode, FALSE);
-
   // Force profile to not match flash with bad entry
   will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[0]);
   will_return (MockGetVariable, mKnown_Good_VarList_Entries[1]);
 
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[0], StrSize (mKnown_Good_VarList_Names[0]));
@@ -975,6 +979,7 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
       will_return (MockGetVariable, 7);
     }
 
+    will_return (IsSystemInManufacturingMode, FALSE);
     will_return (MockGetVariable, EFI_SUCCESS);
   }
 
@@ -987,6 +992,8 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[7], StrSize (mKnown_Good_VarList_Names[7]));
@@ -1008,6 +1015,8 @@ ConfProfileMgrDxeShouldWriteGenericProfileAndReset (
   expect_value (MockSetVariable, DataSize, 0);
   expect_value (MockSetVariable, Data, NULL);
   will_return (MockSetVariable, EFI_SUCCESS);
+
+  will_return (IsSystemInManufacturingMode, FALSE);
 
   // set var
   expect_memory (MockSetVariable, VariableName, mKnown_Good_VarList_Names[8], StrSize (mKnown_Good_VarList_Names[8]));
@@ -1049,19 +1058,44 @@ ConfProfileMgrDxeShouldUseRetrievedProfileMfgMode (
   )
 {
   EFI_STATUS  Status;
+  UINT32      i;
 
-  // Getting cached variable, it should not write variable
+  // Getting cached variable, force it to write variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
-  will_return (MockGetVariable, &gSetupDataPkgGenericProfileGuid);
+  will_return (MockGetVariable, &gZeroGuid);
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
   will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to not be validated
-  will_return (IsSystemInManufacturingMode, TRUE);
+  expect_memory (MockSetVariable, VariableName, CACHED_CONF_PROFILE_VARIABLE_NAME, StrSize (CACHED_CONF_PROFILE_VARIABLE_NAME));
+  expect_memory (MockSetVariable, VendorGuid, &gConfProfileMgrVariableGuid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, sizeof (EFI_GUID));
+  expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
+  will_return (MockSetVariable, EFI_SUCCESS);
+
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile size and attribute to be validated
+    will_return (IsSystemInManufacturingMode, TRUE);
+  }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
 
@@ -1093,6 +1127,7 @@ ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
   )
 {
   EFI_STATUS  Status;
+  UINT32      i;
 
   // Getting cached variable, it should not write variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
@@ -1100,13 +1135,32 @@ ConfProfileMgrDxeShouldUseCachedProfileMfgMode (
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_SUCCESS);
 
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
   // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
-  // Cause profile to not be validated
-  will_return (IsSystemInManufacturingMode, TRUE);
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile size and attribute to be validated
+    will_return (IsSystemInManufacturingMode, TRUE);
+  }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
 
@@ -1138,6 +1192,7 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
   )
 {
   EFI_STATUS  Status;
+  UINT32      i;
 
   // Fail to get cached variable
   will_return (MockGetVariable, sizeof (EFI_GUID));
@@ -1145,8 +1200,12 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
   will_return (MockGetVariable, 3);
   will_return (MockGetVariable, EFI_NOT_FOUND);
 
+  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
+  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
+
   // Force bad profile to be retrieved
   will_return (LibPcdGetPtr, &gZeroGuid);
+  will_return (LibPcdGetPtr, &gSetupDataPkgGenericProfileGuid);
 
   will_return (LibPcdSetPtrS, EFI_SUCCESS);
 
@@ -1156,8 +1215,23 @@ ConfProfileMgrDxeShouldUseGenericProfileMfgMode (
   expect_memory (MockSetVariable, Data, &gSetupDataPkgGenericProfileGuid, sizeof (EFI_GUID));
   will_return (MockSetVariable, EFI_SUCCESS);
 
-  // Cause profile to not be validated
-  will_return (IsSystemInManufacturingMode, TRUE);
+  // All the GetVariable calls...
+  for (i = 0; i < 9; i++) {
+    will_return (MockGetVariable, mKnown_Good_VarList_DataSizes[i]);
+    will_return (MockGetVariable, mKnown_Good_VarList_Entries[i]);
+
+    if (i < 2) {
+      will_return (MockGetVariable, 3);
+    } else {
+      // XML part of blob
+      will_return (MockGetVariable, 7);
+    }
+
+    will_return (MockGetVariable, EFI_SUCCESS);
+
+    // Cause profile size and attribute to be validated
+    will_return (IsSystemInManufacturingMode, TRUE);
+  }
 
   will_return (MockInstallProtocolInterface, EFI_SUCCESS);
 

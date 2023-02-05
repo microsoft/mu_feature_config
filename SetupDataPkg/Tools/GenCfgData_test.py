@@ -793,13 +793,13 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.EnablePort')
         self.assertEqual('0', item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         val_str = '1234'
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 1234)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -866,13 +866,13 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.EnablePort')
         self.assertEqual('1', item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         val_str = '4321'
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 4321)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         val_str = 'SECOND'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -917,16 +917,16 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.PortQoSMapping')
         self.assertEqual("'2'", item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         self.assertEqual(ret['inst'].value, 1234)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         self.assertEqual(ret['inst'].value, 2)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         self.assertEqual(True, ret['inst'].value)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.DOUBLE_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.DOUBLE_KNOB')
         self.assertEqual(3.1415926, ret['inst'].value)
 
         # Test Full SVD
@@ -1006,13 +1006,13 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.PortQoSMapping')
         self.assertEqual("'Q'", item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         val_str = '5995'
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
         self.assertEqual(ret['inst'].value, 5995)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         val_str = 'THIRD'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
@@ -1057,16 +1057,16 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.PortQoSMapping')
         self.assertEqual("'P'", item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         self.assertEqual(ret['inst'].value, 1234)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1b.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         self.assertEqual(ret['inst'].value, 2)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         self.assertEqual(True, ret['inst'].value)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.DOUBLE_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.DOUBLE_KNOB')
         self.assertEqual(3.1415926, ret['inst'].value)
 
     def test_merged_xml_yml_generate_load_bin(self):
@@ -1143,17 +1143,17 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.EnablePort')
         self.assertEqual('0', item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         val_str = 'false'
         cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret['inst'].value, 0)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.FLOAT_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.FLOAT_KNOB')
         val_str = '0.618'
         cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret['inst'].value, 0.618)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.DOUBLE_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.DOUBLE_KNOB')
         val_str = '5.293845'
         cdata.set_item_value(val_str, item=ret)
         self.assertEqual(5.293845, ret['inst'].value)
@@ -1196,12 +1196,12 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.EnablePort')
         self.assertEqual('1', item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         val_str = 'true'
         cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret['inst'].value, True)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.DOUBLE_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.DOUBLE_KNOB')
         val_str = '5.293845'
         cdata.set_item_value(val_str, item=ret)
         self.assertEqual(5.293845, ret['inst'].value)
@@ -1246,16 +1246,16 @@ class UefiCfgUnitTests(unittest.TestCase):
         item = ydata.get_item_by_path('IO_CFG_DATA.Port1.PortEnable.PortQoSMapping')
         self.assertEqual("'2'", item['value'])
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.INTEGER_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
         self.assertEqual(ret['inst'].value, 100)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.COMPLEX_KNOB1a.mode')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1a.mode')
         self.assertEqual(ret['inst'].value, 0)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.BOOLEAN_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
         self.assertEqual(False, ret['inst'].value)
 
-        ret = cdata.get_item_by_path('{FE3ED49F-B173-41ED-9076-356661D46A42}.DOUBLE_KNOB')
+        ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.DOUBLE_KNOB')
         self.assertEqual(5.293845, ret['inst'].value)
 
 

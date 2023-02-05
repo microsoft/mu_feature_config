@@ -135,6 +135,10 @@ Profiles are represented as delta files on top of the generic profile (for more 
 [Profiles](../Profiles/Overview.md) doc). In addition, the XML differences between what is set in the UI and the base
 XML can be saved as CSV files.
 
+The UI tool expects the XML file name to be a prefix to the CSV file name. I.e. my_config_1.xml would match with
+my_config_1_override_all.csv and my_config_1_some_overrides.csv but not i_overrode_my_config_1.csv. This way the CSV
+will be correctly applied to the appropriate loaded XML file.
+
 - Save Full Config Data to Change File
   Save all configuration knobs to the change file, even if they do not have a change over the base YAML/XML. This is
   helpful to see the whole state of configuration from one file.
@@ -144,6 +148,15 @@ XML can be saved as CSV files.
 - Load Config from Change File
   Load a previously save change file into the UI, overwriting any values from the base YAML/XML. It must be loaded onto
   a YAML/XML that has the configuration knobs present in the change file.
+
+CSV files have the following format:
+
+GUID, Name, Value, Help
+
+Where GUID is the namespace GUID, Name is the knob name, Value is the data associated with the knob, and help
+is a general description of the knob. Help is optional. The GUID is only printed once, to save space, and all other
+knobs sharing the same GUID simply print `*` in the GUID field, indicating they use whichever GUID is printed above the
+line of `*`s.
 
 ## Merged YAML and XML Operations
 

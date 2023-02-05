@@ -10,8 +10,7 @@
   "ignorePaths": [
       "*.exe",
       "SetupDataPkg/Tools/CommonUtility_test.py",
-      "SetupDataPkg/Test/Include/Good_Config_Data.h"
-
+      "SetupDataPkg/Test/Include/**"
   ],
   "ignoreWords": [],
   "words": [
@@ -108,7 +107,16 @@
       "Uncore",
       "ydata",
       "xmlschema",
+      "testschema",
       "configschema",
-      "GENCSV"
+      "configdata",
+      "generateheader",
+      "GENCSV",
+      "dtrue",
+      "AUTOGEN",
+      "stdlibc",
+      "onefile",
+      "distpath",
+      "MEIPASS"
   ]
 }
