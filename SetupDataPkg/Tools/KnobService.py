@@ -220,7 +220,8 @@ def generate_public_header(schema, header_path, efi_type=False):
             ), '"structure size must be consistent"') + get_line_ending(efi_type))
             out.write("" + get_line_ending(efi_type))
             pass
-
+        out.write("#pragma pack(pop)" + get_line_ending(efi_type))
+        out.write("" + get_line_ending(efi_type))
         out.write("// Schema-defined knobs" + get_line_ending(efi_type))
         for knob in schema.knobs:
             out.write("// {} knob".format(knob.name) + get_line_ending(efi_type))
@@ -371,8 +372,6 @@ def generate_public_header(schema, header_path, efi_type=False):
         out.write("}" + " {};".format(
             naming_convention_filter("profile_t", True, efi_type)
         ) + get_line_ending(efi_type))
-        out.write("" + get_line_ending(efi_type))
-        out.write("#pragma pack(pop)")
         out.write("" + get_line_ending(efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
 
