@@ -2,6 +2,21 @@
 
 ---
 
+**Change:** Removed DFCI based configuration support
+**Owner:** kuqin12
+**Date:** 2/06/2023
+**Description:** Removed the DFCI settings provider driver and related modules. The configuration flow is now based
+on XML and their automatically generated header files.
+**PR:**[105](https://github.com/microsoft/mu_feature_config/pull/105)
+**Integration:** To integrate this change:
+
+- Remove any non-existent libraries/headers, including `ConfDataSettingProvider`, `ConfDfciUnsignedListInit`,
+  `ConfProfileMgrDxe`, `ConfigBlobBaseLib`, `ConfigDataLib`, `ConfigVariableListLib`.
+- Add `SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf`
+  in the platform DSC file.
+
+---
+
 **Change:** Change Binary Suffix to .vl
 **Owner:** os-d
 **Date:** 1/31/2023
