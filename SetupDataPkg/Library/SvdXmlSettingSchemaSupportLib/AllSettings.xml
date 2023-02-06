@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!-- 
+This document contains every setting supported on the Surface Platforms and should be used 
+by tools to provide name, id, help information.  
+
+-->
+<AllSettings xmlns="urn:UefiSettings-Schema">
+  <Version>1</Version>
+  <Date>2015-10-06</Date>
+  <Settings>
+    <Setting>
+      <Id>100</Id>
+      <Name>Asset Tag</Name>
+      <Help>Holds a IT/Admin defined asset tag value</Help>
+    </Setting>
+    <Setting>
+      <Id>200</Id>
+      <Name>Secure Boot Keys</Name>
+      <Help>Controls the state of UEFI Secure Boot and which keys to use. Changing this can cause your system to fail to boot</Help>
+    </Setting>
+    <Setting>
+      <Id>300</Id>
+      <Name>Trusted Platform Module (TPM)</Name>
+      <Help>TPM device enabled or disabled</Help>
+    </Setting>
+    <Setting>
+      <Id>301</Id>
+      <Name>Docking Usb Port</Name>
+      <Help>Docking USB Port enabled or disabled</Help>
+    </Setting>
+    <Setting>
+      <Id>302</Id>
+      <Name>Front Camera</Name>
+      <Help>Front Camera enabled or disabled</Help>
+    </Setting>
+    <Setting>
+      <Id>303</Id>
+      <Name>Bluetooth</Name>
+      <Help>Bluetooth radio enabled or disabled</Help>
+    </Setting>
+  </Settings>
+</AllSettings>
+
