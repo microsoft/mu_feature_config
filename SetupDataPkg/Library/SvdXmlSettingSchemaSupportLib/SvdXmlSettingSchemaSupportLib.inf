@@ -1,0 +1,40 @@
+## @file
+# SvdXmlSettingSchemaSupportLib.inf
+#
+# This library supports the schema used for the Settings Input and Result XML files.
+#
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = SvdXmlSettingSchemaSupportV1Lib
+  FILE_GUID                      = 0F1657E6-E771-4EDA-A4C1-96144A8F445D
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0 
+  LIBRARY_CLASS                  = SvdXmlSettingSchemaSupportLib|DXE_DRIVER UEFI_APPLICATION UEFI_DRIVER
+# CONSTRUCTOR                    = NONE
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ANY
+#
+
+[Sources]
+  SvdXmlSettingSchemaSupport.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  XmlSupportPkg/XmlSupportPkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  DebugLib
+  XmlTreeLib
+  XmlTreeQueryLib
+  PrintLib
+  BaseLib
+
