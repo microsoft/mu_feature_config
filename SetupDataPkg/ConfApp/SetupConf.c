@@ -8,7 +8,6 @@
 
 #include <Uefi.h>
 #include <XmlTypes.h>
-#include <Guid/DfciPacketHeader.h>
 
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
@@ -19,19 +18,14 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiLib.h>
 #include <Library/ResetSystemLib.h>
-#include <Library/DfciUiSupportLib.h>
-#include <Library/ConfigDataLib.h>
 #include <Library/XmlTreeLib.h>
 #include <Library/XmlTreeQueryLib.h>
-#include <Library/DfciXmlSettingSchemaSupportLib.h>
+#include <Library/SvdXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
 
 #include "ConfApp.h"
-#include "DfciUsb/DfciUsb.h"
-
-#define DEFAULT_USB_FILE_NAME  L"SetupConfUpdate.svd"
-#define CURRENT_XML_TEMPLATE   "<?xml version=\"1.0\" encoding=\"utf-8\"?><CurrentSettingsPacket xmlns=\"urn:UefiSettings-Schema\"></CurrentSettingsPacket>"
+#include "SvdUsb/SvdUsb.h"
 
 #define SETUP_CONF_STATE_OPTIONS  6
 
@@ -159,7 +153,7 @@ PrintOptions (
   @param Value     a pointer to the variable list
   @param ValueSize Size of the data for this setting.
 
-  @retval EFI_SUCCESS If setting could be set.  Check flags for other info (reset required, etc)
+  @retval EFI_SUCCESS If setting could be set.
   @retval Error       Setting not set.
 **/
 STATIC
@@ -294,20 +288,17 @@ ApplySettings (
   XmlNode  *ResultPacketNode   = NULL;                    // The ResultsPacket node in the result list
   XmlNode  *ResultSettingsNode = NULL;                    // The Settings Node in the result list
 
-  LIST_ENTRY          *Link = NULL;
-  EFI_STATUS          Status;
-  DFCI_SETTING_FLAGS  Flags = 0;
-  EFI_TIME            ApplyTime;
-  UINTN               Version       = 0;
-  UINTN               Lsv           = 0;
-  BOOLEAN             ResetRequired = FALSE;
+  LIST_ENTRY  *Link = NULL;
+  EFI_STATUS  Status;
+  EFI_TIME    ApplyTime;
+  UINTN       Version       = 0;
+  UINTN       Lsv           = 0;
+  BOOLEAN     ResetRequired = FALSE;
 
   UINTN       b64Size;
   UINTN       ValueSize;
   UINT8       *ByteArray = NULL;
   CONST VOID  *SetValue  = NULL;
-
-  CONFIG_VAR_LIST_ENTRY  VarListEntry;
 
   //
   // Create Node List from input
@@ -376,14 +367,6 @@ ApplySettings (
     goto EXIT;
   }
 
-  // check against lsv
-  // if (InternalData->LSV > (UINT32)Version)
-  // {
-  //   DEBUG ((DEBUG_ERROR, "Setting Version Less Than System LSV(%ld)\n", InternalData->LSV));
-  //   Status = EFI_ACCESS_DENIED;
-  //   goto EXIT;
-  // }
-
   //
   // Get Incoming LSV
   //
@@ -409,21 +392,6 @@ ApplySettings (
     goto EXIT;
   }
 
-  // set the new version
-  // if (InternalData->CurrentVersion != (UINT32)Version)
-  // {
-  //   InternalData->CurrentVersion = (UINT32)Version;
-  //   InternalData->Modified = TRUE;
-  // }
-
-  // If new LSV is larger set it
-  // if ((UINT32)Lsv > InternalData->LSV)
-  // {
-  //   DEBUG ((DEBUG_ERROR, "%a - Setting New LSV (0x%X)\n", __FUNCTION__, Lsv));
-  //   InternalData->LSV = (UINT32)Lsv;
-  //   InternalData->Modified = TRUE;
-  // }
-
   // Get the Xml Node for the SettingsList
   InputSettingsNode = GetSettingsListNodeFromPacketNode (InputPacketNode);
 
@@ -443,13 +411,9 @@ ApplySettings (
 
   // All verified.   Now lets walk thru the Settings and try to apply each one.
   BASE_LIST_FOR_EACH (Link, &(InputSettingsNode->ChildrenListHead)) {
-    XmlNode                 *NodeThis = NULL;
-    DFCI_SETTING_ID_STRING  Id        = NULL;
-    CONST CHAR8             *Value    = NULL;
-    CHAR8                   StatusString[25]; // 0xFFFFFFFFFFFFFFFF\n
-    CHAR8                   FlagString[25];
-
-    Flags = 0;
+    XmlNode      *NodeThis = NULL;
+    CONST CHAR8  *Id       = NULL;
+    CONST CHAR8  *Value    = NULL;
 
     NodeThis = (XmlNode *)Link;   // Link is first member so just cast it.  this is the <Setting> node
     Status   = GetInputSettings (NodeThis, &Id, &Value);
@@ -460,7 +424,7 @@ ApplySettings (
     }
 
     // Now we have an Id and Value
-    b64Size   = AsciiStrnLenS (Value, MAX_ALLOWABLE_DFCI_APPLY_VAR_SIZE);
+    b64Size   = AsciiStrnLenS (Value, PcdGet32 (PcdMaxVariableSize));
     ValueSize = 0;
     Status    = Base64Decode (Value, b64Size, NULL, &ValueSize);
     if (Status != EFI_BUFFER_TOO_SMALL) {
@@ -482,52 +446,8 @@ ApplySettings (
     DEBUG ((DEBUG_INFO, "Setting BINARY data\n"));
     DUMP_HEX (DEBUG_VERBOSE, 0, SetValue, ValueSize, "");
 
-    if ((0 == AsciiStrnCmp (Id, DFCI_OEM_SETTING_ID__CONF, AsciiStrLen (DFCI_OEM_SETTING_ID__CONF))) ||
-        (0 == AsciiStrnCmp (Id, SINGLE_SETTING_PROVIDER_START, AsciiStrLen (SINGLE_SETTING_PROVIDER_START))))
-    {
-      // only care about our target
-      ZeroMem (&VarListEntry, sizeof (VarListEntry));
-      Status = QuerySingleActiveConfigAsciiVarList (Id, &VarListEntry);
-      if (EFI_ERROR (Status)) {
-        FreePool (ByteArray);
-        continue;
-      }
-
-      // Now set the settings via DFCI
-      Status = mSettingAccess->Set (
-                                 mSettingAccess,
-                                 Id,
-                                 &mAuthToken,
-                                 DFCI_SETTING_TYPE_BINARY,
-                                 ValueSize,
-                                 SetValue,
-                                 &Flags
-                                 );
-
-      // Record Status result
-      ZeroMem (StatusString, sizeof (StatusString));
-      ZeroMem (FlagString, sizeof (FlagString));
-      StatusString[0] = '0';
-      StatusString[1] = 'x';
-      FlagString[0]   = '0';
-      FlagString[1]   = 'x';
-
-      AsciiValueToStringS (&(StatusString[2]), sizeof (StatusString)-2, RADIX_HEX, (INT64)Status, 18);
-      AsciiValueToStringS (&(FlagString[2]), sizeof (FlagString)-2, RADIX_HEX, (INT64)Flags, 18);
-      Status = SetOutputSettingsStatus (ResultSettingsNode, Id, &(StatusString[0]), &(FlagString[0]));
-      if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "Failed to SetOutputSettingStatus.  %r\n", Status));
-        Status = EFI_DEVICE_ERROR;
-        goto EXIT;
-      }
-
-      if (Flags & DFCI_SETTING_FLAGS_OUT_REBOOT_REQUIRED) {
-        ResetRequired = TRUE;
-      }
-    } else {
-      // this is not a DFCI variable, just write the variable
-      Status = WriteSVDSetting (SetValue, ValueSize);
-    }
+    // Just write the variable
+    Status = WriteSVDSetting (SetValue, ValueSize);
 
     DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
 
@@ -539,29 +459,6 @@ ApplySettings (
   DebugPrintXmlTree (ResultRootNode, 0);
   DEBUG ((DEBUG_INFO, "PRINTING OUTPUT XML - End\n"));
 
-  // // convert result xml node list to string
-  // Status = XmlTreeToString (ResultRootNode, TRUE, &ResultXmlSize, &Data->ResultXml);
-  // if (EFI_ERROR (Status))
-  // {
-  //   DEBUG ((DEBUG_ERROR, "Failed to convert Result XML to String.  Status = %r\n", Status));
-  //   Status = EFI_ABORTED;
-  //   goto EXIT;
-  // }
-
-  // // make sure its a good size
-  // if (Data->ResultXmlSize > MAX_ALLOWABLE_DFCI_RESULT_VAR_SIZE)
-  // {
-  //   DEBUG ((DEBUG_ERROR, "Size of result XML doc is too large (0x%X).\n", Data->ResultXmlSize));
-  //   Status = EFI_ABORTED;
-  //   goto EXIT;
-  // }
-
-  // StrLen = AsciiStrSize (Data->ResultXml);
-  // if (Data->ResultXmlSize != StrLen)
-  // {
-  //   DEBUG ((DEBUG_ERROR, "ResultXmlSize is not the correct size\n"));
-  // }
-  // DEBUG ((DEBUG_INFO, "%a - ResultXmlSize = 0x%X  ResultXml String Length = 0x%X\n", __FUNCTION__, Data->ResultXmlSize, StrLen));
   Status = EFI_SUCCESS;
 
 EXIT:
@@ -585,7 +482,7 @@ EXIT:
 }
 
 /**
- * Issue DfciUsbRequest - load settings from a USB drive
+ * Issue SvdUsbRequest - load settings from a USB drive
  *
  * @param  NONE
  *
@@ -593,65 +490,48 @@ EXIT:
  */
 STATIC
 EFI_STATUS
-ProcessDfciUsbInput (
+ProcessSvdUsbInput (
   VOID
   )
 {
   EFI_STATUS  Status;
   CHAR16      *FileName;
-  CHAR16      *FileName2;
   CHAR8       *XmlString;
   UINTN       XmlStringSize;
-
-  DfciUiExitSecurityBoundary ();
 
   FileName  = NULL;
   XmlString = NULL;
 
   //
-  // Process request
+  // Process request, from the PcdConfigurationFileName
   //
-  Status = BuildUsbRequest (L".svd", &FileName);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Error building Usb Request. Code=%r\n", Status));
-  } else {
-    Status = DfciRequestJsonFromUSB (
+  FileName = AllocateCopyPool (PcdGetSize (PcdConfigurationFileName), PcdGetPtr (PcdConfigurationFileName));
+  if (NULL != FileName) {
+    Status = SvdRequestXmlFromUSB (
                FileName,
                &XmlString,
                &XmlStringSize
                );
     if (EFI_ERROR (Status)) {
-      FileName2 = AllocateCopyPool (sizeof (DEFAULT_USB_FILE_NAME), DEFAULT_USB_FILE_NAME);
-      if (NULL != FileName2) {
-        Status = DfciRequestJsonFromUSB (
-                   FileName2,
-                   &XmlString,
-                   &XmlStringSize
-                   );
-        if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "Error loading backup file\n"));
-          FreePool (FileName2);
-        } else {
-          FreePool (FileName);
-          FileName = FileName2;
-        }
-      }
+      DEBUG ((DEBUG_ERROR, "Error loading backup file\n"));
+      FreePool (FileName);
+      FileName = NULL;
+    }
+  }
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Error processing SVD Usb Request. Code=%r\n", Status));
+  } else {
+    DEBUG ((DEBUG_INFO, "SvdUsb Request processed normally\n"));
+    // The XmlStringSize returned will be NULL terminated, thus trim off the tail.
+    Status = ApplySettings (XmlString, XmlStringSize - 1);
+    if (Status == EFI_MEDIA_CHANGED) {
+      // MEDIA_CHANGED is a good return, It means that a JSON element updated a mailbox.
+      Status = EFI_SUCCESS;
     }
 
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Error processing Dfci Usb Request. Code=%r\n", Status));
-    } else {
-      DEBUG ((DEBUG_INFO, "DfciUsb Request processed normally\n"));
-      // The XmlStringSize returned will be NULL terminated, thus trim off the tail.
-      Status = ApplySettings (XmlString, XmlStringSize - 1);
-      if (Status == EFI_MEDIA_CHANGED) {
-        // MEDIA_CHANGED is a good return, It means that a JSON element updated a mailbox.
-        Status = EFI_SUCCESS;
-      }
-
-      if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a: Error updating from JSON packet. Code=%r\n", __FUNCTION__, Status));
-      }
+      DEBUG ((DEBUG_ERROR, "%a: Error updating from JSON packet. Code=%r\n", __FUNCTION__, Status));
     }
   }
 
@@ -670,11 +550,16 @@ ProcessDfciUsbInput (
     CpuDeadLoop ();
   }
 
+  if (NULL != FileName) {
+    // If we ever return, free the allocated buffer.
+    FreePool (FileName);
+  }
+
   return Status;
 }
 
 /**
- * Issue DfciSerialRequest - load settings from a USB drive
+ * Issue SvdSerialRequest - load settings from a USB drive
  *
  * @param  NONE
  *
@@ -682,7 +567,7 @@ ProcessDfciUsbInput (
  */
 STATIC
 EFI_STATUS
-ProcessDfciSerialInput (
+ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
@@ -767,8 +652,6 @@ CreateXmlStringFromCurrentSettings (
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
-  UINT8                  Dummy;
-  DFCI_SETTING_FLAGS     Flags;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
   CONFIG_VAR_LIST_ENTRY  *VarListEntries     = NULL;
@@ -874,111 +757,71 @@ CreateXmlStringFromCurrentSettings (
 
     AsciiSPrint (AsciiName, AsciiSize, "%s", Name);
 
-    if ((0 == AsciiStrnCmp (AsciiName, DFCI_OEM_SETTING_ID__CONF, AsciiStrLen (DFCI_OEM_SETTING_ID__CONF))) ||
-        (0 == AsciiStrnCmp (AsciiName, SINGLE_SETTING_PROVIDER_START, AsciiStrLen (SINGLE_SETTING_PROVIDER_START))))
-    {
-      // Do the same DFCI stuff
-      DataSize = 0;
-      Status   = mSettingAccess->Get (
-                                   mSettingAccess,
-                                   AsciiName,
-                                   &mAuthToken,
-                                   DFCI_SETTING_TYPE_BINARY,
-                                   &DataSize,
-                                   &Dummy,
-                                   &Flags
-                                   );
-      if (Status != EFI_BUFFER_TOO_SMALL) {
-        DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
-        goto EXIT;
-      }
-
-      Data = AllocatePool (DataSize);
-      if (Data == NULL) {
-        Status = EFI_OUT_OF_RESOURCES;
-        goto EXIT;
-      }
-
-      Status = mSettingAccess->Get (
-                                 mSettingAccess,
-                                 AsciiName,
-                                 &mAuthToken,
-                                 DFCI_SETTING_TYPE_BINARY,
-                                 &DataSize,
-                                 Data,
-                                 &Flags
-                                 );
-      if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a - Get binary configuration data returned unexpected result = %r\n", __FUNCTION__, Status));
-        goto EXIT;
-      }
-    } else {
-      // Put variables into the variable list structure
-      DataSize = 0;
-      Status   = gRT->GetVariable (
-                        Name,
-                        &Guid,
-                        &Attributes,
-                        &DataSize,
-                        NULL
-                        );
-      if (Status != EFI_BUFFER_TOO_SMALL) {
-        DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
-        goto EXIT;
-      }
-
-      NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + DataSize + sizeof (EFI_GUID) +
-                   sizeof (Attributes) + sizeof (UINT32);
-
-      Data = AllocatePool (NeededSize);
-      if (Data == NULL) {
-        Status = EFI_OUT_OF_RESOURCES;
-        goto EXIT;
-      }
-
-      Offset = 0;
-      // Header
-      ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
-      ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)DataSize;
-      Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
-
-      // Name
-      CopyMem ((UINT8 *)Data + Offset, Name, NameSize);
-      Offset += NameSize;
-
-      // Guid
-      CopyMem ((UINT8 *)Data + Offset, &Guid, sizeof (Guid));
-      Offset += sizeof (Guid);
-
-      // Attributes
-      CopyMem ((UINT8 *)Data + Offset, &Attributes, sizeof (Attributes));
-      Offset += sizeof (Attributes);
-
-      // Data
-      Status = gRT->GetVariable (
+    // Put variables into the variable list structure
+    DataSize = 0;
+    Status   = gRT->GetVariable (
                       Name,
                       &Guid,
                       &Attributes,
                       &DataSize,
-                      (UINT8 *)Data + Offset
+                      NULL
                       );
-      if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
-        goto EXIT;
-      }
-
-      Offset += DataSize;
-
-      // CRC32
-      *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
-      Offset                             += sizeof (UINT32);
-
-      // They should still match in size...
-      ASSERT (Offset == NeededSize);
-
-      // Then pacify the value of DataSize used below
-      DataSize = NeededSize;
+    if (Status != EFI_BUFFER_TOO_SMALL) {
+      DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
+      goto EXIT;
     }
+
+    NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + DataSize + sizeof (EFI_GUID) +
+                 sizeof (Attributes) + sizeof (UINT32);
+
+    Data = AllocatePool (NeededSize);
+    if (Data == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+      goto EXIT;
+    }
+
+    Offset = 0;
+    // Header
+    ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
+    ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)DataSize;
+    Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
+
+    // Name
+    CopyMem ((UINT8 *)Data + Offset, Name, NameSize);
+    Offset += NameSize;
+
+    // Guid
+    CopyMem ((UINT8 *)Data + Offset, &Guid, sizeof (Guid));
+    Offset += sizeof (Guid);
+
+    // Attributes
+    CopyMem ((UINT8 *)Data + Offset, &Attributes, sizeof (Attributes));
+    Offset += sizeof (Attributes);
+
+    // Data
+    Status = gRT->GetVariable (
+                    Name,
+                    &Guid,
+                    &Attributes,
+                    &DataSize,
+                    (UINT8 *)Data + Offset
+                    );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
+      goto EXIT;
+    }
+
+    Offset += DataSize;
+
+    // CRC32
+    *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
+    Offset                             += sizeof (UINT32);
+
+    // They should still match in size...
+    ASSERT (Offset == NeededSize);
+
+    // Then pacify the value of DataSize used below
+    DataSize = NeededSize;
 
     // First encode the binary blob
     EncodedSize = 0;
@@ -1119,8 +962,14 @@ SetupConfMgr (
     case SetupConfUpdateUsb:
       // Locate data blob from local USB device and apply changes. This function does not return
       //
-      Status = ProcessDfciUsbInput ();
-      if (EFI_ERROR (Status)) {
+      Status = ProcessSvdUsbInput ();
+      if (Status == EFI_NOT_FOUND) {
+        // Do not assert if we just cannot find the file...
+        Print (L"\nCould not find USB file %s\n", PcdGetPtr (PcdConfigurationFileName));
+        Status          = EFI_SUCCESS;
+        mSetupConfState = SetupConfWait;
+        break;
+      } else if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_ERROR, "%a Failed to load configuration data from USB - %r\n", __FUNCTION__, Status));
         ASSERT (FALSE);
       }
@@ -1145,7 +994,7 @@ SetupConfMgr (
       if (KeyData.Key.ScanCode == SCAN_ESC) {
         mSetupConfState = SetupConfExit;
       } else {
-        Status = ProcessDfciSerialInput (KeyData.Key.UnicodeChar);
+        Status = ProcessSvdSerialInput (KeyData.Key.UnicodeChar);
         if (EFI_ERROR (Status)) {
           mSetupConfState = SetupConfExit;
         }

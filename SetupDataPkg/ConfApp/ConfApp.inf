@@ -22,17 +22,14 @@
   SecureBoot.c
   SetupConf.c
   SystemInfo.c
-  DfciUsb/DfciUsb.c
-  DfciUsb/DfciUsb.h
-  DfciUtility/DfciUtility.c
-  DfciUtility/DfciUtility.h
+  SvdUsb/SvdUsb.c
+  SvdUsb/SvdUsb.h
 
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   SetupDataPkg/SetupDataPkg.dec
   PcBdsPkg/PcBdsPkg.dec
-  DfciPkg/DfciPkg.dec
   MsCorePkg/MsCorePkg.dec
   XmlSupportPkg/XmlSupportPkg.dec
   SecurityPkg/SecurityPkg.dec
@@ -50,28 +47,22 @@
   SecureBootKeyStoreLib
   JsonLiteParserLib
   FileHandleLib
-  DfciUiSupportLib
-  DfciDeviceIdSupportLib
   XmlTreeLib
   XmlTreeQueryLib
-  DfciXmlSettingSchemaSupportLib
-  ConfigDataLib
+  SvdXmlSettingSchemaSupportLib
   PerformanceLib
-  ConfigVariableListLib
   ConfigSystemModeLib
 
 [Guids]
-  gDfciAuthProvisionVarNamespace
-  gDfciPermissionManagerVarNamespace
-  gDfciSettingsManagerVarNamespace
   gMuVarPolicyDxePhaseGuid
-  gSetupConfigPolicyVariableGuid
   gEfiEventReadyToBootGuid
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationFileName
 
 [Protocols]
   gEfiSimpleTextInputExProtocolGuid
-  gDfciSettingAccessProtocolGuid
-  gDfciAuthenticationProtocolGuid
   gEfiBlockIoProtocolGuid
   gEfiUsbIoProtocolGuid
   gEfiFirmwareManagementProtocolGuid

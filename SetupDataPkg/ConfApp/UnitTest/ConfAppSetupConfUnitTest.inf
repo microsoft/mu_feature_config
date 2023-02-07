@@ -30,7 +30,6 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
-  DfciPkg/DfciPkg.dec
   MsCorePkg/MsCorePkg.dec
   XmlSupportPkg/XmlSupportPkg.dec
   SecurityPkg/SecurityPkg.dec
@@ -45,26 +44,27 @@
   UnitTestLib
   PrintLib
   PerformanceLib
-  ConfigDataLib
   ResetSystemLib
   XmlTreeLib
   XmlTreeQueryLib
-  DfciXmlSettingSchemaSupportLib
-  DfciUiSupportLib
+  SvdXmlSettingSchemaSupportLib
   SecureBootKeyStoreLib
-  ConfigVariableListLib
   ConfigSystemModeLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
-  gDfciSettingAccessProtocolGuid
-  gDfciAuthenticationProtocolGuid
   gEfiSimpleTextInputExProtocolGuid
   gEfiSimpleFileSystemProtocolGuid
   gEfiUsbIoProtocolGuid
   gEfiBlockIoProtocolGuid
 
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationFileName
+
 [Guids]
-  gSetupConfigPolicyVariableGuid
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+
+[BuildOptions]
+  *_*_*_CC_FLAGS = -D UNIT_TEST_ENV

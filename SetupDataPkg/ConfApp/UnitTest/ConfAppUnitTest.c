@@ -15,16 +15,13 @@
 
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
-#include <DfciSystemSettingTypes.h>
 #include <Protocol/VariablePolicy.h>
-#include <Protocol/DfciSettingsProvider.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/ConfigDataLib.h>
 #include <Library/DxeServicesLib.h>
 
 #include <Library/UnitTestLib.h>
@@ -54,43 +51,6 @@ ConfAppEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   );
 
-// Mocked version of DFCI_AUTHENTICATION_PROTOCOL instance.
-EFI_STATUS
-EFIAPI
-MockGetEnrolledIdentities (
-  IN CONST DFCI_AUTHENTICATION_PROTOCOL  *This,
-  OUT      DFCI_IDENTITY_MASK            *EnrolledIdentities
-  )
-{
-  assert_non_null (This);
-  assert_non_null (EnrolledIdentities);
-
-  *EnrolledIdentities = (DFCI_IDENTITY_MASK)mock ();
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
-EFIAPI
-MockAuthWithPW (
-  IN  CONST DFCI_AUTHENTICATION_PROTOCOL  *This,
-  IN  CONST CHAR16                        *Password OPTIONAL,
-  IN  UINTN                               PasswordLength,
-  OUT DFCI_AUTH_TOKEN                     *IdentityToken
-  )
-{
-  assert_non_null (This);
-  assert_null (Password);
-  assert_int_equal (PasswordLength, 0);
-
-  *IdentityToken = (DFCI_AUTH_TOKEN)mock ();
-  return EFI_SUCCESS;
-}
-
-DFCI_AUTHENTICATION_PROTOCOL  MockAuthProtocol = {
-  .GetEnrolledIdentities = MockGetEnrolledIdentities,
-  .AuthWithPW            = MockAuthWithPW,
-};
-
 /**
   Helper function to switch main state machine.
 
@@ -107,7 +67,7 @@ SwitchMachineState (
 
 /**
   State machine for system information page. It will display fundamental information, including
-  UEFI version, system time, DFCI identity and configuration settings.
+  UEFI version, system time, and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
   @retval Others                Failed to wait for valid keystrokes or application of
@@ -412,15 +372,6 @@ ConfAppEntrySelect1 (
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
-
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
@@ -479,15 +430,6 @@ ConfAppEntrySelect2 (
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
 
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
@@ -548,15 +490,6 @@ ConfAppEntrySelect3 (
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
-
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
@@ -615,15 +548,6 @@ ConfAppEntrySelect4 (
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
 
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
@@ -684,15 +608,6 @@ ConfAppEntrySelectH (
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
 
   expect_any_count (MockSetCursorPosition, Column, 2);
   expect_any_count (MockSetCursorPosition, Row, 2);
@@ -756,15 +671,6 @@ ConfAppEntrySelectEsc (
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
-
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
@@ -821,15 +727,6 @@ ConfAppEntrySelectOther (
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
 
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);
@@ -889,15 +786,6 @@ ConfAppEntryMfg (
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciSettingAccessProtocolGuid);
-  will_return (MockLocateProtocol, NULL);
-
-  expect_value (MockLocateProtocol, Protocol, &gDfciAuthenticationProtocolGuid);
-  will_return (MockLocateProtocol, &MockAuthProtocol);
-
-  will_return (MockAuthWithPW, 0xFEEDF00D);
-  will_return (MockGetEnrolledIdentities, DFCI_IDENTITY_LOCAL);
 
   expect_any_count (MockSetCursorPosition, Column, 1);
   expect_any_count (MockSetCursorPosition, Row, 1);

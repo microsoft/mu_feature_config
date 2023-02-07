@@ -8,9 +8,7 @@
 
 #include <Uefi.h>
 #include <UefiSecureBoot.h>
-#include <DfciSystemSettingTypes.h>
 #include <Guid/MuVarPolicyFoundationDxe.h>
-#include <Protocol/DfciAuthentication.h>
 
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
@@ -88,9 +86,6 @@ CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
 
 ConfState_t                        mConfState       = MainInit;
 EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx = NULL;
-DFCI_SETTING_ACCESS_PROTOCOL       *mSettingAccess  = NULL;
-DFCI_AUTH_TOKEN                    mAuthToken;
-DFCI_IDENTITY_MASK                 mIdMask;          // Identities installed
 SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
 UINT8                              mSecureBootKeysCount;
 
@@ -325,59 +320,6 @@ CheckSupportedOptions (
 }
 
 /**
-  Acquire an Auth Token and save it in a protocol
-
-  @param[in]  PasswordBuffer      Pointer to buffer that holds password.
-
-  @retval EFI_SUCCESS         The operation was successful.
-  @retval EFI_NOT_READY       Failed to get valid auth token.
-  @retval Other               Failed to get enrolled identities.
-**/
-EFI_STATUS
-GetAuthTokenAndIdentities (
-  CONST IN  CHAR16  *PasswordBuffer
-  )
-{
-  EFI_STATUS                    Status;
-  DFCI_AUTHENTICATION_PROTOCOL  *AuthProtocol;
-
-  Status = gBS->LocateProtocol (
-                  &gDfciAuthenticationProtocolGuid,
-                  NULL,
-                  (VOID **)&AuthProtocol
-                  );
-
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to locate MsAuthProtocol. Can't use check auth. %r\n", __FUNCTION__, Status));
-    AuthProtocol = NULL;
-    return Status;
-  }
-
-  if (PasswordBuffer != NULL) {
-    Status = AuthProtocol->AuthWithPW (AuthProtocol, PasswordBuffer, StrLen (PasswordBuffer), &mAuthToken);
-    DEBUG ((DEBUG_INFO, "%a Auth Token Acquired %x - %r\n", __FUNCTION__, mAuthToken, Status));
-  } else {
-    Status = AuthProtocol->AuthWithPW (AuthProtocol, NULL, 0, &mAuthToken);
-    DEBUG ((DEBUG_INFO, "%a Auth Token Acquired with NULL Password %x - %r\n", __FUNCTION__, mAuthToken, Status));
-  }
-
-  if (!EFI_ERROR (Status) && (mAuthToken == DFCI_AUTH_TOKEN_INVALID)) {
-    DEBUG ((DEBUG_ERROR, "%a Auth Token is invalid %r\n", __FUNCTION__, Status));
-    Status = EFI_NOT_READY;
-    goto Exit;
-  }
-
-  Status = AuthProtocol->GetEnrolledIdentities (AuthProtocol, &mIdMask);
-  if (!EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: Failed to get owner ids. %r\n", __FUNCTION__, Status));
-    goto Exit;
-  }
-
-Exit:
-  return Status;
-}
-
-/**
   Entrypoint of configuration app. This function holds the main state machine for
   console based user interface.
 
@@ -423,16 +365,6 @@ ConfAppEntry (
     goto Exit;
   }
 
-  Status = gBS->LocateProtocol (
-                  &gDfciSettingAccessProtocolGuid,
-                  NULL,
-                  (VOID **)&mSettingAccess
-                  );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Unable to locate SettingAccess. Code = %r.\n", Status));
-    goto Exit;
-  }
-
   Status = GetPlatformKeyStore (&mSecureBootKeys, &mSecureBootKeysCount);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Failed to get platform secure boot keys. Code = %r.\n", Status));
@@ -442,12 +374,6 @@ ConfAppEntry (
   // Force-connect all controllers.
   //
   EfiBootManagerConnectAll ();
-
-  Status = GetAuthTokenAndIdentities (NULL);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Unable to get Auth token. Code = %r.\n", Status));
-    goto Exit;
-  }
 
   //
   // Main state machine

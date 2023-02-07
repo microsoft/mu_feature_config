@@ -16,7 +16,6 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/MuUefiVersionLib.h>
 #include <Library/UefiLib.h>
-#include <Library/ConfigDataLib.h>
 
 #include "ConfApp.h"
 
@@ -181,48 +180,6 @@ Done:
 }
 
 /**
-  Helper internal function to query and print configuration data to ConOut.
-**/
-EFI_STATUS
-PrintSettings (
-  VOID
-  )
-{
-  Print (L"Identity:\t");
-  if (mIdMask == DFCI_IDENTITY_INVALID) {
-    Print (L"Invalid ");
-  }
-
-  if (mIdMask & DFCI_IDENTITY_LOCAL) {
-    Print (L"Local ");
-  }
-
-  if (mIdMask == DFCI_IDENTITY_SIGNER_ZTD) {
-    Print (L"ZTD ");
-  }
-
-  if (mIdMask == DFCI_IDENTITY_SIGNER_USER2) {
-    Print (L"User2 ");
-  }
-
-  if (mIdMask == DFCI_IDENTITY_SIGNER_USER1) {
-    Print (L"User1 ");
-  }
-
-  if (mIdMask == DFCI_IDENTITY_SIGNER_USER) {
-    Print (L"User ");
-  }
-
-  if (mIdMask == DFCI_IDENTITY_SIGNER_OWNER) {
-    Print (L"Owner ");
-  }
-
-  Print (L"\n");
-
-  return EFI_SUCCESS;
-}
-
-/**
   Helper internal function to print system date and time.
 **/
 EFI_STATUS
@@ -274,12 +231,6 @@ PrintSysInfoOptions (
     return Status;
   }
 
-  Status = PrintSettings ();
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a Error printing settings data - %r\n", __FUNCTION__, Status));
-    return Status;
-  }
-
   mDateTimeCol = gST->ConOut->Mode->CursorColumn;
   mDateTimeRow = gST->ConOut->Mode->CursorRow;
   Status       = PrintDateTime ();
@@ -301,7 +252,7 @@ PrintSysInfoOptions (
 
 /**
   State machine for system information page. It will display fundamental information, including
-  UEFI version, system time, DFCI identity and configuration settings.
+  UEFI version, system time, and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
   @retval Others                Failed to wait for valid keystrokes or application of
