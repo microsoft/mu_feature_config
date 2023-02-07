@@ -694,7 +694,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                 out.write("{} config_set_{}({} value) {{".format(
                     get_type_string('bool', efi_type),
                     knob.name,
-                    knob.format.c_type))
+                    knob.format.c_type) + get_line_ending(efi_type))
                 out.write(get_spacing_string(efi_type) + "return set_knob_value(KNOB_{}, &value);".format(
                     knob.name
                 ) + get_line_ending(efi_type))
