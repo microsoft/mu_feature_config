@@ -30,7 +30,6 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
-  DfciPkg/DfciPkg.dec
   MsCorePkg/MsCorePkg.dec
   PcBdsPkg/PcBdsPkg.dec
   SecurityPkg/SecurityPkg.dec
@@ -55,6 +54,4 @@
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
-  gDfciSettingAccessProtocolGuid
-  gDfciAuthenticationProtocolGuid
   gEfiSimpleTextInputExProtocolGuid

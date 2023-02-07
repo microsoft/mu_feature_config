@@ -9,9 +9,6 @@
 #define CONF_APP_H_
 
 #include <UefiSecureBoot.h>
-#include <DfciSystemSettingTypes.h>
-#include <Protocol/DfciAuthentication.h>
-#include <Protocol/DfciSettingAccess.h>
 
 #define NO_TRANSITION_STATE  MAX_UINTN
 
@@ -170,7 +167,7 @@ PrintScreenInit (
 
 /**
   State machine for system information page. It will display fundamental information, including
-  UEFI version, system time, DFCI identity and configuration settings.
+  UEFI version, system time, and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
   @retval Others                Failed to wait for valid keystrokes or application of
@@ -225,9 +222,6 @@ SetupConfMgr (
   );
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx;
-extern DFCI_SETTING_ACCESS_PROTOCOL       *mSettingAccess;
-extern DFCI_AUTH_TOKEN                    mAuthToken;
-extern DFCI_IDENTITY_MASK                 mIdMask;
 extern SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
 extern UINT8                              mSecureBootKeysCount;
 

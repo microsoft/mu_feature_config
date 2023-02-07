@@ -35,7 +35,6 @@
             "MdePkg/MdePkg.dec",
             "MdeModulePkg/MdeModulePkg.dec",
             "MsCorePkg/MsCorePkg.dec",
-            "DfciPkg/DfciPkg.dec",
             "PcBdsPkg/PcBdsPkg.dec",
             "XmlSupportPkg/XmlSupportPkg.dec",
             "SecurityPkg/SecurityPkg.dec",

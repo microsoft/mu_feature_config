@@ -15,9 +15,7 @@
 
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
-#include <DfciSystemSettingTypes.h>
 #include <Protocol/VariablePolicy.h>
-#include <Protocol/DfciSettingsProvider.h>
 #include <Protocol/FirmwareManagement.h>
 
 #include <Library/BaseLib.h>
@@ -25,7 +23,6 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/ConfigDataLib.h>
 #include <Library/DxeServicesLib.h>
 
 #include <Library/UnitTestLib.h>

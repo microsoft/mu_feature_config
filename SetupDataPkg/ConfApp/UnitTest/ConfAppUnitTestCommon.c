@@ -75,12 +75,12 @@ MockGetVariable (
   UINTN  Size;
   VOID   *RetData;
 
-  assert_memory_equal (VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
-  assert_memory_equal (VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+  check_expected (VariableName);
+  check_expected (VendorGuid);
   assert_non_null (Attributes);
 
   *Attributes = READY_TO_BOOT_INDICATOR_VAR_ATTR;
-  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
 
   Size = (UINTN)mock ();
   if (Size > *DataSize) {
@@ -143,7 +143,7 @@ MockSetVariable (
   assert_non_null (VariableName);
 
   DEBUG ((DEBUG_INFO, "%a Name: %s\n", __FUNCTION__, VariableName));
-  DUMP_HEX (DEBUG_ERROR, 0, VendorGuid, sizeof (VendorGuid), "OSDDEBUG: ");
+  DUMP_HEX (DEBUG_ERROR, 0, VendorGuid, sizeof (VendorGuid), "SetVar: ");
 
   check_expected (VariableName);
   check_expected (VendorGuid);

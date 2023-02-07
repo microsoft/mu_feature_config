@@ -1,7 +1,7 @@
 /** @file
-DfciUsb.c
+SvdUsb.c
 
-This module will request new DFCI configuration data from a USB drive.
+This module will request new SVD configuration data from a USB drive.
 
 Copyright (C) Microsoft Corporation. All rights reserved.
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -9,8 +9,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include <Uefi.h>
-
-#include <Guid/DfciPacketHeader.h>
 
 #include <Protocol/DevicePath.h>
 #include <Protocol/SimpleFileSystem.h>
@@ -23,103 +21,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/PrintLib.h>
 
-#include "DfciUtility.h"
-#include "DfciUsb.h"
-
-/**
- * BuildUsbRequest
- *
- * @param[in]   FileNameExtension - Extension for file name
- * @param[out]  filename          - Name of the file on USB to retrieve
- *
- **/
-EFI_STATUS
-EFIAPI
-BuildUsbRequest (
-  IN  CHAR16  *FileExtension,
-  OUT CHAR16  **FileName
-  )
-{
-  DFCI_SYSTEM_INFORMATION  DfciInfo;
-  UINTN                    i;
-  CHAR16                   *PktFileName = NULL;
-  UINTN                    PktNameLen;
-  EFI_STATUS               Status;
-
-  PktFileName = NULL;
-
-  Status = DfciGetSystemInfo (&DfciInfo);
-  if (EFI_ERROR (Status)) {
-    goto Error;
-  }
-
-  PktFileName = (CHAR16 *)AllocatePool (MAX_USB_FILE_NAME_LENGTH * sizeof (CHAR16));
-  if (PktFileName == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Error;
-  }
-
-  // The maximum file name length is 255 characters and a NULL.  Leave room for
-  // the four character file name extension.  Create the base PktFileName out of
-  // the first 251 characters of SerialNumber_ProductName_Manufacturer then add the
-  // file name extension.
-
-  PktNameLen = UnicodeSPrintAsciiFormat (
-                 PktFileName,
-                 (MAX_USB_FILE_NAME_LENGTH - 4) * sizeof (CHAR16),
-                 "%a_%a_%a",
-                 DfciInfo.SerialNumber,
-                 DfciInfo.ProductName,
-                 DfciInfo.Manufacturer
-                 );
-  DfciFreeSystemInfo (&DfciInfo);
-  if ((PktNameLen == 0) || (PktNameLen >= (MAX_USB_FILE_NAME_LENGTH - 4))) {
-    DEBUG ((DEBUG_ERROR, "Invalid file name length %d\n", PktNameLen));
-    Status = EFI_BAD_BUFFER_SIZE;
-    goto Error;
-  }
-
-  //
-  //  Any binary value of 0x01-0x1f, and any of    " * / : < > ? \ |
-  //  are not allowed in the file name.  If any of these exist, then
-  //  replace the invalid character with an '@'.
-  //
-  for (i = 0; i < PktNameLen; i++) {
-    if (((PktFileName[i] >= 0x00) &&
-         (PktFileName[i] <= 0x1F)) ||
-        (PktFileName[i] == L'\"') ||
-        (PktFileName[i] == L'*')  ||
-        (PktFileName[i] == L'/')  ||
-        (PktFileName[i] == L':')  ||
-        (PktFileName[i] == L'<')  ||
-        (PktFileName[i] == L'>')  ||
-        (PktFileName[i] == L'?')  ||
-        (PktFileName[i] == L'\\') ||
-        (PktFileName[i] == L'|'))
-    {
-      PktFileName[i] = L'@';
-    }
-  }
-
-  Status = StrCatS (PktFileName, MAX_USB_FILE_NAME_LENGTH * sizeof (CHAR16), FileExtension);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Unable to append the file name ext. Code=%r\n", Status));
-    goto Error;
-  }
-
-  *FileName = PktFileName;
-
-  return EFI_SUCCESS;
-
-Error:
-  if (NULL != PktFileName) {
-    FreePool (PktFileName);
-  }
-
-  DfciFreeSystemInfo (&DfciInfo);
-
-  return Status;
-}
+#include "SvdUsb.h"
 
 /**
 *
@@ -136,7 +38,7 @@ Error:
 **/
 STATIC
 EFI_STATUS
-FindUsbDriveWithDfciUpdate (
+FindUsbDriveWithSvdUpdate (
   IN  CHAR16  *PktFileName,
   OUT CHAR8   **Buffer,
   OUT UINTN   *BufferSize
@@ -273,13 +175,9 @@ FindUsbDriveWithDfciUpdate (
     }
 
     //
-    // There can be six items encoded in base64 (4 ascii bytes per 3
-    // binary bytes) + some overhead for the json structure (64 bytes
-    // for each of the 6 entries).
+    // Do not accept empty files
     //
-    if ((FileInfo->FileSize == 0) ||
-        (FileInfo->FileSize > ((MAX_ALLOWABLE_DFCI_APPLY_VAR_SIZE * 6 * 4) / 3 + 384)))
-    {
+    if (FileInfo->FileSize == 0) {
       DEBUG ((DEBUG_ERROR, "%a: Invalid file size %d.\n", __FUNCTION__, FileInfo->FileSize));
       Status = EFI_BAD_BUFFER_SIZE;
       FileHandleClose (FileHandle);
@@ -343,7 +241,7 @@ CleanUp:
 
 /**
 *
-*  Request a Json Dfci settings packet.
+*  Request a Json Svd settings packet.
 *
 *  @param[in]     FileName        What file to read.
 *  @param[out]    JsonString      Where to store the Json String
@@ -354,7 +252,7 @@ CleanUp:
 **/
 EFI_STATUS
 EFIAPI
-DfciRequestJsonFromUSB (
+SvdRequestXmlFromUSB (
   IN  CHAR16  *FileName,
   OUT CHAR8   **JsonString,
   OUT UINTN   *JsonStringSize
@@ -372,7 +270,7 @@ DfciRequestJsonFromUSB (
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = FindUsbDriveWithDfciUpdate (FileName, &Buffer, &BufferSize);
+  Status = FindUsbDriveWithSvdUpdate (FileName, &Buffer, &BufferSize);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to read update. Code=%r\n", Status));
   } else {

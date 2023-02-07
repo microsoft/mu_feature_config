@@ -15,16 +15,13 @@
 
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
-#include <DfciSystemSettingTypes.h>
 #include <Protocol/VariablePolicy.h>
-#include <Protocol/DfciSettingsProvider.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/ConfigDataLib.h>
 #include <Library/UefiBootManagerLib.h>
 
 #include <Library/UnitTestLib.h>
@@ -39,7 +36,7 @@ extern BootOptState_t                     mBootOptState;
 
 /**
   State machine for system information page. It will display fundamental information, including
-  UEFI version, system time, DFCI identity and configuration settings.
+  UEFI version, system time, and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
   @retval Others                Failed to wait for valid keystrokes or application of

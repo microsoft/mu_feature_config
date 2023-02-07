@@ -1,36 +1,22 @@
 /** @file
-DfciUsb.h
+SvdUsb.h
 
-DfciUsb loads Dfci Configuration from a USB drive
+SvdUsb loads SVD Configuration from a USB drive
 
 Copyright (C) Microsoft Corporation. All rights reserved.
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#ifndef __DFCI_USB_H__
-#define __DFCI_USB_H__
+#ifndef SVD_USB_H_
+#define SVD_USB_H_
 
 // MAX_USB_FILE_NAME_LENGTH Includes the terminating NULL
 #define MAX_USB_FILE_NAME_LENGTH  256
 
 /**
- * BuildUsbRequest
- *
- * @param[in]   FileNameExtension - Extension for file name
- * @param[out]  filename   - Name of the file on USB to retrieve
- *
- **/
-EFI_STATUS
-EFIAPI
-BuildUsbRequest (
-  IN  CHAR16  *FileExtension,
-  OUT CHAR16  **FileName
-  );
-
-/**
 *
-*  Request a Json Dfci settings packet.
+*  Request a XML SVD settings packet.
 *
 *  @param[in]     FileName        What file to read.
 *  @param[out]    JsonString      Where to store the Json String
@@ -41,10 +27,10 @@ BuildUsbRequest (
 **/
 EFI_STATUS
 EFIAPI
-DfciRequestJsonFromUSB (
+SvdRequestXmlFromUSB (
   IN  CHAR16  *FileName,
   OUT CHAR8   **JsonString,
   OUT UINTN   *JsonStringSize
   );
 
-#endif // __DFCI_USB_H__
+#endif // SVD_USB_H_

@@ -15,17 +15,14 @@
 
 #include <Uefi.h>
 #include <Pi/PiFirmwareFile.h>
-#include <DfciSystemSettingTypes.h>
 #include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Protocol/VariablePolicy.h>
-#include <Protocol/DfciSettingsProvider.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/ConfigDataLib.h>
 #include <Library/MuSecureBootKeySelectorLib.h>
 
 #include <Library/UnitTestLib.h>
@@ -40,7 +37,7 @@ extern SecureBootState_t                  mSecBootState;
 
 /**
   State machine for system information page. It will display fundamental information, including
-  UEFI version, system time, DFCI identity and configuration settings.
+  UEFI version, system time, and configuration settings.
 
   @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
   @retval Others                Failed to wait for valid keystrokes or application of
@@ -286,6 +283,9 @@ ConfAppSecureBootInit (
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_UNKNOWN);
+
+  expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
@@ -632,6 +632,9 @@ ConfAppSecureBootPostRTB (
 
   will_return (GetCurrentSecureBootConfig, MU_SB_CONFIG_UNKNOWN);
 
+  expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
+
   will_return (MockGetVariable, sizeof (LockVar));
   will_return (MockGetVariable, &LockVar);
   will_return (MockGetVariable, EFI_SUCCESS);
@@ -694,6 +697,9 @@ ConfAppSecureBootUpdateKeys (
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   will_return (GetCurrentSecureBootConfig, 0);
+
+  expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
