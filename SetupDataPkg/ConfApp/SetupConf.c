@@ -164,81 +164,27 @@ WriteSVDSetting (
   )
 {
   EFI_STATUS           Status          = EFI_SUCCESS;
-  CHAR16               *AlignedVarName = NULL;
-  CHAR16               *UnalignedVarName;
-  EFI_GUID             *Guid;
-  UINT32               Attributes;
-  CHAR8                *Data;
-  UINT32               CRC32;
-  UINT32               LenToCRC32;
-  UINT32               CalcCRC32 = 0;
-  CONFIG_VAR_LIST_HDR  *VarList;
   UINT32               ListIndex = 0;
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr  = NULL;
+  UINTN                  ConfigVarListCount = 0;
 
   if ((Value == NULL) || (ValueSize == 0)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  while (ListIndex < ValueSize) {
-    // index into variable list
-    VarList = (CONFIG_VAR_LIST_HDR *)(Value + ListIndex);
+  Status = RetrieveActiveConfigVarList (Value, ValueSize, &ConfigVarListPtr, &ConfigVarListCount);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to extract all configuration elements - %r\n", Status));
+    goto Done;
+  }
 
-    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
-        sizeof (Attributes) + sizeof (CRC32) > ValueSize)
-    {
-      // the NameSize and DataSize have bad values and are pushing us past the end of the binary
-      DEBUG ((DEBUG_ERROR, "SVD settings had bad NameSize or DataSize, unable to process all settings\n"));
-      Status = EFI_COMPROMISED_DATA;
-      break;
-    }
-
-    /*
-     * Var List is in DmpStore format:
-     *
-     *  struct {
-     *    CONFIG_VAR_LIST_HDR VarList;
-     *    CHAR16 Name[VarList->NameSize/2];
-     *    EFI_GUID Guid;
-     *    UINT32 Attributes;
-     *    CHAR8 Data[VarList->DataSize];
-     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
-     *  }
-     */
-    UnalignedVarName = (CHAR16 *)(VarList + 1);
-    Guid             = (EFI_GUID *)((CHAR8 *)UnalignedVarName + VarList->NameSize);
-    Attributes       = *(UINT32 *)(Guid + 1);
-    Data             = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
-    CRC32            = *(UINT32 *)(Data + VarList->DataSize);
-    LenToCRC32       = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes);
-
-    // on next iteration, skip past this variable
-    ListIndex += LenToCRC32 + sizeof (CRC32);
-
-    // validate CRC32
-    CalcCRC32 = CalculateCrc32 (VarList, LenToCRC32);
-
-    if (CalcCRC32 != CRC32) {
-      // CRC didn't match, drop this variable, continue to the next
-      DEBUG ((DEBUG_ERROR, "SVD setting failed CRC check, skipping applying setting: %a Status: %r \
-      Received CRC32: %u Calculated CRC32: %u\n", UnalignedVarName, Status, CRC32, CalcCRC32));
-      continue;
-    }
-
-    AlignedVarName = AllocatePool (VarList->NameSize);
-    if (AlignedVarName == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      return Status;
-    }
-
-    // Copy non-16 bit aligned UnalignedVarName to AlignedVarName, not using StrCpyS functions as they assert on non-16 bit alignment
-    CopyMem (AlignedVarName, UnalignedVarName, VarList->NameSize);
-
+  for (ListIndex = 0; ListIndex < ConfigVarListCount; ListIndex ++) {
     // first delete the variable in case of size or attributes change, not validated here as this is only allowed
     // in manufacturing mode. Don't retrieve the status, if we fail to delete, try to write it anyway. If we fail
     // there, just log it and move on
     gRT->SetVariable (
-           AlignedVarName,
-           Guid,
+           ConfigVarListPtr->Name,
+           &ConfigVarListPtr->Guid,
            0,
            0,
            NULL
@@ -246,21 +192,26 @@ WriteSVDSetting (
 
     // write variable directly to var storage
     Status = gRT->SetVariable (
-                    AlignedVarName,
-                    Guid,
-                    Attributes,
-                    VarList->DataSize,
-                    Data
+                    ConfigVarListPtr->Name,
+                    &ConfigVarListPtr->Guid,
+                    ConfigVarListPtr->Attributes,
+                    ConfigVarListPtr->DataSize,
+                    ConfigVarListPtr->Data
                     );
 
     if (EFI_ERROR (Status)) {
       // failed to set variable, continue to try with other variables
-      DEBUG ((DEBUG_ERROR, "Failed to set SVD Setting %s, continuing to try next variables\n", AlignedVarName));
+      DEBUG ((DEBUG_ERROR, "Failed to set SVD Setting %s, continuing to try next variables\n", ConfigVarListPtr->Name));
     }
 
-    FreePool (AlignedVarName);
+    FreePool (ConfigVarListPtr->Name);
+    FreePool (ConfigVarListPtr->Data);
   }
 
+Done:
+  if (ConfigVarListPtr != NULL) {
+    FreePool (ConfigVarListPtr);
+  }
   return Status;
 }
 
@@ -652,18 +603,15 @@ CreateXmlStringFromCurrentSettings (
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
+  VOID                   *VarData       = NULL;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
-  CONFIG_VAR_LIST_ENTRY  *VarListEntries     = NULL;
-  UINTN                  VarListEntriesCount = 0;
-  UINTN                  Index;
+  CONFIG_VAR_LIST_ENTRY  VarListEntries;
   UINT32                 Attributes;
   CHAR16                 *Name;
   EFI_GUID               Guid;
   UINTN                  NameSize;
   UINTN                  NewNameSize;
-  UINTN                  NeededSize;
-  UINTN                  Offset;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -771,57 +719,30 @@ CreateXmlStringFromCurrentSettings (
       goto EXIT;
     }
 
-    NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + DataSize + sizeof (EFI_GUID) +
-                 sizeof (Attributes) + sizeof (UINT32);
-
-    Data = AllocatePool (NeededSize);
-    if (Data == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    Offset = 0;
-    // Header
-    ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
-    ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)DataSize;
-    Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
-
-    // Name
-    CopyMem ((UINT8 *)Data + Offset, Name, NameSize);
-    Offset += NameSize;
-
-    // Guid
-    CopyMem ((UINT8 *)Data + Offset, &Guid, sizeof (Guid));
-    Offset += sizeof (Guid);
-
-    // Attributes
-    CopyMem ((UINT8 *)Data + Offset, &Attributes, sizeof (Attributes));
-    Offset += sizeof (Attributes);
-
-    // Data
+    VarData = AllocatePool (DataSize);
     Status = gRT->GetVariable (
                     Name,
                     &Guid,
                     &Attributes,
                     &DataSize,
-                    (UINT8 *)Data + Offset
+                    (UINT8 *)VarData
                     );
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
       goto EXIT;
     }
 
-    Offset += DataSize;
+    VarListEntries.Name = Name;
+    VarListEntries.Attributes = Attributes;
+    VarListEntries.Data = VarData;
+    VarListEntries.DataSize = (UINT32)DataSize;
+    CopyMem (&(VarListEntries.Guid), &Guid, sizeof (EFI_GUID));
 
-    // CRC32
-    *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
-    Offset                             += sizeof (UINT32);
-
-    // They should still match in size...
-    ASSERT (Offset == NeededSize);
-
-    // Then pacify the value of DataSize used below
-    DataSize = NeededSize;
+    Status = ConvertVariableEntryToVariableList (&VarListEntries, &Data, &DataSize);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
+      goto EXIT;
+    }
 
     // First encode the binary blob
     EncodedSize = 0;
@@ -853,7 +774,9 @@ CreateXmlStringFromCurrentSettings (
     }
 
     FreePool (Data);
+    FreePool (VarListEntries.Data);
     Data = NULL;
+    VarListEntries.Data = NULL;
   }
 
   // now output as xml string
@@ -879,18 +802,8 @@ EXIT:
     FreePool (Name);
   }
 
-  if (VarListEntries != NULL) {
-    for (Index = 0; Index < VarListEntriesCount; Index++) {
-      if (VarListEntries[Index].Name != NULL) {
-        FreePool (VarListEntries[Index].Name);
-      }
-
-      if (VarListEntries[Index].Data != NULL) {
-        FreePool (VarListEntries[Index].Data);
-      }
-    }
-
-    FreePool (VarListEntries);
+  if (VarListEntries.Data != NULL) {
+    FreePool (VarListEntries.Data);
   }
 
   if (EFI_ERROR (Status)) {
