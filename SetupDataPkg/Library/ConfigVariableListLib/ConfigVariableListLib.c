@@ -86,7 +86,7 @@ ConvertVariableListToVariableEntry (
   // validate CRC32
   CalcCRC32 = CalculateCrc32 ((VOID*)VarList, NeededSize - sizeof (CRC32));
   if (CRC32 != CalcCRC32) {
-    DEBUG ((DEBUG_ERROR, "%a CRC is off in the varaible list: actual: %x, expect %x\n", __FUNCTION__, CRC32, CalcCRC32));
+    DEBUG ((DEBUG_ERROR, "%a CRC is off in the variable list: actual: %x, expect %x\n", __FUNCTION__, CRC32, CalcCRC32));
     Status = EFI_COMPROMISED_DATA;
     goto Exit;
   }
