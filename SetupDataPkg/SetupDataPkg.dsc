@@ -84,7 +84,6 @@
 
 [Components]
   SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
-  SetupDataPkg/Library/ConfigVariableListLibNull/ConfigVariableListLibNull.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
   SetupDataPkg/Library/Examples/ConfigKnobShimExampleLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
   SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
