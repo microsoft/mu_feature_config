@@ -47,6 +47,7 @@
   MuUefiVersionLib|PcBdsPkg/Library/MuUefiVersionLibNull/MuUefiVersionLibNull.inf
 
   SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
+  ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   ConfigSystemModeLib|SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
@@ -70,6 +71,7 @@
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
 
 [Components]
+  SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
   SetupDataPkg/Library/Examples/ConfigKnobShimExampleLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
   SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
