@@ -34,8 +34,5 @@
   DebugLib
   UnitTestLib
 
-  [Guids]
-    gZeroGuid
-
-[Pcd]
-  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile
+[Guids]
+  gZeroGuid
