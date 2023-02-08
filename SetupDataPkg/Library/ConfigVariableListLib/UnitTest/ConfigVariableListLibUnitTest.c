@@ -29,77 +29,6 @@
 #define UNIT_TEST_APP_VERSION  "1.0"
 
 /**
-  Mocked version of GetSectionFromAnyFv.
-
-  @param  NameGuid             A pointer to to the FFS filename GUID to search for
-                               within any of the firmware volumes in the platform.
-  @param  SectionType          Indicates the FFS section type to search for within
-                               the FFS file specified by NameGuid.
-  @param  SectionInstance      Indicates which section instance within the FFS file
-                               specified by NameGuid to retrieve.
-  @param  Buffer               On output, a pointer to a callee allocated buffer
-                               containing the FFS file section that was found.
-                               Is it the caller's responsibility to free this buffer
-                               using FreePool().
-  @param  Size                 On output, a pointer to the size, in bytes, of Buffer.
-
-  @retval  EFI_SUCCESS          The specified FFS section was returned.
-  @retval  EFI_NOT_FOUND        The specified FFS section could not be found.
-  @retval  EFI_OUT_OF_RESOURCES There are not enough resources available to
-                                retrieve the matching FFS section.
-  @retval  EFI_DEVICE_ERROR     The FFS section could not be retrieves due to a
-                                device error.
-  @retval  EFI_ACCESS_DENIED    The FFS section could not be retrieves because the
-                                firmware volume that
-                                contains the matching FFS section does not allow reads.
-**/
-EFI_STATUS
-EFIAPI
-GetSectionFromAnyFv (
-  IN CONST  EFI_GUID          *NameGuid,
-  IN        EFI_SECTION_TYPE  SectionType,
-  IN        UINTN             SectionInstance,
-  OUT       VOID              **Buffer,
-  OUT       UINTN             *Size
-  )
-{
-  VOID  *ret_buf;
-
-  assert_int_equal (SectionType, EFI_SECTION_RAW);
-  assert_non_null (Buffer);
-  assert_non_null (Size);
-
-  ret_buf = (VOID *)mock ();
-  if (ret_buf != NULL) {
-    *Size   = (UINTN)mock ();
-    *Buffer = AllocateCopyPool (*Size, ret_buf);
-  } else {
-    return EFI_NOT_FOUND;
-  }
-
-  return EFI_SUCCESS;
-}
-
-/**
-  Mock retrieving a PCD Ptr.
-
-  Returns the pointer to the buffer of the token specified by TokenNumber.
-
-  @param[in]  TokenNumber The PCD token number to retrieve a current value for.
-
-  @return Returns the pointer to the token specified by TokenNumber.
-
-**/
-VOID *
-EFIAPI
-LibPcdGetPtr (
-  IN UINTN  TokenNumber
-  )
-{
-  return (VOID *)mock ();
-}
-
-/**
   Unit test for RetrieveActiveConfigVarList.
 
   @param[in]  Context    [Optional] An optional parameter that enables:
@@ -125,11 +54,7 @@ RetrieveActiveConfigVarListTest (
   EFI_STATUS             Status;
   UINT32                 i = 0;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount);
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   for ( ; i < ConfigVarListCount; i++) {
@@ -182,14 +107,10 @@ QuerySingleActiveConfigUnicodeVarListTest (
   UINT32                 i = 0;
 
   for ( ; i < 9; i++) {
-    will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-    will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-    will_return (LibPcdGetPtr, &gZeroGuid);
-
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-    Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr);
+    Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), mKnown_Good_VarList_Names[i], ConfigVarListPtr);
     UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
@@ -241,10 +162,6 @@ QuerySingleActiveConfigAsciiVarListTest (
   CHAR8                  *AsciiName = NULL;
 
   for ( ; i < 9; i++) {
-    will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-    will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-    will_return (LibPcdGetPtr, &gZeroGuid);
-
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -253,7 +170,7 @@ QuerySingleActiveConfigAsciiVarListTest (
 
     UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-    Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr);
+    Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), AsciiName, ConfigVarListPtr);
     UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
@@ -304,10 +221,16 @@ RetrieveActiveConfigVarListInvalidParamTest (
   EFI_STATUS             Status;
   UINTN                  ConfigVarListCount;
 
-  Status = RetrieveActiveConfigVarList (NULL, &ConfigVarListCount);
+  Status = RetrieveActiveConfigVarList (NULL, 0, NULL, &ConfigVarListCount);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, NULL);
+  Status = RetrieveActiveConfigVarList (NULL, 0, &ConfigVarListPtr, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RetrieveActiveConfigVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, 0, &ConfigVarListPtr, &ConfigVarListCount);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -338,10 +261,16 @@ QuerySingleActiveConfigUnicodeVarListInvalidParamTest (
   EFI_STATUS             Status;
   CHAR16                 UnicodeName;
 
-  Status = QuerySingleActiveConfigUnicodeVarList (NULL, &ConfigVarListPtr);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), NULL, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = QuerySingleActiveConfigUnicodeVarList (&UnicodeName, NULL);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &UnicodeName, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, 0, &UnicodeName, &ConfigVarListPtr);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigUnicodeVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &UnicodeName, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -372,10 +301,16 @@ QuerySingleActiveConfigAsciiVarListInvalidParamTest (
   EFI_STATUS             Status;
   CHAR8                  AsciiName;
 
-  Status = QuerySingleActiveConfigAsciiVarList (NULL, &ConfigVarListPtr);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), NULL, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = QuerySingleActiveConfigAsciiVarList (&AsciiName, NULL);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &AsciiName, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, 0, &AsciiName, &ConfigVarListPtr);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigAsciiVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &AsciiName, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -406,10 +341,6 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
   EFI_STATUS             Status;
   CHAR16                 *UnicodeName = NULL;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -418,7 +349,7 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
 
   AsciiStrToUnicodeStrS ("BadName", UnicodeName, 16);
 
-  Status = QuerySingleActiveConfigUnicodeVarList (UnicodeName, ConfigVarListPtr);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), UnicodeName, ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   FreePool (UnicodeName);
@@ -452,10 +383,6 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
   EFI_STATUS             Status;
   CHAR8                  *AsciiName = NULL;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -464,7 +391,7 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
 
   UnicodeStrToAsciiStrS (L"BadName", AsciiName, 8);
 
-  Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), AsciiName, ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   FreePool (AsciiName);
@@ -499,11 +426,7 @@ RetrieveActiveConfigVarListBadDataTest (
 
   // pass in bad data, expect an assert
   // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), &ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   return UNIT_TEST_PASSED;
 }
@@ -535,10 +458,6 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
 
   // pass in bad data, expect an assert
   // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -547,7 +466,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
 
   UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), AsciiName, ConfigVarListPtr), NULL);
 
   FreePool (AsciiName);
   FreePool (ConfigVarListPtr);
@@ -581,14 +500,10 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
 
   // pass in bad data, expect an assert
   // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
 
   FreePool (ConfigVarListPtr);
 
@@ -618,17 +533,13 @@ RetrieveActiveConfigVarListNoProfileTest (
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
   UINTN                  ConfigVarListCount;
+  EFI_STATUS             Status;
 
-  will_return (GetSectionFromAnyFv, NULL);
-  will_return (LibPcdGetPtr, &gZeroGuid);
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, 0, &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
-
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, 0);
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  Status = RetrieveActiveConfigVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }

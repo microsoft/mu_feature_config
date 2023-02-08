@@ -33,6 +33,3 @@
   BaseMemoryLib
   DebugLib
   UnitTestLib
-
-[Guids]
-  gZeroGuid

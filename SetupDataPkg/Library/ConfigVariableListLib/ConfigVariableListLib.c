@@ -247,10 +247,10 @@ ParseActiveConfigVarList (
 
   *ConfigVarListCount = 0;
 
-  if (EFI_ERROR (Status) || (VariableListBuffer == NULL) || (VariableListBufferSize == 0)) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
-    ASSERT (FALSE);
-    Status = EFI_NOT_FOUND;
+  if ((VariableListBuffer == NULL) || (VariableListBufferSize == 0)) {
+    DEBUG ((DEBUG_ERROR, "%a Incoming variable list buffer (base: %p, size: 0x%x) invalid\n", __FUNCTION__, VariableListBuffer, VariableListBufferSize));
+    *ConfigVarListPtr = NULL;
+    Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
 
