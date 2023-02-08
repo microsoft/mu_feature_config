@@ -21,83 +21,13 @@
 #include <PiDxe.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/ConfigVariableListLib.h>
+#include <Library/SafeIntLib.h>
 
 #include <Library/UnitTestLib.h>
 #include <Good_Config_Data.h>
 
 #define UNIT_TEST_APP_NAME     "Conf Variable List Lib Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
-
-/**
-  Mocked version of GetSectionFromAnyFv.
-
-  @param  NameGuid             A pointer to to the FFS filename GUID to search for
-                               within any of the firmware volumes in the platform.
-  @param  SectionType          Indicates the FFS section type to search for within
-                               the FFS file specified by NameGuid.
-  @param  SectionInstance      Indicates which section instance within the FFS file
-                               specified by NameGuid to retrieve.
-  @param  Buffer               On output, a pointer to a callee allocated buffer
-                               containing the FFS file section that was found.
-                               Is it the caller's responsibility to free this buffer
-                               using FreePool().
-  @param  Size                 On output, a pointer to the size, in bytes, of Buffer.
-
-  @retval  EFI_SUCCESS          The specified FFS section was returned.
-  @retval  EFI_NOT_FOUND        The specified FFS section could not be found.
-  @retval  EFI_OUT_OF_RESOURCES There are not enough resources available to
-                                retrieve the matching FFS section.
-  @retval  EFI_DEVICE_ERROR     The FFS section could not be retrieves due to a
-                                device error.
-  @retval  EFI_ACCESS_DENIED    The FFS section could not be retrieves because the
-                                firmware volume that
-                                contains the matching FFS section does not allow reads.
-**/
-EFI_STATUS
-EFIAPI
-GetSectionFromAnyFv (
-  IN CONST  EFI_GUID          *NameGuid,
-  IN        EFI_SECTION_TYPE  SectionType,
-  IN        UINTN             SectionInstance,
-  OUT       VOID              **Buffer,
-  OUT       UINTN             *Size
-  )
-{
-  VOID  *ret_buf;
-
-  assert_int_equal (SectionType, EFI_SECTION_RAW);
-  assert_non_null (Buffer);
-  assert_non_null (Size);
-
-  ret_buf = (VOID *)mock ();
-  if (ret_buf != NULL) {
-    *Size   = (UINTN)mock ();
-    *Buffer = AllocateCopyPool (*Size, ret_buf);
-  } else {
-    return EFI_NOT_FOUND;
-  }
-
-  return EFI_SUCCESS;
-}
-
-/**
-  Mock retrieving a PCD Ptr.
-
-  Returns the pointer to the buffer of the token specified by TokenNumber.
-
-  @param[in]  TokenNumber The PCD token number to retrieve a current value for.
-
-  @return Returns the pointer to the token specified by TokenNumber.
-
-**/
-VOID *
-EFIAPI
-LibPcdGetPtr (
-  IN UINTN  TokenNumber
-  )
-{
-  return (VOID *)mock ();
-}
 
 /**
   Unit test for RetrieveActiveConfigVarList.
@@ -125,11 +55,7 @@ RetrieveActiveConfigVarListTest (
   EFI_STATUS             Status;
   UINT32                 i = 0;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount);
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   for ( ; i < ConfigVarListCount; i++) {
@@ -182,14 +108,10 @@ QuerySingleActiveConfigUnicodeVarListTest (
   UINT32                 i = 0;
 
   for ( ; i < 9; i++) {
-    will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-    will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-    will_return (LibPcdGetPtr, &gZeroGuid);
-
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-    Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr);
+    Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), mKnown_Good_VarList_Names[i], ConfigVarListPtr);
     UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
@@ -241,10 +163,6 @@ QuerySingleActiveConfigAsciiVarListTest (
   CHAR8                  *AsciiName = NULL;
 
   for ( ; i < 9; i++) {
-    will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-    will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-    will_return (LibPcdGetPtr, &gZeroGuid);
-
     ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
     UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -253,7 +171,7 @@ QuerySingleActiveConfigAsciiVarListTest (
 
     UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-    Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr);
+    Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), AsciiName, ConfigVarListPtr);
     UT_ASSERT_NOT_EFI_ERROR (Status);
 
     // StrLen * 2 as we compare all bytes, not just number of Unicode chars
@@ -304,10 +222,16 @@ RetrieveActiveConfigVarListInvalidParamTest (
   EFI_STATUS             Status;
   UINTN                  ConfigVarListCount;
 
-  Status = RetrieveActiveConfigVarList (NULL, &ConfigVarListCount);
+  Status = RetrieveActiveConfigVarList (NULL, 0, NULL, &ConfigVarListCount);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = RetrieveActiveConfigVarList (&ConfigVarListPtr, NULL);
+  Status = RetrieveActiveConfigVarList (NULL, 0, &ConfigVarListPtr, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RetrieveActiveConfigVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, 0, &ConfigVarListPtr, &ConfigVarListCount);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -338,10 +262,16 @@ QuerySingleActiveConfigUnicodeVarListInvalidParamTest (
   EFI_STATUS             Status;
   CHAR16                 UnicodeName;
 
-  Status = QuerySingleActiveConfigUnicodeVarList (NULL, &ConfigVarListPtr);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), NULL, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = QuerySingleActiveConfigUnicodeVarList (&UnicodeName, NULL);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &UnicodeName, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, 0, &UnicodeName, &ConfigVarListPtr);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigUnicodeVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &UnicodeName, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -372,10 +302,16 @@ QuerySingleActiveConfigAsciiVarListInvalidParamTest (
   EFI_STATUS             Status;
   CHAR8                  AsciiName;
 
-  Status = QuerySingleActiveConfigAsciiVarList (NULL, &ConfigVarListPtr);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), NULL, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = QuerySingleActiveConfigAsciiVarList (&AsciiName, NULL);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), &AsciiName, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, 0, &AsciiName, &ConfigVarListPtr);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = QuerySingleActiveConfigAsciiVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &AsciiName, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -406,10 +342,6 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
   EFI_STATUS             Status;
   CHAR16                 *UnicodeName = NULL;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -418,7 +350,7 @@ QuerySingleActiveConfigUnicodeVarListNotFoundTest (
 
   AsciiStrToUnicodeStrS ("BadName", UnicodeName, 16);
 
-  Status = QuerySingleActiveConfigUnicodeVarList (UnicodeName, ConfigVarListPtr);
+  Status = QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), UnicodeName, ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   FreePool (UnicodeName);
@@ -452,10 +384,6 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
   EFI_STATUS             Status;
   CHAR8                  *AsciiName = NULL;
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Generic_Profile));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -464,7 +392,7 @@ QuerySingleActiveConfigAsciiVarListNotFoundTest (
 
   UnicodeStrToAsciiStrS (L"BadName", AsciiName, 8);
 
-  Status = QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr);
+  Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), AsciiName, ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   FreePool (AsciiName);
@@ -498,12 +426,8 @@ RetrieveActiveConfigVarListBadDataTest (
   UINTN                  ConfigVarListCount;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), &ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   return UNIT_TEST_PASSED;
 }
@@ -534,11 +458,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
   CHAR8                  *AsciiName        = NULL;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -547,7 +467,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
 
   UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (AsciiName, ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), AsciiName, ConfigVarListPtr), NULL);
 
   FreePool (AsciiName);
   FreePool (ConfigVarListPtr);
@@ -580,15 +500,11 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
   UINT32                 i                 = 0;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  will_return (GetSectionFromAnyFv, mKnown_Good_Config_Data);
-  will_return (GetSectionFromAnyFv, sizeof (mKnown_Good_Config_Data));
-  will_return (LibPcdGetPtr, &gZeroGuid);
-
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
 
   FreePool (ConfigVarListPtr);
 
@@ -618,17 +534,596 @@ RetrieveActiveConfigVarListNoProfileTest (
 {
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr;
   UINTN                  ConfigVarListCount;
+  EFI_STATUS             Status;
 
-  will_return (GetSectionFromAnyFv, NULL);
-  will_return (LibPcdGetPtr, &gZeroGuid);
+  Status = RetrieveActiveConfigVarList (mKnown_Good_Generic_Profile, 0, &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+  Status = RetrieveActiveConfigVarList (NULL, sizeof (mKnown_Good_Generic_Profile), &ConfigVarListPtr, &ConfigVarListCount);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  will_return (GetSectionFromAnyFv, mKnown_Good_Generic_Profile);
-  will_return (GetSectionFromAnyFv, 0);
-  will_return (LibPcdGetPtr, &gZeroGuid);
+  return UNIT_TEST_PASSED;
+}
 
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount), NULL);
+/**
+  Unit test for ConvertVariableListToVariableEntry.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+
+  Size   = sizeof (mKnown_Good_Generic_Profile);
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  // StrLen * 2 as we compare all bytes, not just number of Unicode chars
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Names[0], ConfigVarList.Name, StrLen (mKnown_Good_VarList_Names[0]) * 2);
+
+  UT_ASSERT_MEM_EQUAL (&mKnown_Good_Yaml_Guid, &ConfigVarList.Guid, sizeof (mKnown_Good_Yaml_Guid));
+  UT_ASSERT_EQUAL (3, ConfigVarList.Attributes);
+
+  UT_ASSERT_EQUAL (mKnown_Good_VarList_DataSizes[0], ConfigVarList.DataSize);
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Entries[0], ConfigVarList.Data, ConfigVarList.DataSize);
+
+  UT_ASSERT_EQUAL (sizeof (CONFIG_VAR_LIST_HDR) + mKnown_Good_VarList_DataSizes[0] + StrSize (mKnown_Good_VarList_Names[0]) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32), Size);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad sized input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryBadSize (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Index;
+  UINTN                  Size;
+  UINTN                  ExpectedSize;
+  UINT32                 VarListSize;
+
+  ExpectedSize = sizeof (CONFIG_VAR_LIST_HDR) + mKnown_Good_VarList_DataSizes[0] + StrSize (mKnown_Good_VarList_Names[0]) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32);
+  Status       = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &VarListSize);
+
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (ExpectedSize, (UINTN)VarListSize);
+
+  for (Index = 0; Index < ExpectedSize; Index++) {
+    Size   = Index;
+    Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+    UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+    if (Index < sizeof (CONFIG_VAR_LIST_HDR)) {
+      // The input does not even cover the header, should not be able to derive this value!!!
+      UT_ASSERT_NOT_EQUAL (Size, ExpectedSize);
+    } else {
+      UT_ASSERT_EQUAL (Size, ExpectedSize);
+    }
+  }
+
+  Size   = Index;
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, ExpectedSize);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad CRCed input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryBadCrc (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINT32                 ExpectedSize;
+  UINTN                  Size;
+  UINT8                  *Buffer;
+
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &ExpectedSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Size   = (UINTN)ExpectedSize;
+  Buffer = AllocateCopyPool (Size, mKnown_Good_Generic_Profile);
+
+  Buffer[Size - 1] = Buffer[Size - 1] + 1;
+
+  Status = ConvertVariableListToVariableEntry (Buffer, &Size, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_COMPROMISED_DATA);
+
+  FreePool (Buffer);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad CRCed input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  ExpectedSize;
+
+  ExpectedSize = 1;
+
+  Status = ConvertVariableListToVariableEntry (NULL, &ExpectedSize, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, NULL, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &ExpectedSize, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINT32                 VarListSize;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Size   = (UINTN)VarListSize;
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, (UINTN)VarListSize);
+
+  // StrLen * 2 as we compare all bytes, not just number of Unicode chars
+  UT_ASSERT_MEM_EQUAL (Buffer, mKnown_Good_Generic_Profile, Size);
+
+  FreePool (Buffer);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with bad name or data.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListBadNameData (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINT32                 ExpectedSize;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name       = NULL;
+  ConfigVarList.Data       = NULL;
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &ExpectedSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Size   = (UINTN)ExpectedSize;
+  Buffer = AllocatePool (Size);
+
+  ConfigVarList.Name = NULL;
+  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
+  Status             = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data = NULL;
+  Status             = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with bad size.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListBadSize (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINT32                 ExpectedSize;
+  UINTN                  Index;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &ExpectedSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  // Intentionally setting it to code, it should not be touched.
+  Buffer = (VOID *)ConvertVariableEntryToVariableListBadSize;
+
+  for (Index = 0; Index < ExpectedSize; Index++) {
+    Size   = Index;
+    Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+    UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+    UT_ASSERT_EQUAL (Size, (UINTN)ExpectedSize);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with NULL inputs.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  VOID                   *Buffer;
+
+  ZeroMem (&ConfigVarList, sizeof (CONFIG_VAR_LIST_ENTRY));
+
+  Size   = sizeof (ConfigVarList);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, NULL, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  // Set the buffer pointer to non-NULL
+  Buffer = &ConfigVarList;
+  Status = ConvertVariableEntryToVariableList (NULL, Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for VariableEntry Loop Back.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+VariableEntryLoopBack (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  CONFIG_VAR_LIST_ENTRY  LoopBackConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINT32                 VarListSize;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Status = GetVarListSize ((UINT32)StrSize (ConfigVarList.Name), ConfigVarList.DataSize, &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Size   = (UINTN)VarListSize;
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Status = ConvertVariableListToVariableEntry (Buffer, &Size, &LoopBackConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, (UINTN)VarListSize);
+
+  UT_ASSERT_EQUAL (ConfigVarList.Attributes, LoopBackConfigVarList.Attributes);
+  UT_ASSERT_EQUAL (ConfigVarList.DataSize, LoopBackConfigVarList.DataSize);
+  UT_ASSERT_MEM_EQUAL (&ConfigVarList.Guid, &LoopBackConfigVarList.Guid, sizeof (EFI_GUID));
+  UT_ASSERT_MEM_EQUAL (ConfigVarList.Data, LoopBackConfigVarList.Data, mKnown_Good_VarList_DataSizes[0]);
+  UT_ASSERT_MEM_EQUAL (ConfigVarList.Name, LoopBackConfigVarList.Name, StrSize (mKnown_Good_VarList_Names[0]));
+
+  FreePool (LoopBackConfigVarList.Name);
+  FreePool (LoopBackConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for VariableList Loop Back.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+VariableListLoopBack (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINT32                 VarListSize;
+  VOID                   *Buffer;
+
+  Size   = sizeof (mKnown_Good_Generic_Profile);
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Status = GetVarListSize ((UINT32)StrSize (mKnown_Good_VarList_Names[0]), (UINT32)mKnown_Good_VarList_DataSizes[0], &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, (UINTN)VarListSize);
+
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_Generic_Profile, Buffer, Size);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetVarListSize Success.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetVarListSizeSuccess (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      NameSize = 20;
+  UINT32      DataSize = 300;
+  UINT32      VarListSize;
+  UINT32      Size;
+
+  Size = NameSize + DataSize + sizeof (CONFIG_VAR_LIST_HDR) + sizeof (UINT32) + sizeof (UINT32) + sizeof (EFI_GUID);
+
+  Status = GetVarListSize (NameSize, DataSize, &VarListSize);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, VarListSize);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetVarListSize Invalid Param.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetVarListSizeInvalidParam (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      NameSize = 20;
+  UINT32      DataSize = 300;
+
+  Status = GetVarListSize (NameSize, DataSize, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for GetVarListSize Overflow.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+GetVarListSizeOverflow (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      NameSize = 5;
+  UINT32      DataSize = MAX_UINT32;
+  UINT32      VarListSize;
+
+  Status = GetVarListSize (NameSize, DataSize, &VarListSize);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
 
   return UNIT_TEST_PASSED;
 }
@@ -706,6 +1201,28 @@ UnitTestingEntry (
 
   // No Profile
   AddTestCase (ConfigVariableListLib, "No profile test should fail", "RetrieveActiveConfigVarListNoProfileTest", RetrieveActiveConfigVarListNoProfileTest, NULL, NULL, NULL);
+
+  // Var list to var entry
+  AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableListToVariableEntryNormal", ConvertVariableListToVariableEntryNormal, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad sized input buffer should fail", "ConvertVariableListToVariableEntryBadSize", ConvertVariableListToVariableEntryBadSize, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad CRCed input buffer should fail", "ConvertVariableListToVariableEntryBadCrc", ConvertVariableListToVariableEntryBadCrc, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableListToVariableEntryNull", ConvertVariableListToVariableEntryNull, NULL, NULL, NULL);
+
+  // Var entry to var list
+  AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListNormal", ConvertVariableEntryToVariableListNormal, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad name and data should fail", "ConvertVariableEntryToVariableListBadNameData", ConvertVariableEntryToVariableListBadNameData, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad size should fail", "ConvertVariableEntryToVariableListBadSize", ConvertVariableEntryToVariableListBadSize, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableEntryToVariableListNull", ConvertVariableEntryToVariableListNull, NULL, NULL, NULL);
+
+  // Var entry & var list composite
+  AddTestCase (ConfigVariableListLib, "VariableEntry loop back should succeed", "VariableEntryLoopBack", VariableEntryLoopBack, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "VariableList loop back should succeed", "VariableListLoopBack", VariableListLoopBack, NULL, NULL, NULL);
+
+  // Test GetVarListSize
+  AddTestCase (ConfigVariableListLib, "Good params should succeed", "GetVarListSizeSuccess", GetVarListSizeSuccess, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad params should fail", "GetVarListSizeInvalidParam", GetVarListSizeInvalidParam, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Big inputs should overflow", "GetVarListSizeOverflow", GetVarListSizeOverflow, NULL, NULL, NULL);
+
   //
   // Execute the tests.
   //

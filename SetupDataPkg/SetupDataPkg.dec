@@ -33,9 +33,4 @@
   ## Name of file to be looked up by ConfApp on the USB disk for configuration application.
   gSetupDataPkgTokenSpaceGuid.PcdConfigurationFileName|L"SetupConfUpdate.svd"|VOID*|0x30000001
 
-[PcdsDynamic, PcdsDynamicEx]
-  ## Profile driver will receive the active profile file GUID and populate this PCD
-  ## Platform is recommended to set a default value to the generic profile
-  gSetupDataPkgTokenSpaceGuid.PcdSetupConfigActiveProfileFile|{0}|VOID*|0x40000001
-
 [PcdsFeatureFlag]
