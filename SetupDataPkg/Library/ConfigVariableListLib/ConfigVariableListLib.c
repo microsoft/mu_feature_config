@@ -15,9 +15,195 @@
 #include <Library/PcdLib.h>
 #include <Library/ConfigVariableListLib.h>
 
+EFI_STATUS
+EFIAPI
+ConvertVariableListToVariableEntry (
+  IN      CONST VOID            *VariableListBuffer,
+  IN  OUT UINTN                 *Size,
+      OUT CONFIG_VAR_LIST_ENTRY *VariableEntry
+  )
+{
+  UINTN                  BinSize  = 0;
+  CONST CONFIG_VAR_LIST_HDR   *VarList = NULL;
+  EFI_STATUS             Status   = EFI_SUCCESS;
+  CHAR16                 *VarName = NULL;
+  CHAR8                  *Data    = NULL;
+  CONST CHAR16           *NameInBin;
+  CONST EFI_GUID         *Guid;
+  UINT32                 Attributes;
+  CONST CHAR8            *DataInBin;
+  UINT32                 CRC32;
+  UINT32                 CalcCRC32;
+  UINT32                 NeededSize = 0;
+  CONFIG_VAR_LIST_ENTRY  *Entry;
+
+  // Sanity check for input parameters
+  if (VariableListBuffer == NULL || Size == NULL || VariableEntry == NULL) {
+    Status = EFI_INVALID_PARAMETER;
+    goto Exit;
+  }
+
+  if (*Size < sizeof (*VarList)) {
+    Status = EFI_BUFFER_TOO_SMALL;
+    goto Exit;
+  }
+
+  // index into variable list
+  BinSize = *Size;
+  VarList = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer);
+  NeededSize = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
+      sizeof (Attributes) + sizeof (CRC32);
+
+  if (NeededSize > BinSize) {
+    // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
+    DEBUG ((DEBUG_ERROR, "%a VarList buffer does not have needed size (actual: %x, expected: %x)\n", __FUNCTION__, BinSize, NeededSize));
+    *Size   = NeededSize;
+    Status  = EFI_BUFFER_TOO_SMALL;
+    goto Exit;
+  }
+
+  // Use this as stub to indicate how much buffer used.
+  *Size = NeededSize;
+
+  /*
+    * Var List is in DmpStore format:
+    *
+    *  struct {
+    *    CONFIG_VAR_LIST_HDR VarList;
+    *    CHAR16 Name[VarList->NameSize/2];
+    *    EFI_GUID Guid;
+    *    UINT32 Attributes;
+    *    CHAR8 DataInBin[VarList-DataSize];
+    *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of DataInBin
+    *  }
+    */
+  NameInBin  = (CONST CHAR16 *)(VarList + 1);
+  Guid       = (CONST EFI_GUID *)((CHAR8 *)NameInBin + VarList->NameSize);
+  Attributes = *(CONST UINT32 *)(Guid + 1);
+  DataInBin  = (CONST CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
+  CRC32      = *(CONST UINT32 *)(DataInBin + VarList->DataSize);
+
+  // validate CRC32
+  CalcCRC32 = CalculateCrc32 ((VOID*)VarList, NeededSize - sizeof (CRC32));
+  if (CRC32 != CalcCRC32) {
+    DEBUG ((DEBUG_ERROR, "%a CRC is off in the varaible list: actual: %x, expect %x\n", __FUNCTION__, CRC32, CalcCRC32));
+    Status = EFI_COMPROMISED_DATA;
+    goto Exit;
+  }
+
+  VarName = AllocatePool (VarList->NameSize);
+  if (VarName == NULL) {
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for VarName size: %u\n", __FUNCTION__, VarList->NameSize));
+    Status = EFI_OUT_OF_RESOURCES;
+    goto Exit;
+  }
+
+  CopyMem (VarName, NameInBin, VarList->NameSize);
+
+  Data = AllocatePool (VarList->DataSize);
+  if (Data == NULL) {
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for Data size: %u\n", __FUNCTION__, VarList->DataSize));
+    Status = EFI_OUT_OF_RESOURCES;
+    // Free VarName here, as other memory gets freed in exit routine, but we do not increment
+    // *ConfigVarListCount for this entry
+    FreePool (VarName);
+    goto Exit;
+  }
+
+  CopyMem (Data, DataInBin, VarList->DataSize);
+
+  // Add correct values to this entry in the blob
+  Entry = VariableEntry;
+
+  Entry->Name       = VarName;
+  Entry->Guid       = *Guid;
+  Entry->Attributes = Attributes;
+  Entry->Data       = Data;
+  Entry->DataSize   = VarList->DataSize;
+
+  Status = EFI_SUCCESS;
+
+Exit:
+  return Status;
+}
+
+EFI_STATUS
+EFIAPI
+ConvertVariableEntryToVariableList (
+  IN      CONFIG_VAR_LIST_ENTRY *VariableEntry,
+      OUT VOID                  **VariableListBuffer,
+      OUT UINTN                 *Size
+  )
+{
+  EFI_STATUS             Status;
+  VOID                   *Data          = NULL;
+  UINTN                  NameSize;
+  UINTN                  NeededSize;
+  UINTN                  Offset;
+
+  // Sanity check for input parameters
+  if (VariableListBuffer == NULL || Size == NULL || VariableEntry == NULL) {
+    Status = EFI_INVALID_PARAMETER;
+    goto Exit;
+  }
+
+  // Sanity check 2 for input parameters
+  if (VariableEntry->Name == NULL || VariableEntry->Data == NULL) {
+    Status = EFI_INVALID_PARAMETER;
+    goto Exit;
+  }
+
+  NameSize = StrnSizeS (VariableEntry->Name, CONF_VAR_NAME_LEN);
+
+  NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + VariableEntry->DataSize + sizeof (VariableEntry->Guid) +
+                sizeof (VariableEntry->Attributes) + sizeof (UINT32);
+
+  Data = AllocatePool (NeededSize);
+  if (Data == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    goto Exit;
+  }
+
+  Offset = 0;
+  // Header
+  ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
+  ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)VariableEntry->DataSize;
+  Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
+
+  // Name
+  CopyMem ((UINT8 *)Data + Offset, VariableEntry->Name, NameSize);
+  Offset += NameSize;
+
+  // Guid
+  CopyMem ((UINT8 *)Data + Offset, &VariableEntry->Guid, sizeof (VariableEntry->Guid));
+  Offset += sizeof (VariableEntry->Guid);
+
+  // Attributes
+  CopyMem ((UINT8 *)Data + Offset, &VariableEntry->Attributes, sizeof (VariableEntry->Attributes));
+  Offset += sizeof (VariableEntry->Attributes);
+
+  // Data
+  CopyMem ((UINT8 *)Data + Offset, VariableEntry->Data, VariableEntry->DataSize);
+  Offset += VariableEntry->DataSize;
+
+  // CRC32
+  *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
+  Offset                             += sizeof (UINT32);
+
+  *VariableListBuffer  = Data;
+  *Size               = NeededSize;
+
+  // They should still match in size...
+  ASSERT (Offset == NeededSize);
+
+Exit:
+  return Status;
+}
+
 /**
   Parse Active Config Variable List and return full list or specific entry if VarName parameter != NULL
 
+  @param[out] VariableListBuffer  Pointer to raw variable list buffer.
   @param[out] ConfigVarListPtr    Pointer to configuration data. User is responsible to free the
                                   returned buffer and the Data, Name fields for each entry.
   @param[out] ConfigVarListCount  Number of variable list entries.
@@ -32,24 +218,18 @@
 **/
 EFI_STATUS
 ParseActiveConfigVarList (
+  IN  CONST VOID             *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   OUT CONFIG_VAR_LIST_ENTRY  **ConfigVarListPtr,
   OUT UINTN                  *ConfigVarListCount,
   IN  CONST CHAR16           *ConfigVarName
   )
 {
-  UINTN                  BinSize  = 0;
-  CONFIG_VAR_LIST_HDR    *VarList = NULL;
+  UINTN                       LeftSize = 0;
+  CONST CONFIG_VAR_LIST_HDR   *VarList = NULL;
   EFI_STATUS             Status   = EFI_SUCCESS;
-  CHAR16                 *VarName = NULL;
-  CHAR8                  *Data    = NULL;
-  CHAR16                 *NameInBin;
-  EFI_GUID               *Guid;
-  UINT32                 Attributes;
-  CHAR8                  *DataInBin;
-  UINT32                 CRC32;
-  UINT32                 ListIndex = 0;
-  CONFIG_VAR_LIST_ENTRY  *Entry;
-  VOID                   *BlobPtr = NULL;
+  UINTN                  ListIndex = 0;
+  UINTN                  AllocatedCount = 1;
 
   if ((ConfigVarListPtr == NULL) || (ConfigVarListCount == NULL)) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
@@ -67,16 +247,7 @@ ParseActiveConfigVarList (
 
   *ConfigVarListCount = 0;
 
-  // Populate the slot with default one from FV.
-  Status = GetSectionFromAnyFv (
-             (EFI_GUID *)PcdGetPtr (PcdSetupConfigActiveProfileFile),
-             EFI_SECTION_RAW,
-             0,
-             &BlobPtr,
-             &BinSize
-             );
-
-  if (EFI_ERROR (Status) || (BlobPtr == NULL) || (BinSize == 0)) {
+  if (EFI_ERROR (Status) || (VariableListBuffer == NULL) || (VariableListBufferSize == 0)) {
     DEBUG ((DEBUG_ERROR, "%a Failed to read active profile data (%r)\n", __FUNCTION__, Status));
     ASSERT (FALSE);
     Status = EFI_NOT_FOUND;
@@ -87,7 +258,7 @@ ParseActiveConfigVarList (
     // We don't know how many entries there are, for now allocate far too large of a pool, we'll realloc once we
     // know how many entries there are. We are returning full list of entries.
     *ConfigVarListPtr = NULL;
-    *ConfigVarListPtr = AllocatePool (BinSize);
+    *ConfigVarListPtr = AllocatePool (AllocatedCount * sizeof (CONFIG_VAR_LIST_ENTRY));
   }
 
   if (*ConfigVarListPtr == NULL) {
@@ -96,98 +267,55 @@ ParseActiveConfigVarList (
     goto Exit;
   }
 
-  while (ListIndex < BinSize) {
+  while (ListIndex < VariableListBufferSize) {
     // index into variable list
-    VarList = (CONFIG_VAR_LIST_HDR *)((CHAR8 *)BlobPtr + ListIndex);
+    VarList = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer + ListIndex);
 
-    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
-        sizeof (Attributes) + sizeof (CRC32) > BinSize)
-    {
+    LeftSize = VariableListBufferSize - ListIndex;
+    Status = ConvertVariableListToVariableEntry (VarList, &LeftSize, &(*ConfigVarListPtr)[*ConfigVarListCount]);
+
+    if (EFI_ERROR (Status)) {
       // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
-      DEBUG ((DEBUG_ERROR, "%a Configuration VarList had bad NameSize or DataInBinSize\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a Configuration VarList conversion failed %r\n", __FUNCTION__, Status));
       ASSERT (FALSE);
-      Status = EFI_COMPROMISED_DATA;
       break;
     }
 
-    /*
-     * Var List is in DmpStore format:
-     *
-     *  struct {
-     *    CONFIG_VAR_LIST_HDR VarList;
-     *    CHAR16 Name[VarList->NameSize/2];
-     *    EFI_GUID Guid;
-     *    UINT32 Attributes;
-     *    CHAR8 DataInBin[VarList-DataSize];
-     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of DataInBin
-     *  }
-     */
-    NameInBin  = (CHAR16 *)(VarList + 1);
-    Guid       = (EFI_GUID *)((CHAR8 *)NameInBin + VarList->NameSize);
-    Attributes = *(UINT32 *)(Guid + 1);
-    DataInBin  = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
-    CRC32      = *(UINT32 *)(DataInBin + VarList->DataSize);
-
-    // on next iteration, skip past this variable
-    ListIndex += sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes)
-                 + sizeof (CRC32);
-
-    VarName = AllocatePool (VarList->NameSize);
-    if (VarName == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for VarName size: %u\n", __FUNCTION__, VarList->NameSize));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto Exit;
-    }
-
-    CopyMem (VarName, NameInBin, VarList->NameSize);
+    ListIndex += LeftSize;
 
     // This check needs to come after we allocate VarName so we can compare against a 16 bit aligned
     // string and not assert
-    if ((ConfigVarName != NULL) && (0 != StrnCmp (ConfigVarName, VarName, VarList->NameSize / 2))) {
+    if ((ConfigVarName != NULL) && (0 != StrnCmp (ConfigVarName, (*ConfigVarListPtr)->Name, VarList->NameSize / 2))) {
       // Not the entry we are looking for
       // While we are here, set the Name entry to NULL so we can tell if we found the entry later
+      FreePool ((*ConfigVarListPtr)->Name);
+      FreePool ((*ConfigVarListPtr)->Data);
       (*ConfigVarListPtr)->Name = NULL;
-      FreePool (VarName);
+      (*ConfigVarListPtr)->Data = NULL;
       continue;
     }
 
-    Data = AllocatePool (VarList->DataSize);
-    if (Data == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for Data size: %u\n", __FUNCTION__, VarList->DataSize));
-      Status = EFI_OUT_OF_RESOURCES;
-      // Free VarName here, as other memory gets freed in exit routine, but we do not increment
-      // *ConfigVarListCount for this entry
-      FreePool (VarName);
-      goto Exit;
-    }
-
-    CopyMem (Data, DataInBin, VarList->DataSize);
-
-    // Add correct values to this entry in the blob
-    Entry = &(*ConfigVarListPtr)[*ConfigVarListCount];
-
-    Entry->Name       = VarName;
-    Entry->Guid       = *Guid;
-    Entry->Attributes = Attributes;
-    Entry->Data       = Data;
-    Entry->DataSize   = VarList->DataSize;
     (*ConfigVarListCount)++;
 
     if (ConfigVarName != NULL) {
       // Found the entry we are looking for
       break;
     }
+
+    // Need to reallocate if it is half full
+    if (AllocatedCount <= (*ConfigVarListCount) * 2) {
+      *ConfigVarListPtr = ReallocatePool (AllocatedCount * sizeof (CONFIG_VAR_LIST_ENTRY), AllocatedCount * 2 * sizeof (CONFIG_VAR_LIST_ENTRY), *ConfigVarListPtr);
+      if (*ConfigVarListPtr == NULL) {
+        DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr count: %u\n", __FUNCTION__, AllocatedCount));
+        Status = EFI_OUT_OF_RESOURCES;
+        goto Exit;
+      }
+
+      AllocatedCount = AllocatedCount * 2;
+    }
   }
 
-  if (ConfigVarName == NULL) {
-    // No need to realloc for single entry
-    *ConfigVarListPtr = ReallocatePool (BinSize, sizeof (CONFIG_VAR_LIST_ENTRY) * *ConfigVarListCount, *ConfigVarListPtr);
-    if (*ConfigVarListPtr == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr size: %u\n", __FUNCTION__, BinSize));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto Exit;
-    }
-  } else if ((*ConfigVarListPtr)->Name == NULL) {
+  if ((*ConfigVarListPtr)->Name == NULL) {
     // We did not find the entry in the var list
     // caller is responsible for freeing input
     DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
@@ -237,11 +365,13 @@ Exit:
 EFI_STATUS
 EFIAPI
 RetrieveActiveConfigVarList (
+  IN  CONST VOID             *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   OUT CONFIG_VAR_LIST_ENTRY  **ConfigVarListPtr,
   OUT UINTN                  *ConfigVarListCount
   )
 {
-  return ParseActiveConfigVarList (ConfigVarListPtr, ConfigVarListCount, NULL);
+  return ParseActiveConfigVarList (VariableListBuffer, VariableListBufferSize, ConfigVarListPtr, ConfigVarListCount, NULL);
 }
 
 /**
@@ -261,6 +391,8 @@ RetrieveActiveConfigVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigUnicodeVarList (
+  IN  VOID                   *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   IN  CONST CHAR16           *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
@@ -272,7 +404,7 @@ QuerySingleActiveConfigUnicodeVarList (
     return EFI_INVALID_PARAMETER;
   }
 
-  return ParseActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount, VarName);
+  return ParseActiveConfigVarList (VariableListBuffer, VariableListBufferSize, &ConfigVarListPtr, &ConfigVarListCount, VarName);
 }
 
 /**
@@ -292,6 +424,8 @@ QuerySingleActiveConfigUnicodeVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigAsciiVarList (
+  IN  VOID                   *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   IN  CONST CHAR8            *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   )
@@ -315,5 +449,5 @@ QuerySingleActiveConfigAsciiVarList (
 
   AsciiStrToUnicodeStrS (VarName, UniVarName, UniVarNameLen);
 
-  return ParseActiveConfigVarList (&ConfigVarListPtr, &ConfigVarListCount, UniVarName);
+  return ParseActiveConfigVarList (VariableListBuffer, VariableListBufferSize, &ConfigVarListPtr, &ConfigVarListCount, UniVarName);
 }

@@ -9,6 +9,9 @@
 #ifndef CONFIG_VAR_LIST_LIB_H_
 #define CONFIG_VAR_LIST_LIB_H_
 
+// Maximum variable length accepted for this library, in bytes.
+#define CONF_VAR_NAME_LEN 0x80
+
 /*
  * Internal struct for variable list entries
  */
@@ -43,6 +46,7 @@ typedef struct {
 } CONFIG_VAR_LIST_HDR;
 #pragma pack(pop)
 
+
 /**
   Find all active configuration variables for this platform.
 
@@ -60,6 +64,8 @@ typedef struct {
 EFI_STATUS
 EFIAPI
 RetrieveActiveConfigVarList (
+  IN  CONST VOID             *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   OUT CONFIG_VAR_LIST_ENTRY  **ConfigVarListPtr,
   OUT UINTN                  *ConfigVarListCount
   );
@@ -81,6 +87,8 @@ RetrieveActiveConfigVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigUnicodeVarList (
+  IN  VOID                   *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   IN  CONST CHAR16           *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
   );
@@ -102,8 +110,26 @@ QuerySingleActiveConfigUnicodeVarList (
 EFI_STATUS
 EFIAPI
 QuerySingleActiveConfigAsciiVarList (
+  IN  VOID                   *VariableListBuffer,
+  IN  UINTN                  VariableListBufferSize,
   IN  CONST CHAR8            *VarName,
   OUT CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr
+  );
+
+EFI_STATUS
+EFIAPI
+ConvertVariableListToVariableEntry (
+  IN      VOID                  *VariableListBuffer,
+  IN  OUT UINTN                 *Size,
+      OUT CONFIG_VAR_LIST_ENTRY *VariableEntry
+  );
+
+EFI_STATUS
+EFIAPI
+ConvertVariableEntryToVariableList (
+  IN      CONFIG_VAR_LIST_ENTRY *VariableEntry,
+      OUT VOID                  **VariableListBuffer,
+      OUT UINTN                 *Size
   );
 
 #endif // CONFIG_VAR_LIST_LIB_H_
