@@ -34,6 +34,7 @@
   XmlSupportPkg/XmlSupportPkg.dec
   SecurityPkg/SecurityPkg.dec
   SetupDataPkg/SetupDataPkg.dec
+  PolicyServicePkg/PolicyServicePkg.dec
 
 [LibraryClasses]
   UefiBootServicesTableLib
@@ -50,6 +51,7 @@
   SvdXmlSettingSchemaSupportLib
   SecureBootKeyStoreLib
   ConfigSystemModeLib
+  ConfigVariableListLib
 
 [Protocols]
   gEdkiiVariablePolicyProtocolGuid
@@ -57,10 +59,12 @@
   gEfiSimpleFileSystemProtocolGuid
   gEfiUsbIoProtocolGuid
   gEfiBlockIoProtocolGuid
+  gPolicyProtocolGuid
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize
   gSetupDataPkgTokenSpaceGuid.PcdConfigurationFileName
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationPolicyList
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
