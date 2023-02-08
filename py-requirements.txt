@@ -3,4 +3,4 @@ pytest-html==3.2.0
 pytest-cov==4.0.0
 flake8==6.0.0
 pyopenssl==23.0.0
-pefile==2022.5.30
+pefile==2023.2.7
