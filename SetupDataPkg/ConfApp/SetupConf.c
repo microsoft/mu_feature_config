@@ -9,6 +9,8 @@
 #include <Uefi.h>
 #include <XmlTypes.h>
 
+#include <Protocol/Policy.h>
+
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
@@ -86,6 +88,7 @@ SetupConfState_t  mSetupConfState  = SetupConfInit;
 UINT16            *mConfDataBuffer = NULL;
 UINTN             mConfDataOffset  = 0;
 UINTN             mConfDataSize    = 0;
+POLICY_PROTOCOL   *mPolicyProtocol = NULL;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -603,15 +606,11 @@ CreateXmlStringFromCurrentSettings (
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
-  VOID                   *VarData       = NULL;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
-  CONFIG_VAR_LIST_ENTRY  VarListEntries;
-  UINT32                 Attributes;
-  CHAR16                 *Name;
-  EFI_GUID               Guid;
-  UINTN                  NameSize;
-  UINTN                  NewNameSize;
+  UINTN                  i;
+  UINTN                  NumPolicies;
+  EFI_GUID               *TargetGuids;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -663,120 +662,92 @@ CreateXmlStringFromCurrentSettings (
     goto EXIT;
   }
 
-  // TODO: Need to handle active profile selected display...
-
-  NameSize = sizeof (CHAR16);
-  Name     = AllocateZeroPool (NameSize);
-  if (Name == NULL) {
+  // Need to fit in a GUID : %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x
+  AsciiSize = sizeof (EFI_GUID) * 2 + 4 + 1;
+  AsciiName = AllocateZeroPool (AsciiSize);
+  if (AsciiName == NULL) {
     DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for initial variable name.\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto EXIT;
   }
 
-  while (TRUE) {
-    NewNameSize = NameSize;
-    Status      = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
-    if (Status == EFI_BUFFER_TOO_SMALL) {
-      Name = ReallocatePool (NameSize, NewNameSize, Name);
-      if (Name == NULL) {
-        DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for next variable name.\n"));
-        Status = EFI_OUT_OF_RESOURCES;
-        goto EXIT;
+  // Validate this profile is in the list of profiles for this platform
+  NumPolicies = PcdGetSize (PcdConfigurationPolicyList);
+
+  // if we get a bad size for the profile list, we need to fail to the default profile
+  // as we cannot validate the received profile
+  if ((NumPolicies == 0) || (NumPolicies % sizeof (EFI_GUID) != 0)) {
+    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationPolicyList: %u, using generic profile\n", __FUNCTION__, NumPolicies));
+    ASSERT (FALSE);
+  } else {
+    NumPolicies /= sizeof (EFI_GUID);
+
+    TargetGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationPolicyList);
+
+    // if we can't find the list of valid profile guids or if the list is not 16 bit aligned,
+    // we need to fail back to the default profile
+    if (TargetGuids == NULL) {
+      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs, using generic profile\n", __FUNCTION__));
+      ASSERT (FALSE);
+    } else {
+      // validate that the returned profile guid is one of the known profile guids
+      for (i = 0; i < NumPolicies; i++) {
+        DataSize = 0;
+        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16*)&DataSize);
+        if (Status != EFI_BUFFER_TOO_SMALL) {
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          ASSERT (FALSE);
+          continue;
+        }
+
+        Data = AllocatePool (DataSize);
+        if (Data == NULL) {
+          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __FUNCTION__, TargetGuids[i]));
+          break;
+        }
+
+        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16*)&DataSize);
+        if (EFI_ERROR (Status)) {
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          ASSERT (FALSE);
+          continue;
+        }
+
+        AsciiSPrint (AsciiName, AsciiSize, "%g", &TargetGuids[i]);
+
+        // First encode the binary blob
+        EncodedSize = 0;
+        Status      = Base64Encode (Data, DataSize, NULL, &EncodedSize);
+        if (Status != EFI_BUFFER_TOO_SMALL) {
+          DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
+          Status = EFI_INVALID_PARAMETER;
+          goto EXIT;
+        }
+
+        EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
+        if (EncodedBuffer == NULL) {
+          DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
+          Status = EFI_OUT_OF_RESOURCES;
+          goto EXIT;
+        }
+
+        Status = Base64Encode (Data, DataSize, EncodedBuffer, &EncodedSize);
+        if (EFI_ERROR (Status)) {
+          DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
+          Status = EFI_INVALID_PARAMETER;
+          goto EXIT;
+        }
+
+        Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
+
+        if (EFI_ERROR (Status)) {
+          DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+        }
+
+        FreePool (Data);
+        Data = NULL;
       }
-
-      Status = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
     }
-
-    NameSize = NewNameSize;
-
-    if (Status == EFI_NOT_FOUND) {
-      break;
-    }
-
-    ASSERT_EFI_ERROR (Status);
-
-    AsciiSize = NameSize;
-    AsciiName = AllocatePool (AsciiSize);
-    if (AsciiName == NULL) {
-      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", Name));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    AsciiSPrint (AsciiName, AsciiSize, "%s", Name);
-
-    // Put variables into the variable list structure
-    DataSize = 0;
-    Status   = gRT->GetVariable (
-                      Name,
-                      &Guid,
-                      &Attributes,
-                      &DataSize,
-                      NULL
-                      );
-    if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
-      goto EXIT;
-    }
-
-    VarData = AllocatePool (DataSize);
-    Status = gRT->GetVariable (
-                    Name,
-                    &Guid,
-                    &Attributes,
-                    &DataSize,
-                    (UINT8 *)VarData
-                    );
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
-      goto EXIT;
-    }
-
-    VarListEntries.Name = Name;
-    VarListEntries.Attributes = Attributes;
-    VarListEntries.Data = VarData;
-    VarListEntries.DataSize = (UINT32)DataSize;
-    CopyMem (&(VarListEntries.Guid), &Guid, sizeof (EFI_GUID));
-
-    Status = ConvertVariableEntryToVariableList (&VarListEntries, &Data, &DataSize);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
-      goto EXIT;
-    }
-
-    // First encode the binary blob
-    EncodedSize = 0;
-    Status      = Base64Encode (Data, DataSize, NULL, &EncodedSize);
-    if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
-      Status = EFI_INVALID_PARAMETER;
-      goto EXIT;
-    }
-
-    EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
-    if (EncodedBuffer == NULL) {
-      DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    Status = Base64Encode (Data, DataSize, EncodedBuffer, &EncodedSize);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
-      Status = EFI_INVALID_PARAMETER;
-      goto EXIT;
-    }
-
-    Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
-
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
-    }
-
-    FreePool (Data);
-    FreePool (VarListEntries.Data);
-    Data = NULL;
-    VarListEntries.Data = NULL;
   }
 
   // now output as xml string
@@ -798,12 +769,8 @@ EXIT:
     FreePool (EncodedBuffer);
   }
 
-  if (Name != NULL) {
-    FreePool (Name);
-  }
-
-  if (VarListEntries.Data != NULL) {
-    FreePool (VarListEntries.Data);
+  if (AsciiName != NULL) {
+    FreePool (AsciiName);
   }
 
   if (EFI_ERROR (Status)) {
@@ -842,6 +809,13 @@ SetupConfMgr (
 
   switch (mSetupConfState) {
     case SetupConfInit:
+      if (mPolicyProtocol == NULL) {
+        Status = gBS->LocateProtocol (
+                &gPolicyProtocolGuid,
+                NULL,
+                (VOID **)&mPolicyProtocol
+                );
+      }
       // Collect what is needed and print in this step
       Status = PrintOptions ();
       if (EFI_ERROR (Status)) {
