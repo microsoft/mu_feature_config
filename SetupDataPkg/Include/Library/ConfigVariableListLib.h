@@ -131,7 +131,7 @@ EFI_STATUS
 EFIAPI
 ConvertVariableEntryToVariableList (
   IN      CONFIG_VAR_LIST_ENTRY *VariableEntry,
-      OUT VOID                  **VariableListBuffer,
+      OUT VOID                  *VariableListBuffer,
       OUT UINTN                 *Size
   );
 

@@ -130,8 +130,8 @@ EFI_STATUS
 EFIAPI
 ConvertVariableEntryToVariableList (
   IN      CONFIG_VAR_LIST_ENTRY  *VariableEntry,
-  OUT VOID                       **VariableListBuffer,
-  OUT UINTN                      *Size
+  OUT VOID                       *VariableListBuffer,
+  IN OUT UINTN                      *Size
   )
 {
   EFI_STATUS  Status;
@@ -140,7 +140,7 @@ ConvertVariableEntryToVariableList (
   UINTN       Offset;
 
   // Sanity check for input parameters
-  if ((VariableListBuffer == NULL) || (Size == NULL) || (VariableEntry == NULL) || (*VariableListBuffer == NULL)) {
+  if ((Size == NULL) || (VariableEntry == NULL) || ((VariableListBuffer == NULL) && (*Size != 0))) {
     Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
@@ -155,30 +155,36 @@ ConvertVariableEntryToVariableList (
 
   NeededSize = VAR_LIST_SIZE (NameSize, VariableEntry->DataSize);
 
+  if (*Size < NeededSize) {
+    Status = EFI_BUFFER_TOO_SMALL;
+    *Size = NeededSize;
+    goto Exit;
+  }
+
   Offset = 0;
   // Header
-  ((CONFIG_VAR_LIST_HDR *)*VariableListBuffer)->NameSize = (UINT32)NameSize;
-  ((CONFIG_VAR_LIST_HDR *)*VariableListBuffer)->DataSize = (UINT32)VariableEntry->DataSize;
+  ((CONFIG_VAR_LIST_HDR *)VariableListBuffer)->NameSize = (UINT32)NameSize;
+  ((CONFIG_VAR_LIST_HDR *)VariableListBuffer)->DataSize = (UINT32)VariableEntry->DataSize;
   Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
 
   // Name
-  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, VariableEntry->Name, NameSize);
+  CopyMem ((UINT8 *)(VariableListBuffer) + Offset, VariableEntry->Name, NameSize);
   Offset += NameSize;
 
   // Guid
-  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, &VariableEntry->Guid, sizeof (VariableEntry->Guid));
+  CopyMem ((UINT8 *)(VariableListBuffer) + Offset, &VariableEntry->Guid, sizeof (VariableEntry->Guid));
   Offset += sizeof (VariableEntry->Guid);
 
   // Attributes
-  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, &VariableEntry->Attributes, sizeof (VariableEntry->Attributes));
+  CopyMem ((UINT8 *)(VariableListBuffer) + Offset, &VariableEntry->Attributes, sizeof (VariableEntry->Attributes));
   Offset += sizeof (VariableEntry->Attributes);
 
   // Data
-  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, VariableEntry->Data, VariableEntry->DataSize);
+  CopyMem ((UINT8 *)(VariableListBuffer) + Offset, VariableEntry->Data, VariableEntry->DataSize);
   Offset += VariableEntry->DataSize;
 
   // CRC32
-  *(UINT32 *)((UINT8 *)(*VariableListBuffer) + Offset) = CalculateCrc32 (*VariableListBuffer, Offset);
+  *(UINT32 *)((UINT8 *)(VariableListBuffer) + Offset) = CalculateCrc32 (VariableListBuffer, Offset);
   Offset                             += sizeof (UINT32);
 
   *Size               = NeededSize;
