@@ -18,27 +18,27 @@
 EFI_STATUS
 EFIAPI
 ConvertVariableListToVariableEntry (
-  IN      CONST VOID            *VariableListBuffer,
-  IN  OUT UINTN                 *Size,
-      OUT CONFIG_VAR_LIST_ENTRY *VariableEntry
+  IN      CONST VOID         *VariableListBuffer,
+  IN  OUT UINTN              *Size,
+  OUT CONFIG_VAR_LIST_ENTRY  *VariableEntry
   )
 {
-  UINTN                  BinSize  = 0;
-  CONST CONFIG_VAR_LIST_HDR   *VarList = NULL;
-  EFI_STATUS             Status   = EFI_SUCCESS;
-  CHAR16                 *VarName = NULL;
-  CHAR8                  *Data    = NULL;
-  CONST CHAR16           *NameInBin;
-  CONST EFI_GUID         *Guid;
-  UINT32                 Attributes;
-  CONST CHAR8            *DataInBin;
-  UINT32                 CRC32;
-  UINT32                 CalcCRC32;
-  UINT32                 NeededSize = 0;
-  CONFIG_VAR_LIST_ENTRY  *Entry;
+  UINTN                      BinSize  = 0;
+  CONST CONFIG_VAR_LIST_HDR  *VarList = NULL;
+  EFI_STATUS                 Status   = EFI_SUCCESS;
+  CHAR16                     *VarName = NULL;
+  CHAR8                      *Data    = NULL;
+  CONST CHAR16               *NameInBin;
+  CONST EFI_GUID             *Guid;
+  UINT32                     Attributes;
+  CONST CHAR8                *DataInBin;
+  UINT32                     CRC32;
+  UINT32                     CalcCRC32;
+  UINT32                     NeededSize = 0;
+  CONFIG_VAR_LIST_ENTRY      *Entry;
 
   // Sanity check for input parameters
-  if (VariableListBuffer == NULL || Size == NULL || VariableEntry == NULL) {
+  if ((VariableListBuffer == NULL) || (Size == NULL) || (VariableEntry == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
@@ -49,15 +49,15 @@ ConvertVariableListToVariableEntry (
   }
 
   // index into variable list
-  BinSize = *Size;
-  VarList = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer);
+  BinSize    = *Size;
+  VarList    = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer);
   NeededSize = VAR_LIST_SIZE (VarList->NameSize, VarList->DataSize);
 
   if (NeededSize > BinSize) {
     // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
     DEBUG ((DEBUG_ERROR, "%a VarList buffer does not have needed size (actual: %x, expected: %x)\n", __FUNCTION__, BinSize, NeededSize));
-    *Size   = NeededSize;
-    Status  = EFI_BUFFER_TOO_SMALL;
+    *Size  = NeededSize;
+    Status = EFI_BUFFER_TOO_SMALL;
     goto Exit;
   }
 
@@ -83,7 +83,7 @@ ConvertVariableListToVariableEntry (
   CRC32      = *(CONST UINT32 *)(DataInBin + VarList->DataSize);
 
   // validate CRC32
-  CalcCRC32 = CalculateCrc32 ((VOID*)VarList, NeededSize - sizeof (CRC32));
+  CalcCRC32 = CalculateCrc32 ((VOID *)VarList, NeededSize - sizeof (CRC32));
   if (CRC32 != CalcCRC32) {
     DEBUG ((DEBUG_ERROR, "%a CRC is off in the variable list: actual: %x, expect %x\n", __FUNCTION__, CRC32, CalcCRC32));
     Status = EFI_COMPROMISED_DATA;
@@ -129,25 +129,24 @@ Exit:
 EFI_STATUS
 EFIAPI
 ConvertVariableEntryToVariableList (
-  IN      CONFIG_VAR_LIST_ENTRY *VariableEntry,
-      OUT VOID                  **VariableListBuffer,
-      OUT UINTN                 *Size
+  IN      CONFIG_VAR_LIST_ENTRY  *VariableEntry,
+  OUT VOID                       **VariableListBuffer,
+  OUT UINTN                      *Size
   )
 {
-  EFI_STATUS             Status;
-  VOID                   *Data          = NULL;
-  UINTN                  NameSize;
-  UINTN                  NeededSize;
-  UINTN                  Offset;
+  EFI_STATUS  Status;
+  UINTN       NameSize;
+  UINTN       NeededSize;
+  UINTN       Offset;
 
   // Sanity check for input parameters
-  if (VariableListBuffer == NULL || Size == NULL || VariableEntry == NULL) {
+  if ((VariableListBuffer == NULL) || (Size == NULL) || (VariableEntry == NULL) || (*VariableListBuffer == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
 
   // Sanity check 2 for input parameters
-  if (VariableEntry->Name == NULL || VariableEntry->Data == NULL) {
+  if ((VariableEntry->Name == NULL) || (VariableEntry->Data == NULL)) {
     Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
@@ -156,39 +155,32 @@ ConvertVariableEntryToVariableList (
 
   NeededSize = VAR_LIST_SIZE (NameSize, VariableEntry->DataSize);
 
-  Data = AllocatePool (NeededSize);
-  if (Data == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Exit;
-  }
-
   Offset = 0;
   // Header
-  ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
-  ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)VariableEntry->DataSize;
+  ((CONFIG_VAR_LIST_HDR *)*VariableListBuffer)->NameSize = (UINT32)NameSize;
+  ((CONFIG_VAR_LIST_HDR *)*VariableListBuffer)->DataSize = (UINT32)VariableEntry->DataSize;
   Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
 
   // Name
-  CopyMem ((UINT8 *)Data + Offset, VariableEntry->Name, NameSize);
+  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, VariableEntry->Name, NameSize);
   Offset += NameSize;
 
   // Guid
-  CopyMem ((UINT8 *)Data + Offset, &VariableEntry->Guid, sizeof (VariableEntry->Guid));
+  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, &VariableEntry->Guid, sizeof (VariableEntry->Guid));
   Offset += sizeof (VariableEntry->Guid);
 
   // Attributes
-  CopyMem ((UINT8 *)Data + Offset, &VariableEntry->Attributes, sizeof (VariableEntry->Attributes));
+  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, &VariableEntry->Attributes, sizeof (VariableEntry->Attributes));
   Offset += sizeof (VariableEntry->Attributes);
 
   // Data
-  CopyMem ((UINT8 *)Data + Offset, VariableEntry->Data, VariableEntry->DataSize);
+  CopyMem ((UINT8 *)(*VariableListBuffer) + Offset, VariableEntry->Data, VariableEntry->DataSize);
   Offset += VariableEntry->DataSize;
 
   // CRC32
-  *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
+  *(UINT32 *)((UINT8 *)(*VariableListBuffer) + Offset) = CalculateCrc32 (*VariableListBuffer, Offset);
   Offset                             += sizeof (UINT32);
 
-  *VariableListBuffer  = Data;
   *Size               = NeededSize;
 
   // They should still match in size...
@@ -225,11 +217,11 @@ ParseActiveConfigVarList (
   IN  CONST CHAR16           *ConfigVarName
   )
 {
-  UINTN                       LeftSize = 0;
-  CONST CONFIG_VAR_LIST_HDR   *VarList = NULL;
-  EFI_STATUS             Status   = EFI_SUCCESS;
-  UINTN                  ListIndex = 0;
-  UINTN                  AllocatedCount = 1;
+  UINTN                      LeftSize       = 0;
+  CONST CONFIG_VAR_LIST_HDR  *VarList       = NULL;
+  EFI_STATUS                 Status         = EFI_SUCCESS;
+  UINTN                      ListIndex      = 0;
+  UINTN                      AllocatedCount = 1;
 
   if ((ConfigVarListPtr == NULL) || (ConfigVarListCount == NULL)) {
     DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
@@ -250,7 +242,7 @@ ParseActiveConfigVarList (
   if ((VariableListBuffer == NULL) || (VariableListBufferSize == 0)) {
     DEBUG ((DEBUG_ERROR, "%a Incoming variable list buffer (base: %p, size: 0x%x) invalid\n", __FUNCTION__, VariableListBuffer, VariableListBufferSize));
     *ConfigVarListPtr = NULL;
-    Status = EFI_INVALID_PARAMETER;
+    Status            = EFI_INVALID_PARAMETER;
     goto Exit;
   }
 
@@ -272,7 +264,7 @@ ParseActiveConfigVarList (
     VarList = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer + ListIndex);
 
     LeftSize = VariableListBufferSize - ListIndex;
-    Status = ConvertVariableListToVariableEntry (VarList, &LeftSize, &(*ConfigVarListPtr)[*ConfigVarListCount]);
+    Status   = ConvertVariableListToVariableEntry (VarList, &LeftSize, &(*ConfigVarListPtr)[*ConfigVarListCount]);
 
     if (EFI_ERROR (Status)) {
       // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
