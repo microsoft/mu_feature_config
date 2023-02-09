@@ -603,6 +603,8 @@ CreateXmlStringFromCurrentSettings (
   EFI_TIME               Time;
   UINT32                 Lsv            = 1;
   UINTN                  DataSize       = 0;
+  UINTN                  VarListSize    = 0;
+  UINTN                  Offset         = 0;
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
@@ -611,12 +613,16 @@ CreateXmlStringFromCurrentSettings (
   UINTN                  i;
   UINTN                  NumPolicies;
   EFI_GUID               *TargetGuids;
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   PERF_FUNCTION_BEGIN ();
+
+  // Clear any uncertainty.
+  ZeroMem (&ConfigVarList, sizeof (CONFIG_VAR_LIST_ENTRY));
 
   // create basic xml
   Status = gRT->GetTime (&Time, NULL);
@@ -710,38 +716,67 @@ CreateXmlStringFromCurrentSettings (
         if (EFI_ERROR (Status)) {
           DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
           ASSERT (FALSE);
+          FreePool (Data);
+          Data = NULL;
           continue;
         }
 
-        AsciiSPrint (AsciiName, AsciiSize, "%g", &TargetGuids[i]);
+        Offset = 0;
+        while (Offset < DataSize) {
 
-        // First encode the binary blob
-        EncodedSize = 0;
-        Status      = Base64Encode (Data, DataSize, NULL, &EncodedSize);
-        if (Status != EFI_BUFFER_TOO_SMALL) {
-          DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
-          Status = EFI_INVALID_PARAMETER;
-          goto EXIT;
-        }
+          VarListSize = DataSize - Offset;
+          Status = ConvertVariableListToVariableEntry ((UINT8*)Data + Offset, &VarListSize, &ConfigVarList);
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "%a Failed to convert variable list to variable entry - %r\n", __FUNCTION__, Status));
+            goto EXIT;
+          }
 
-        EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
-        if (EncodedBuffer == NULL) {
-          DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
-          Status = EFI_OUT_OF_RESOURCES;
-          goto EXIT;
-        }
+          AsciiSize = StrnSizeS (ConfigVarList.Name, CONF_VAR_NAME_LEN) / sizeof (CHAR16);
+          AsciiName = AllocatePool (AsciiSize);
+          if (AsciiName == NULL) {
+            DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", ConfigVarList.Name));
+            Status = EFI_OUT_OF_RESOURCES;
+            goto EXIT;
+          }
 
-        Status = Base64Encode (Data, DataSize, EncodedBuffer, &EncodedSize);
-        if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
-          Status = EFI_INVALID_PARAMETER;
-          goto EXIT;
-        }
+          AsciiSPrint (AsciiName, AsciiSize, "%s", ConfigVarList.Name);
 
-        Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
+          // First encode the binary blob
+          EncodedSize = 0;
+          Status      = Base64Encode ((UINT8*)Data + Offset, VarListSize, NULL, &EncodedSize);
+          if (Status != EFI_BUFFER_TOO_SMALL) {
+            DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
+            Status = EFI_INVALID_PARAMETER;
+            goto EXIT;
+          }
 
-        if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+          EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
+          if (EncodedBuffer == NULL) {
+            DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
+            Status = EFI_OUT_OF_RESOURCES;
+            goto EXIT;
+          }
+
+          Status = Base64Encode ((UINT8*)Data + Offset, VarListSize, EncodedBuffer, &EncodedSize);
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
+            Status = EFI_INVALID_PARAMETER;
+            goto EXIT;
+          }
+
+          Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
+
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+          }
+
+          Offset += VarListSize;
+          FreePool (ConfigVarList.Name);
+          FreePool (ConfigVarList.Data);
+          FreePool (AsciiName);
+          ConfigVarList.Data = NULL;
+          ConfigVarList.Name = NULL;
+          AsciiName = NULL;
         }
 
         FreePool (Data);
@@ -763,6 +798,14 @@ EXIT:
 
   if (Data != NULL) {
     FreePool (Data);
+  }
+
+  if (ConfigVarList.Name != NULL) {
+    FreePool (ConfigVarList.Name);
+  }
+
+  if (ConfigVarList.Data != NULL) {
+    FreePool (ConfigVarList.Data);
   }
 
   if (EncodedBuffer != NULL) {
