@@ -754,7 +754,8 @@ ConvertVariableEntryToVariableListNormal (
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
   Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (Size,  VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
 
@@ -798,15 +799,67 @@ ConvertVariableEntryToVariableListBadNameData (
   ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
+  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
+  Buffer = AllocatePool (Size);
+
   ConfigVarList.Name = NULL;
   ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   ConfigVarList.Name = mKnown_Good_VarList_Names[0];
   ConfigVarList.Data = NULL;
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with bad size.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListBadSize (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINTN                  ExpectedSize;
+  UINTN                  Index;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  ExpectedSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
+
+  // Intentionally setting it to code, it should not be touched.
+  Buffer = (VOID*)ConvertVariableEntryToVariableListBadSize;
+
+  for (Index = 0; Index < ExpectedSize; Index ++) {
+    Size = Index;
+    Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+    UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+    UT_ASSERT_EQUAL (Size, ExpectedSize);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -837,13 +890,16 @@ ConvertVariableEntryToVariableListNull (
   UINTN                  Size;
   VOID                   *Buffer;
 
+  Size = sizeof (ConfigVarList);
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, NULL, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = ConvertVariableEntryToVariableList (NULL, &Buffer, &Size);
+  // Set the buffer pointer to non-NULL
+  Buffer = &ConfigVarList;
+  Status = ConvertVariableEntryToVariableList (NULL, Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, NULL);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, NULL);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -882,7 +938,9 @@ VariableEntryLoopBack (
   ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  Size = VAR_LIST_SIZE (StrSize(ConfigVarList.Name), ConfigVarList.DataSize);
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   Status = ConvertVariableListToVariableEntry (Buffer, &Size, &LoopBackConfigVarList);
@@ -931,7 +989,8 @@ VariableListLoopBack (
   Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  Buffer = AllocatePool (Size);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (Size, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
 
@@ -1026,6 +1085,7 @@ UnitTestingEntry (
   // Var entry to var list
   AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListNormal", ConvertVariableEntryToVariableListNormal, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Bad name and data should fail", "ConvertVariableEntryToVariableListBadNameData", ConvertVariableEntryToVariableListBadNameData, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad size should fail", "ConvertVariableEntryToVariableListBadSize", ConvertVariableEntryToVariableListBadSize, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableEntryToVariableListNull", ConvertVariableEntryToVariableListNull, NULL, NULL, NULL);
 
   // Var entry & var list composite
