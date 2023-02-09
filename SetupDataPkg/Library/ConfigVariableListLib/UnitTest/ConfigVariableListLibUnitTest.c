@@ -749,14 +749,14 @@ ConvertVariableEntryToVariableListNormal (
 
   ConfigVarList.Attributes = 3;
   ConfigVarList.Name = mKnown_Good_VarList_Names[0];
-  ConfigVarList.Data = mKnown_Good_VarList_DataSizes[0];
-  ConfigVarList.DataSize = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
-  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_Entries[0]);
+  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (Size,  VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_Entries[0]));
+  UT_ASSERT_EQUAL (Size,  VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
 
   // StrLen * 2 as we compare all bytes, not just number of Unicode chars
   UT_ASSERT_MEM_EQUAL (Buffer, mKnown_Good_Generic_Profile, Size);
@@ -795,11 +795,11 @@ ConvertVariableEntryToVariableListBadNameData (
   ConfigVarList.Attributes = 3;
   ConfigVarList.Name = NULL;
   ConfigVarList.Data = NULL;
-  ConfigVarList.DataSize = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
   ConfigVarList.Name = NULL;
-  ConfigVarList.Data = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
@@ -835,8 +835,6 @@ ConvertVariableEntryToVariableListNull (
   CONFIG_VAR_LIST_ENTRY  ConfigVarList;
   EFI_STATUS             Status;
   UINTN                  Size;
-  UINTN                  ExpectedSize;
-  UINTN                  Index;
   VOID                   *Buffer;
 
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, NULL, &Size);
@@ -847,6 +845,100 @@ ConvertVariableEntryToVariableListNull (
 
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, NULL);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for VariableEntry Loop Back.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+VariableEntryLoopBack (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  CONFIG_VAR_LIST_ENTRY  LoopBackConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Status = ConvertVariableListToVariableEntry (Buffer, &Size, &LoopBackConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
+
+  UT_ASSERT_EQUAL (ConfigVarList.Attributes, LoopBackConfigVarList.Attributes);
+  UT_ASSERT_EQUAL (ConfigVarList.DataSize, LoopBackConfigVarList.DataSize);
+  UT_ASSERT_MEM_EQUAL (&ConfigVarList.Guid, &LoopBackConfigVarList.Guid, sizeof (EFI_GUID));
+  UT_ASSERT_MEM_EQUAL (ConfigVarList.Data, LoopBackConfigVarList.Data, mKnown_Good_VarList_DataSizes[0]);
+  UT_ASSERT_MEM_EQUAL (ConfigVarList.Name, LoopBackConfigVarList.Name, StrSize (mKnown_Good_VarList_Names[0]));
+
+  FreePool (LoopBackConfigVarList.Name);
+  FreePool (LoopBackConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for VariableList Loop Back.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+VariableListLoopBack (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  VOID                   *Buffer;
+
+  Size = sizeof (mKnown_Good_Generic_Profile);
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
+
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_Generic_Profile, Buffer, Size);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
 
   return UNIT_TEST_PASSED;
 }
@@ -933,11 +1025,12 @@ UnitTestingEntry (
 
   // Var entry to var list
   AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListNormal", ConvertVariableEntryToVariableListNormal, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad name and data should fail", "ConvertVariableEntryToVariableListBadNameData", ConvertVariableEntryToVariableListBadNameData, NULL, NULL, NULL);
   AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableEntryToVariableListNull", ConvertVariableEntryToVariableListNull, NULL, NULL, NULL);
 
   // Var entry & var list composite
-  // AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListLoopBack", ConvertVariableEntryToVariableListLoopBack, NULL, NULL, NULL);
-  // AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListLoopBack", ConvertVariableEntryToVariableListLoopBack, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "VariableEntry loop back should succeed", "VariableEntryLoopBack", VariableEntryLoopBack, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "VariableList loop back should succeed", "VariableListLoopBack", VariableListLoopBack, NULL, NULL, NULL);
 
   //
   // Execute the tests.

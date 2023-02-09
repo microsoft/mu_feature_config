@@ -194,6 +194,8 @@ ConvertVariableEntryToVariableList (
   // They should still match in size...
   ASSERT (Offset == NeededSize);
 
+  Status = EFI_SUCCESS;
+
 Exit:
   return Status;
 }
