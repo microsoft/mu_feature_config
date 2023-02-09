@@ -12,6 +12,9 @@
 // Maximum variable length accepted for this library, in bytes.
 #define CONF_VAR_NAME_LEN 0x80
 
+// Needed size for the variable list, given name size (in bytes including NULL terminator) and data size.
+#define VAR_LIST_SIZE(NameSize, DataSize) (sizeof (CONFIG_VAR_LIST_HDR) + (NameSize) + (DataSize) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32))
+
 /*
  * Internal struct for variable list entries
  */

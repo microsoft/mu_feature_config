@@ -545,6 +545,313 @@ RetrieveActiveConfigVarListNoProfileTest (
 }
 
 /**
+  Unit test for ConvertVariableListToVariableEntry.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+
+  Size = sizeof (mKnown_Good_Generic_Profile);
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  // StrLen * 2 as we compare all bytes, not just number of Unicode chars
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Names[0], ConfigVarList.Name, StrLen (mKnown_Good_VarList_Names[0]) * 2);
+
+  UT_ASSERT_MEM_EQUAL (&mKnown_Good_Yaml_Guid, &ConfigVarList.Guid, sizeof (mKnown_Good_Yaml_Guid));
+  UT_ASSERT_EQUAL (3, ConfigVarList.Attributes);
+
+  UT_ASSERT_EQUAL (mKnown_Good_VarList_DataSizes[0], ConfigVarList.DataSize);
+  UT_ASSERT_MEM_EQUAL (mKnown_Good_VarList_Entries[0], ConfigVarList.Data, ConfigVarList.DataSize);
+
+  UT_ASSERT_EQUAL (sizeof (CONFIG_VAR_LIST_HDR) + mKnown_Good_VarList_DataSizes[0] + StrSize (mKnown_Good_VarList_Names[0]) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32), Size);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad sized input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryBadSize (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Index;
+  UINTN                  Size;
+  UINTN                  ExpectedSize;
+
+  ExpectedSize = sizeof (CONFIG_VAR_LIST_HDR) + mKnown_Good_VarList_DataSizes[0] + StrSize (mKnown_Good_VarList_Names[0]) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32);
+  UT_ASSERT_EQUAL (ExpectedSize, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
+
+  for (Index = 0; Index < ExpectedSize; Index ++) {
+    Size = Index;
+    Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+    UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
+    if (Index < sizeof (CONFIG_VAR_LIST_HDR)) {
+      // The input does not even cover the header, should not be able to derive this value!!!
+      UT_ASSERT_NOT_EQUAL (Size, ExpectedSize);
+    } else {
+      UT_ASSERT_EQUAL (Size, ExpectedSize);
+    }
+  }
+
+  Size = Index;
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size, ExpectedSize);
+
+  FreePool (ConfigVarList.Name);
+  FreePool (ConfigVarList.Data);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad CRCed input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryBadCrc (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  ExpectedSize;
+  UINT8                  *Buffer;
+
+  ExpectedSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
+  Buffer = AllocateCopyPool (ExpectedSize, mKnown_Good_Generic_Profile);
+
+  Buffer[ExpectedSize - 1] = Buffer[ExpectedSize - 1] + 1;
+
+  Status = ConvertVariableListToVariableEntry (Buffer, &ExpectedSize, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_COMPROMISED_DATA);
+
+  FreePool (Buffer);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableListToVariableEntry for bad CRCed input.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableListToVariableEntryNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  ExpectedSize;
+
+  ExpectedSize = 1;
+
+  Status = ConvertVariableListToVariableEntry (NULL, &ExpectedSize, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, NULL, &ConfigVarList);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &ExpectedSize, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListNormal (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.DataSize = mKnown_Good_VarList_Entries[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_Entries[0]);
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (Size,  VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_Entries[0]));
+
+  // StrLen * 2 as we compare all bytes, not just number of Unicode chars
+  UT_ASSERT_MEM_EQUAL (Buffer, mKnown_Good_Generic_Profile, Size);
+
+  FreePool (Buffer);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with bad name or data.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListBadNameData (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  VOID                   *Buffer;
+
+  ConfigVarList.Attributes = 3;
+  ConfigVarList.Name = NULL;
+  ConfigVarList.Data = NULL;
+  ConfigVarList.DataSize = mKnown_Good_VarList_Entries[0];
+  CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
+
+  ConfigVarList.Name = NULL;
+  ConfigVarList.Data = mKnown_Good_VarList_DataSizes[0];
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data = NULL;
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConvertVariableEntryToVariableList with NULL inputs.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConvertVariableEntryToVariableListNull (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
+  EFI_STATUS             Status;
+  UINTN                  Size;
+  UINTN                  ExpectedSize;
+  UINTN                  Index;
+  VOID                   *Buffer;
+
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, NULL, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableEntryToVariableList (NULL, &Buffer, &Size);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  Status = ConvertVariableEntryToVariableList (&ConfigVarList, &Buffer, NULL);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
   Initialize the unit test framework, suite, and unit tests for the
   ConfigVariableListLib and run the ConfigVariableListLib unit test.
 
@@ -617,6 +924,21 @@ UnitTestingEntry (
 
   // No Profile
   AddTestCase (ConfigVariableListLib, "No profile test should fail", "RetrieveActiveConfigVarListNoProfileTest", RetrieveActiveConfigVarListNoProfileTest, NULL, NULL, NULL);
+
+  // Var list to var entry
+  AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableListToVariableEntryNormal", ConvertVariableListToVariableEntryNormal, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad sized input buffer should fail", "ConvertVariableListToVariableEntryBadSize", ConvertVariableListToVariableEntryBadSize, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Bad CRCed input buffer should fail", "ConvertVariableListToVariableEntryBadCrc", ConvertVariableListToVariableEntryBadCrc, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableListToVariableEntryNull", ConvertVariableListToVariableEntryNull, NULL, NULL, NULL);
+
+  // Var entry to var list
+  AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListNormal", ConvertVariableEntryToVariableListNormal, NULL, NULL, NULL);
+  AddTestCase (ConfigVariableListLib, "Null inputs should fail", "ConvertVariableEntryToVariableListNull", ConvertVariableEntryToVariableListNull, NULL, NULL, NULL);
+
+  // Var entry & var list composite
+  // AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListLoopBack", ConvertVariableEntryToVariableListLoopBack, NULL, NULL, NULL);
+  // AddTestCase (ConfigVariableListLib, "Normal conversion should succeed", "ConvertVariableEntryToVariableListLoopBack", ConvertVariableEntryToVariableListLoopBack, NULL, NULL, NULL);
+
   //
   // Execute the tests.
   //

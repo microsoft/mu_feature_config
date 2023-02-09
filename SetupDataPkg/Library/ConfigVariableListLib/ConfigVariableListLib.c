@@ -51,8 +51,7 @@ ConvertVariableListToVariableEntry (
   // index into variable list
   BinSize = *Size;
   VarList = (CONST CONFIG_VAR_LIST_HDR *)((CHAR8 *)VariableListBuffer);
-  NeededSize = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
-      sizeof (Attributes) + sizeof (CRC32);
+  NeededSize = VAR_LIST_SIZE (VarList->NameSize, VarList->DataSize);
 
   if (NeededSize > BinSize) {
     // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
@@ -155,8 +154,7 @@ ConvertVariableEntryToVariableList (
 
   NameSize = StrnSizeS (VariableEntry->Name, CONF_VAR_NAME_LEN);
 
-  NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + VariableEntry->DataSize + sizeof (VariableEntry->Guid) +
-                sizeof (VariableEntry->Attributes) + sizeof (UINT32);
+  NeededSize = VAR_LIST_SIZE (NameSize, VariableEntry->DataSize);
 
   Data = AllocatePool (NeededSize);
   if (Data == NULL) {
