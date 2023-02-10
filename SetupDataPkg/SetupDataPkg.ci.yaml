@@ -38,6 +38,7 @@
             "PcBdsPkg/PcBdsPkg.dec",
             "XmlSupportPkg/XmlSupportPkg.dec",
             "SecurityPkg/SecurityPkg.dec",
+            "PolicyServicePkg/PolicyServicePkg.dec",
             "SetupDataPkg/SetupDataPkg.dec"
         ],
         # For host based unit tests

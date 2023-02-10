@@ -33,6 +33,7 @@
   MsCorePkg/MsCorePkg.dec
   XmlSupportPkg/XmlSupportPkg.dec
   SecurityPkg/SecurityPkg.dec
+  PolicyServicePkg/PolicyServicePkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -52,6 +53,7 @@
   SvdXmlSettingSchemaSupportLib
   PerformanceLib
   ConfigSystemModeLib
+  ConfigVariableListLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
@@ -60,13 +62,15 @@
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize
   gSetupDataPkgTokenSpaceGuid.PcdConfigurationFileName
+  gSetupDataPkgTokenSpaceGuid.PcdConfigurationPolicyGuid
 
 [Protocols]
   gEfiSimpleTextInputExProtocolGuid
   gEfiBlockIoProtocolGuid
   gEfiUsbIoProtocolGuid
   gEfiFirmwareManagementProtocolGuid
+  gPolicyProtocolGuid
 
 [Depex]
-  gEfiVariableWriteArchProtocolGuid
-
+  gEfiVariableWriteArchProtocolGuid AND
+  gPolicyProtocolGuid

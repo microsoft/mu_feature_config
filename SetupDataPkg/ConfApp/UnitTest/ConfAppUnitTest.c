@@ -365,8 +365,6 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -424,8 +422,6 @@ ConfAppEntrySelect2 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -483,8 +479,6 @@ ConfAppEntrySelect3 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -542,8 +536,6 @@ ConfAppEntrySelect4 (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -602,8 +594,6 @@ ConfAppEntrySelectH (
   EFI_KEY_DATA              KeyData3;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -664,8 +654,6 @@ ConfAppEntrySelectEsc (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -721,8 +709,6 @@ ConfAppEntrySelectOther (
   EFI_KEY_DATA              KeyData3;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, FALSE);
-  will_return (EfiSignalEventReadyToBoot, EFI_SUCCESS);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -781,7 +767,6 @@ ConfAppEntryMfg (
   EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
-  will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);

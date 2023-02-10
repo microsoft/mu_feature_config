@@ -339,14 +339,6 @@ ConfAppEntry (
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData;
 
-  // First thing first, try to see tell the operation mode
-  if (!IsSystemInManufacturingMode ()) {
-    // If not, we will not allow updating configuration or secure boot keys
-    PERF_EVENT_SIGNAL_BEGIN (&gEfiEventReadyToBootGuid);
-    EfiSignalEventReadyToBoot ();
-    PERF_EVENT_SIGNAL_END (&gEfiEventReadyToBootGuid);
-  }
-
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
 
   gST->ConOut->EnableCursor (gST->ConOut, FALSE);
