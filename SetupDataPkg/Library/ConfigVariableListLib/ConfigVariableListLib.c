@@ -131,7 +131,7 @@ EFIAPI
 ConvertVariableEntryToVariableList (
   IN      CONFIG_VAR_LIST_ENTRY  *VariableEntry,
   OUT VOID                       *VariableListBuffer,
-  IN OUT UINTN                      *Size
+  IN OUT UINTN                   *Size
   )
 {
   EFI_STATUS  Status;
@@ -157,7 +157,7 @@ ConvertVariableEntryToVariableList (
 
   if (*Size < NeededSize) {
     Status = EFI_BUFFER_TOO_SMALL;
-    *Size = NeededSize;
+    *Size  = NeededSize;
     goto Exit;
   }
 
@@ -165,7 +165,7 @@ ConvertVariableEntryToVariableList (
   // Header
   ((CONFIG_VAR_LIST_HDR *)VariableListBuffer)->NameSize = (UINT32)NameSize;
   ((CONFIG_VAR_LIST_HDR *)VariableListBuffer)->DataSize = (UINT32)VariableEntry->DataSize;
-  Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
+  Offset                                               += sizeof (CONFIG_VAR_LIST_HDR);
 
   // Name
   CopyMem ((UINT8 *)(VariableListBuffer) + Offset, VariableEntry->Name, NameSize);
@@ -185,9 +185,9 @@ ConvertVariableEntryToVariableList (
 
   // CRC32
   *(UINT32 *)((UINT8 *)(VariableListBuffer) + Offset) = CalculateCrc32 (VariableListBuffer, Offset);
-  Offset                             += sizeof (UINT32);
+  Offset                                             += sizeof (UINT32);
 
-  *Size               = NeededSize;
+  *Size = NeededSize;
 
   // They should still match in size...
   ASSERT (Offset == NeededSize);

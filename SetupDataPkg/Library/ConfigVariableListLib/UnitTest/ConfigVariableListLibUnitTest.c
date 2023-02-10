@@ -569,7 +569,7 @@ ConvertVariableListToVariableEntryNormal (
   EFI_STATUS             Status;
   UINTN                  Size;
 
-  Size = sizeof (mKnown_Good_Generic_Profile);
+  Size   = sizeof (mKnown_Good_Generic_Profile);
   Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
@@ -620,8 +620,8 @@ ConvertVariableListToVariableEntryBadSize (
   ExpectedSize = sizeof (CONFIG_VAR_LIST_HDR) + mKnown_Good_VarList_DataSizes[0] + StrSize (mKnown_Good_VarList_Names[0]) + sizeof (EFI_GUID) + sizeof (UINT32) + sizeof (UINT32);
   UT_ASSERT_EQUAL (ExpectedSize, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
 
-  for (Index = 0; Index < ExpectedSize; Index ++) {
-    Size = Index;
+  for (Index = 0; Index < ExpectedSize; Index++) {
+    Size   = Index;
     Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
     UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
     if (Index < sizeof (CONFIG_VAR_LIST_HDR)) {
@@ -632,7 +632,7 @@ ConvertVariableListToVariableEntryBadSize (
     }
   }
 
-  Size = Index;
+  Size   = Index;
   Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (Size, ExpectedSize);
@@ -670,7 +670,7 @@ ConvertVariableListToVariableEntryBadCrc (
   UINT8                  *Buffer;
 
   ExpectedSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
-  Buffer = AllocateCopyPool (ExpectedSize, mKnown_Good_Generic_Profile);
+  Buffer       = AllocateCopyPool (ExpectedSize, mKnown_Good_Generic_Profile);
 
   Buffer[ExpectedSize - 1] = Buffer[ExpectedSize - 1] + 1;
 
@@ -748,16 +748,16 @@ ConvertVariableEntryToVariableListNormal (
   VOID                   *Buffer;
 
   ConfigVarList.Attributes = 3;
-  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
-  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
-  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
-  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
+  Size   = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
   Buffer = AllocatePool (Size);
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
-  UT_ASSERT_EQUAL (Size,  VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
+  UT_ASSERT_EQUAL (Size, VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]));
 
   // StrLen * 2 as we compare all bytes, not just number of Unicode chars
   UT_ASSERT_MEM_EQUAL (Buffer, mKnown_Good_Generic_Profile, Size);
@@ -794,22 +794,22 @@ ConvertVariableEntryToVariableListBadNameData (
   VOID                   *Buffer;
 
   ConfigVarList.Attributes = 3;
-  ConfigVarList.Name = NULL;
-  ConfigVarList.Data = NULL;
-  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.Name       = NULL;
+  ConfigVarList.Data       = NULL;
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
-  Size = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
+  Size   = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
   Buffer = AllocatePool (Size);
 
   ConfigVarList.Name = NULL;
   ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  Status             = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   ConfigVarList.Name = mKnown_Good_VarList_Names[0];
   ConfigVarList.Data = NULL;
-  Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
+  Status             = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
@@ -844,18 +844,18 @@ ConvertVariableEntryToVariableListBadSize (
   VOID                   *Buffer;
 
   ConfigVarList.Attributes = 3;
-  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
-  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
-  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
   ExpectedSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[0]), mKnown_Good_VarList_DataSizes[0]);
 
   // Intentionally setting it to code, it should not be touched.
-  Buffer = (VOID*)ConvertVariableEntryToVariableListBadSize;
+  Buffer = (VOID *)ConvertVariableEntryToVariableListBadSize;
 
-  for (Index = 0; Index < ExpectedSize; Index ++) {
-    Size = Index;
+  for (Index = 0; Index < ExpectedSize; Index++) {
+    Size   = Index;
     Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
     UT_ASSERT_STATUS_EQUAL (Status, EFI_BUFFER_TOO_SMALL);
     UT_ASSERT_EQUAL (Size, ExpectedSize);
@@ -890,7 +890,7 @@ ConvertVariableEntryToVariableListNull (
   UINTN                  Size;
   VOID                   *Buffer;
 
-  Size = sizeof (ConfigVarList);
+  Size   = sizeof (ConfigVarList);
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, NULL, &Size);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
@@ -933,12 +933,12 @@ VariableEntryLoopBack (
   VOID                   *Buffer;
 
   ConfigVarList.Attributes = 3;
-  ConfigVarList.Name = mKnown_Good_VarList_Names[0];
-  ConfigVarList.Data = mKnown_Good_VarList_Entries[0];
-  ConfigVarList.DataSize = mKnown_Good_VarList_DataSizes[0];
+  ConfigVarList.Name       = mKnown_Good_VarList_Names[0];
+  ConfigVarList.Data       = mKnown_Good_VarList_Entries[0];
+  ConfigVarList.DataSize   = mKnown_Good_VarList_DataSizes[0];
   CopyMem (&ConfigVarList.Guid, &mKnown_Good_Yaml_Guid, sizeof (EFI_GUID));
 
-  Size = VAR_LIST_SIZE (StrSize(ConfigVarList.Name), ConfigVarList.DataSize);
+  Size   = VAR_LIST_SIZE (StrSize (ConfigVarList.Name), ConfigVarList.DataSize);
   Buffer = AllocatePool (Size);
   Status = ConvertVariableEntryToVariableList (&ConfigVarList, Buffer, &Size);
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -985,7 +985,7 @@ VariableListLoopBack (
   UINTN                  Size;
   VOID                   *Buffer;
 
-  Size = sizeof (mKnown_Good_Generic_Profile);
+  Size   = sizeof (mKnown_Good_Generic_Profile);
   Status = ConvertVariableListToVariableEntry (mKnown_Good_Generic_Profile, &Size, &ConfigVarList);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
