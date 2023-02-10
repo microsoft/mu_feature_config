@@ -425,8 +425,8 @@ RetrieveActiveConfigVarListBadDataTest (
   UINTN                  ConfigVarListCount;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
-  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), &ConfigVarListPtr, &ConfigVarListCount), NULL);
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
+  UT_EXPECT_ASSERT_FAILURE (RetrieveActiveConfigVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), &ConfigVarListPtr, &ConfigVarListCount), NULL);
 
   return UNIT_TEST_PASSED;
 }
@@ -457,7 +457,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
   CHAR8                  *AsciiName        = NULL;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
@@ -466,7 +466,7 @@ QuerySingleActiveConfigAsciiVarListBadDataTest (
 
   UnicodeStrToAsciiStrS (mKnown_Good_VarList_Names[i], AsciiName, StrLen (mKnown_Good_VarList_Names[i]) + 1);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), AsciiName, ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigAsciiVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), AsciiName, ConfigVarListPtr), NULL);
 
   FreePool (AsciiName);
   FreePool (ConfigVarListPtr);
@@ -499,11 +499,11 @@ QuerySingleActiveConfigUnicodeVarListBadDataTest (
   UINT32                 i                 = 0;
 
   // pass in bad data, expect an assert
-  // mKnown_Good_Config_Data is not in varlist format, so it should fail
+  // mKnown_Bad_Config_Data is not in varlist format, so it should fail
   ConfigVarListPtr = AllocatePool (sizeof (*ConfigVarListPtr));
   UT_ASSERT_NOT_NULL (ConfigVarListPtr);
 
-  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Good_Config_Data, sizeof (mKnown_Good_Config_Data), mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
+  UT_EXPECT_ASSERT_FAILURE (QuerySingleActiveConfigUnicodeVarList (mKnown_Bad_Config_Data, sizeof (mKnown_Bad_Config_Data), mKnown_Good_VarList_Names[i], ConfigVarListPtr), NULL);
 
   FreePool (ConfigVarListPtr);
 
