@@ -90,6 +90,28 @@ UINTN             mConfDataOffset  = 0;
 UINTN             mConfDataSize    = 0;
 POLICY_PROTOCOL   *mPolicyProtocol = NULL;
 
+EFI_STATUS
+InspectDumpOutput (
+  IN VOID *Buffer,
+  IN UINTN  BufferSize
+  );
+
+#ifndef UNIT_TEST_ENV
+EFI_STATUS
+InspectDumpOutput (
+  IN VOID *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  // Do very little check for real running environment
+  if ((Buffer != NULL) && (BufferSize != 0)) {
+    return EFI_SUCCESS;
+  }
+
+  return EFI_COMPROMISED_DATA;
+}
+#endif
+
 /**
   Helper internal function to reset all local variable in this file.
 **/
@@ -721,6 +743,8 @@ CreateXmlStringFromCurrentSettings (
           continue;
         }
 
+        DUMP_HEX (DEBUG_ERROR, 0, Data, DataSize, "");
+
         Offset = 0;
         while (Offset < DataSize) {
 
@@ -939,6 +963,12 @@ SetupConfMgr (
         Print (L"\nFailed to print current settings in SVD format - %r\n", Status);
         Status = EFI_SUCCESS;
       } else {
+        Status = InspectDumpOutput (StrBuf, StrBufSize);
+        if (EFI_ERROR (Status)) {
+          Print (L"\nGenerated print failed to pass inspcetion - %r\n", Status);
+          Status = EFI_SUCCESS;
+          break;
+        }
         Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
         Print (L"\n");
         Index = 0;

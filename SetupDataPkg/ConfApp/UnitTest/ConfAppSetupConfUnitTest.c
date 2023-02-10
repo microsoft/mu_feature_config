@@ -18,6 +18,7 @@
 #include <Guid/VariableFormat.h>
 #include <Guid/MuVarPolicyFoundationDxe.h>
 #include <Protocol/VariablePolicy.h>
+#include <Protocol/Policy.h>
 
 #include <Library/BaseLib.h>
 #include <Library/PrintLib.h>
@@ -37,6 +38,7 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
+extern POLICY_PROTOCOL                    *mPolicyProtocol;
 
 typedef struct {
   UINTN    Tag;
@@ -48,6 +50,20 @@ typedef struct {
   CONFIG_VAR_LIST_ENTRY    *VarListPtr;
   UINTN                    VarListCnt;
 } CONTEXT_DATA;
+
+EFI_STATUS
+InspectDumpOutput (
+  IN VOID *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  assert_non_null (Buffer);
+  DUMP_HEX (DEBUG_INFO, 0, Buffer, BufferSize, "");
+  check_expected (BufferSize);
+  check_expected (Buffer);
+
+  return EFI_SUCCESS;
+}
 
 /**
 *
@@ -249,6 +265,41 @@ MockWaitForEvent (
   return EFI_SUCCESS;
 }
 
+/**
+  Mocked version of LocateProtocol.
+
+  @param[in]  Protocol          Provides the protocol to search for.
+  @param[in]  Registration      Optional registration key returned from
+                                RegisterProtocolNotify().
+  @param[out]  Interface        On return, a pointer to the first interface that matches Protocol and
+                                Registration.
+
+  @retval EFI_SUCCESS           A protocol instance matching Protocol was found and returned in
+                                Interface.
+  @retval EFI_NOT_FOUND         No protocol instances were found that match Protocol and
+                                Registration.
+  @retval EFI_INVALID_PARAMETER Interface is NULL.
+                                Protocol is NULL.
+
+**/
+EFI_STATUS
+EFIAPI
+MockLocateProtocol (
+  IN  EFI_GUID *Protocol,
+  IN  VOID *Registration, OPTIONAL
+  OUT VOID      **Interface
+  )
+{
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  // Check that this is the right protocol being located
+  check_expected_ptr (Protocol);
+
+  // Set the protocol to one of our mock protocols
+  *Interface = (VOID *)mock ();
+
+  return EFI_SUCCESS;
+}
+
 ///
 /// Mock version of the UEFI Boot Services Table
 ///
@@ -261,34 +312,67 @@ EFI_BOOT_SERVICES  MockBoot = {
     0
   },
   .WaitForEvent = MockWaitForEvent,
+  .LocateProtocol = MockLocateProtocol
 };
 
-UNIT_TEST_STATUS
+/**
+  Mocked version of GetPolicy.
+
+  @param[in]      PolicyGuid        The GUID of the policy being retrieved.
+  @param[out]     Attributes        The attributes of the stored policy.
+  @param[out]     Policy            The buffer where the policy data is copied.
+  @param[in,out]  PolicySize        The size of the stored policy data buffer.
+                                    On output, contains the size of the stored policy.
+
+  @retval   EFI_SUCCESS           The policy was retrieved.
+  @retval   EFI_BUFFER_TOO_SMALL  The provided buffer size was too small.
+  @retval   EFI_NOT_FOUND         The policy does not exist.
+**/
+EFI_STATUS
 EFIAPI
-SetupConfPrerequisite (
-  IN UNIT_TEST_CONTEXT  Context
+MockGetPolicy (
+  IN CONST EFI_GUID *PolicyGuid,
+  OUT UINT64 *Attributes OPTIONAL,
+  OUT VOID *Policy,
+  IN OUT UINT16 *PolicySize
   )
 {
-  CONTEXT_DATA  *Ctx;
-  UINTN         Index;
+  UINT16 Size;
+  VOID *Target;
 
-  UT_ASSERT_NOT_NULL (Context);
+  assert_non_null (PolicyGuid);
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, PolicyGuid));
+  // Check that this is the right protocol being located
+  check_expected (PolicyGuid);
 
-  Ctx             = (CONTEXT_DATA *)Context;
-  Ctx->VarListCnt = KNOWN_GOOD_TAG_COUNT;
-  Ctx->VarListPtr = AllocatePool (Ctx->VarListCnt * sizeof (CONFIG_VAR_LIST_ENTRY));
-  UT_ASSERT_NOT_NULL (Ctx->VarListPtr);
+  assert_non_null (PolicySize);
 
-  for (Index = 0; Index < KNOWN_GOOD_TAG_COUNT; Index++) {
-    Ctx->VarListPtr[Index].Name       = mKnown_Good_VarList_Names[Index];
-    Ctx->VarListPtr[Index].Attributes = VARIABLE_ATTRIBUTE_BS_RT;
-    Ctx->VarListPtr[Index].DataSize   = mKnown_Good_VarList_DataSizes[Index];
-    Ctx->VarListPtr[Index].Data       = AllocateCopyPool (Ctx->VarListPtr[Index].DataSize, mKnown_Good_VarList_Entries[Index]);
-    CopyMem (&Ctx->VarListPtr[Index].Guid, &gEfiCallerIdGuid, sizeof (EFI_GUID));
+  Size = (UINT16)mock ();
+
+  if (Size > *PolicySize) {
+    *PolicySize = Size;
+    return EFI_BUFFER_TOO_SMALL;
   }
 
-  return UNIT_TEST_PASSED;
+  if (Size == 0) {
+    return EFI_NOT_FOUND;
+  }
+
+  assert_non_null (Policy);
+
+  *PolicySize = Size;
+  Target = (VOID *)mock ();
+  CopyMem (Policy, Target, Size);
+
+  return EFI_SUCCESS;
 }
+
+///
+/// Mock version of the UEFI Boot Services Table
+///
+POLICY_PROTOCOL mMockedPolicy = {
+  .GetPolicy = MockGetPolicy
+};
 
 /**
   Clean up state machine for this page.
@@ -315,6 +399,7 @@ SetupConfCleanup (
   mSetupConfState = SetupConfExit;
   SetupConfMgr ();
   mSetupConfState = SetupConfInit;
+  mPolicyProtocol = NULL;
 }
 
 /**
@@ -343,8 +428,11 @@ ConfAppSetupConfInit (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
@@ -388,8 +476,11 @@ ConfAppSetupConfSelectEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, sizeof (LockVar));
   will_return (MockGetVariable, &LockVar);
@@ -444,8 +535,11 @@ ConfAppSetupConfSelectOther (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, sizeof (LockVar));
   will_return (MockGetVariable, &LockVar);
@@ -500,8 +594,11 @@ ConfAppSetupConfSelectUsb (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
@@ -535,25 +632,25 @@ ConfAppSetupConfSelectUsb (
 
   // first time through is delete
   expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, 0x00);
   expect_value (MockSetVariable, Data, NULL);
 
   expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
-  expect_value (MockSetVariable, DataSize, 0x09);
-  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[0], 0x09);
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[2]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[2], mKnown_Good_VarList_DataSizes[2]);
 
   // first time through is delete
   expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, 0x00);
   expect_value (MockSetVariable, Data, NULL);
 
   expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
-  expect_value (MockSetVariable, DataSize, 0x04);
-  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[1], 0x04);
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
   will_return (ResetCold, &JumpBuf);
 
@@ -594,8 +691,11 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
@@ -639,25 +739,25 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
 
   // first time through is delete
   expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, 0x00);
   expect_value (MockSetVariable, Data, NULL);
 
   expect_memory (MockSetVariable, VariableName, L"COMPLEX_KNOB1a", StrSize (L"COMPLEX_KNOB1a"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
-  expect_value (MockSetVariable, DataSize, 0x09);
-  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[0], 0x09);
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[2]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[2], mKnown_Good_VarList_DataSizes[2]);
 
   // first time through is delete
   expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
   expect_value (MockSetVariable, DataSize, 0x00);
   expect_value (MockSetVariable, Data, NULL);
 
   expect_memory (MockSetVariable, VariableName, L"INTEGER_KNOB", StrSize (L"INTEGER_KNOB"));
-  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid_LE, sizeof (mKnown_Good_Xml_Guid_LE));
-  expect_value (MockSetVariable, DataSize, 0x04);
-  expect_memory (MockSetVariable, Data, mKnown_Good_Xml_VarList_Entries[1], 0x04);
+  expect_memory (MockSetVariable, VendorGuid, &mKnown_Good_Xml_Guid, sizeof (EFI_GUID));
+  expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
+  expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
   will_return (ResetCold, &JumpBuf);
 
@@ -697,8 +797,11 @@ ConfAppSetupConfSelectSerialEsc (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, 0);
   will_return (MockGetVariable, NULL);
@@ -764,26 +867,31 @@ ConfAppSetupConfSelectSerialEsc (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-ConfAppSetupConfDumpSerial (
+ConfAppSetupConfDumpSerialMini (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS       Status;
   EFI_KEY_DATA     KeyData1;
-  CHAR16           *CompareUnicodePtr[KNOWN_GOOD_TAG_COUNT];
-  UINTN            Index;
-  UINTN            ReturnUnicodeSize;
+  // CHAR16           *CompareUnicodePtr[KNOWN_GOOD_TAG_COUNT];
+  // UINTN            Index;
+  // UINTN            ReturnUnicodeSize;
   POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
-  CONTEXT_DATA     *Ctx;
 
-  UT_ASSERT_NOT_NULL (Context);
-  Ctx = (CONTEXT_DATA *)Context;
+  CONFIG_VAR_LIST_ENTRY Entry;
+  VOID                  *Buffer;
+  UINTN                 BufferSize;
+  UINTN                 Offset;
+  UINTN                 SizeLeft;
 
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, sizeof (LockVar));
   will_return (MockGetVariable, &LockVar);
@@ -809,38 +917,117 @@ ConfAppSetupConfDumpSerial (
   UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpSerial);
 
-  // This is to mimic config setting variables
-  for (Index = 0; Index < Ctx->VarListCnt; Index++) {
-    CompareUnicodePtr[Index] = Ctx->VarListPtr->Name;
-    ReturnUnicodeSize        = StrnLenS (CompareUnicodePtr[Index], KNOWN_GOOD_TAG_NAME_LEN);
+  BufferSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[2]), mKnown_Good_VarList_DataSizes[2]) +
+                VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[5]), mKnown_Good_VarList_DataSizes[5]);
 
-    // Only the first iteration needs to extend the var name buffer
-    if (Index == 0) {
-      will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
-    }
+  DEBUG ((DEBUG_ERROR, "Here %d %d\n", __LINE__, BufferSize));
+  Buffer = AllocatePool (BufferSize);
+  UT_ASSERT_NOT_NULL (Buffer);
 
-    will_return (MockGetNextVariableName, (ReturnUnicodeSize + 1) * sizeof (CHAR16));
-    will_return (MockGetNextVariableName, CompareUnicodePtr[Index]);
-    will_return (MockGetNextVariableName, &gEfiCallerIdGuid);
+  // Populate the first knob (COMPLEX_KNOB1a)
+  Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
+  Entry.Name = mKnown_Good_VarList_Names[2];
+  Entry.Guid = mKnown_Good_Xml_Guid;
+  Entry.Data = mKnown_Good_VarList_Entries[2];
+  Entry.DataSize = mKnown_Good_VarList_DataSizes[2];
+  Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
 
-    // Respond to get var size query
-    expect_memory (MockGetVariable, VariableName, CompareUnicodePtr[Index], ReturnUnicodeSize);
-    expect_memory (MockGetVariable, VendorGuid, &Ctx->VarListPtr->Guid, sizeof (EFI_GUID));
+  Offset = 0;
+  SizeLeft = BufferSize - Offset;
+  Status = ConvertVariableEntryToVariableList (&Entry, Buffer, &SizeLeft);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  Offset = SizeLeft;
 
-    will_return (MockGetVariable, Ctx->VarListPtr->DataSize);
+  // Populate the second knob (INTEGER_KNOB)
+  Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
+  Entry.Name = mKnown_Good_VarList_Names[5];
+  Entry.Guid = mKnown_Good_Xml_Guid;
+  Entry.Data = mKnown_Good_VarList_Entries[5];
+  Entry.DataSize = mKnown_Good_VarList_DataSizes[5];
+  Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
 
-    // Get to the variable details
-    expect_memory (MockGetVariable, VariableName, CompareUnicodePtr[Index], ReturnUnicodeSize);
-    expect_memory (MockGetVariable, VendorGuid, &Ctx->VarListPtr->Guid, sizeof (EFI_GUID));
+  SizeLeft = BufferSize - Offset;
+  ConvertVariableEntryToVariableList (&Entry, (UINT8*)Buffer + Offset, &SizeLeft);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
-    will_return (MockGetVariable, Ctx->VarListPtr->DataSize);
-    will_return (MockGetVariable, Ctx->VarListPtr->Data);
-    will_return (MockGetVariable, EFI_SUCCESS);
-  }
+  expect_memory_count (MockGetPolicy, PolicyGuid, &gZeroGuid, sizeof (EFI_GUID), 2);
+  will_return_count (MockGetPolicy, BufferSize, 2);
+  will_return (MockGetPolicy, Buffer);
 
-  // End the queries with a EFI_NOT_FOUND
-  will_return (MockGetNextVariableName, 0);
-  will_return (MockGetNextVariableName, EFI_NOT_FOUND);
+  expect_value (InspectDumpOutput, BufferSize, sizeof (KNOWN_GOOD_VARLIST_SVD));
+  expect_memory (InspectDumpOutput, Buffer, KNOWN_GOOD_VARLIST_SVD, sizeof (KNOWN_GOOD_VARLIST_SVD));
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpComplete);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for SetupConf page when selecting dumping configure from serial.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppSetupConfDumpSerial (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS       Status;
+  EFI_KEY_DATA     KeyData1;
+  POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
+
+  will_return_count (MockClearScreen, EFI_SUCCESS, 2);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
+  expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
+
+  will_return (MockGetVariable, sizeof (LockVar));
+  will_return (MockGetVariable, &LockVar);
+  will_return (MockGetVariable, EFI_SUCCESS);
+
+  // Expect the prints twice
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+
+  // Initial run
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpSerial);
+
+  expect_memory_count (MockGetPolicy, PolicyGuid, &gZeroGuid, sizeof (EFI_GUID), 2);
+  will_return_count (MockGetPolicy, sizeof (mKnown_Good_Generic_Profile), 2);
+  will_return (MockGetPolicy, mKnown_Good_Generic_Profile);
+
+  expect_any (InspectDumpOutput, BufferSize);
+  expect_any (InspectDumpOutput, Buffer);
 
   Status = SetupConfMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -877,8 +1064,11 @@ ConfAppSetupConfNonMfg (
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
+  expect_memory (MockLocateProtocol, Protocol, &gPolicyProtocolGuid, sizeof (EFI_GUID));
+  will_return (MockLocateProtocol, &mMockedPolicy);
+
   expect_memory (MockGetVariable, VariableName, READY_TO_BOOT_INDICATOR_VAR_NAME, sizeof (READY_TO_BOOT_INDICATOR_VAR_NAME));
-  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (mKnown_Good_Xml_Guid_LE));
+  expect_memory (MockGetVariable, VendorGuid, &gMuVarPolicyDxePhaseGuid, sizeof (EFI_GUID));
 
   will_return (MockGetVariable, sizeof (LockVar));
   will_return (MockGetVariable, &LockVar);
@@ -943,7 +1133,6 @@ UnitTestingEntry (
   EFI_STATUS                  Status;
   UNIT_TEST_FRAMEWORK_HANDLE  Framework;
   UNIT_TEST_SUITE_HANDLE      MiscTests;
-  CONTEXT_DATA                Context;
 
   Framework = NULL;
 
@@ -979,7 +1168,8 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Setup Configuration page should setup configuration from USB", "SelectUsb", ConfAppSetupConfSelectUsb, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should setup configuration from serial", "SelectSerialWithArbitrarySVD", ConfAppSetupConfSelectSerialWithArbitrarySVD, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should return with ESC key during serial transport", "SelectSerial", ConfAppSetupConfSelectSerialEsc, NULL, SetupConfCleanup, NULL);
-  AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, SetupConfPrerequisite, SetupConfCleanup, &Context);
+  AddTestCase (MiscTests, "Setup Configuration page should dump 2 configurations from serial", "ConfDumpMini", ConfAppSetupConfDumpSerialMini, NULL, SetupConfCleanup, NULL);
+  AddTestCase (MiscTests, "Setup Configuration page should dump all configurations from serial", "ConfDump", ConfAppSetupConfDumpSerial, NULL, SetupConfCleanup, NULL);
   AddTestCase (MiscTests, "Setup Configuration page should ignore updating configurations when in non-mfg mode", "ConfNonMfg", ConfAppSetupConfNonMfg, NULL, SetupConfCleanup, NULL);
 
   //
