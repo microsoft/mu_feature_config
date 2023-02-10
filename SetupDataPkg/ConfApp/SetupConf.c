@@ -9,6 +9,8 @@
 #include <Uefi.h>
 #include <XmlTypes.h>
 
+#include <Protocol/Policy.h>
+
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
@@ -23,6 +25,7 @@
 #include <Library/SvdXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
+#include <Library/ConfigSystemModeLib.h>
 
 #include "ConfApp.h"
 #include "SvdUsb/SvdUsb.h"
@@ -86,6 +89,30 @@ SetupConfState_t  mSetupConfState  = SetupConfInit;
 UINT16            *mConfDataBuffer = NULL;
 UINTN             mConfDataOffset  = 0;
 UINTN             mConfDataSize    = 0;
+POLICY_PROTOCOL   *mPolicyProtocol = NULL;
+
+EFI_STATUS
+InspectDumpOutput (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  );
+
+#ifndef UNIT_TEST_ENV
+EFI_STATUS
+InspectDumpOutput (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  // Do very little check for real running environment
+  if ((Buffer != NULL) && (BufferSize != 0)) {
+    return EFI_SUCCESS;
+  }
+
+  return EFI_COMPROMISED_DATA;
+}
+
+#endif // UNIT_TEST_ENV
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -129,9 +156,9 @@ PrintOptions (
   Print (L"Setup Configuration Options:\n");
   Print (L"\n");
 
-  if (IsPostReadyToBoot ()) {
+  if (!IsSystemInManufacturingMode ()) {
     gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK));
-    Print (L"Updating configuration is not allowed per platform policy:\n");
+    Print (L"Updating configuration will not take any effect per platform state:\n");
     SetupConfStateOptions[0].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_DARKGRAY, EFI_BLACK);
     SetupConfStateOptions[0].EndState            = SetupConfError;
 
@@ -163,82 +190,28 @@ WriteSVDSetting (
   IN        UINTN  ValueSize
   )
 {
-  EFI_STATUS           Status          = EFI_SUCCESS;
-  CHAR16               *AlignedVarName = NULL;
-  CHAR16               *UnalignedVarName;
-  EFI_GUID             *Guid;
-  UINT32               Attributes;
-  CHAR8                *Data;
-  UINT32               CRC32;
-  UINT32               LenToCRC32;
-  UINT32               CalcCRC32 = 0;
-  CONFIG_VAR_LIST_HDR  *VarList;
-  UINT32               ListIndex = 0;
+  EFI_STATUS             Status             = EFI_SUCCESS;
+  UINT32                 ListIndex          = 0;
+  CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr  = NULL;
+  UINTN                  ConfigVarListCount = 0;
 
   if ((Value == NULL) || (ValueSize == 0)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  while (ListIndex < ValueSize) {
-    // index into variable list
-    VarList = (CONFIG_VAR_LIST_HDR *)(Value + ListIndex);
+  Status = RetrieveActiveConfigVarList (Value, ValueSize, &ConfigVarListPtr, &ConfigVarListCount);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to extract all configuration elements - %r\n", Status));
+    goto Done;
+  }
 
-    if (ListIndex + sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) +
-        sizeof (Attributes) + sizeof (CRC32) > ValueSize)
-    {
-      // the NameSize and DataSize have bad values and are pushing us past the end of the binary
-      DEBUG ((DEBUG_ERROR, "SVD settings had bad NameSize or DataSize, unable to process all settings\n"));
-      Status = EFI_COMPROMISED_DATA;
-      break;
-    }
-
-    /*
-     * Var List is in DmpStore format:
-     *
-     *  struct {
-     *    CONFIG_VAR_LIST_HDR VarList;
-     *    CHAR16 Name[VarList->NameSize/2];
-     *    EFI_GUID Guid;
-     *    UINT32 Attributes;
-     *    CHAR8 Data[VarList->DataSize];
-     *    UINT32 CRC32; // CRC32 of all bytes from VarList to end of Data
-     *  }
-     */
-    UnalignedVarName = (CHAR16 *)(VarList + 1);
-    Guid             = (EFI_GUID *)((CHAR8 *)UnalignedVarName + VarList->NameSize);
-    Attributes       = *(UINT32 *)(Guid + 1);
-    Data             = (CHAR8 *)Guid + sizeof (*Guid) + sizeof (Attributes);
-    CRC32            = *(UINT32 *)(Data + VarList->DataSize);
-    LenToCRC32       = sizeof (*VarList) + VarList->NameSize + VarList->DataSize + sizeof (*Guid) + sizeof (Attributes);
-
-    // on next iteration, skip past this variable
-    ListIndex += LenToCRC32 + sizeof (CRC32);
-
-    // validate CRC32
-    CalcCRC32 = CalculateCrc32 (VarList, LenToCRC32);
-
-    if (CalcCRC32 != CRC32) {
-      // CRC didn't match, drop this variable, continue to the next
-      DEBUG ((DEBUG_ERROR, "SVD setting failed CRC check, skipping applying setting: %a Status: %r \
-      Received CRC32: %u Calculated CRC32: %u\n", UnalignedVarName, Status, CRC32, CalcCRC32));
-      continue;
-    }
-
-    AlignedVarName = AllocatePool (VarList->NameSize);
-    if (AlignedVarName == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      return Status;
-    }
-
-    // Copy non-16 bit aligned UnalignedVarName to AlignedVarName, not using StrCpyS functions as they assert on non-16 bit alignment
-    CopyMem (AlignedVarName, UnalignedVarName, VarList->NameSize);
-
+  for (ListIndex = 0; ListIndex < ConfigVarListCount; ListIndex++) {
     // first delete the variable in case of size or attributes change, not validated here as this is only allowed
     // in manufacturing mode. Don't retrieve the status, if we fail to delete, try to write it anyway. If we fail
     // there, just log it and move on
     gRT->SetVariable (
-           AlignedVarName,
-           Guid,
+           ConfigVarListPtr->Name,
+           &ConfigVarListPtr->Guid,
            0,
            0,
            NULL
@@ -246,19 +219,25 @@ WriteSVDSetting (
 
     // write variable directly to var storage
     Status = gRT->SetVariable (
-                    AlignedVarName,
-                    Guid,
-                    Attributes,
-                    VarList->DataSize,
-                    Data
+                    ConfigVarListPtr->Name,
+                    &ConfigVarListPtr->Guid,
+                    ConfigVarListPtr->Attributes,
+                    ConfigVarListPtr->DataSize,
+                    ConfigVarListPtr->Data
                     );
 
     if (EFI_ERROR (Status)) {
       // failed to set variable, continue to try with other variables
-      DEBUG ((DEBUG_ERROR, "Failed to set SVD Setting %s, continuing to try next variables\n", AlignedVarName));
+      DEBUG ((DEBUG_ERROR, "Failed to set SVD Setting %s, continuing to try next variables\n", ConfigVarListPtr->Name));
     }
 
-    FreePool (AlignedVarName);
+    FreePool (ConfigVarListPtr->Name);
+    FreePool (ConfigVarListPtr->Data);
+  }
+
+Done:
+  if (ConfigVarListPtr != NULL) {
+    FreePool (ConfigVarListPtr);
   }
 
   return Status;
@@ -649,27 +628,26 @@ CreateXmlStringFromCurrentSettings (
   EFI_TIME               Time;
   UINT32                 Lsv            = 1;
   UINTN                  DataSize       = 0;
+  UINTN                  VarListSize    = 0;
+  UINTN                  Offset         = 0;
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
   CHAR8                  *AsciiName;
   UINTN                  AsciiSize;
-  CONFIG_VAR_LIST_ENTRY  *VarListEntries     = NULL;
-  UINTN                  VarListEntriesCount = 0;
-  UINTN                  Index;
-  UINT32                 Attributes;
-  CHAR16                 *Name;
-  EFI_GUID               Guid;
-  UINTN                  NameSize;
-  UINTN                  NewNameSize;
-  UINTN                  NeededSize;
-  UINTN                  Offset;
+  UINTN                  i;
+  UINTN                  NumPolicies;
+  EFI_GUID               *TargetGuids;
+  CONFIG_VAR_LIST_ENTRY  ConfigVarList;
 
   if ((XmlString == NULL) || (StringSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   PERF_FUNCTION_BEGIN ();
+
+  // Clear any uncertainty.
+  ZeroMem (&ConfigVarList, sizeof (CONFIG_VAR_LIST_ENTRY));
 
   // create basic xml
   Status = gRT->GetTime (&Time, NULL);
@@ -715,145 +693,118 @@ CreateXmlStringFromCurrentSettings (
     goto EXIT;
   }
 
-  // TODO: Need to handle active profile selected display...
-
-  NameSize = sizeof (CHAR16);
-  Name     = AllocateZeroPool (NameSize);
-  if (Name == NULL) {
+  // Need to fit in a GUID : %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x
+  AsciiSize = sizeof (EFI_GUID) * 2 + 4 + 1;
+  AsciiName = AllocateZeroPool (AsciiSize);
+  if (AsciiName == NULL) {
     DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for initial variable name.\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto EXIT;
   }
 
-  while (TRUE) {
-    NewNameSize = NameSize;
-    Status      = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
-    if (Status == EFI_BUFFER_TOO_SMALL) {
-      Name = ReallocatePool (NameSize, NewNameSize, Name);
-      if (Name == NULL) {
-        DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for next variable name.\n"));
-        Status = EFI_OUT_OF_RESOURCES;
-        goto EXIT;
+  // Inspect the size of PCD first.
+  NumPolicies = PcdGetSize (PcdConfigurationPolicyGuid);
+
+  // if we get a bad size for the configuration GUID list, we just fail...
+  if ((NumPolicies == 0) || (NumPolicies % sizeof (EFI_GUID) != 0)) {
+    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationPolicyGuid: %u!\n", __FUNCTION__, NumPolicies));
+    ASSERT (FALSE);
+  } else {
+    NumPolicies /= sizeof (EFI_GUID);
+
+    TargetGuids = (EFI_GUID *)PcdGetPtr (PcdConfigurationPolicyGuid);
+
+    // if the PCD is not specified, there is nothing we can dump here...
+    if (TargetGuids == NULL) {
+      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs!\n", __FUNCTION__));
+      ASSERT (FALSE);
+    } else {
+      // Try to locate all config policies specified in this PCD
+      for (i = 0; i < NumPolicies; i++) {
+        DataSize = 0;
+        Status   = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
+        if (Status != EFI_BUFFER_TOO_SMALL) {
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          ASSERT (FALSE);
+          continue;
+        }
+
+        Data = AllocatePool (DataSize);
+        if (Data == NULL) {
+          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __FUNCTION__, TargetGuids[i]));
+          break;
+        }
+
+        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
+        if (EFI_ERROR (Status)) {
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          ASSERT (FALSE);
+          FreePool (Data);
+          Data = NULL;
+          continue;
+        }
+
+        Offset = 0;
+        while (Offset < DataSize) {
+          VarListSize = DataSize - Offset;
+          Status      = ConvertVariableListToVariableEntry ((UINT8 *)Data + Offset, &VarListSize, &ConfigVarList);
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "%a Failed to convert variable list to variable entry - %r\n", __FUNCTION__, Status));
+            goto EXIT;
+          }
+
+          AsciiSize = StrnSizeS (ConfigVarList.Name, CONF_VAR_NAME_LEN) / sizeof (CHAR16);
+          AsciiName = AllocatePool (AsciiSize);
+          if (AsciiName == NULL) {
+            DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", ConfigVarList.Name));
+            Status = EFI_OUT_OF_RESOURCES;
+            goto EXIT;
+          }
+
+          AsciiSPrint (AsciiName, AsciiSize, "%s", ConfigVarList.Name);
+
+          // First encode the binary blob
+          EncodedSize = 0;
+          Status      = Base64Encode ((UINT8 *)Data + Offset, VarListSize, NULL, &EncodedSize);
+          if (Status != EFI_BUFFER_TOO_SMALL) {
+            DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
+            Status = EFI_INVALID_PARAMETER;
+            goto EXIT;
+          }
+
+          EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
+          if (EncodedBuffer == NULL) {
+            DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
+            Status = EFI_OUT_OF_RESOURCES;
+            goto EXIT;
+          }
+
+          Status = Base64Encode ((UINT8 *)Data + Offset, VarListSize, EncodedBuffer, &EncodedSize);
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
+            Status = EFI_INVALID_PARAMETER;
+            goto EXIT;
+          }
+
+          Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
+
+          if (EFI_ERROR (Status)) {
+            DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+          }
+
+          Offset += VarListSize;
+          FreePool (ConfigVarList.Name);
+          FreePool (ConfigVarList.Data);
+          FreePool (AsciiName);
+          ConfigVarList.Data = NULL;
+          ConfigVarList.Name = NULL;
+          AsciiName          = NULL;
+        }
+
+        FreePool (Data);
+        Data = NULL;
       }
-
-      Status = gRT->GetNextVariableName (&NewNameSize, Name, &Guid);
     }
-
-    NameSize = NewNameSize;
-
-    if (Status == EFI_NOT_FOUND) {
-      break;
-    }
-
-    ASSERT_EFI_ERROR (Status);
-
-    AsciiSize = NameSize;
-    AsciiName = AllocatePool (AsciiSize);
-    if (AsciiName == NULL) {
-      DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for ID %s.\n", Name));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    AsciiSPrint (AsciiName, AsciiSize, "%s", Name);
-
-    // Put variables into the variable list structure
-    DataSize = 0;
-    Status   = gRT->GetVariable (
-                      Name,
-                      &Guid,
-                      &Attributes,
-                      &DataSize,
-                      NULL
-                      );
-    if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "%a - Get binary configuration size returned unexpected result = %r\n", __FUNCTION__, Status));
-      goto EXIT;
-    }
-
-    NeededSize = sizeof (CONFIG_VAR_LIST_HDR) + NameSize + DataSize + sizeof (EFI_GUID) +
-                 sizeof (Attributes) + sizeof (UINT32);
-
-    Data = AllocatePool (NeededSize);
-    if (Data == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    Offset = 0;
-    // Header
-    ((CONFIG_VAR_LIST_HDR *)Data)->NameSize = (UINT32)NameSize;
-    ((CONFIG_VAR_LIST_HDR *)Data)->DataSize = (UINT32)DataSize;
-    Offset                                 += sizeof (CONFIG_VAR_LIST_HDR);
-
-    // Name
-    CopyMem ((UINT8 *)Data + Offset, Name, NameSize);
-    Offset += NameSize;
-
-    // Guid
-    CopyMem ((UINT8 *)Data + Offset, &Guid, sizeof (Guid));
-    Offset += sizeof (Guid);
-
-    // Attributes
-    CopyMem ((UINT8 *)Data + Offset, &Attributes, sizeof (Attributes));
-    Offset += sizeof (Attributes);
-
-    // Data
-    Status = gRT->GetVariable (
-                    Name,
-                    &Guid,
-                    &Attributes,
-                    &DataSize,
-                    (UINT8 *)Data + Offset
-                    );
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Get variable data returned unexpected result = %r\n", __FUNCTION__, Status));
-      goto EXIT;
-    }
-
-    Offset += DataSize;
-
-    // CRC32
-    *(UINT32 *)((UINT8 *)Data + Offset) = CalculateCrc32 (Data, Offset);
-    Offset                             += sizeof (UINT32);
-
-    // They should still match in size...
-    ASSERT (Offset == NeededSize);
-
-    // Then pacify the value of DataSize used below
-    DataSize = NeededSize;
-
-    // First encode the binary blob
-    EncodedSize = 0;
-    Status      = Base64Encode (Data, DataSize, NULL, &EncodedSize);
-    if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
-      Status = EFI_INVALID_PARAMETER;
-      goto EXIT;
-    }
-
-    EncodedBuffer = (CHAR8 *)AllocatePool (EncodedSize);
-    if (EncodedBuffer == NULL) {
-      DEBUG ((DEBUG_ERROR, "Cannot allocate encoded buffer of size 0x%x.\n", EncodedSize));
-      Status = EFI_OUT_OF_RESOURCES;
-      goto EXIT;
-    }
-
-    Status = Base64Encode (Data, DataSize, EncodedBuffer, &EncodedSize);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
-      Status = EFI_INVALID_PARAMETER;
-      goto EXIT;
-    }
-
-    Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
-
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
-    }
-
-    FreePool (Data);
-    Data = NULL;
   }
 
   // now output as xml string
@@ -871,26 +822,20 @@ EXIT:
     FreePool (Data);
   }
 
+  if (ConfigVarList.Name != NULL) {
+    FreePool (ConfigVarList.Name);
+  }
+
+  if (ConfigVarList.Data != NULL) {
+    FreePool (ConfigVarList.Data);
+  }
+
   if (EncodedBuffer != NULL) {
     FreePool (EncodedBuffer);
   }
 
-  if (Name != NULL) {
-    FreePool (Name);
-  }
-
-  if (VarListEntries != NULL) {
-    for (Index = 0; Index < VarListEntriesCount; Index++) {
-      if (VarListEntries[Index].Name != NULL) {
-        FreePool (VarListEntries[Index].Name);
-      }
-
-      if (VarListEntries[Index].Data != NULL) {
-        FreePool (VarListEntries[Index].Data);
-      }
-    }
-
-    FreePool (VarListEntries);
+  if (AsciiName != NULL) {
+    FreePool (AsciiName);
   }
 
   if (EFI_ERROR (Status)) {
@@ -929,6 +874,14 @@ SetupConfMgr (
 
   switch (mSetupConfState) {
     case SetupConfInit:
+      if (mPolicyProtocol == NULL) {
+        Status = gBS->LocateProtocol (
+                        &gPolicyProtocolGuid,
+                        NULL,
+                        (VOID **)&mPolicyProtocol
+                        );
+      }
+
       // Collect what is needed and print in this step
       Status = PrintOptions ();
       if (EFI_ERROR (Status)) {
@@ -1009,6 +962,13 @@ SetupConfMgr (
         Print (L"\nFailed to print current settings in SVD format - %r\n", Status);
         Status = EFI_SUCCESS;
       } else {
+        Status = InspectDumpOutput (StrBuf, StrBufSize);
+        if (EFI_ERROR (Status)) {
+          Print (L"\nGenerated print failed to pass inspection - %r\n", Status);
+          Status = EFI_SUCCESS;
+          break;
+        }
+
         Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
         Print (L"\n");
         Index = 0;
