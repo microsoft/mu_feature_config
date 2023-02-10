@@ -53,7 +53,7 @@ typedef struct {
 
 EFI_STATUS
 InspectDumpOutput (
-  IN VOID *Buffer,
+  IN VOID   *Buffer,
   IN UINTN  BufferSize
   )
 {
@@ -311,7 +311,7 @@ EFI_BOOT_SERVICES  MockBoot = {
     0,
     0
   },
-  .WaitForEvent = MockWaitForEvent,
+  .WaitForEvent   = MockWaitForEvent,
   .LocateProtocol = MockLocateProtocol
 };
 
@@ -331,14 +331,14 @@ EFI_BOOT_SERVICES  MockBoot = {
 EFI_STATUS
 EFIAPI
 MockGetPolicy (
-  IN CONST EFI_GUID *PolicyGuid,
-  OUT UINT64 *Attributes OPTIONAL,
-  OUT VOID *Policy,
-  IN OUT UINT16 *PolicySize
+  IN CONST EFI_GUID  *PolicyGuid,
+  OUT UINT64         *Attributes OPTIONAL,
+  OUT VOID           *Policy,
+  IN OUT UINT16      *PolicySize
   )
 {
-  UINT16 Size;
-  VOID *Target;
+  UINT16  Size;
+  VOID    *Target;
 
   assert_non_null (PolicyGuid);
   DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, PolicyGuid));
@@ -361,7 +361,7 @@ MockGetPolicy (
   assert_non_null (Policy);
 
   *PolicySize = Size;
-  Target = (VOID *)mock ();
+  Target      = (VOID *)mock ();
   CopyMem (Policy, Target, Size);
 
   return EFI_SUCCESS;
@@ -370,7 +370,7 @@ MockGetPolicy (
 ///
 /// Mock version of the UEFI Boot Services Table
 ///
-POLICY_PROTOCOL mMockedPolicy = {
+POLICY_PROTOCOL  mMockedPolicy = {
   .GetPolicy = MockGetPolicy
 };
 
@@ -871,18 +871,18 @@ ConfAppSetupConfDumpSerialMini (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS       Status;
-  EFI_KEY_DATA     KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
   // CHAR16           *CompareUnicodePtr[KNOWN_GOOD_TAG_COUNT];
   // UINTN            Index;
   // UINTN            ReturnUnicodeSize;
   POLICY_LOCK_VAR  LockVar = PHASE_INDICATOR_SET;
 
-  CONFIG_VAR_LIST_ENTRY Entry;
-  VOID                  *Buffer;
-  UINTN                 BufferSize;
-  UINTN                 Offset;
-  UINTN                 SizeLeft;
+  CONFIG_VAR_LIST_ENTRY  Entry;
+  VOID                   *Buffer;
+  UINTN                  BufferSize;
+  UINTN                  Offset;
+  UINTN                  SizeLeft;
 
   will_return_count (MockClearScreen, EFI_SUCCESS, 2);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -918,7 +918,7 @@ ConfAppSetupConfDumpSerialMini (
   UT_ASSERT_EQUAL (mSetupConfState, SetupConfDumpSerial);
 
   BufferSize = VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[2]), mKnown_Good_VarList_DataSizes[2]) +
-                VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[5]), mKnown_Good_VarList_DataSizes[5]);
+               VAR_LIST_SIZE (StrSize (mKnown_Good_VarList_Names[5]), mKnown_Good_VarList_DataSizes[5]);
 
   DEBUG ((DEBUG_ERROR, "Here %d %d\n", __LINE__, BufferSize));
   Buffer = AllocatePool (BufferSize);
@@ -926,28 +926,28 @@ ConfAppSetupConfDumpSerialMini (
 
   // Populate the first knob (COMPLEX_KNOB1a)
   Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
-  Entry.Name = mKnown_Good_VarList_Names[2];
-  Entry.Guid = mKnown_Good_Xml_Guid;
-  Entry.Data = mKnown_Good_VarList_Entries[2];
-  Entry.DataSize = mKnown_Good_VarList_DataSizes[2];
+  Entry.Name       = mKnown_Good_VarList_Names[2];
+  Entry.Guid       = mKnown_Good_Xml_Guid;
+  Entry.Data       = mKnown_Good_VarList_Entries[2];
+  Entry.DataSize   = mKnown_Good_VarList_DataSizes[2];
   Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
 
-  Offset = 0;
+  Offset   = 0;
   SizeLeft = BufferSize - Offset;
-  Status = ConvertVariableEntryToVariableList (&Entry, Buffer, &SizeLeft);
+  Status   = ConvertVariableEntryToVariableList (&Entry, Buffer, &SizeLeft);
   UT_ASSERT_NOT_EFI_ERROR (Status);
   Offset = SizeLeft;
 
   // Populate the second knob (INTEGER_KNOB)
   Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
-  Entry.Name = mKnown_Good_VarList_Names[5];
-  Entry.Guid = mKnown_Good_Xml_Guid;
-  Entry.Data = mKnown_Good_VarList_Entries[5];
-  Entry.DataSize = mKnown_Good_VarList_DataSizes[5];
+  Entry.Name       = mKnown_Good_VarList_Names[5];
+  Entry.Guid       = mKnown_Good_Xml_Guid;
+  Entry.Data       = mKnown_Good_VarList_Entries[5];
+  Entry.DataSize   = mKnown_Good_VarList_DataSizes[5];
   Entry.Attributes = VARIABLE_ATTRIBUTE_BS_RT;
 
   SizeLeft = BufferSize - Offset;
-  ConvertVariableEntryToVariableList (&Entry, (UINT8*)Buffer + Offset, &SizeLeft);
+  ConvertVariableEntryToVariableList (&Entry, (UINT8 *)Buffer + Offset, &SizeLeft);
   UT_ASSERT_NOT_EFI_ERROR (Status);
 
   expect_memory_count (MockGetPolicy, PolicyGuid, &gZeroGuid, sizeof (EFI_GUID), 2);

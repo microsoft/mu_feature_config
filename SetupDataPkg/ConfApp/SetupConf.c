@@ -92,14 +92,14 @@ POLICY_PROTOCOL   *mPolicyProtocol = NULL;
 
 EFI_STATUS
 InspectDumpOutput (
-  IN VOID *Buffer,
+  IN VOID   *Buffer,
   IN UINTN  BufferSize
   );
 
 #ifndef UNIT_TEST_ENV
 EFI_STATUS
 InspectDumpOutput (
-  IN VOID *Buffer,
+  IN VOID   *Buffer,
   IN UINTN  BufferSize
   )
 {
@@ -110,6 +110,7 @@ InspectDumpOutput (
 
   return EFI_COMPROMISED_DATA;
 }
+
 #endif
 
 /**
@@ -188,8 +189,8 @@ WriteSVDSetting (
   IN        UINTN  ValueSize
   )
 {
-  EFI_STATUS           Status          = EFI_SUCCESS;
-  UINT32               ListIndex = 0;
+  EFI_STATUS             Status             = EFI_SUCCESS;
+  UINT32                 ListIndex          = 0;
   CONFIG_VAR_LIST_ENTRY  *ConfigVarListPtr  = NULL;
   UINTN                  ConfigVarListCount = 0;
 
@@ -203,7 +204,7 @@ WriteSVDSetting (
     goto Done;
   }
 
-  for (ListIndex = 0; ListIndex < ConfigVarListCount; ListIndex ++) {
+  for (ListIndex = 0; ListIndex < ConfigVarListCount; ListIndex++) {
     // first delete the variable in case of size or attributes change, not validated here as this is only allowed
     // in manufacturing mode. Don't retrieve the status, if we fail to delete, try to write it anyway. If we fail
     // there, just log it and move on
@@ -237,6 +238,7 @@ Done:
   if (ConfigVarListPtr != NULL) {
     FreePool (ConfigVarListPtr);
   }
+
   return Status;
 }
 
@@ -721,7 +723,7 @@ CreateXmlStringFromCurrentSettings (
       // validate that the returned profile guid is one of the known profile guids
       for (i = 0; i < NumPolicies; i++) {
         DataSize = 0;
-        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16*)&DataSize);
+        Status   = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (Status != EFI_BUFFER_TOO_SMALL) {
           DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
           ASSERT (FALSE);
@@ -734,7 +736,7 @@ CreateXmlStringFromCurrentSettings (
           break;
         }
 
-        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16*)&DataSize);
+        Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (EFI_ERROR (Status)) {
           DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
           ASSERT (FALSE);
@@ -747,9 +749,8 @@ CreateXmlStringFromCurrentSettings (
 
         Offset = 0;
         while (Offset < DataSize) {
-
           VarListSize = DataSize - Offset;
-          Status = ConvertVariableListToVariableEntry ((UINT8*)Data + Offset, &VarListSize, &ConfigVarList);
+          Status      = ConvertVariableListToVariableEntry ((UINT8 *)Data + Offset, &VarListSize, &ConfigVarList);
           if (EFI_ERROR (Status)) {
             DEBUG ((DEBUG_ERROR, "%a Failed to convert variable list to variable entry - %r\n", __FUNCTION__, Status));
             goto EXIT;
@@ -767,7 +768,7 @@ CreateXmlStringFromCurrentSettings (
 
           // First encode the binary blob
           EncodedSize = 0;
-          Status      = Base64Encode ((UINT8*)Data + Offset, VarListSize, NULL, &EncodedSize);
+          Status      = Base64Encode ((UINT8 *)Data + Offset, VarListSize, NULL, &EncodedSize);
           if (Status != EFI_BUFFER_TOO_SMALL) {
             DEBUG ((DEBUG_ERROR, "Cannot query binary blob size. Code = %r\n", Status));
             Status = EFI_INVALID_PARAMETER;
@@ -781,7 +782,7 @@ CreateXmlStringFromCurrentSettings (
             goto EXIT;
           }
 
-          Status = Base64Encode ((UINT8*)Data + Offset, VarListSize, EncodedBuffer, &EncodedSize);
+          Status = Base64Encode ((UINT8 *)Data + Offset, VarListSize, EncodedBuffer, &EncodedSize);
           if (EFI_ERROR (Status)) {
             DEBUG ((DEBUG_ERROR, "Failed to encode binary data into Base 64 format. Code = %r\n", Status));
             Status = EFI_INVALID_PARAMETER;
@@ -800,7 +801,7 @@ CreateXmlStringFromCurrentSettings (
           FreePool (AsciiName);
           ConfigVarList.Data = NULL;
           ConfigVarList.Name = NULL;
-          AsciiName = NULL;
+          AsciiName          = NULL;
         }
 
         FreePool (Data);
@@ -878,11 +879,12 @@ SetupConfMgr (
     case SetupConfInit:
       if (mPolicyProtocol == NULL) {
         Status = gBS->LocateProtocol (
-                &gPolicyProtocolGuid,
-                NULL,
-                (VOID **)&mPolicyProtocol
-                );
+                        &gPolicyProtocolGuid,
+                        NULL,
+                        (VOID **)&mPolicyProtocol
+                        );
       }
+
       // Collect what is needed and print in this step
       Status = PrintOptions ();
       if (EFI_ERROR (Status)) {
@@ -965,10 +967,11 @@ SetupConfMgr (
       } else {
         Status = InspectDumpOutput (StrBuf, StrBufSize);
         if (EFI_ERROR (Status)) {
-          Print (L"\nGenerated print failed to pass inspcetion - %r\n", Status);
+          Print (L"\nGenerated print failed to pass inspection - %r\n", Status);
           Status = EFI_SUCCESS;
           break;
         }
+
         Print (L"\nCurrent configurations are dumped Below in format of *.SVD:\n");
         Print (L"\n");
         Index = 0;
