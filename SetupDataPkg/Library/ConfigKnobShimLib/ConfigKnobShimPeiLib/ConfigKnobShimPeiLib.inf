@@ -1,8 +1,5 @@
 ## @file
-# Library interface for the autogen XML config header to call into to fetch a config value.
-#
-# This is an example library that should not be consumed directly. Instead, the platform should implement this
-# library according to its needs at the platform layer.
+# Library interface for an OEM config policy creator to call into to fetch overrides for config values.
 #
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -11,7 +8,7 @@
 
 [Defines]
   INF_VERSION         = 0x00010017
-  BASE_NAME           = ConfigKnobShimExamplePeiLib
+  BASE_NAME           = ConfigKnobShimPeiLib
   FILE_GUID           = 9E332BFB-7178-4F49-B88B-9D94B3571B14
   VERSION_STRING      = 1.0
   MODULE_TYPE         = PEIM

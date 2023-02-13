@@ -65,13 +65,18 @@ MockGetVariable (
   OUT    VOID      *Data           OPTIONAL
   )
 {
-  UINTN  Size;
-  VOID   *RetData;
+  UINTN       Size;
+  VOID        *RetData;
+  EFI_STATUS  Status = (EFI_STATUS)mock ();
 
   assert_non_null (VariableName);
   assert_non_null (DataSize);
 
   DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+
+  if (Status == EFI_NOT_FOUND) {
+    return Status;
+  }
 
   Size = (UINTN)mock ();
   if (Size > *DataSize) {
@@ -87,7 +92,7 @@ MockGetVariable (
     *Attributes = (UINT32)mock ();
   }
 
-  return (EFI_STATUS)mock ();
+  return Status;
 }
 
 /**
@@ -146,7 +151,7 @@ EFI_PEI_READ_ONLY_VARIABLE2_PPI  MockVariablePpi = {
 };
 
 /**
-  Unit test for GetConfigKnobInvalidParamTest.
+  Unit test for GetConfigKnobOverrideInvalidParamTest.
 
   Ditch out with invalid params to initial call.
 
@@ -164,7 +169,7 @@ EFI_PEI_READ_ONLY_VARIABLE2_PPI  MockVariablePpi = {
 **/
 UNIT_TEST_STATUS
 EFIAPI
-GetConfigKnobInvalidParamTest (
+GetConfigKnobOverrideInvalidParamTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
@@ -172,29 +177,25 @@ GetConfigKnobInvalidParamTest (
   EFI_GUID    ConfigKnobGuid  = CONFIG_KNOB_GUID;
   CHAR16      *ConfigKnobName = L"MyDeadBeefDelivery";
   UINT64      ConfigKnobData;
-  UINTN       ProfileDefaultSize  = sizeof (ConfigKnobData);
-  UINT64      ProfileDefaultValue = 0xDEAD7777DEAD7777;
+  UINTN       ProfileDefaultSize = sizeof (ConfigKnobData);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, NULL);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, 0);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, 0, &ProfileDefaultValue);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, NULL, ProfileDefaultSize);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, NULL, ProfileDefaultSize, &ProfileDefaultValue);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, NULL, (VOID *)&ConfigKnobData, ProfileDefaultSize);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, NULL, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
-  UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
-
-  Status = GetConfigKnob (NULL, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
+  Status = GetConfigKnobOverride (NULL, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for GetConfigKnobFromVariableStorageSucceedTest.
+  Unit test for GetConfigKnobOverrideFromVariableStorageSucceedTest.
 
   Fail to find a cached config knob policy and successfully fetch config knob from
   variable storage. Then, create cached policy.
@@ -213,36 +214,40 @@ GetConfigKnobInvalidParamTest (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-GetConfigKnobFromVariableStorageSucceedTest (
+GetConfigKnobOverrideFromVariableStorageSucceedTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid  = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName = L"MyDeadBeefDelivery";
-  UINT64      ConfigKnobData;
+  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
   UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
   UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  UINT64      PolicyData          = 0xBEEF7777BEEF7777;
+  UINT64      VariableData        = 0xBEEF7777BEEF7777;
   PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  UINT64      ConfigKnobData      = ProfileDefaultValue;
 
   // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
 
-  will_return (MockGetVariable, sizeof (PolicyData));
-  will_return (MockGetVariable, &PolicyData);
-  will_return (MockGetVariable, EFI_SUCCESS);
+  // first GetVariable call to get size
+  will_return (MockGetVariable, EFI_BUFFER_TOO_SMALL);
+  will_return (MockGetVariable, sizeof (VariableData));
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
+  will_return (MockGetVariable, EFI_SUCCESS);
+  will_return (MockGetVariable, sizeof (VariableData));
+  will_return (MockGetVariable, &VariableData);
+
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
 
-  UT_ASSERT_EQUAL (PolicyData, ConfigKnobData);
+  UT_ASSERT_EQUAL (VariableData, ConfigKnobData);
 
   return UNIT_TEST_PASSED;
 }
 
 /**
-  Unit test for GetConfigKnobFromVariableStorageFailTest.
+  Unit test for GetConfigKnobOverrideFromVariableStorageFailTest.
 
   Fail to find a cached config knob policy and fail to fetch config knob from
   variable storage. Then, set the profile default value.
@@ -261,28 +266,26 @@ GetConfigKnobFromVariableStorageSucceedTest (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-GetConfigKnobFromVariableStorageFailTest (
+GetConfigKnobOverrideFromVariableStorageFailTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid  = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName = L"MyDeadBeefDelivery";
-  UINT64      ConfigKnobData;
+  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
   UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
   UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  UINT64      PolicyData          = 0xBEEF7777BEEF7777;
   PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  UINT64      ConfigKnobData      = ProfileDefaultValue;
 
   // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
 
-  will_return (MockGetVariable, sizeof (PolicyData));
-  will_return (MockGetVariable, &PolicyData);
+  // first GetVariable call to get size
   will_return (MockGetVariable, EFI_NOT_FOUND);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
-  UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   UT_ASSERT_EQUAL (ConfigKnobData, ProfileDefaultValue);
 
@@ -290,7 +293,7 @@ GetConfigKnobFromVariableStorageFailTest (
 }
 
 /**
-  Unit test for GetConfigKnobFromVariableStorageFailSizeTest.
+  Unit test for GetConfigKnobOverrideFromVariableStorageFailSizeTest.
 
   Fail to find a cached config knob policy and succeed to fetch config knob from
   variable storage. Fail to match variable size with profile default size. Then, set the profile default value.
@@ -309,28 +312,26 @@ GetConfigKnobFromVariableStorageFailTest (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-GetConfigKnobFromVariableStorageFailSizeTest (
+GetConfigKnobOverrideFromVariableStorageFailSizeTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid  = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName = L"MyDeadBeefDelivery";
-  UINT64      ConfigKnobData;
+  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
   UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
   UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  UINT64      PolicyData          = 0xBEEF7777BEEF7777;
   PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  UINT64      ConfigKnobData      = ProfileDefaultValue;
 
   // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
 
+  will_return (MockGetVariable, EFI_BUFFER_TOO_SMALL);
   will_return (MockGetVariable, sizeof (UINT32));
-  will_return (MockGetVariable, &PolicyData);
-  will_return (MockGetVariable, EFI_SUCCESS);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
-  UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_BAD_BUFFER_SIZE);
 
   UT_ASSERT_EQUAL (ConfigKnobData, ProfileDefaultValue);
 
@@ -338,7 +339,7 @@ GetConfigKnobFromVariableStorageFailSizeTest (
 }
 
 /**
-  Unit test for GetConfigKnobFromVariableStorageFailPpiTest.
+  Unit test for GetConfigKnobOverrideFromVariableStorageFailPpiTest.
 
   Fail to fetch config knob from variable storage. Fail to match variable size with profile default size. Then, set the
   profile default value.
@@ -357,17 +358,17 @@ GetConfigKnobFromVariableStorageFailSizeTest (
 **/
 UNIT_TEST_STATUS
 EFIAPI
-GetConfigKnobFromVariableStorageFailPpiTest (
+GetConfigKnobOverrideFromVariableStorageFailPpiTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid  = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName = L"MyDeadBeefDelivery";
-  UINT64      ConfigKnobData;
+  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
   UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
   UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
   PPI_STATUS  PpiStatus           = { .Ppi = NULL, .Status = EFI_NOT_FOUND };
+  UINT64      ConfigKnobData      = ProfileDefaultValue;
 
   // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
@@ -375,83 +376,10 @@ GetConfigKnobFromVariableStorageFailPpiTest (
   // in this case, DXE only, as PEI failed to find variable service
   will_return_maybe (MockGetVariable, EFI_NOT_FOUND);
 
-  Status = GetConfigKnob (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize, &ProfileDefaultValue);
-  UT_ASSERT_STATUS_EQUAL (Status, EFI_SUCCESS);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+  UT_ASSERT_STATUS_EQUAL (Status, EFI_NOT_FOUND);
 
   UT_ASSERT_EQUAL (ConfigKnobData, ProfileDefaultValue);
-
-  return UNIT_TEST_PASSED;
-}
-
-UNIT_TEST_STATUS
-EFIAPI
-GetConfigKnobFromGeneratedNotInStorageTest (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  PPI_STATUS  PpiStatus = { .Ppi = NULL, .Status = EFI_NOT_FOUND };
-
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
-  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
-
-  // in this case, DXE only, as PEI failed to find variable service
-  will_return_maybe (MockGetVariable, EFI_NOT_FOUND);
-
-  // Call the generated function
-  INT16  value = ConfigGetk_int16_t_d1000 ();
-
-  // Expect the default value
-  UT_ASSERT_EQUAL (value, 1000);
-
-  return UNIT_TEST_PASSED;
-}
-
-UNIT_TEST_STATUS
-EFIAPI
-GetConfigKnobFromGeneratedSucceedTest (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  UINT16      OverrideValue = 500;
-  PPI_STATUS  PpiStatus     = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
-
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
-  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
-
-  will_return (MockGetVariable, sizeof (OverrideValue));
-  will_return (MockGetVariable, &OverrideValue);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Call the generated function
-  INT16  value = ConfigGetk_int16_t_d1000 ();
-
-  // Expect the overridden value
-  UT_ASSERT_EQUAL (value, OverrideValue);
-
-  return UNIT_TEST_PASSED;
-}
-
-UNIT_TEST_STATUS
-EFIAPI
-GetConfigKnobFromGeneratedOutOfRangeTest (
-  IN UNIT_TEST_CONTEXT  Context
-  )
-{
-  INT16       OverrideValue = -600;
-  PPI_STATUS  PpiStatus     = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
-
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
-  will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
-
-  will_return (MockGetVariable, sizeof (OverrideValue));
-  will_return (MockGetVariable, &OverrideValue);
-  will_return (MockGetVariable, EFI_SUCCESS);
-
-  // Call the generated function
-  INT16  value = ConfigGetk_int16_t_d1000_minn500 ();
-
-  // Expect the value to be the default (since the override is out of range)
-  UT_ASSERT_EQUAL (value, 1000);
 
   return UNIT_TEST_PASSED;
 }
@@ -506,18 +434,15 @@ UnitTestingEntry (
   //
   // Failure Tests
   //
-  AddTestCase (ConfigKnobShimLibCommon, "Null params should return null", "GetConfigKnobInvalidParamTest", GetConfigKnobInvalidParamTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Null params should return null", "GetConfigKnobOverrideInvalidParamTest", GetConfigKnobOverrideInvalidParamTest, NULL, NULL, NULL);
 
   //
   // Success Tests
   //
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving config from variable should succeed", "GetConfigKnobFromVariableStorageSucceedTest", GetConfigKnobFromVariableStorageSucceedTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailTest", GetConfigKnobFromVariableStorageFailTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailSizeTest", GetConfigKnobFromVariableStorageFailSizeTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobFromVariableStorageFailPpiTest", GetConfigKnobFromVariableStorageFailPpiTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving non-overridden value using generated header should succeed (with default)", "GetConfigKnobFromGeneratedNotInStorageTest", GetConfigKnobFromGeneratedNotInStorageTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving overridden value using generated header should succeed", "GetConfigKnobFromGeneratedSucceedTest", GetConfigKnobFromGeneratedSucceedTest, NULL, NULL, NULL);
-  AddTestCase (ConfigKnobShimLibCommon, "Retrieving an out of range overridden value using generated header should return default", "GetConfigKnobFromGeneratedOutOfRangeTest", GetConfigKnobFromGeneratedOutOfRangeTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving config from variable should succeed", "GetConfigKnobOverrideFromVariableStorageSucceedTest", GetConfigKnobOverrideFromVariableStorageSucceedTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobOverrideFromVariableStorageFailTest", GetConfigKnobOverrideFromVariableStorageFailTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobOverrideFromVariableStorageFailSizeTest", GetConfigKnobOverrideFromVariableStorageFailSizeTest, NULL, NULL, NULL);
+  AddTestCase (ConfigKnobShimLibCommon, "Retrieving default profile value should succeed", "GetConfigKnobOverrideFromVariableStorageFailPpiTest", GetConfigKnobOverrideFromVariableStorageFailPpiTest, NULL, NULL, NULL);
 
   //
   // Execute the tests.
