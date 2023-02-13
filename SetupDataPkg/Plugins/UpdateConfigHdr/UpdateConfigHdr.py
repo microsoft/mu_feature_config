@@ -54,6 +54,7 @@ class UpdateConfigHdr(IUefiBuildPlugin):
 
         params.append("ConfigClientGenerated.h")
         params.append("ConfigServiceGenerated.h")
+        params.append("ConfigDataGenerated.h")
 
         ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dir)
         return ret
