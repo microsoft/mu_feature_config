@@ -1,8 +1,5 @@
 ## @file
-# Library interface for the autogen XML config header to call into to fetch a config value.
-#
-# This is an example library that should not be consumed directly. Instead, the platform should implement this
-# library according to its needs at the platform layer.
+# Library interface for an OEM config policy creator to call into to fetch overrides for config values.
 #
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -11,7 +8,7 @@
 
 [Defines]
   INF_VERSION         = 0x00010017
-  BASE_NAME           = ConfigKnobShimExampleDxeLib
+  BASE_NAME           = ConfigKnobShimDxeLib
   FILE_GUID           = 0C18EAC8-23C0-4562-9096-9368A56D1FF0
   VERSION_STRING      = 1.0
   MODULE_TYPE         = DXE_DRIVER

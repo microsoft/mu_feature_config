@@ -1,5 +1,5 @@
 /** @file
-  Library interface for the autogen XML config header to call into to fetch a config value.
+  Library interface for an OEM config policy creator to call into to fetch overrides for config values.
 
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -14,12 +14,13 @@
   GetConfigKnobFromVariable returns the configuration knob from variable storage if it exists. This function is
   abstracted to work with both DXE and PEI.
 
-  This function is only expected to be called by GetConfigKnob, via the autogen header code for config knobs.
+  This function is only expected to be called by GetConfigKnobOverride.
 
   @param[in]  ConfigKnobGuid        The GUID of the requested config knob.
   @param[in]  ConfigKnobName        The name of the requested config knob.
   @param[out] ConfigKnobData        The retrieved data of the requested config knob. The caller will allocate memory for
-                                    this buffer and is responsible for freeing it.
+                                    this buffer and is responsible for freeing it. This parameter is acceptable to be
+                                    NULL if the data size is all that is requested.
   @param[in out] ConfigKnobDataSize The allocated size of ConfigKnobData. This is expected to be set to the correct
                                     value for the size of ConfigKnobData. If this size is too small for the config knob,
                                     EFI_BUFFER_TOO_SMALL will be returned. This represents a mismatch in the profile
