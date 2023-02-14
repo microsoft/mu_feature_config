@@ -739,8 +739,8 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
                 if knob.value is not None:
                     override_count = override_count + 1
                     out.write(get_spacing_string(efi_type) + "{} {};".format(
-                        knob.format.c_type,
-                        knob.name), + get_line_ending(efi_type))
+                        get_type_string(knob.format.c_type, efi_type),
+                        knob.name) + get_line_ending(efi_type))
             out.write("}} {}{}{};".format(
                 naming_convention_filter("profile_", True, efi_type),
                 base_name,
