@@ -22,11 +22,11 @@ typedef struct {
   UINTN                 Knob;
   CONST VOID            *DefaultValueAddress;
   VOID                  *CacheValueAddress;
-  UINTN                 ValueSize;
+  UINT32                ValueSize;
   CONST CHAR8           *Name;
-  UINTN                 NameSize;
+  UINT32                NameSize;
   EFI_GUID              VendorNamespace;
-  INTN                  Attributes;
+  UINT32                Attributes;
   KNOB_VALIDATION_FN    *Validator;
 } KNOB_DATA;
 
