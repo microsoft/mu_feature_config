@@ -149,7 +149,7 @@ can be combined into one Knob, as above.
 
 ![Config Editor Options](./Images/ConfigEditorOptions.png)
 
-### Open Config file...
+### Open Config file
 
 This option loads a new XML into the ConfigEditor UI. It does not erase any previously loaded XMLs. This is useful if
 your platform has more than one configuration XML you wish to view at one time.

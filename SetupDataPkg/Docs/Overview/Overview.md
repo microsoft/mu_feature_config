@@ -7,11 +7,12 @@
 - [Terms](#terms)
 - [Reference Documents](#reference-documents)
 - [Introduction](#introduction)
+- [Configuration Flows](#configuration-flows)
+- [Theory of Operation](#theory-of-operation)
 - [OS Based Configuration App](#os-based-configuration-app)
-- [UEFI Boot Application](#uefi-boot-application)
-- [UEFI Build Tool and Plugin](#uefi-build-tool-and-plugin)
-- [UEFI Code Change](#uefi-code-change)
-- [Configuration Related UEFI Boot Flow](#configuration-related-uefi-boot-flow)
+- [UEFI Conf Application](#uefi-conf-application)
+- [UEFI Build Plugin and Headers](#uefi-build-plugin-and-headers)
+- [Profiles](#profiles)
 
 ## Description
 
@@ -67,7 +68,7 @@ with project Mu.
 
 Project Mu's configuration model provides a flexible way for a platform to define and modify configuration knobs. These
 knobs are kept in memory in Policy Service, so the option is available to the OEM/platform to have statically defined,
-unchangeable configuration knobs (by not consulting variable storage when contructing the config/silicon policies).
+unchangeable configuration knobs (by not consulting variable storage when constructing the config/silicon policies).
 There exits support for multiple configuration profiles that may be chosen at run time.
 
 It is expected that multiple silicon components run in early PEI to publish default silicon policies for a given
