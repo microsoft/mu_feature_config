@@ -138,9 +138,6 @@ config knob value can be used instead.
 1. The prerequisites of this feature is Policy service and Project MU based BDS. This guideline will omit the
 integration steps for these features.
 
-> Note: A list of the libraries and modules made available by this package is provided in the
-  [Software Component Overview](SoftwareComponentOverview.md).
-
 ### Platform DSC statements
 
 Add the DSC sections below in addition to the OemConfigPolicyCreator, PlatformConfigDataLib, Default Silicon Policy
