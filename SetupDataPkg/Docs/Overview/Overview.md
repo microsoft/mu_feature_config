@@ -56,6 +56,9 @@ using a data centric model to flow data between core, platform, and silicon comp
 In addition, tooling workflows are introduced to manage the end to end configuration flow, from changing a knob to
 applying it in a target system.
 
+Project Mu does not require the use of mu_feature_config, however this is the recommended approach to using config
+with project Mu.
+
 ## Configuration Flows
 
 ![UEFI Build](Images/mu_feature_configworkflows.png)
