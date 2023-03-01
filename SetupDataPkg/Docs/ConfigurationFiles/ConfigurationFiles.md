@@ -35,7 +35,7 @@ This document is intended to describe the Project Mu Configuration XML format.
 
 ## Introduction
 
-mu_feature_config uses a specific XML schema to describe configuration for a platform. From this XML, delta files,
+mu_feature_config uses a specific XML schema to describe configuration for a platform. From this XML, change files,
 variable list binaries, and SVD files can be generated to manipulate settings. This file describes the XML format.
 
 ## XML Specification
@@ -64,7 +64,7 @@ INT32s.
 
 ### User Defined Enums
 
-A `Enums` block can be added to define enums for a platform, as follows:
+A `Enums` block can be added to define enums (which resolve to INT32s) for a platform, as follows:
 
 ```xml
   <Enums>
@@ -192,11 +192,10 @@ encoded data to be able to pass via serial.
 
 ### Change File Operations
 
-Profiles are represented as delta files in CSV format on top of the generic profile (for more info see the
+Profiles are represented as change files in CSV format on top of the generic profile (for more info see the
 [Profiles](../Profiles/Overview.md) doc).
 
-Delta (or change) files may be loaded into the ConfigEditor and it will update the relevant setting with the same
-GUID and name.
+Change files may be loaded into the ConfigEditor and it will update the relevant setting with the same GUID and name.
 
 If multiple XMLs are loaded, and one of the change file save operations is performed, multiple change files will be
 generated with the name of the relevant base XML as a suffix to the provided name.

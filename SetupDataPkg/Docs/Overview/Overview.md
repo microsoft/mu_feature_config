@@ -10,7 +10,7 @@
 - [Configuration Flows](#configuration-flows)
 - [Theory of Operation](#theory-of-operation)
 - [OS Based Configuration App](#os-based-configuration-app)
-- [UEFI Conf Application](#uefi-conf-application)
+- [UEFI Conf Shell Application](#uefi-conf-shell-application)
 - [UEFI Build Plugin and Headers](#uefi-build-plugin-and-headers)
 - [Profiles](#profiles)
 
@@ -97,7 +97,7 @@ usage.
 easy to update to accommodate addition needs.
 - The configuration is driven by XML files, which can be designed per platform usage. Reference the
 [Configuration XML Spec](../ConfigurationFiles/ConfigurationFiles.md) for details on the schema.
-- The mu_feature_config framework provides data structure conversion tooling from XML to C header files, binary, delta
+- The mu_feature_config framework provides data structure conversion tooling from XML to C header files, binary, change
 files, and SVD format (base64 encoded to send via serial to Conf App).
 
 ### OS Configuration Workflow
@@ -106,18 +106,18 @@ files, and SVD format (base64 encoded to send via serial to Conf App).
 
 - To change configuration on a target system, a user can open the relevant XML in Config Editor on their local
 workstation.
-- In the UI tool, the user can manipulate fields as desired to achieve target config. This can then be saved to a delta
+- In the UI tool, the user can manipulate fields as desired to achieve target config. This can then be saved to a change
 file, binary, or SVD.
-- The delta file can be consumed as a configuration profile. For more details see the
+- The change file can be consumed as a configuration profile. For more details see the
 [Profiles doc](../Profiles/Overview.md).
 - The variable list binary, saved in .vl format, can be applied to a running system via dmpstore in the EFI shell,
 or via [WriteConfVarListToUefiVars.py](../../Tools/WriteConfVarListToUefiVars.py).
 - The SVD can be applied to a running system via USB/serial via mu_feature_config's Conf App.
 - Changes to the XML itself will result in a change to the default configuration options of a platform.
 
-## UEFI Conf Application
+## UEFI Conf Shell Application
 
-### UEFI Conf App Overview
+### UEFI Conf Shell App Overview
 
 ![Conf App](Images/app_view_menu.png)
 

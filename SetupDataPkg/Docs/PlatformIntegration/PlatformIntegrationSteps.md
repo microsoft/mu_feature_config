@@ -85,10 +85,8 @@ the case that its corresponding configuration policy is not present.
 
 ### Platform Config Knob Shim Library
 
-ConfigKnobShimLib provides an interface to query overrides to config knobs. The
-[version contained in mu_feature_config](../../Library/ConfigKnobShimLib/) has the common use case, querying variable
-storage for the config knobs. A platform may choose to override this library if they do not wish to find config knob
-overrides in variable storage.
+[ConfigKnobShimLib](../../Library/ConfigKnobShimLib/) provides an interface to query overrides to config knobs. This
+queries variable storage for any appropriately sized overrides to config knobs.
 
 ### PlatformBuild.py Changes
 
@@ -205,7 +203,7 @@ Remove the FDF sections below.
 
 In order to use configuration profiles, the platform must include the above changes as well as include an XML file that
 contains the default values for the generic profile. If additional profiles are required, the platform must include XML
-csv delta files for each profile that are overrides on top of the generic profile. These are created through the
+csv change files for each profile that are overrides on top of the generic profile. These are created through the
 [Config Editor UI tool](../../Tools/ConfigEditor.py) by choosing `Save Config Changes to Change File` or
 `Save Full Config to Change File` (more details in the
 [Configuration Files doc](../ConfigurationFiles/ConfigurationFiles.md)). This feature is still under development and
