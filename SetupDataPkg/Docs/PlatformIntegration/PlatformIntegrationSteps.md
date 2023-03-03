@@ -1,5 +1,18 @@
 # Configuration Modules Platform Integration
 
+## Table of Contents
+
+- [Description](#description)
+- [High-Level Considerations](#high-level-considerations)
+- [Configuration App Changes](#configuration-apps-changes)
+- [Silicon Code Changes](#silicon-code-changes)
+- [Platform Data Flow](#platform-data-flow)
+- [Platform Data Consumption](#platform-data-consumption)
+- [Configuration App Code Integration](#configuration-app-code-integration)
+- [Profiles Integration](#profiles-integration)
+
+## Description
+
 The configuration modules source code is intended to be used with some library classes provided by platforms. In order to
 integrate configuration modules into a platform's firmware it is important to consider higher-level integration challenges
 specific to the platform in addition to the required code changes to integrate all of the pieces.

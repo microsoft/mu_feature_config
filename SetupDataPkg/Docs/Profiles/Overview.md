@@ -2,7 +2,8 @@
 
 ## Table of Contents
 
-[[_TOC_]]
+- [Introduction](#introduction)
+- [Design](#design)
 
 ### Description
 
@@ -22,7 +23,6 @@ This document describes the requirements, design considerations and APIs for UEF
 | UEFI | Unified Extensible Firmware Interface |
 | MFCI | Manufacturer Firmware Configuration Interface |
 | FV | Firmware Volume |
-| | |
 
 ### Reference Documents
 
@@ -30,7 +30,6 @@ This document describes the requirements, design considerations and APIs for UEF
 | ----------------------------------------- | ----------------------------------- |
 | MFCI Documentation | [Link](https://microsoft.github.io/mu/dyn/mu_plus/MfciPkg/Docs/Mfci_Feature/)  |
 | SetupVariable Flow | [Link](../Overview/Overview.md) |
-| | |
 
 ## Introduction
 

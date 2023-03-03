@@ -79,7 +79,8 @@ A `Enums` block can be added to define enums (which resolve to INT32s) for a pla
 ### User Defined Structs
 
 A `<Structs>` block can be added to define structures for a platform, as shown below. These structs can have basic types,
-enums, and other structs as members.
+enums, and other structs as members. Structs are packed into the `CONFIG_VAR_LIST_HDR` (and comments within for
+the variable length pieces of the structure) structure defined [here](../../Include/Library/ConfigVariableListLib.h).
 
 ```xml
   <Structs>
