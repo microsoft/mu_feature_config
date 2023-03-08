@@ -7,15 +7,18 @@
 - [Terms](#terms)
 - [Reference Documents](#reference-documents)
 - [Introduction](#introduction)
+- [Configuration Flows](#configuration-flows)
+- [Theory of Operation](#theory-of-operation)
 - [OS Based Configuration App](#os-based-configuration-app)
-- [UEFI Boot Application](#uefi-boot-application)
-- [UEFI Build Tool and Plugin](#uefi-build-tool-and-plugin)
-- [UEFI Code Change](#uefi-code-change)
-- [Configuration Related UEFI Boot Flow](#configuration-related-uefi-boot-flow)
+- [UEFI Conf Shell Application](#uefi-conf-shell-application)
+- [UEFI Build Plugin and Headers](#uefi-build-plugin-and-headers)
+- [Profiles](#profiles)
 
 ## Description
 
-This document is intended to describe the Setup Variable design on applicable platforms.
+This document describes the configuration knob flow for consumers of mu_feature_config. This is an opinionated approach
+to managing platform configuration with reusable core functionality, standard interfaces, and a layered approach to
+setup config.
 
 ## Revision History
 
@@ -24,192 +27,158 @@ This document is intended to describe the Setup Variable design on applicable pl
 | Kun Qin   | 09/28/2021| First draft |
 | Oliver Smith-Denny | 7/22/2022 | Add Merged YAML/XML Support |
 | Oliver Smith-Denny | 9/15/2022 | Add Profile Support |
+| Oliver Smith-Denny | 2/21/2023 | Move to XML Spec |
 
 ## Terms
 
 | Term   | Description                     |
 | ------ | ------------------------------- |
 | UEFI | Unified Extensible Firmware Interface |
-| DFCI | Device Firmware Configuration Interface |
 | BDS | Boot Device Selection |
+| FW | Firmware |
+| FMP | Firmware Management Protocol |
+| HII | Human Interface Infrastructure |
 
 ## Reference Documents
 
 | Document                                  | Link                                |
 | ----------------------------------------- | ----------------------------------- |
-| Slim Bootloader Repo | <https://github.com/slimbootloader/slimbootloader> |
-| Configuration YAML Spec | <https://slimbootloader.github.io/specs/config.html#configuration-description-yaml-explained> |
-| Project Mu Document | <https://microsoft.github.io/mu/> |
-| DFCI Documents | <https://microsoft.github.io/mu/dyn/mu_plus/DfciPkg/Docs/Dfci_Feature/> |
-| Configuration Apps Repo | <https://windowspartners.visualstudio.com/MSCoreUEFI/_git/mu_config_apps> |
+| Project Mu Documentation | <https://microsoft.github.io/mu/> |
 
 ## Introduction
 
-This document is describing how the configuration framework functions and what changes have been made.
+Classic setup configuration workflows use HII and FW based UI menus to configure knobs. These approaches are convoluted
+and are not easily ported across platforms as they contain very platform specific code. In addition, in many
+environments, a UI based configuration menu is inconvenient and not scalable, such as in a server system, where an
+administrator may be trying to update settings across 10,000 nodes.
 
-The proposition of this design intends to facilitate development usage and provide secure usage for production deployment.
+This document describes the mu_feature_config approach to a scalable, portable, and extensible configuration system
+using a data centric model to flow data between core, platform, and silicon components.
 
-HII in the system, setup browser in system and/or other advance display capabilities has been convoluted and pertain poor
-portability. Hence proposed workflow steps away from existing UI applications, HII based form rendering models on the target
-system and adopts data centric methods to achieve the same results.
+In addition, tooling workflows are introduced to manage the end to end configuration flow, from changing a knob to
+applying it in a target system.
 
-In addition, tooling workflows are also proposed to enforce security and maintainability rules and best practices for data
-accessability, version migration, etc.
+mu_feature_config is targeted at platforms where
+[DFCI](https://microsoft.github.io/mu/dyn/mu_feature_dfci/DfciPkg/Docs/Dfci_Feature/) is not applicable, primarily
+where the concept of owners and managed systems is not used.
 
-*Note: The technical details in this document is meant to reflect the current status of design. Certain topics are still
-under discussion and subject to change.*
+Project Mu does not require the use of mu_feature_config, however this is the recommended approach to using config
+with project Mu.
+
+## Configuration Flows
+
+![UEFI Build](Images/mu_feature_configworkflows.png)
+
+## Theory of Operation
+
+Project Mu's configuration model provides a flexible way for a platform to define and modify configuration knobs. These
+knobs are kept in memory in Policy Service, so the option is available to the OEM/platform to have statically defined,
+unchangeable configuration knobs (by not consulting variable storage when constructing the config/silicon policies).
+There exists support for multiple configuration profiles that may be chosen at run time.
+
+It is expected that multiple silicon components run in early PEI to publish default silicon policies for a given
+subsystem. At the same time (or at least without a dependency between the two) the OEM Config Policy Creator runs to
+consume the autogenerated config data from the platform and convert it to a config policy.
+
+Following the OEM Config Policy Creator and the default silicon policy producers, one or more Config Policy to Silicon
+Policy mappers is expected to run, to convert, in a platform specific way, the config policy to silicon policy. This is
+not necessarily 1:1, as in the case where the silicon policy may have 4 USB knobs, but the config policy only has 2, as
+this is all that is exposed to the user.
+
+Following this, each final consumer simply interacts with the relevant silicon policy to that component that has been
+overridden by the config policy to silicon policy mapper. This may be through autogenerated getters if using verified
+policy or by directly accessing structures returned from Policy Service.
 
 ## OS Based Configuration App
 
 ### OS Configuration App Overview
 
-![Conf Editor](Images/conf_edit_view.png)
+![Config Editor](Images/conf_edit_view.png)
 
-- The original framework of configuration editor is derived from Intel's open sourced project Slim Bootloader (more information
-in [References](#reference-documents)). This framework provides graphical user interface on the host side and extensive
-flexibility to design and optimize configuration per platform usage.
-- [Configuration editor](../../../Common/MU_CONF_APPS/SetupDataPkg/Tools/ConfigEditor.py) is authored in Python which is
-host platform architecture independent and easy to update per proprietary requirements per projects need.
-- The configuration is driven by YAML and XML files, which can be designed per platform usage. Per YAML specification,
-please reference to Configuration YAML Spec in [References](#reference-documents).
-- The slim bootloader framework provides data structure conversion tooling from YAML to C header files, YAML to binary
-data blob out of the box. XML extensions have been added to support additional use cases. More extensions,
-such as output data signing, tooling servicing, will be added during the development process.
+- The GUI configuration editor is derived from the open source project Slim Bootloader. This framework provides
+a graphical user interface on the host side and extensive flexibility to design and optimize configuration per platform
+usage.
+- [Config Editor](../../Tools/ConfigEditor.py) is authored in Python which is host platform architecture independent and
+easy to update to accommodate addition needs.
+- The configuration is driven by XML files, which can be designed per platform usage. Reference the
+[Configuration XML Spec](../ConfigurationFiles/ConfigurationFiles.md) for details on the schema.
+- The mu_feature_config framework provides data structure conversion tooling from XML to C header files, binary, change
+files, and SVD format (base64 encoded to send via serial to Conf App).
 
 ### OS Configuration Workflow
 
 ![Conf Workflow](Images/conf_edit_work_flow.png)
 
-- Whenever a configuration change is needed, configuration editor can be launched on a local workstation.
-- Through the UI tool, one can update supported option as needed and export updated options as binary blob. *Updated options
-can also be saved as "profile" that can be loaded into editor tool for faster configuration deployment*
-- The exported binary blob will be encoded and signed with platform designated certificates and formatted to DFCI standard
-packet. (more about DFCI please see [References](#reference-documents)).
-- DFCI standard packets can be applied to target system through USB sticks, OS application on target systems, or serial
-transport through UEFI boot application (more about UEFI configuration app [here](#uefi-boot-application))
+- To change configuration on a target system, a user can open the relevant XML in Config Editor on their local
+workstation.
+- In the UI tool, the user can manipulate fields as desired to achieve target config. This can then be saved to a change
+file, binary, or SVD.
+- The change file can be consumed as a configuration profile. For more details see the
+[Profiles doc](../Profiles/Overview.md).
+- The variable list binary, saved in .vl format, can be applied to a running system via dmpstore in the EFI shell,
+or via [WriteConfVarListToUefiVars.py](../../Tools/WriteConfVarListToUefiVars.py).
+- The SVD can be applied to a running system via USB/serial via mu_feature_config's Conf App.
+- Changes to the XML itself will result in a change to the default configuration options of a platform.
 
-## UEFI Boot Application
+## UEFI Conf Shell Application
 
-### UEFI Boot App Overview
+### UEFI Conf Shell App Overview
 
 ![Conf App](Images/app_view_menu.png)
 
 As stated in the [introduction section](#introduction), this proposal intends to replace the existing UI applications,
-HII forms and other advanced display support. Instead, a Configuration UEFI application will be provided in lieu of traditional
-UI App to configuration system behavior.
+HII forms, and other advanced display support. Instead, a Configuration UEFI application will be provided in lieu of
+a traditional UI App to configuration system behavior.
 
-- This application is optimized for serial connection. All input and output would go through UEFI standard console, which
-is connected to BMC through UART.  
-Note: Available input devices will be:
-  1. **Physical USB Keyboard**: This will be used for standard keyboard
-  1. **Virtual USB Keyboard**: This will be used with BMC based virtual keyboard for remote KVM.
-  1. **Serial console for SAC**: this uses VT100 terminal type for UEFI setup/Windows EMC or SAC.
-- The application will provide basic information regarding system status:
-![Conf App](Images/app_view_info.png)
+- This application is optimized for serial connection. Primary input and output is intended to go through the UEFI
+standard serial console.  
+- The application will provide basic information regarding system status it receives via FMP:
   1. Firmware version
   1. Date/Time
-  1. Identities
-  1. Settings
 - A few critical operations is also provided in this application:
   1. Secure Boot enable/disable:
   ![Conf App](Images/app_view_secure.png)
   1. Select available boot options:
   ![Conf App](Images/app_view_boot.png)
-- Apply configuration options from OS configuration application:
-  ![Conf App](Images/conf_update_view.png)
+- Apply configuration options from SVD generated from Config Editor:
+  ![Conf App](Images/app_view_update.png)
   1. USB Stick
-  1. Network
   1. Serial console
+- Dump running configuration in SVD format (which can then be loaded on top of an XML in the Config Editor to view).
+  ![Conf App](Images/app_view_dump.png)
+  1. Dump Current Configuration
 
 ### UEFI Configuration Workflow
 
-![Conf Update](Images/app_work_flow.png)
+The SVD saved from the Config Editor can be applied via Conf App:
 
-With the exported configuration change from OS configuration application, this change can be applied within UEFI app:
+- **USB Stick**: Store the SVD file and select `Update Setup Configuration` -> `Update from USB Stick` from Conf App.
+- **Serial Port**: Open the SVD, copy it, and select `Update Setup Configuration` -> `Update from Serial Port` from
+Conf App. Then paste the SVD into the serial terminal and hit enter.
 
-- **USB Stick**: Store the generated base64 encoded file from previous step and select `Update Setup Configuration` ->
-`Update from USB Stick` from UEFI App.
-- **Serial Port**: Open the generated base64 encoded file, and select `Update Setup Configuration` -> `Update from Serial
-port` from UEFI App. Then paste the encoded string into serial console.
+## UEFI Build Plugin and Headers
 
-## UEFI Build Tool and Plugin
+### Plugin and Headers Overview
 
-### Build Tool and Plugin Overview
+During UEFI build time, the [UpdateConfigHdr build plugin](../../Plugins/UpdateConfigHdr/UpdateConfigHdr.py) will run,
+consume the XML, and produce C header files for config consumers, silicon policy creators, and platform data producers.
 
-During UEFI build time, toolings will be provided as plugins to integrate configuration related data and enforce best practices.
+All three autogenerated headers will use standard structures defined in
+[ConfigStdStructsDef.h](../../Include/ConfigStdStructDefs.h).
 
-Toolings from Project will cover:
+The header for consumers will contain stubs for the getters and the platform specific config data structures. This file
+is intended to be included before the other two headers files so they may leverage definitions here.
 
-- Converting designed YAML file into binary blob to be included in UEFI firmware volume.
-- Generate C header files, if requested, for platform code consumption, and populate version transition templates.
+The header for silicon policy creators includes definitions for the getters (indexing into the config policy).
 
-### Build Process
+The header for the platform data producer contains the profile and default config data. It is intended to be included in
+a platform level driver that just includes the client and data headers so that the OEM level config policy creator
+can link in the platform level data. An example is provided in
+[mu_oem_sample](https://github.com/microsoft/mu_oem_sample/blob/HEAD/OemPkg/OemConfigPolicyCreatorPei/OemConfigPolicyCreatorPei.c).
 
-![UEFI Build](Images/build_work_flow.png)
-
-- During pre-build step, customized platform YAML file will be used by Project MU plugin to derive configuration header
-files for platform to consume during development/runtime.
-- Platform will hold a hash value in PlatformBuild.py for all YAML derived C header files for this platform. Project MU
-plugin will generate temporary C header files per build to compare hash match.
-  - If hash changed, a template of library will be generated and allow developer to author transition code if needed.
-  - If hash match, build can proceed as usual.
-- At post-build, a binary blob with default configuration values will be derived from YAML files and inserted in UEFI
-firmware volume.
-
-## UEFI Code Change
-
-### Project Mu Code
-
-- **BDS**: Project MU BDS will provide specific event signals and platform entrypoints that are customized for DFCI settings.
-- **DFCI**: DFCI framework will be used to accept and validate incoming configuration against platform identity associated
-certificates.
-- **MFCI**: The MFCI framework will be used to check what mode the system is in, manufacturing mode or customer mode.
-- **Settings Manager**: Settings manager together with DFCI framework would apply the configuration data through platform
-configured settings providers.
-- **Policy Manager**: Policy manager controls the policy publication and revoke. Silicon policy and platform configuration
-should all conform to policy setter and getter APIs.
-- **Profile Manager**: ConfProfileMgrDxe validates and enforces profiles (collections of configuration settings for
-different use cases) when the system is in MFCI Customer Mode.
-
-### Platform and Silicon Code
-
-- **Silicon Drivers**: Silicon code needs to be updated to pull policy settings from silicon policy data when needed.
-- **Platform Policy Drivers**: Platform owners will first create PEI modules to populate default silicon policy into Policy
-managers provided by Project MU.
-- **Platform YAML Configurations**: Platform owners should then design the configuration YAML files. This would expose
-certain configuration "knobs" from silicon policy to be configurable through setup variable flow.
-- **Platform Settings Providers**: Accordingly, platform owners will develop modules to parse the configuration data and
-translate the exposed configurations in YAML file to/from standard silicon policies through the interface of Settings
-Provider (see example from [Project MU](../../../Common/MU/DfciPkg/Library/DfciSampleProvider/DfciSampleProvider.c)).
+Learn more about the UpdateConfigHdr plugin, the generated headers, and the config/silicon policy creators in the
+[Platform Integration doc](../PlatformIntegration/PlatformIntegrationSteps.md).
 
 ## Profiles
 
 See the [Profiles doc](../Profiles/Overview.md) for details.
-
-## Configuration Related UEFI Boot Flow
-
-![UEFI Build](Images/uefi_boot_flow.png)
-
-### Settings Update Boot Flow
-
-- Formatted update configuration data from USB, serial port or OS application will first be stored to UEFI variable storage,
-followed by a system reboot.
-- On the next reboot, the formatted configuration data from UEFI variable storage will be authenticated (if the
-[DFCI Unsigned Settings](https://github.com/microsoft/mu_plus/blob/release/202202/DfciPkg/Docs/PlatformIntegration/PlatformIntegrationOverview.md#unsigned-settings-packets)
-feature is not used) and decoded by DFCI framework. Decoded configuration data will be dispatched to corresponding
-platform authored setting provider.
-- Platform configuration setting provider will perform sanity check on incoming data and store this data as UEFI variable
-with the following specifications (source code reference [here](../../Include/Library/ConfigDataLib.h)),
-followed by a system reboot:
-
-| Variable Name | Variable GUID | Variable Attributes |
-| ------------ | ------------------ | ------------------|
-| `CONF_POLICY_BLOB` | `gSetupConfigPolicyVariableGuid` | `EFI_VARIABLE_NON_VOLATILE + EFI_VARIABLE_BOOTSERVICE_ACCESS` |
-| `Device.ConfigData.TagID_%08X` | `gSetupConfigPolicyVariableGuid` | `EFI_VARIABLE_NON_VOLATILE + EFI_VARIABLE_BOOTSERVICE_ACCESS` |
-
-- Upon a new boot, entities other than UEFI can consume the aforementioned variable.
-- After entering UEFI firmware, platform policy module will pull previously stored configuration data variable from UEFI
-variable and parse the data blob based on YAML derived C header files.
-- If any configuration change is required, platform should update the corresponding silicon policy through policy manager.
-- When silicon drivers load, these drivers should fetch latest policy through policy manager and configure hardware resource
-accordingly.
