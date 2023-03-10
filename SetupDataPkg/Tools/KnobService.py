@@ -743,7 +743,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                                     subknob.format.name,
                                     naming_convention_filter("value", False, efi_type)
                                 ))
-                                
+
                             out.write(get_line_ending(efi_type))
                             out.write(get_spacing_string(efi_type, num=2))
                             out.write("return {};".format(
