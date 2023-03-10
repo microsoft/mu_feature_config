@@ -725,7 +725,6 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                 for subknob in knob.subknobs:
                     if subknob.leaf:
                         path = subknob.name[len(knob.name):]
-                        print("OSDDEBUG path: ", subknob.name.find('.'))
                         define_name = subknob.name.replace('[', '_').replace(']', '_').replace('.', '__')
                         if isinstance(subknob.format, VariableList.EnumFormat):
                             if path.find('.') != -1:
