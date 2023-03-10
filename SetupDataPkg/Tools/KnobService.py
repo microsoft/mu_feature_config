@@ -727,13 +727,23 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                         path = subknob.name[len(knob.name):]
                         define_name = subknob.name.replace('[', '_').replace(']', '_').replace('.', '__')
                         if isinstance(subknob.format, VariableList.EnumFormat):
-                            out.write(get_spacing_string(efi_type) + "if (!{}{}({}->{})) {{".format(
-                                naming_convention_filter("validate_enum_value_", False, efi_type),
-                                subknob.format.name,
-                                naming_convention_filter("value", False, efi_type),
-                                # don't take the '.'
-                                path[1:]
-                            ))
+                            if path.find('.') != -1:
+                                # this is an enum inside of a struct
+                                out.write(get_spacing_string(efi_type) + "if (!{}{}({}->{})) {{".format(
+                                    naming_convention_filter("validate_enum_value_", False, efi_type),
+                                    subknob.format.name,
+                                    naming_convention_filter("value", False, efi_type),
+                                    # don't take the '.'
+                                    path[1:]
+                                ))
+                            else:
+                                # this is a standalone enum knob
+                                out.write(get_spacing_string(efi_type) + "if (!{}{}(*{})) {{".format(
+                                    naming_convention_filter("validate_enum_value_", False, efi_type),
+                                    subknob.format.name,
+                                    naming_convention_filter("value", False, efi_type)
+                                ))
+
                             out.write(get_line_ending(efi_type))
                             out.write(get_spacing_string(efi_type, num=2))
                             out.write("return {};".format(
