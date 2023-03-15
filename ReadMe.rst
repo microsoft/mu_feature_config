@@ -78,10 +78,6 @@ SetupDataPkg/Tools/VariableList.py         Utility to generate EFI dmpstore fora
 SetupDataPkg/Tools/WrapAndSetSvd.py        Utility to generate Dfci formatted output from input SVD file.
 ========================================== ===========================================================================================
 
-Note: There is a separate pip-requirements.txt which is necessary to run to fufill the tools requirements.
-This is due to the tools having windows specific python dependencies. 
-
-
 Code of Conduct
 ===============
 
