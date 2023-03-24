@@ -17,16 +17,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # This is a general test for loading xml file and make sure all pages are there
     def test_xml_knob_to_page(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         self.assertIsNotNone(cdata.schema)
         self.assertIsNotNone(cdata.schema.knobs)
@@ -62,16 +63,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # This is a test for loading xml file and make sure all subknobs have a shim instance for rendering
     def test_xml_subknob_to_shim(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         subknob_list = cdata.schema.subknobs
         for entry in cdata.knob_shim:
@@ -92,16 +94,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Retrieving all items with a given page_id, should return all the subknobs under that id
     def test_xml_get_cfg_list(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Get the whole set
         ret = cdata.get_cfg_list()
@@ -129,16 +132,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Retrieving values for all shim items, should return the same value from the underlying knob
     def test_xml_get_cfg_item_value(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Get only a struct knob
         for each in cdata.knob_shim:
@@ -147,16 +151,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Reformat a value string should return properly
     def test_xml_reformat_value_str(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Run on an integer knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
@@ -187,16 +192,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Get value should return subknob value, matching the corresponding shim entry
     def test_xml_get_value(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Get only a struct knob
         for each in cdata.knob_shim:
@@ -205,16 +211,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Set item value should update the subknob value
     def test_xml_set_item_value(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Run on an integer knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
@@ -251,16 +258,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Get item options should reflect the available enum or boolean options
     def test_xml_get_cfg_item_options(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
@@ -276,16 +284,17 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
     # Sync function should sync up the value for shim and underlying knobs
     def test_xml_sync_shim_and_schema(self):
-        cdata = CGenNCCfgData("sampleschema.xml")
         if os.path.exists("sampleschema.xml"):
             # Load for local testing
-            cdata.load_xml("sampleschema.xml")
+            sample_path = "sampleschema.xml"
         elif os.path.exists("SetupDataPkg/Tools/sampleschema.xml"):
             # Load for Linux CI
-            cdata.load_xml("SetupDataPkg/Tools/sampleschema.xml")
+            sample_path = "SetupDataPkg/Tools/sampleschema.xml"
         else:
             # Load for Windows CI
-            cdata.load_xml("SetupDataPkg\\Tools\\sampleschema.xml")
+            sample_path = "SetupDataPkg\\Tools\\sampleschema.xml"
+
+        cdata = CGenNCCfgData(sample_path)
 
         # Run on an integer knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.INTEGER_KNOB')
