@@ -27,17 +27,17 @@
   SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
   SecureBootKeyStoreLib|MsCorePkg/Library/SecureBootKeyStoreLibNull/SecureBootKeyStoreLibNull.inf
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
-  ConfigSystemModeLib|SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
+  ConfigSystemModeLib|SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   UefiBootServicesTableLib|MdePkg/Test/Library/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Test/Library/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
 
 [Components]
-  SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
-  SetupDataPkg/Test/MockLibrary/MockResetUtilityLib/MockResetUtilityLib.inf
-  SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
-  SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
-  SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
+  SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
+  SetupDataPkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
+  SetupDataPkg/Test/Library/MockPcdLib/MockPcdLib.inf
+  SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
+  SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
 
   SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
 
@@ -46,32 +46,32 @@
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/UnitTest/ConfigKnobShimPeiLibUnitTest.inf {
     <LibraryClasses>
       ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
-      PeiServicesLib|SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
+      PeiServicesLib|SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {
     <LibraryClasses>
-      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+      ResetSystemLib|SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppSysInfoUnitTest.inf {
     <LibraryClasses>
-      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+      ResetSystemLib|SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppBootOptionUnitTest.inf {
     <LibraryClasses>
-      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+      ResetSystemLib|SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppSetupConfUnitTest.inf {
     <LibraryClasses>
-      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+      ResetSystemLib|SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
     <PcdsFixedAtBuild>
       gSetupDataPkgTokenSpaceGuid.PcdConfigurationPolicyGuid|{GUID("00000000-0000-0000-0000-000000000000")}
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppSecureBootUnitTest.inf {
     <LibraryClasses>
-      ResetSystemLib|SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
+      ResetSystemLib|SetupDataPkg/Test/Library/MockResetSystemLib/MockResetSystemLib.inf
   }
