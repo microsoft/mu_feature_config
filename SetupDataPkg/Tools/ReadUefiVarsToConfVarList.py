@@ -79,15 +79,15 @@ def main():
                 logging.error(f"Error returned from GetUefiAllVarNames: {rc}")
 
             offset = 0
-            while True:
+            while offset < len(efi_var_names):
                 (next_offset,) = struct.unpack_from("<I", efi_var_names[offset:])
+                if next_offset == 0:
+                    # This is the end... But we still need to go through the last loop
+                    next_offset = len(efi_var_names) - offset
                 namespace = uuid.UUID(bytes_le=efi_var_names[offset + 0x04: offset + 0x14])
-                name = efi_var_names[offset + 0x14: next_offset].decode('utf16')
+                name = efi_var_names[offset + 0x14: offset + next_offset].decode('utf16')
                 ret += read_variable_into_variable_list(UefiVar, name, namespace)
                 offset += next_offset
-                if next_offset == 0:
-                    # this is the end...
-                    break
         else:
             # Read the variables for each config knobs
             schema = Schema.load(arguments.configuration_file)
