@@ -94,7 +94,11 @@ def main():
             for knob in schema.knobs:
                 ret += read_variable_into_variable_list(UefiVar, knob.name, knob.namespace)
 
-        file.write(ret)
+        if len(ret) != 0:
+            file.write(ret)
+        else:
+            logging.error("No variables found!!!")
+            return 1
     return 0
 
 
