@@ -13,8 +13,7 @@ import struct
 import uuid
 import ctypes
 from SettingSupport.UefiVariablesSupportLib import UefiVariable
-
-gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
+from VariableList import Schema, UEFIVariable, create_vlist_buffer
 
 
 def option_parser():
@@ -24,16 +23,25 @@ def option_parser():
         "-x",
         "--xml",
         dest="configuration_file",
-        required=True,
+        required=False,
         type=str,
-        default='""',
         help="""Specify the input setting file""",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        dest="output_file",
+        required=False,
+        type=str,
+        default="output.vl",
+        help="""Specify the output file path and name, in vl format""",
     )
 
     arguments = parser.parse_args()
 
-    if not os.path.isfile(arguments.setting_file):
-        print("Invalid input file: %s" % arguments.setting_file)
+    if arguments.configuration_file is not None and not os.path.isfile(arguments.configuration_file):
+        print("Invalid input file: %s" % arguments.configuration_file)
         sys.exit(1)
 
     return arguments
@@ -42,71 +50,15 @@ def option_parser():
 #
 # Create an unpack statement formatted to address the variable length
 # parameters in the var store (Data and Unicode Name)
-def create_unpack_statement(NameStringSize, DataBufferSize):
-    #
-    # Dmpstore Format taken from AppendSingleVariableToFile() in
-    # ShellPkg\Library\UefiShellDebug1CommandsLib\DmpStore.c
-    # NameSize
-    # DataSize
-    # Name[NameSize]
-    # EFI_GUID
-    # Attributes
-    # Data[DataSize]
-    # CRC32
+def read_variable_into_variable_list(uefivar, name, namespace):
+    (rc, var, error_string) = uefivar.GetUefiVar(name, namespace)
+    if rc != 0:
+        logging.error(f"Error returned from GetUefiVar: {rc} on Name: {name}, Guid: {namespace}")
+        return b''
 
-    unpack_statement = "<II"
-    unpack_statement = unpack_statement + f"{NameStringSize}s"
-    unpack_statement = unpack_statement + "16s"
-    unpack_statement = unpack_statement + "I"
-    unpack_statement = unpack_statement + f"{DataBufferSize}s"
-    unpack_statement = unpack_statement + "I"
-
-    logging.debug(f"Created unpack statement {unpack_statement}")
-    return unpack_statement
-
-
-#
-# Using the passed byte array, extract the variable data and
-# write it into nvram
-#
-# Return the size of the un
-#
-def extract_single_var_from_file_and_write_nvram(var):
-    # check that the passed byte array has at least enough space for the NameSize and DataSize
-    if len(var) > 8:
-        (NameSize, DataSize) = struct.unpack("<II", var[0:8])
-
-        unpack_statement = create_unpack_statement(NameSize, DataSize)
-
-        # check that the input byte array has at least enough space for unpack statement
-        if struct.calcsize(unpack_statement) > len(var):
-            logging.critical("Input File Parsing error: input buffer is smaller than unpack size")
-            return len(var)
-
-        result = struct.unpack(unpack_statement, var[0: struct.calcsize(unpack_statement)])
-
-        VarName = result[2].decode('utf16')
-        Guid = uuid.UUID(bytes_le=result[3])
-        Attributes = result[4]
-        Data = result[5]
-
-        logging.debug(f"Found Variable: {VarName} {Guid} {Attributes}")
-
-        UefiVar = UefiVariable()
-        (rc, err, error_string) = UefiVar.SetUefiVar(
-            VarName,
-            Guid,
-            Data,
-            Attributes,
-        )
-        if rc == 0:
-            logging.debug(f"Error returned from SetUefiVar: {rc}")
-
-        return struct.calcsize(unpack_statement)
-    else:
-        logging.critical("var buffer was too small to be a valid dmpstore")
-
-    return len(var)
+    variable = UEFIVariable(name, namespace, var)
+    b_array = create_vlist_buffer(variable)
+    return b_array
 
 
 #
@@ -115,20 +67,34 @@ def extract_single_var_from_file_and_write_nvram(var):
 def main():
     arguments = option_parser()
 
-    if arguments.configuration_file is not None:
-        # Read all the variables
-    else:
-        # 
+    UefiVar = UefiVariable()
 
     # read the entire file
-    with open(arguments.configuration_file, "rb") as file:
-        var = file.read()
+    with open(arguments.output_file, "wb") as file:
+        ret = b''
+        if arguments.configuration_file is None:
+            # Read all the variables
+            (rc, efi_var_names, error_string) = UefiVar.GetUefiAllVarNames()
+            if rc != 0:
+                logging.error(f"Error returned from GetUefiAllVarNames: {rc}")
 
-        # go through the entire file parsing each dmpstore variable
-        start = 0
-        while len(var[start:]) != 0:
-            start = start + extract_single_var_from_file_and_write_nvram(var[start:])
+            offset = 0
+            while True:
+                (next_offset,) = struct.unpack_from("<I", efi_var_names[offset:])
+                namespace = uuid.UUID(bytes_le=efi_var_names[offset + 0x04: offset + 0x14])
+                name = efi_var_names[offset + 0x14: next_offset].decode('utf16')
+                ret += read_variable_into_variable_list(UefiVar, name, namespace)
+                offset += next_offset
+                if next_offset == 0:
+                    # this is the end...
+                    break
+        else:
+            # Read the variables for each config knobs
+            schema = Schema.load(arguments.configuration_file)
+            for knob in schema.knobs:
+                ret += read_variable_into_variable_list(UefiVar, knob.name, knob.namespace)
 
+        file.write(ret)
     return 0
 
 
