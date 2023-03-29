@@ -52,8 +52,8 @@ def option_parser():
 # UEFI variable storage and convert the output to variable list formatted byte
 # array
 #
-def read_variable_into_variable_list(uefivar, name, namespace):
-    (rc, var, error_string) = uefivar.GetUefiVar(name, namespace)
+def read_variable_into_variable_list(uefi_var, name, namespace):
+    (rc, var, _) = uefi_var.GetUefiVar(name, namespace)
     if rc != 0:
         logging.error(f"Error returned from GetUefiVar: {rc} on Name: {name}, Guid: {namespace}")
         return b''
