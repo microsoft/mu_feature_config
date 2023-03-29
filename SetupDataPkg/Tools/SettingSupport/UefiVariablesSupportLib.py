@@ -135,8 +135,14 @@ class UefiVariable(object):
         return (err, efi_var[:length], None)
 
     #
-    # Function to get variable
-    # return a tuple of error code and variable data as string
+    # Function to get all variable names
+    # return a tuple of error code and variable names byte array formatted as:
+    #
+    # typedef struct _VARIABLE_NAME {
+    #   ULONG NextEntryOffset;
+    #   GUID VendorGuid;
+    #   WCHAR Name[ANYSIZE_ARRAY];
+    # } VARIABLE_NAME, *PVARIABLE_NAME;
     #
     def GetUefiAllVarNames(self):
         # From NTSTATUS definition

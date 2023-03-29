@@ -1,6 +1,6 @@
 # @file
 #
-# Set a dmpstore formatted set of variables to NVRAM
+# Save current UEFI variables into a dmpstore formatted (variable list) file
 #
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -48,8 +48,10 @@ def option_parser():
 
 
 #
-# Create an unpack statement formatted to address the variable length
-# parameters in the var store (Data and Unicode Name)
+# With given UEFI variable name and namespace (GUID), query the variable from
+# UEFI variable storage and convert the output to variable list formatted byte
+# array
+#
 def read_variable_into_variable_list(uefivar, name, namespace):
     (rc, var, error_string) = uefivar.GetUefiVar(name, namespace)
     if rc != 0:
