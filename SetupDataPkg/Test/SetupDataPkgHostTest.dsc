@@ -32,9 +32,9 @@
   UefiBootServicesTableLib|MdePkg/Test/Library/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Test/Library/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   ResetSystemLib|PcAtChipsetPkg\Test\Library\MockResetSystemLib\MockResetSystemLib.inf
+  ResetUtilityLib|MdeModulePkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
 
 [Components]
-  SetupDataPkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
   SetupDataPkg/Test/Library/MockPcdLib/MockPcdLib.inf
   SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
