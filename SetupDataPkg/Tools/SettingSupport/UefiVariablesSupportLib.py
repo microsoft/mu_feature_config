@@ -13,7 +13,9 @@ from ctypes import (
     c_char,
     create_string_buffer,
     WinError,
+    pointer
 )
+from ctypes.wintypes import DWORD
 import logging
 from win32 import win32api
 from win32 import win32process
@@ -49,6 +51,15 @@ class UefiVariable(object):
                 c_wchar_p,
                 c_void_p,
                 c_int,
+            ]
+            self._EnumerateFirmwareEnvironmentVariable = (
+                windll.ntdll.NtEnumerateSystemEnvironmentValuesEx
+            )
+            self._EnumerateFirmwareEnvironmentVariable.restype = c_int
+            self._EnumerateFirmwareEnvironmentVariable.argtypes = [
+                c_int,
+                c_void_p,
+                c_void_p
             ]
             self._SetFirmwareEnvironmentVariable = (
                 kernel32.SetFirmwareEnvironmentVariableW
@@ -122,6 +133,47 @@ class UefiVariable(object):
             logging.error(WinError())
             return (err, None, WinError(err))
         return (err, efi_var[:length], None)
+
+    #
+    # Function to get all variable names
+    # return a tuple of error code and variable names byte array formatted as:
+    #
+    # typedef struct _VARIABLE_NAME {
+    #   ULONG NextEntryOffset;
+    #   GUID VendorGuid;
+    #   WCHAR Name[ANYSIZE_ARRAY];
+    # } VARIABLE_NAME, *PVARIABLE_NAME;
+    #
+    def GetUefiAllVarNames(self):
+        # From NTSTATUS definition
+        STATUS_BUFFER_TOO_SMALL = 0xC0000023
+        VARIABLE_INFORMATION_NAMES = 1
+        # success
+        length = DWORD(0)
+        efi_var_names = create_string_buffer(length.value)
+        if self._EnumerateFirmwareEnvironmentVariable is not None:
+            logging.info(
+                "calling _EnumerateFirmwareEnvironmentVariable to get size.."
+            )
+            status = self._EnumerateFirmwareEnvironmentVariable(
+                VARIABLE_INFORMATION_NAMES, efi_var_names, pointer(length)
+            )
+            # Only inspect the lower 32bit.
+            status = (0xFFFFFFFF & status)
+            if status == STATUS_BUFFER_TOO_SMALL:
+                logging.info(
+                    "calling _EnumerateFirmwareEnvironmentVariable again to get data.."
+                )
+                efi_var_names = create_string_buffer(length.value)
+                status = self._EnumerateFirmwareEnvironmentVariable(
+                    VARIABLE_INFORMATION_NAMES, efi_var_names, pointer(length)
+                )
+        if (0 != status):
+            logging.error(
+                "EnumerateFirmwareEnvironmentVariable failed (GetLastError = 0x%x)" % status
+            )
+            return (status, None, WinError(status))
+        return (status, efi_var_names, None)
 
     #
     # Function to set variable
