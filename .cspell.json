@@ -117,6 +117,10 @@
       "stdlibc",
       "onefile",
       "distpath",
-      "MEIPASS"
+      "MEIPASS",
+      "ntdll",
+      "NTSTATUS",
+      "PVARIABLE",
+      "ANYSIZE"
   ]
 }
