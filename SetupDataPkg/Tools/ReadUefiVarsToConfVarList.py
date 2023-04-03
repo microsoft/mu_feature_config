@@ -55,7 +55,9 @@ def option_parser():
 def read_variable_into_variable_list(uefi_var, name, namespace):
     (rc, var, _) = uefi_var.GetUefiVar(name, namespace)
     if rc != 0:
-        logging.error(f"Error returned from GetUefiVar: {rc} on Name: {name}, Guid: {namespace}")
+        if rc != UefiVariable.ERROR_ENVVAR_NOT_FOUND:
+            # only log the errors other than EFI_NOT_FOUND, because not found is normal in this case...
+            logging.error(f"Error returned from GetUefiVar: {rc} on Name: {name}, Guid: {namespace}")
         return b''
 
     variable = UEFIVariable(name, namespace, var)
@@ -102,8 +104,7 @@ def main():
         if len(ret) != 0:
             file.write(ret)
         else:
-            logging.error("No variables found!!!")
-            return 1
+            logging.warning("No variables found!!!")
     return 0
 
 
