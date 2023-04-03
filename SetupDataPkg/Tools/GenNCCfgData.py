@@ -33,7 +33,7 @@ from VariableList import (
 
 class CGenNCCfgData:
     def __init__(self, file_name):
-        self.initialize(file_name)
+        self.load_xml(file_name)
 
     def initialize(self, file_name):
         self._cfg_page = {"root": {"title": "", "child": []}}
@@ -333,7 +333,6 @@ def main():
         usage()
         return 1
 
-    gen_cfg_data = CGenNCCfgData()
     command = sys.argv[1].upper()
     out_file = sys.argv[3]
 
@@ -356,7 +355,7 @@ def main():
             if len(file_list) >= 3:
                 cfg_bin_file2 = file_list[2]
 
-    gen_cfg_data.load_xml(xml_file)
+    gen_cfg_data = CGenNCCfgData(xml_file)
 
     if csv_file:
         gen_cfg_data.override_default_value(csv_file)
