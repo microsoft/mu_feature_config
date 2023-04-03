@@ -131,8 +131,9 @@ class UefiVariable(object):
                 "GetFirmwareEnvironmentVariable[Ex] failed (GetLastError = 0x%x)" % err
             )
             logging.error(WinError())
-            return (err, None, WinError(err))
-        return (err, efi_var[:length], None)
+            if efi_var is None:
+                return (err, None, WinError(err))
+        return (err, efi_var[:length], WinError(err))
 
     #
     # Function to get all variable names
