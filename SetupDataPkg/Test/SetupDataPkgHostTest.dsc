@@ -27,15 +27,16 @@
   SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
   SecureBootKeyStoreLib|MsCorePkg/Library/SecureBootKeyStoreLibNull/SecureBootKeyStoreLibNull.inf
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
-  ConfigSystemModeLib|SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
+  
+  ConfigSystemModeLib|SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   UefiBootServicesTableLib|MdePkg/Test/Library/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Test/Library/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   ResetSystemLib|MdeModulePkg/Test/Library/MockBaseResetSystemLibNull/MockBaseResetSystemLibNull.inf
   ResetUtilityLib|MdeModulePkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
+  PcdLib|MdePkg/Test/Library/MockBasePcdLibNull/MockBasePcdLibNull.inf
 
 [Components]
-  SetupDataPkg/Test/Library/MockPcdLib/MockPcdLib.inf
   SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
   SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
