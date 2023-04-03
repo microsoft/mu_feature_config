@@ -35,17 +35,16 @@
   ResetSystemLib|MdeModulePkg/Test/Library/MockBaseResetSystemLibNull/MockBaseResetSystemLibNull.inf
   ResetUtilityLib|MdeModulePkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
   PcdLib|MdePkg/Test/Library/MockBasePcdLibNull/MockBasePcdLibNull.inf
+  PeiServicesLib|MdePkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
 
 [Components]
   SetupDataPkg/Test/Library/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
-  SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
   SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/UnitTest/ConfigKnobShimDxeLibUnitTest.inf
 
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/UnitTest/ConfigKnobShimPeiLibUnitTest.inf {
     <LibraryClasses>
       ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
-      PeiServicesLib|SetupDataPkg/Test/Library/MockPeiServicesLib/MockPeiServicesLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf
