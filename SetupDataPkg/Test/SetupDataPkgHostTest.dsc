@@ -31,7 +31,7 @@
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   UefiBootServicesTableLib|MdePkg/Test/Library/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Test/Library/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
-  ResetSystemLib|PcAtChipsetPkg\Test\Library\MockResetSystemLib\MockResetSystemLib.inf
+  ResetSystemLib|MdeModulePkg/Test/Library/MockBaseResetSystemLibNull/MockBaseResetSystemLibNull.inf
   ResetUtilityLib|MdeModulePkg/Test/Library/MockResetUtilityLib/MockResetUtilityLib.inf
 
 [Components]
