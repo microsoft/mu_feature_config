@@ -26,6 +26,8 @@ EFI_VAR_MAX_BUFFER_SIZE = 1024 * 1024
 
 
 class UefiVariable(object):
+    ERROR_ENVVAR_NOT_FOUND = 0xcb
+
     def __init__(self):
         # enable required SeSystemEnvironmentPrivilege privilege
         privilege = win32security.LookupPrivilegeValue(
@@ -127,10 +129,11 @@ class UefiVariable(object):
             )
         if (0 == length) or (efi_var is None):
             err = kernel32.GetLastError()
-            logging.error(
-                "GetFirmwareEnvironmentVariable[Ex] failed (GetLastError = 0x%x)" % err
-            )
-            logging.error(WinError())
+            if err != 0 and err != UefiVariable.ERROR_ENVVAR_NOT_FOUND:
+                logging.error(
+                    "GetFirmwareEnvironmentVariable[Ex] failed (GetLastError = 0x%x)" % err
+                )
+                logging.error(WinError())
             if efi_var is None:
                 return (err, None, WinError(err))
         return (err, efi_var[:length], WinError(err))
