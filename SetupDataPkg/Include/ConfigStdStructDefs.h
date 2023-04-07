@@ -30,4 +30,14 @@ typedef struct {
   KNOB_VALIDATION_FN    *Validator;
 } KNOB_DATA;
 
+typedef struct {
+  UINTN    Knob;
+  VOID     *Value;
+} KNOB_OVERRIDE;
+
+typedef struct {
+  KNOB_OVERRIDE    *Overrides;
+  UINTN            OverrideCount;
+} PROFILE;
+
 #endif // CONFIG_STD_STRUCT_DEFS_LIB_H_
