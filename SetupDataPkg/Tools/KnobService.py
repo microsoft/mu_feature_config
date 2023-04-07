@@ -1154,54 +1154,64 @@ def usage():
           "[<data_header.h>] [<profile_header.h> <profile.csv>...]")
     print("")
     print("schema.xml       : An XML with the definition of a set of known")
-    print("                   UEFI variables ('knobs') and types to interpret them\n")
+    print("                   config knobs and types to interpret them\n")
     print("public_header.h  : Output header for use by config consumers\n")
     print("service_header.h : Output header for use by config provider. In UEFI builds")
     print("                   this only contains getter implementations\n")
     print("data_header.h    : Output header for UEFI builds only. This contains only")
     print("                   the data. In non-UEFI builds, service_header.h and")
     print("                   data_header.h are combined\n")
+    print("profile_header.h : Output header for the profile data for consumption")
+    print("                   by config providers.")
+    print("profile.csv...   : n-number of profile csvs that describe the platform's")
+    print("                   overridden config knobs")
 
 
 def main():
+    arg_num = 1
     if len(sys.argv) < 2:
         usage()
         sys.stderr.write('Must provide a command.\n')
         sys.exit(1)
         return
 
-    if sys.argv[1].lower() == "generateheader" or sys.argv[1].lower() == "generateheader_efi":
-        if sys.argv[1].lower() == "generateheader" and len(sys.argv) < 5:
+    if sys.argv[arg_num].lower() == "generateheader" or sys.argv[arg_num].lower() == "generateheader_efi":
+        if sys.argv[arg_num].lower() == "generateheader" and len(sys.argv) < 5:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
 
-        if sys.argv[1].lower() == "generateheader_efi" and len(sys.argv) < 6:
+        if sys.argv[arg_num].lower() == "generateheader_efi" and len(sys.argv) < 6:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
 
-        efi_type = sys.argv[1].lower() == "generateheader_efi"
+        efi_type = sys.argv[arg_num].lower() == "generateheader_efi"
+        arg_num += 1
 
-        schema_path = sys.argv[2]
-        header_path = sys.argv[3]
-        service_path = sys.argv[4]
+        schema_path = sys.argv[arg_num]
+        arg_num += 1
+        header_path = sys.argv[arg_num]
+        arg_num += 1
+        service_path = sys.argv[arg_num]
+        arg_num += 1
         data_path = None
 
         if efi_type is True:
-            data_path = sys.argv[5]
+            data_path = sys.argv[arg_num]
+            arg_num += 1
 
         # Load the schema
         schema = VariableList.Schema.load(schema_path)
 
         generate_sources(schema, header_path, service_path, data_path, efi_type)
 
-        if (efi_type is True and len(sys.argv) >= 7) or \
-           (efi_type is False and len(sys.argv) >= 6):
-            profile_header_path = sys.argv[5]
-            profile_paths = sys.argv[6:]
+        if (len(sys.argv) >= arg_num + 1):
+            profile_header_path = sys.argv[arg_num]
+            arg_num += 1
+            profile_paths = sys.argv[arg_num:]
 
             generate_profiles(schema, profile_header_path, profile_paths, efi_type)
         return 0

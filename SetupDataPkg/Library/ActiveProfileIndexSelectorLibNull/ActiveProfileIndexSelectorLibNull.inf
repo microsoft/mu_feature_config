@@ -1,0 +1,24 @@
+## @file ActiveProfileIndexSelectorLibNull.inf
+# Null instance of ActiveProfileIndexSelectorLib
+#
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ActiveProfileIndexSelectorLibNull
+  FILE_GUID           = A313B7A8-4C4E-48C3-BB93-38B687AFD9B6
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = BASE
+  LIBRARY_CLASS       = ActiveProfileIndexSelectorLib
+
+[Sources]
+  ActiveProfileIndexSelectorLibNull.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
