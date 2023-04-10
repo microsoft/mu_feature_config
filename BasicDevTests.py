@@ -17,6 +17,9 @@ import logging
 import re
 
 
+print("Hello World")
+
+
 def TestEncodingOk(apath, encodingValue):
     try:
         with open(apath, "rb") as f_obj:
