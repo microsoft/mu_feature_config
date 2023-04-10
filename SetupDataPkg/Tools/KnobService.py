@@ -502,32 +502,32 @@ def generate_public_header(schema, header_path, efi_type=False):
                 naming_convention_filter("knob_data_t", True, efi_type)
             ) + get_line_ending(efi_type))
             out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                naming_convention_filter("knob_t", True, efi_type),
-                naming_convention_filter("knob", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("void*", efi_type),
-                naming_convention_filter("value", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("knob_override_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{}* {};".format(
-                naming_convention_filter("knob_override_t", True, efi_type),
-                naming_convention_filter("overrides", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string('size_t', efi_type),
-                naming_convention_filter("override_count", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("profile_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
+        out.write("typedef struct {" + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "{} {};".format(
+            naming_convention_filter("knob_t", True, efi_type),
+            naming_convention_filter("knob", False, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "{} {};".format(
+            get_type_string("void*", efi_type),
+            naming_convention_filter("value", False, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write("}" + " {};".format(
+            naming_convention_filter("knob_override_t", True, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write("" + get_line_ending(efi_type))
+        out.write("typedef struct {" + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "{}* {};".format(
+            naming_convention_filter("knob_override_t", True, efi_type),
+            naming_convention_filter("overrides", False, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "{} {};".format(
+            get_type_string('size_t', efi_type),
+            naming_convention_filter("override_count", False, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write("}" + " {};".format(
+            naming_convention_filter("profile_t", True, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write("" + get_line_ending(efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
 
 
@@ -1108,10 +1108,16 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
             profiles.append((base_name, override_count))
         out.write("" + get_line_ending(efi_type))
         out.write("#define PROFILE_COUNT {}".format(len(profiles)) + get_line_ending(efi_type))
-        out.write("{} {}[PROFILE_COUNT + 1] = ".format(
-            naming_convention_filter("profile_t", True, efi_type),
-            naming_convention_filter("profiles", False, efi_type)
-        ) + get_line_ending(efi_type) + "{" + get_line_ending(efi_type))
+        if not efi_type:
+            out.write("{} {}[PROFILE_COUNT + 1] = ".format(
+                naming_convention_filter("profile_t", True, efi_type),
+                naming_convention_filter("profiles", False, efi_type)
+            ) + get_line_ending(efi_type) + "{" + get_line_ending(efi_type))
+        else:
+            out.write("{} g{}[PROFILE_COUNT + 1] = ".format(
+                naming_convention_filter("profile_t", True, efi_type),
+                naming_convention_filter("profile_data", False, efi_type)
+            ) + get_line_ending(efi_type) + "{" + get_line_ending(efi_type))
         for (profile, override_count) in profiles:
             out.write(get_spacing_string(efi_type) + "{" + get_line_ending(efi_type))
             out.write(get_spacing_string(efi_type, 2) + ".{} = {}{}{},".format(
@@ -1134,6 +1140,13 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
         ) + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
         out.write("};" + get_line_ending(efi_type))
+        if efi_type:
+            out.write(get_line_ending(efi_type))
+            out.write(get_type_string("size_t", efi_type) + " g{} = PROFILE_COUNT;".format(
+                naming_convention_filter("_num_profiles", False, efi_type))
+            )
+            out.write(get_line_ending(efi_type))
+
         out.write(get_include_once_style(profile_header_path, uefi=efi_type, header=False))
 
 
