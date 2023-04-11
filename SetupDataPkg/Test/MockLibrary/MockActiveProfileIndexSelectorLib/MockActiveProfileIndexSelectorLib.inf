@@ -1,0 +1,30 @@
+## @file MockActiveProfileIndexSelectorLib.inf
+#
+#  Mock instance of ActiveProfileIndexSelectorLib
+#
+#  Copyright (c) Microsoft Corporation.
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = MockActiveProfileIndexSelectorLib
+  FILE_GUID           = AF072E5B-95EA-4B41-917D-AD92FD7E10AD
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = HOST_APPLICATION
+  LIBRARY_CLASS       = ActiveProfileIndexSelectorLib
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  MockActiveProfileIndexSelectorLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec

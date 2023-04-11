@@ -502,32 +502,32 @@ def generate_public_header(schema, header_path, efi_type=False):
                 naming_convention_filter("knob_data_t", True, efi_type)
             ) + get_line_ending(efi_type))
             out.write("" + get_line_ending(efi_type))
-        out.write("typedef struct {" + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + "{} {};".format(
-            naming_convention_filter("knob_t", True, efi_type),
-            naming_convention_filter("knob", False, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + "{} {};".format(
-            get_type_string("void*", efi_type),
-            naming_convention_filter("value", False, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write("}" + " {};".format(
-            naming_convention_filter("knob_override_t", True, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write("" + get_line_ending(efi_type))
-        out.write("typedef struct {" + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + "{}* {};".format(
-            naming_convention_filter("knob_override_t", True, efi_type),
-            naming_convention_filter("overrides", False, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + "{} {};".format(
-            get_type_string('size_t', efi_type),
-            naming_convention_filter("override_count", False, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write("}" + " {};".format(
-            naming_convention_filter("profile_t", True, efi_type)
-        ) + get_line_ending(efi_type))
-        out.write("" + get_line_ending(efi_type))
+            out.write("typedef struct {" + get_line_ending(efi_type))
+            out.write(get_spacing_string(efi_type) + "{} {};".format(
+                naming_convention_filter("knob_t", True, efi_type),
+                naming_convention_filter("knob", False, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write(get_spacing_string(efi_type) + "{} {};".format(
+                get_type_string("void*", efi_type),
+                naming_convention_filter("value", False, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write("}" + " {};".format(
+                naming_convention_filter("knob_override_t", True, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write("" + get_line_ending(efi_type))
+            out.write("typedef struct {" + get_line_ending(efi_type))
+            out.write(get_spacing_string(efi_type) + "{}* {};".format(
+                naming_convention_filter("knob_override_t", True, efi_type),
+                naming_convention_filter("overrides", False, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write(get_spacing_string(efi_type) + "{} {};".format(
+                get_type_string('size_t', efi_type),
+                naming_convention_filter("override_count", False, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write("}" + " {};".format(
+                naming_convention_filter("profile_t", True, efi_type)
+            ) + get_line_ending(efi_type))
+            out.write("" + get_line_ending(efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
 
 
