@@ -56,6 +56,8 @@ jobs:
       run: |
         import os
         import json
+        
+        print("Hello world!")
 
         packages = [d for d in os.listdir() if d.strip().lower().endswith('pkg')]
 
