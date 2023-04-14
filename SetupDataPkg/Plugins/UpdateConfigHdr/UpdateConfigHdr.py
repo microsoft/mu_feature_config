@@ -52,8 +52,6 @@ class UpdateConfigHdr(IUefiBuildPlugin):
         # this platform. It is allowed to be empty if there are no profiles.
         profile_paths = thebuilder.env.GetValue("CONF_PROFILE_PATHS", "")
 
-        logging.error("OSDDEBUG profile_paths: ", profile_paths)
-
         params = ["generateheader_efi"]
 
         params.append(schema_file)
