@@ -49,6 +49,7 @@
   SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   ConfigSystemModeLib|SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
+  ActiveProfileIndexSelectorLib|SetupDataPkg/Library/ActiveProfileIndexSelectorLibNull/ActiveProfileIndexSelectorLibNull.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
