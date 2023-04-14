@@ -87,11 +87,15 @@ be added, with the old knob being removed as soon as feasible.
 
 ### Active Profile Selection
 
-The ActiveProfileSelectorLib library class is intended to be overridden by the OEM/platform to retrieve the active
-profile index from the relevant source of truth. If ActiveProfileSelectorLib has a failure fetching the active profile
-index, the OEM/platform has the choice of failing to boot, defaulting to the last used profile, or defaulting to the
-generic profile.
+The ActiveProfileIndexSelectorLib library class is intended to be overridden by the OEM/platform to retrieve the active
+profile index from the relevant source of truth. If ActiveProfileIndexSelectorLib has a failure fetching the active
+profile index, the OEM/platform has the choice of failing to boot, defaulting to the last used profile, or defaulting
+to the generic profile.
 
 This index returned is an index into the `gProfileData` structure contained within
 `<Generated/ConfigProfilesGenerated.h>`. This will return a `KNOB_OVERRIDE` structure which is a set of overrides to
 knobs that can be iterated through and applied to the `CacheValueAddress` of each overridden knob.
+
+Alternatively, if the generic profile is chosen, ActiveProfileIndexSelectorLib will return MAX_UINT32 to indicdate the
+gProfileData structure is not used for this boot and instead only the defaults in gKnobData (and possibly any
+overrides found in variable storage) will be used.

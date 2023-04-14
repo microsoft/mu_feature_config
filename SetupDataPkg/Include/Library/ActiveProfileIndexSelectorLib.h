@@ -15,7 +15,7 @@
   Return which profile is the active profile for this boot.
   This function validates the profile GUID is valid.
 
-  @param[out] ActiveProfileIndex  The index for the active profile. A value of -1, when combined with a return
+  @param[out] ActiveProfileIndex  The index for the active profile. A value of MAX_UINT32, when combined with a return
                                   value of EFI_SUCCESS, indicates that the default profile has been chosen. If the
                                   return value is not EFI_SUCCESS, the value of ActiveProfileIndex shall not be updated.
 
@@ -27,7 +27,7 @@
 EFI_STATUS
 EFIAPI
 GetActiveProfileIndex (
-  OUT INT32  *ActiveProfileIndex
+  OUT UINT32  *ActiveProfileIndex
   );
 
 #endif // ACTIVE_PROFILE_INDEX_SELECTOR_LIB_H_
