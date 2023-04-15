@@ -49,6 +49,7 @@
   SvdXmlSettingSchemaSupportLib|SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
   ConfigVariableListLib|SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   ConfigSystemModeLib|SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
+  ActiveProfileIndexSelectorLib|SetupDataPkg/Library/ActiveProfileIndexSelectorLibNull/ActiveProfileIndexSelectorLibNull.inf
 
   SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
   PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
@@ -88,6 +89,7 @@
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
+  SetupDataPkg/Library/ActiveProfileIndexSelectorLibNull/ActiveProfileIndexSelectorLibNull.inf
 
 [Components.X64, Components.AARCH64]
   SetupDataPkg/ConfApp/ConfApp.inf

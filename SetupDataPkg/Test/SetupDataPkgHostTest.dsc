@@ -38,6 +38,7 @@
   SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
   SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
+  SetupDataPkg/Test/MockLibrary/MockActiveProfileIndexSelectorLib/MockActiveProfileIndexSelectorLib.inf
 
   SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
 

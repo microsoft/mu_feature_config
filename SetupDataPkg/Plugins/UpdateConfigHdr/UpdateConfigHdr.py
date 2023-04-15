@@ -16,8 +16,8 @@ class UpdateConfigHdr(IUefiBuildPlugin):
 
     # Attempt to run GenCfgData to generate C header files
     #
-    # Consumes build environment variables: "CONF_AUTOGEN_INCLUDE_PATH", "MU_SCHEMA_DIR", and
-    # "MU_SCHEMA_FILE_NAME"
+    # Consumes build environment variables: "CONF_AUTOGEN_INCLUDE_PATH", "MU_SCHEMA_DIR",
+    # "MU_SCHEMA_FILE_NAME", and "CONF_PROFILE_PATHS"
     def do_pre_build(self, thebuilder):
         default_generated_path = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Test", "Include")
 
@@ -48,6 +48,10 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             logging.error(f"XML schema file \"{schema_file}\" specified is not found!!!")
             return -1
 
+        # this is a space separated list of paths to CSV files describing the profiles for
+        # this platform. It is allowed to be empty if there are no profiles.
+        profile_paths = thebuilder.env.GetValue("CONF_PROFILE_PATHS", "")
+
         params = ["generateheader_efi"]
 
         params.append(schema_file)
@@ -55,6 +59,10 @@ class UpdateConfigHdr(IUefiBuildPlugin):
         params.append("ConfigClientGenerated.h")
         params.append("ConfigServiceGenerated.h")
         params.append("ConfigDataGenerated.h")
+
+        if profile_paths != "":
+            params.append("ConfigProfilesGenerated.h")
+            params.append(profile_paths)
 
         ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dir)
         return ret
