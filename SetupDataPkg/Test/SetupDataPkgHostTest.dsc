@@ -31,6 +31,12 @@
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
 
 [Components]
+
+  #
+  # Build HOST_APPLICATIONs
+  #
+
+
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
