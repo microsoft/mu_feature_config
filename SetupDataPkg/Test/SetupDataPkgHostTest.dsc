@@ -31,9 +31,8 @@
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
 
 [Components]
-
   #
-  # Build HOST_APPLICATIONs
+  # Build SetupDataPkg HOST_APPLICATIONs Tests
   #
 
 
