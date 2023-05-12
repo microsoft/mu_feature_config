@@ -1,0 +1,46 @@
+## @file
+# Library interface for an OEM config policy creator to call into to fetch overrides for config values.
+#
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION               = 0x00010017
+  BASE_NAME                 = ConfigKnobShimStandaloneMmLib
+  FILE_GUID                 = 675EE92E-8771-413A-8BBE-B87152B910E2
+  VERSION_STRING            = 1.0
+  MODULE_TYPE               = MM_STANDALONE
+  LIBRARY_CLASS             = ConfigKnobShimLib
+  PI_SPECIFICATION_VERSION  = 0x00010050
+
+#
+# The following information is for reference only and not required by the
+# build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
+
+[Sources]
+  ConfigKnobShimStandaloneMmLib.c
+  ../ConfigKnobShimLibCommon.c
+  ../ConfigKnobShimLibCommon.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  BaseMemoryLib
+  MmServicesTableLib
+
+[Protocols]
+  gEfiSmmVariableProtocolGuid ## CONSUMES
+
+[Depex]
+  # Platforms can decide whether variable services are a requirement for config or not
+  gEfiSmmVariableProtocolGuid
