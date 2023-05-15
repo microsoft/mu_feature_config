@@ -32,8 +32,9 @@
 
 [Components]
   #
-  # Build SetupDataPkg HOST_APPLICATIONs Tests
+  # Build SetupDataPkg HOST_APPLICATION Tests
   #
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/GoogleTest/ConfigKnobShimDxeLibGoogleTest.inf
 
 
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
