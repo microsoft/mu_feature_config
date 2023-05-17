@@ -34,8 +34,10 @@
   #
   # Build SetupDataPkg HOST_APPLICATION Tests
   #
-  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/GoogleTest/ConfigKnobShimDxeLibGoogleTest.inf
-
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/GoogleTest/ConfigKnobShimDxeLibGoogleTest.inf {
+    <LibraryClasses>
+      UefiRuntimeServicesTableLib|MdePkg/Test/Mock/Library/GoogleTest/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+  }
 
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf

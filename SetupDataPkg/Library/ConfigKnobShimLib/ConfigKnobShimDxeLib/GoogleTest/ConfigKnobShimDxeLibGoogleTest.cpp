@@ -7,87 +7,114 @@
 
 **/
 
-#include <gtest/gtest.h>
+#include <Library/GoogleTestLib.h>
+#include <GoogleTest/Library/MockUefiLib.h>
+#include <GoogleTest/Library/MockUefiRuntimeServicesTableLib.h>
 extern "C" {
-  #include <Uefi.h>
-  #include <Library/BaseLib.h>
-  #include <Library/DebugLib.h>
+#include <Uefi.h>
+#include <Library/BaseLib.h>
+#include <Library/DebugLib.h>
+
+// include the c file to be able to unit test static function
+#include "../../ConfigKnobShimLibCommon.c"
 }
 
+#define CONFIG_KNOB_GUID  {0x52d39693, 0x4f64, 0x4ee6, {0x81, 0xde, 0x45, 0x89, 0x37, 0x72, 0x78, 0x55}}
 
-/**
-  Sample unit test that verifies the expected result of an unsigned integer
-  addition operation.
-**/
-TEST(SimpleMathTests, OnePlusOneShouldEqualTwo) {
-  UINTN  A;
-  UINTN  B;
-  UINTN  C;
+using namespace testing;
 
-  A = 1;
-  B = 1;
-  C = A + B;
+///////////////////////////////////////////////////////////////////////////////
+class GetConfigKnobOverrideFromVariableStorageTest : public Test {
+protected:
+MockUefiRuntimeServicesTableLib RtServicesMock;
+// MockPeiServicesLib PPIVariableServices; // EFI_PEI_READ_ONLY_VARIABLE2_PPI
+EFI_STATUS Status;
+EFI_GUID ConfigKnobGuid;
+CHAR16 *ConfigKnobName;
+UINT64 ProfileDefaultValue;
+UINTN ProfileDefaultSize;
+UINT64 VariableData;
+UINT64 ConfigKnobData;
 
-  ASSERT_EQ (C, (UINTN)2);
+void
+SetUp (
+  ) override
+{
+  ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  ConfigKnobName      = (CHAR16 *)L"MyDeadBeefDelivery";
+  ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  VariableData        = 0xBEEF7777BEEF7777;
+  ConfigKnobData      = ProfileDefaultValue;
 }
-
-/**
-  Sample unit test that verifies that a global BOOLEAN is updatable.
-**/
-class GlobalBooleanVarTests : public ::testing::Test {
-  public:
-    BOOLEAN  SampleGlobalTestBoolean  = FALSE;
 };
 
-TEST_F(GlobalBooleanVarTests, GlobalBooleanShouldBeChangeable) {
-  SampleGlobalTestBoolean = TRUE;
-  ASSERT_TRUE (SampleGlobalTestBoolean);
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageFailure) {
+  // expect the first GetVariable call to get size
+  // expect the second call to return an EFI_DEVICE_ERROR
+  EXPECT_CALL (RtServicesMock, gRT_GetVariable)
+    .WillOnce (
+       DoAll (
+         SetArgPointee<3>(sizeof (VariableData)),
+         Return (EFI_BUFFER_TOO_SMALL)
+         )
+       )
+    .WillOnce (
+       Return (EFI_NOT_FOUND)
+       );
 
-  SampleGlobalTestBoolean = FALSE;
-  ASSERT_FALSE (SampleGlobalTestBoolean);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+
+  ASSERT_EQ (Status, EFI_NOT_FOUND);
+  ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
 }
 
-/**
-  Sample unit test that logs a warning message and verifies that a global
-  pointer is updatable.
-**/
-class GlobalVarTests : public ::testing::Test {
-  public:
-    VOID  *SampleGlobalTestPointer = NULL;
-    UINT64  Result = 32;
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
+  
+  // expect the first GetVariable call to get size
+  EXPECT_CALL (
+    RtServicesMock,
+    gRT_GetVariable
+    )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<3>(sizeof (VariableData)),
+         Return (EFI_BUFFER_TOO_SMALL)
+         )
+       );
 
+  // expect the second getVariable call to update data
+  // NOTE: in this case, could also simply do another .WillOnce call. BUt wanted to show a little variety
+  EXPECT_CALL (
+    RtServicesMock,
+    gRT_GetVariable (
+      _,
+      _,
+      _,
+      _,
+      NotNull ()
+      )
+    )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<3>(sizeof (VariableData)),
+         SetArgBuffer<4>(&VariableData, sizeof (VariableData)),
+         Return (EFI_SUCCESS)
+         )
+       );
 
-  protected:
-  void SetUp() override {
-    ASSERT_EQ ((UINTN)SampleGlobalTestPointer, (UINTN)NULL);
-  }
-  void TearDown() {
-    SampleGlobalTestPointer = NULL;
-  }
-};
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
 
-TEST_F(GlobalVarTests, GlobalPointerShouldBeChangeable) {
-  SampleGlobalTestPointer = (VOID *)-1;
-  ASSERT_EQ ((UINTN)SampleGlobalTestPointer, (UINTN)((VOID *)-1));
-
-  //
-  // This test passes because the pointer is never NULL.
-  //    
-  ASSERT_NE (&Result, (UINT64 *)NULL);
+  ASSERT_EQ (Status, EFI_SUCCESS);
+  ASSERT_EQ (VariableData, ConfigKnobData);
 }
 
-
-/**
-  Sample unit test using the SCOPED_TRACE() macro for trace messages.
-**/
-TEST(MacroTestsMessages, MacroTraceMessage) {
-  //
-  // Example of logging.
-  //
-  SCOPED_TRACE ("SCOPED_TRACE message\n");
-}
-
-int main(int argc, char* argv[]) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+int
+main (
+  int   argc,
+  char  *argv[]
+  )
+{
+  testing::InitGoogleTest (&argc, argv);
+  return RUN_ALL_TESTS ();
 }
