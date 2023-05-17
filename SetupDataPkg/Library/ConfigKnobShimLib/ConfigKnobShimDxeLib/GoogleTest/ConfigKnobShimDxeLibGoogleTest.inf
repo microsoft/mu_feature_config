@@ -20,13 +20,16 @@
 
 [Sources]
   ConfigKnobShimDxeLibGoogleTest.cpp
+  ../ConfigKnobShimDxeLib.c
+  ../../ConfigKnobShimLibCommon.c
 
 [Packages]
+  MdePkg/MdePkg.dec
   SetupDataPkg/SetupDataPkg.dec
   UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
-  MdePkg/MdePkg.dec
 
 [LibraryClasses]
   GoogleTestLib
   BaseLib
   DebugLib
+  ConfigKnobShimLib
