@@ -11,37 +11,30 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 
-resources:
-  repositories:
-    - repository: mu_devops
-      type: github
-      endpoint: microsoft
-      name: microsoft/mu_devops
-      ref: refs/tags/v2.3.0
-
 variables:
 - group: architectures-arm-64-x86-64
 - group: tool-chain-ubuntu-gcc
 
-jobs:
-- template: Jobs/PrGate.yml@mu_devops
+extends:
+  template: MuDevOpsSync.yml
   parameters:
-    arch_list: $(arch_list)
     do_ci_build: true
     do_ci_setup: true
-    extra_steps:
-    - script: sudo dnf install --assumeyes mingw64-gcc
-      displayName: Install Windows Resource Compiler for Linux
-    packages: SetupDataPkg
-    target_list: DEBUG,RELEASE,NO-TARGET,NOOPT
-    tool_chain_tag: $(tool_chain_tag)
-    vm_image: $(vm_image)
     container_build: true
-    linux_container_image: ghcr.io/tianocore/containers/fedora-37-build:f1c7a20
+    os_type: Linux
+    build_matrix:
+      TARGET_SETUPDATA:
+        Pkgs: 'SetupDataPkg'
+        Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        SelfHostAgent: false
+      TARGET_SETUPDATA_ARM:
+        Pkgs: 'SetupDataPkg'
+        Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        SelfHostAgent: true
 
 - template: Jobs/Python/RunDevTests.yml@mu_devops
   parameters:
     code_cov_enabled: true
-    custom_job_name: ubuntu
+    custom_job_name: windows
     root_package_folder: SetupDataPkg/Tools
     vm_image: $(vm_image)
