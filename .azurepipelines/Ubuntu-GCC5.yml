@@ -43,5 +43,5 @@ jobs:
       vm_image: $(vm_image)
       linux_container_image: ghcr.io/tianocore/containers/fedora-37-build:3b3eb8f
 
-extends:
-  template: MuDevOpsSync.yml
+resources:
+- template: MuDevOpsSync.yml
