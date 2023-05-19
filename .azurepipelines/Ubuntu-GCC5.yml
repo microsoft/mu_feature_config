@@ -32,9 +32,9 @@ extends:
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
         SelfHostAgent: true
 
-- template: Jobs/Python/RunDevTests.yml@mu_devops
-  parameters:
-    code_cov_enabled: true
-    custom_job_name: windows
-    root_package_folder: SetupDataPkg/Tools
-    vm_image: $(vm_image)
+  - template: Jobs/Python/RunDevTests.yml@mu_devops
+    parameters:
+      code_cov_enabled: true
+      custom_job_name: windows
+      root_package_folder: SetupDataPkg/Tools
+      vm_image: $(vm_image)
