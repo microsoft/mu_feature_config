@@ -85,4 +85,4 @@ jobs:
     container_build: ${{ parameters.container_build }}
     linux_container_image: ghcr.io/tianocore/containers/fedora-37-build:3b3eb8f
 
-- ${{ parameter.extra_jobs }}
+- ${{ parameters.extra_jobs }}
