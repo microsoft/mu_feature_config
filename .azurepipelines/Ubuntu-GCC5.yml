@@ -15,33 +15,26 @@ variables:
 - group: architectures-arm-64-x86-64
 - group: tool-chain-ubuntu-gcc
 
-jobs:
-  - template: Jobs/Python/RunDevTests.yml@mu_devops
-    parameters:
-      code_cov_enabled: true
-      custom_job_name: windows
-      root_package_folder: SetupDataPkg/Tools
-      vm_image: $(vm_image)
-
-  - template: Jobs/PrGate.yml@mu_devops
-    parameters:
-      arch_list: $(arch_list)
-      do_ci_build: true
-      do_ci_setup: true
-      container_build: true
-      os_type: Linux
-      build_matrix:
-        TARGET_SETUPDATA:
-          Pkgs: 'SetupDataPkg'
-          Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
-          SelfHostAgent: false
-        TARGET_SETUPDATA_ARM:
-          Pkgs: 'SetupDataPkg'
-          Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
-          SelfHostAgent: true
-      tool_chain_tag: $(tool_chain_tag)
-      vm_image: $(vm_image)
-      linux_container_image: ghcr.io/tianocore/containers/fedora-37-build:3b3eb8f
-
-resources:
-- template: MuDevOpsSync.yml
+extends:
+  template: MuDevOpsSync.yml
+  parameters:
+    do_ci_build: true
+    do_ci_setup: true
+    container_build: true
+    os_type: Linux
+    build_matrix:
+      TARGET_SETUPDATA:
+        Pkgs: 'SetupDataPkg'
+        Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        SelfHostAgent: false
+      TARGET_SETUPDATA_ARM:
+        Pkgs: 'SetupDataPkg'
+        Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        SelfHostAgent: true
+    extra_jobs:
+      - template: Jobs/Python/RunDevTests.yml@mu_devops
+        parameters:
+          code_cov_enabled: true
+          custom_job_name: windows
+          root_package_folder: SetupDataPkg/Tools
+          vm_image: $(vm_image)
