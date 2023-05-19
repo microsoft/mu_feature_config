@@ -15,9 +15,6 @@ variables:
 - group: architectures-arm-64-x86-64
 - group: tool-chain-ubuntu-gcc
 
-extends:
-  template: MuDevOpsSync.yml
-
 jobs:
   - template: Jobs/Python/RunDevTests.yml@mu_devops
     parameters:
@@ -45,3 +42,6 @@ jobs:
       tool_chain_tag: $(tool_chain_tag)
       vm_image: $(vm_image)
       linux_container_image: ghcr.io/tianocore/containers/fedora-37-build:3b3eb8f
+
+extends:
+  template: MuDevOpsSync.yml
