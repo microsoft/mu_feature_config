@@ -32,7 +32,6 @@ extends:
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
         SelfHostAgent: true
 
-jobs:
 - template: Jobs/Python/RunDevTests.yml@mu_devops
   parameters:
     code_cov_enabled: true
