@@ -26,10 +26,12 @@ extends:
       TARGET_SETUPDATA:
         Pkgs: 'SetupDataPkg'
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        ArchList: $(arch_list)
         SelfHostAgent: false
       TARGET_SETUPDATA_ARM:
         Pkgs: 'SetupDataPkg'
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
+        ArchList: $(arch_list)
         SelfHostAgent: true
     extra_jobs:
       - template: Jobs/Python/RunDevTests.yml@mu_devops
