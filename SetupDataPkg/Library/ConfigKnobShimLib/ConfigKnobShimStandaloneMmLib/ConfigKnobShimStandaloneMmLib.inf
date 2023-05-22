@@ -13,7 +13,7 @@
   VERSION_STRING            = 1.0
   MODULE_TYPE               = MM_STANDALONE
   LIBRARY_CLASS             = ConfigKnobShimLib
-  PI_SPECIFICATION_VERSION  = 0x00010050
+  PI_SPECIFICATION_VERSION  = 0x00010032
 
 #
 # The following information is for reference only and not required by the
