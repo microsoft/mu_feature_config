@@ -146,7 +146,8 @@ MockMmLocateProtocol (
   OUT VOID      **Interface
   )
 {
-  MM_PROTOCOL_STATUS *ProtocolStatus = (MM_PROTOCOL_STATUS *)mock();
+  MM_PROTOCOL_STATUS  *ProtocolStatus = (MM_PROTOCOL_STATUS *)mock ();
+
   // Set the protocol to one of our mock protocols
   *Interface = ProtocolStatus->Protocol;
 
