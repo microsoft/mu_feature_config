@@ -19,13 +19,15 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/UnitTestLib.h>
 #include <Ppi/ReadOnlyVariable2.h>
+#include <Library/MmServicesTableLib.h>
+#include <Protocol/SmmVariable.h>
 
-#include <MockPeiServicesLib.h>
+#include <SetupDataPkgUnitTestStructs.h>
 
 // include the c file to be able to unit test static function
 #include "ConfigKnobShimLibCommon.c"
 
-#define UNIT_TEST_APP_NAME     "Config Knob Shim Dxe Lib Unit Tests"
+#define UNIT_TEST_APP_NAME     "Config Knob Shim Common Lib Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"
 
 #define CONFIG_KNOB_GUID  {0x52d39693, 0x4f64, 0x4ee6, {0x81, 0xde, 0x45, 0x89, 0x37, 0x72, 0x78, 0x55}}
@@ -136,6 +138,22 @@ MockEfiPeiGetVariable2 (
   return MockGetVariable ((CHAR16 *)VariableName, (EFI_GUID *)VariableGuid, Attributes, DataSize, Data);
 }
 
+EFI_STATUS
+EFIAPI
+MockMmLocateProtocol (
+  IN  EFI_GUID  *Protocol,
+  IN  VOID      *Registration  OPTIONAL,
+  OUT VOID      **Interface
+  )
+{
+  MM_PROTOCOL_STATUS  *ProtocolStatus = (MM_PROTOCOL_STATUS *)mock ();
+
+  // Set the protocol to one of our mock protocols
+  *Interface = ProtocolStatus->Protocol;
+
+  return ProtocolStatus->Status;
+}
+
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
@@ -148,6 +166,17 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
 ///
 EFI_PEI_READ_ONLY_VARIABLE2_PPI  MockVariablePpi = {
   .GetVariable = MockEfiPeiGetVariable2,
+};
+
+///
+/// Mock version of the Smm Services Table
+///
+EFI_SMM_VARIABLE_PROTOCOL  MockVariableSmm = {
+  .SmmGetVariable = MockGetVariable,
+};
+
+EFI_MM_SYSTEM_TABLE  MockMmServices = {
+  .MmLocateProtocol = MockMmLocateProtocol
 };
 
 /**
@@ -218,17 +247,19 @@ GetConfigKnobOverrideFromVariableStorageSucceedTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
-  UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-  UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  UINT64      VariableData        = 0xBEEF7777BEEF7777;
-  PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
-  UINT64      ConfigKnobData      = ProfileDefaultValue;
+  EFI_STATUS          Status;
+  EFI_GUID            ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16              *ConfigKnobName     = L"MyDeadBeefDelivery";
+  UINT64              ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  UINTN               ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  UINT64              VariableData        = 0xBEEF7777BEEF7777;
+  PPI_STATUS          PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  MM_PROTOCOL_STATUS  MmProtocolStatus    = { .Protocol = &MockVariableSmm, .Status = EFI_SUCCESS };
+  UINT64              ConfigKnobData      = ProfileDefaultValue;
 
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  // PEI and Standalone MM, don't fail for other phases so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+  will_return_maybe (MockMmLocateProtocol, &MmProtocolStatus);
 
   // first GetVariable call to get size
   will_return (MockGetVariable, EFI_BUFFER_TOO_SMALL);
@@ -270,16 +301,18 @@ GetConfigKnobOverrideFromVariableStorageFailTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
-  UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-  UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
-  UINT64      ConfigKnobData      = ProfileDefaultValue;
+  EFI_STATUS          Status;
+  EFI_GUID            ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16              *ConfigKnobName     = L"MyDeadBeefDelivery";
+  UINT64              ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  UINTN               ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  PPI_STATUS          PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  MM_PROTOCOL_STATUS  MmProtocolStatus    = { .Protocol = &MockVariableSmm, .Status = EFI_SUCCESS };
+  UINT64              ConfigKnobData      = ProfileDefaultValue;
 
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  // PEI and Standalone MM, don't fail for other phases so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+  will_return_maybe (MockMmLocateProtocol, &MmProtocolStatus);
 
   // first GetVariable call to get size
   will_return (MockGetVariable, EFI_NOT_FOUND);
@@ -316,16 +349,18 @@ GetConfigKnobOverrideFromVariableStorageFailSizeTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
-  UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-  UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  PPI_STATUS  PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
-  UINT64      ConfigKnobData      = ProfileDefaultValue;
+  EFI_STATUS          Status;
+  EFI_GUID            ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16              *ConfigKnobName     = L"MyDeadBeefDelivery";
+  UINT64              ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  UINTN               ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  PPI_STATUS          PpiStatus           = { .Ppi = &MockVariablePpi, .Status = EFI_SUCCESS };
+  MM_PROTOCOL_STATUS  MmProtocolStatus    = { .Protocol = &MockVariableSmm, .Status = EFI_SUCCESS };
+  UINT64              ConfigKnobData      = ProfileDefaultValue;
 
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  // PEI and Standalone MM, don't fail for other phases so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+  will_return_maybe (MockMmLocateProtocol, &MmProtocolStatus);
 
   will_return (MockGetVariable, EFI_BUFFER_TOO_SMALL);
   will_return (MockGetVariable, sizeof (UINT32));
@@ -362,18 +397,20 @@ GetConfigKnobOverrideFromVariableStorageFailPpiTest (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS  Status;
-  EFI_GUID    ConfigKnobGuid      = CONFIG_KNOB_GUID;
-  CHAR16      *ConfigKnobName     = L"MyDeadBeefDelivery";
-  UINT64      ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-  UINTN       ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  PPI_STATUS  PpiStatus           = { .Ppi = NULL, .Status = EFI_NOT_FOUND };
-  UINT64      ConfigKnobData      = ProfileDefaultValue;
+  EFI_STATUS          Status;
+  EFI_GUID            ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  CHAR16              *ConfigKnobName     = L"MyDeadBeefDelivery";
+  UINT64              ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  UINTN               ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  PPI_STATUS          PpiStatus           = { .Ppi = NULL, .Status = EFI_NOT_FOUND };
+  MM_PROTOCOL_STATUS  MmProtocolStatus    = { .Protocol = NULL, .Status = EFI_NOT_FOUND };
+  UINT64              ConfigKnobData      = ProfileDefaultValue;
 
-  // PEI only. Don't fail test for the DXE code, so that we can keep the unit test common
+  // PEI and Standalone MM, don't fail for other phases so that we can keep the unit test common
   will_return_maybe (PeiServicesLocatePpi, &PpiStatus);
+  will_return_maybe (MockMmLocateProtocol, &MmProtocolStatus);
 
-  // in this case, DXE only, as PEI failed to find variable service
+  // in this case, DXE only, as PEI and Standalone MM failed to find variable service
   will_return_maybe (MockGetVariable, EFI_NOT_FOUND);
 
   Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);

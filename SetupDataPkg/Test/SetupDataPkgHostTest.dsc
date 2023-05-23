@@ -39,6 +39,7 @@
   SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
   SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
   SetupDataPkg/Test/MockLibrary/MockActiveProfileIndexSelectorLib/MockActiveProfileIndexSelectorLib.inf
+  SetupDataPkg/Test/MockLibrary/MockMmServicesTableLib/MockMmServicesTableLib.inf
 
   SetupDataPkg/Library/ConfigVariableListLib/UnitTest/ConfigVariableListLibUnitTest.inf
 
@@ -51,6 +52,12 @@
     <LibraryClasses>
       ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
       PeiServicesLib|SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
+  }
+
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimStandaloneMmLib/UnitTest/ConfigKnobShimStandaloneMmLibUnitTest.inf {
+    <LibraryClasses>
+      ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimStandaloneMmLib/ConfigKnobShimStandaloneMmLib.inf
+      MmServicesTableLib|SetupDataPkg/Test/MockLibrary/MockMmServicesTableLib/MockMmServicesTableLib.inf
   }
 
   SetupDataPkg/ConfApp/UnitTest/ConfAppUnitTest.inf {

@@ -16,7 +16,7 @@
 #include <Uefi.h>
 #include <PiPei.h>
 #include <Library/UnitTestLib.h>
-#include <MockPeiServicesLib.h>
+#include <SetupDataPkgUnitTestStructs.h>
 
 /**
   This service enables PEIMs to discover a given instance of an interface.

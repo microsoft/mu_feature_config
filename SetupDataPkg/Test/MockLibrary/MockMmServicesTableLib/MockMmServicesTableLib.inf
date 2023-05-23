@@ -1,0 +1,24 @@
+## @file
+# Mock Implementation of MM Services Table Library.
+#
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MockMmServicesTableLib
+  FILE_GUID                      = 56DA76AC-EF72-46A7-99AF-CC878B5E5565
+  MODULE_TYPE                    = HOST_APPLICATION
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MmServicesTableLib
+  PI_SPECIFICATION_VERSION       = 0x00010032
+
+[Sources]
+  MockMmServicesTableLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  DebugLib
