@@ -1,4 +1,4 @@
-/** @file ConfigKnobShimPeiLib.c
+/** @file ConfigKnobShimStandaloneMmLib.c
   Library interface for an OEM config policy creator to call into to fetch overrides for config values.
 
   Copyright (c) Microsoft Corporation.
@@ -10,7 +10,8 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PeiServicesLib.h>
-#include <Ppi/ReadOnlyVariable2.h>
+#include <Library/MmServicesTableLib.h>
+#include <Protocol/SmmVariable.h>
 
 #include "../ConfigKnobShimLibCommon.h"
 
@@ -48,15 +49,14 @@ GetConfigKnobFromVariable (
   IN OUT UINTN  *ConfigKnobDataSize
   )
 {
-  EFI_STATUS                       Status;
-  EFI_PEI_READ_ONLY_VARIABLE2_PPI  *PPIVariableServices;
+  EFI_STATUS                 Status;
+  EFI_SMM_VARIABLE_PROTOCOL  *MmVariableServices;
 
-  Status = PeiServicesLocatePpi (
-             &gEfiPeiReadOnlyVariable2PpiGuid,
-             0,
-             NULL,
-             (VOID **)&PPIVariableServices
-             );
+  Status = gMmst->MmLocateProtocol (
+                    &gEfiSmmVariableProtocolGuid,
+                    NULL,
+                    (VOID **)&MmVariableServices
+                    );
 
   if (EFI_ERROR (Status)) {
     DEBUG ((
@@ -70,12 +70,11 @@ GetConfigKnobFromVariable (
     return Status;
   }
 
-  return PPIVariableServices->GetVariable (
-                                PPIVariableServices,
-                                ConfigKnobName,
-                                ConfigKnobGuid,
-                                NULL,
-                                ConfigKnobDataSize,
-                                ConfigKnobData
-                                );
+  return MmVariableServices->SmmGetVariable (
+                               ConfigKnobName,
+                               ConfigKnobGuid,
+                               NULL,
+                               ConfigKnobDataSize,
+                               ConfigKnobData
+                               );
 }

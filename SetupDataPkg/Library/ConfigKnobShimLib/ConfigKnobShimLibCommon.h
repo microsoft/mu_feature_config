@@ -11,7 +11,7 @@
 
 /**
   GetConfigKnobFromVariable returns the configuration knob from variable storage if it exists. This function is
-  abstracted to work with both DXE and PEI.
+  abstracted to work with PEI, DXE, and Standalone MM.
 
   This function is only expected to be called by GetConfigKnob, via the autogen header code for config knobs.
 

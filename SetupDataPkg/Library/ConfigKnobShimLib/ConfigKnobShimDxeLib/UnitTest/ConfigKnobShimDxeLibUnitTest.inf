@@ -1,5 +1,5 @@
 ## @file
-# Unit tests of the ConfigKnobShimExampleDxeLib instance.
+# Unit tests of the ConfigKnobShimDxeLib instance.
 #
 # Copyright (c) Microsoft Corporation.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -7,7 +7,7 @@
 
 [Defines]
   INF_VERSION                    = 0x00010006
-  BASE_NAME                      = ConfigKnobShimExampleDxeUnitTest
+  BASE_NAME                      = ConfigKnobShimDxeUnitTest
   FILE_GUID                      = 215C2769-14FA-448A-82F3-0B62D968CE84
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
