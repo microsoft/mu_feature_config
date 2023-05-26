@@ -26,7 +26,6 @@ extends:
         Pkgs: 'SetupDataPkg'
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
         ArchList: $(arch_list)
-        SelfHostAgent: false
       TARGET_SETUPDATA_ARM:
         Pkgs: 'SetupDataPkg'
         Targets: 'DEBUG,RELEASE,NO-TARGET,NOOPT'
