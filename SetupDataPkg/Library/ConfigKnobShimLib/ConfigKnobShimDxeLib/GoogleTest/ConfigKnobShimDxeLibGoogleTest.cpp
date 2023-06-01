@@ -8,7 +8,6 @@
 **/
 
 #include <Library/GoogleTestLib.h>
-#include <GoogleTest/Library/MockUefiLib.h>
 #include <GoogleTest/Library/MockUefiRuntimeServicesTableLib.h>
 extern "C" {
 #include <Uefi.h>
@@ -27,7 +26,6 @@ using namespace testing;
 class GetConfigKnobOverrideFromVariableStorageTest : public Test {
 protected:
 MockUefiRuntimeServicesTableLib RtServicesMock;
-// MockPeiServicesLib PPIVariableServices; // EFI_PEI_READ_ONLY_VARIABLE2_PPI
 EFI_STATUS Status;
 EFI_GUID ConfigKnobGuid;
 CHAR16 *ConfigKnobName;
@@ -70,7 +68,6 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageFailure) {
 }
 
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
-  
   // expect the first GetVariable call to get size
   EXPECT_CALL (
     RtServicesMock,

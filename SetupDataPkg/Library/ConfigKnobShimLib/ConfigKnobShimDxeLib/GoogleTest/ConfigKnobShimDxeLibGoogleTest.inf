@@ -20,8 +20,6 @@
 
 [Sources]
   ConfigKnobShimDxeLibGoogleTest.cpp
-  ../ConfigKnobShimDxeLib.c
-  ../../ConfigKnobShimLibCommon.c
 
 [Packages]
   MdePkg/MdePkg.dec
