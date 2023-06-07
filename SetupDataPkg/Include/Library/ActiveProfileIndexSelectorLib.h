@@ -12,7 +12,7 @@
 #define ACTIVE_PROFILE_INDEX_SELECTOR_LIB_H_
 
 // macro to represent the generic profile, used as a default if no profile is selected or a failure occurs
-#define GENERIC_PROFILE_INDEX MAX_UINT32
+#define GENERIC_PROFILE_INDEX  MAX_UINT32
 
 /**
   Return which profile is the active profile for this boot.
