@@ -9,6 +9,7 @@
 **/
 #include <Uefi.h>
 #include <Library/BaseLib.h>
+#include <Library/ActiveProfileIndexSelectorLib.h>
 
 /**
   Return which profile is the active profile for this boot.
@@ -34,7 +35,7 @@ GetActiveProfileIndex (
   }
 
   // Null instance, we just return the default profile
-  *ActiveProfileIndex = MAX_UINT32;
+  *ActiveProfileIndex = GENERIC_PROFILE_INDEX;
 
   return EFI_SUCCESS;
 }
