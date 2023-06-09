@@ -96,10 +96,14 @@ def split_braces(string_object):
 
 
 # Checks to see if a token is a valid C identifier
-def is_valid_name(token):
+def is_valid_c_identifier(token):
     matches = re.findall("^[a-zA-Z_][0-9a-zA-Z_]*$", token)
     return len(matches) == 1
 
+# checks if an enum is valid
+def is_valid_name(token):
+    matches = re.findall("^[a-zA-Z_0-9 ()]*$", token)
+    return len(matches) == 1
 
 # This class can be used to modify the behavior of string formatting
 #  of variable values
@@ -502,7 +506,7 @@ class StructMember:
     def __init__(self, schema, struct_name, xml_node):
         self.name = xml_node.getAttribute("name")
         self.struct_name = struct_name
-        if not is_valid_name(self.name):
+        if not is_valid_c_identifier(self.name):
             raise InvalidNameError(
                 "Member name '{}' of struct '{}' is invalid".format(
                     self.name,
@@ -566,7 +570,7 @@ class StructMember:
 class StructFormat(DataFormat):
     def __init__(self, schema, xml_node):
         self.name = xml_node.getAttribute("name")
-        if not is_valid_name(self.name):
+        if not is_valid_c_identifier(self.name):
             raise InvalidNameError("Struct name '{}' is invalid".format(
                 self.name))
         self.help = xml_node.getAttribute("help")
@@ -731,7 +735,7 @@ class StructFormat(DataFormat):
 class Knob:
     def __init__(self, schema, xml_node, namespace):
         self.name = xml_node.getAttribute("name")
-        if not is_valid_name(self.name):
+        if not is_valid_c_identifier(self.name):
             raise InvalidNameError(
                 "Knob name '{}' is invalid".format(self.name))
         self.help = xml_node.getAttribute("help")
