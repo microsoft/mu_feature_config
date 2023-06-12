@@ -112,6 +112,6 @@ main (
   char  *argv[]
   )
 {
-  testing::InitGoogleTest (&argc, argv);
+  InitGoogleTest (&argc, argv);
   return RUN_ALL_TESTS ();
 }
