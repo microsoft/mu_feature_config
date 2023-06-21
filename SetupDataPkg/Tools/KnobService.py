@@ -1114,7 +1114,7 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
         out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
         out.write("};" + get_line_ending(efi_type))
         if efi_type:
-            if profile_names != None:
+            if profile_names is not None:
                 names_list = profile_names.split(",")
             else:
                 # If not specified, the indices will be the default profile names
@@ -1168,19 +1168,21 @@ def usage():
     print("-pn names        : n-number of 2-character profile names that uniquely identify the")
     print("                   profiles specified in profile.csv")
 
+
 def arg_parse():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument (
-        '-pn', '--profilenames', dest = 'profile_names', type=str, default=None,
-        help = '''Specify the comma separated profile names by passing -pn <Name1,Name2> or --profilenames <Name1,Name2,Name3>.'''
-        )
+    parser.add_argument(
+        '-pn', '--profilenames', dest='profile_names', type=str, default=None,
+        help='''Specify the comma separated profile names by passing -pn <Name1,Name2> '''
+             '''or --profilenames <Name1,Name2,Name3>.''')
 
     return parser.parse_known_args()
 
+
 def main():
-    # We should not overload the positional argument anymore given we are accepting undeterministic number of space separated profile paths...
-    # So please add the new ones here...
+    # We should not overload the positional argument anymore given we are accepting undeterministic number of space
+    # separated profile paths... So please add the new ones here...
     known_args, left_over = arg_parse()
     sys.argv = sys.argv[:1] + left_over
 
@@ -1229,7 +1231,7 @@ def main():
             arg_num += 1
             profile_paths = sys.argv[arg_num:]
 
-            if known_args.profile_names != None:
+            if known_args.profile_names is not None:
                 # Do some minimal sanity checks
                 names = known_args.profile_names.split(",")
                 if len(names) != len(profile_paths):
@@ -1244,7 +1246,8 @@ def main():
                     sys.stderr.write('Invalid profile names, should be 2-character for all entries.\n')
                     return -1
 
-            generate_profiles(schema, profile_header_path, profile_paths, efi_type, profile_names=known_args.profile_names)
+            generate_profiles(schema, profile_header_path, profile_paths, efi_type,
+                              profile_names=known_args.profile_names)
         return 0
 
 
