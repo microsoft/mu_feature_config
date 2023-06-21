@@ -22,7 +22,7 @@ extern PROFILE    gProfileData[];
 // number of profile overrides (i.e. into gProfileData)
 // this does not count the generic profile, which is not
 // in gProfileData, but rather in gKnobData's defaults
-extern UINTN      gNumProfiles;
-extern CHAR8      *gProfileFlavorName;
+extern UINTN  gNumProfiles;
+extern CHAR8  *gProfileFlavorName;
 
 #endif // PLATFORM_CONFIG_DATA_LIB_H_
