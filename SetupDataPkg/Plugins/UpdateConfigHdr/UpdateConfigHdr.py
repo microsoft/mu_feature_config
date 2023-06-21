@@ -17,7 +17,7 @@ class UpdateConfigHdr(IUefiBuildPlugin):
     # Attempt to run GenCfgData to generate C header files
     #
     # Consumes build environment variables: "CONF_AUTOGEN_INCLUDE_PATH", "MU_SCHEMA_DIR",
-    # "MU_SCHEMA_FILE_NAME", and "CONF_PROFILE_PATHS"
+    # "MU_SCHEMA_FILE_NAME", "CONF_PROFILE_PATHS" and "CONF_PROFILE_NAMES"
     def do_pre_build(self, thebuilder):
         default_generated_path = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Test", "Include")
 
@@ -52,6 +52,10 @@ class UpdateConfigHdr(IUefiBuildPlugin):
         # this platform. It is allowed to be empty if there are no profiles.
         profile_paths = thebuilder.env.GetValue("CONF_PROFILE_PATHS", "")
 
+        # this is a comma separated 2 character profile names to pair with CSV files identifying
+        # the profiles. This field is optional.
+        profile_names = thebuilder.env.GetValue("CONF_PROFILE_NAMES", "")
+
         params = ["generateheader_efi"]
 
         params.append(schema_file)
@@ -63,6 +67,10 @@ class UpdateConfigHdr(IUefiBuildPlugin):
         if profile_paths != "":
             params.append("ConfigProfilesGenerated.h")
             params.append(profile_paths)
+
+            if profile_names != "":
+                params.append("-pn")
+                params.append(profile_names)
 
         ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dir)
         return ret
