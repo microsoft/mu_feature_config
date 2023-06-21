@@ -1181,7 +1181,7 @@ def arg_parse():
 
 
 def main():
-    # We should not overload the positional argument anymore given we are accepting undeterministic number of space
+    # We should not overload the positional argument anymore given we are accepting nondeterministic number of space
     # separated profile paths... So please add the new ones here...
     known_args, left_over = arg_parse()
     sys.argv = sys.argv[:1] + left_over

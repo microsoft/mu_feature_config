@@ -87,7 +87,8 @@
           "privilege",
           "dmpstore",
           "mschange",
-          "DDTHH"
+          "DDTHH",
+          "profilenames"
         ],                           # words to extend to the dictionary for this package
         "IgnoreStandardPaths": [],   # Standard Plugin defined paths that should be ignore
         "AdditionalIncludePaths": [] # Additional paths to spell check (wildcards supported)
