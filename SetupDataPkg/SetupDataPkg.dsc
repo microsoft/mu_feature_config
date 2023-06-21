@@ -94,6 +94,7 @@
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
   SetupDataPkg/Library/ActiveProfileIndexSelectorLibNull/ActiveProfileIndexSelectorLibNull.inf
+  SetupDataPkg/Library/PlatformConfigDataLibNull/PlatformConfigDataLibNull.inf
 
 [Components.X64, Components.AARCH64]
   SetupDataPkg/ConfApp/ConfApp.inf
