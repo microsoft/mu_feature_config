@@ -23,6 +23,6 @@ extern PROFILE    gProfileData[];
 // this does not count the generic profile, which is not
 // in gProfileData, but rather in gKnobData's defaults
 extern UINTN  gNumProfiles;
-extern CHAR8  *gProfileFlavorName;
+extern CHAR8  *gProfileFlavorName[];
 
 #endif // PLATFORM_CONFIG_DATA_LIB_H_
