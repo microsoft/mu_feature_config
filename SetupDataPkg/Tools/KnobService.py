@@ -1122,7 +1122,7 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
 
             out.write(get_line_ending(efi_type))
             out.write(get_type_string("char*", efi_type) + " g{}[PROFILE_COUNT]".format(
-                naming_convention_filter("_profile_flavor_name", False, efi_type)) + " = {"
+                naming_convention_filter("_profile_flavor_names", False, efi_type)) + " = {"
             )
             out.write(get_line_ending(efi_type))
             for profile_name in names_list:
