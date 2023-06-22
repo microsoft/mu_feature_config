@@ -10,12 +10,12 @@
 #include <Uefi.h>
 #include <ConfigStdStructDefs.h>
 
-KNOB_DATA  gKnobData = { 0 };
+KNOB_DATA  gKnobData[0];
 
 UINTN  gNumKnobs = 0;
 
-PROFILE  gProfileData = { 0 };
+PROFILE  gProfileData[0];
 
-CHAR8  *gProfileFlavorName = { 0 };
+CHAR8  *gProfileFlavorNames[0];
 
 UINTN  gNumProfiles = 0;
