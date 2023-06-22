@@ -121,6 +121,7 @@
       "ntdll",
       "NTSTATUS",
       "PVARIABLE",
-      "ANYSIZE"
+      "ANYSIZE",
+      "profilenames"
   ]
 }

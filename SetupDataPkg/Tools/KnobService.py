@@ -8,6 +8,7 @@
 import os
 import sys
 import uuid
+import argparse
 import re
 import VariableList
 
@@ -978,7 +979,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
 
 
-def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
+def generate_profiles(schema, profile_header_path, profile_paths, efi_type, profile_names=None):
     with open(profile_header_path, 'w', newline='') as out:
         out.write(get_spdx_header(profile_header_path, efi_type))
         out.write(get_include_once_style(profile_header_path, uefi=efi_type, header=True))
@@ -1113,6 +1114,20 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type):
         out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
         out.write("};" + get_line_ending(efi_type))
         if efi_type:
+            if profile_names is not None:
+                names_list = profile_names.split(",")
+            else:
+                # If not specified, the indices will be the default profile names
+                names_list = [format(i, '02x') for i in range(len(profile_paths))]
+
+            out.write(get_line_ending(efi_type))
+            out.write(get_type_string("char*", efi_type) + " g{}[PROFILE_COUNT]".format(
+                naming_convention_filter("_profile_flavor_name", False, efi_type)) + " = {"
+            )
+            out.write(get_line_ending(efi_type))
+            for profile_name in names_list:
+                out.write(get_spacing_string(efi_type) + '"' + profile_name + '",' + get_line_ending(efi_type))
+            out.write("};" + get_line_ending(efi_type))
             out.write(get_line_ending(efi_type))
             out.write(get_type_string("size_t", efi_type) + " g{} = PROFILE_COUNT;".format(
                 naming_convention_filter("_num_profiles", False, efi_type))
@@ -1150,9 +1165,27 @@ def usage():
     print("                   by config providers.")
     print("profile.csv...   : n-number of profile csvs that describe the platform's")
     print("                   overridden config knobs")
+    print("-pn names        : n-number of 2-character profile names that uniquely identify the")
+    print("                   profiles specified in profile.csv")
+
+
+def arg_parse():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-pn', '--profilenames', dest='profile_names', type=str, default=None,
+        help='''Specify the comma separated profile names by passing -pn <Name1,Name2> '''
+             '''or --profilenames <Name1,Name2,Name3>.''')
+
+    return parser.parse_known_args()
 
 
 def main():
+    # We should not overload the positional argument anymore given we are accepting nondeterministic number of space
+    # separated profile paths... So please add the new ones here...
+    known_args, left_over = arg_parse()
+    sys.argv = sys.argv[:1] + left_over
+
     arg_num = 1
     if len(sys.argv) < 2:
         usage()
@@ -1198,7 +1231,23 @@ def main():
             arg_num += 1
             profile_paths = sys.argv[arg_num:]
 
-            generate_profiles(schema, profile_header_path, profile_paths, efi_type)
+            if known_args.profile_names is not None:
+                # Do some minimal sanity checks
+                names = known_args.profile_names.split(",")
+                if len(names) != len(profile_paths):
+                    sys.stderr.write('Invalid count of profile names %d.\n' % len(names))
+                    return -1
+
+                lengths = [len(name) for name in names]
+                max_length = max(lengths)
+                min_length = min(lengths)
+
+                if max_length != 2 or min_length != 2:
+                    sys.stderr.write('Invalid profile names, should be 2-character for all entries.\n')
+                    return -1
+
+            generate_profiles(schema, profile_header_path, profile_paths, efi_type,
+                              profile_names=known_args.profile_names)
         return 0
 
 
