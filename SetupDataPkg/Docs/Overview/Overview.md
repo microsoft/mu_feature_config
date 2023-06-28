@@ -117,6 +117,7 @@ file, binary, or SVD.
 [Profiles doc](../Profiles/Overview.md).
 - The variable list binary, saved in .vl format, can be applied to a running system via dmpstore in the EFI shell,
 or via [WriteConfVarListToUefiVars.py](../../Tools/WriteConfVarListToUefiVars.py).
+- Vice versa, variables applied to target system can be fetch through ConfApp's dump configuration option in UEFI, saved to a file system in the EFI shell via dmpstore, or by [ReadUefiVarsToConfVarList.py](../../Tools/ReadUefiVarsToConfVarList.py) in the OS.
 - The SVD can be applied to a running system via USB/serial via mu_feature_config's Conf App.
 - Changes to the XML itself will result in a change to the default configuration options of a platform.
 
