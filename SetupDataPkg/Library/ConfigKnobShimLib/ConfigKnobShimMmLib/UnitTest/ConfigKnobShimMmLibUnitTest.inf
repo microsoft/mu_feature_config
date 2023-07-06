@@ -1,5 +1,5 @@
 ## @file
-# Unit tests of the ConfigKnobShimExampleStandaloneMmLib instance.
+# Unit tests of the ConfigKnobShimMmLib instance.
 #
 # Copyright (c) Microsoft Corporation.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -7,7 +7,7 @@
 
 [Defines]
   INF_VERSION                    = 0x00010017
-  BASE_NAME                      = ConfigKnobShimStandaloneMmUnitTest
+  BASE_NAME                      = ConfigKnobShimMmUnitTest
   FILE_GUID                      = EA4B9417-78FC-474E-AC35-44AFF09E9099
   MODULE_TYPE                    = HOST_APPLICATION
   VERSION_STRING                 = 1.0
@@ -15,12 +15,12 @@
 #
 # The following information is for reference only and not required by the build tools.
 #
-#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#  VALID_ARCHITECTURES           = IA32 X64
 #
 
 [Sources]
   ../../UnitTest/ConfigKnobShimLibUnitTestCommon.c
-  ../ConfigKnobShimStandaloneMmLib.c
+  ../ConfigKnobShimMmLib.c
   ../../ConfigKnobShimLibCommon.c
 
 [Packages]

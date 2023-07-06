@@ -54,9 +54,9 @@
       PeiServicesLib|SetupDataPkg/Test/MockLibrary/MockPeiServicesLib/MockPeiServicesLib.inf
   }
 
-  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimStandaloneMmLib/UnitTest/ConfigKnobShimStandaloneMmLibUnitTest.inf {
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimMmLib/UnitTest/ConfigKnobShimMmLibUnitTest.inf {
     <LibraryClasses>
-      ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimStandaloneMmLib/ConfigKnobShimStandaloneMmLib.inf
+      ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimMmLib/ConfigKnobShimMmLib.inf
       MmServicesTableLib|SetupDataPkg/Test/MockLibrary/MockMmServicesTableLib/MockMmServicesTableLib.inf
   }
 
