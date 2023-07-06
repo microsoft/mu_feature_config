@@ -80,7 +80,12 @@ Following these two operations, the n number of Config Policy to Silicon Policy 
 policy and override the relevant silicon policies. An example is provided in
 [mu_tiano_platforms](https://github.com/microsoft/mu_tiano_platforms/blob/HEAD/Platforms/QemuQ35Pkg/ConfigKnobs/ConfigKnobs.c).
 
-Note that, for demonstration simplicity and data overhead reduction, the provided example above directly intialized the silicon policy and updaate the value using data from configuration autogen headers. In real world, this same model could also be considered as long as this model would not cause dependency intervention.
+Note that, for demonstration simplicity and data overhead reduction, the provided example above directly intialized the
+silicon policy and update the value using data from configuration autogen headers. In real world, this same model could
+also be considered as long as this model would not cause dependency intervention. More often though, existing silicon modules
+from major silicon vendors might already have their data pipelines, such as setup variables, structured PCDs. In those cases,
+platforms can consider updating the data that resides in the existing pipelines instead of introducing major silicon module
+overhaul.
 
 During the rest of boot process, the silicon drivers will consume the updated silicon policies to configure hardware
 components or adjust firmware configuration. An example is provided in
