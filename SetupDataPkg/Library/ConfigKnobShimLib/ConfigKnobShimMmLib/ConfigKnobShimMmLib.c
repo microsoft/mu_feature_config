@@ -1,4 +1,4 @@
-/** @file ConfigKnobShimStandaloneMmLib.c
+/** @file ConfigKnobShimMmLib.c
   Library interface for an OEM config policy creator to call into to fetch overrides for config values.
 
   Copyright (c) Microsoft Corporation.
