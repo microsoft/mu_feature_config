@@ -89,7 +89,7 @@
 [Components]
   SetupDataPkg/Library/ConfigVariableListLib/ConfigVariableListLib.inf
   SetupDataPkg/Library/ConfigSystemModeLibNull/ConfigSystemModeLibNull.inf
-  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimStandaloneMmLib/ConfigKnobShimStandaloneMmLib.inf
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimMmLib/ConfigKnobShimMmLib.inf
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
   SetupDataPkg/Library/SvdXmlSettingSchemaSupportLib/SvdXmlSettingSchemaSupportLib.inf
