@@ -11,7 +11,7 @@
   BASE_NAME                 = ConfigKnobShimMmLib
   FILE_GUID                 = 675EE92E-8771-413A-8BBE-B87152B910E2
   VERSION_STRING            = 1.0
-  MODULE_TYPE               = BASE
+  MODULE_TYPE               = MM_STANDALONE
   LIBRARY_CLASS             = ConfigKnobShimLib | MM_STANDALONE DXE_SMM_DRIVER
   PI_SPECIFICATION_VERSION  = 0x00010032
 
