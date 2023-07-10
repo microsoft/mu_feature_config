@@ -69,7 +69,7 @@ class CertSupportLib(object):
             if (len(thumbprint) != 40) or (found is False):
                 return "No thumbprint"
 
-        except:
+        except Exception:
             traceback.print_exc()
             return "Unable to read certificate"
 
