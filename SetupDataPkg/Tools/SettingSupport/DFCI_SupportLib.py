@@ -255,12 +255,12 @@ class DFCI_SupportLib(object):
         # Collect the root attributes
         try:
             r1 = root.attrib["Default"]
-        except:
+        except Exception:
             r1 = None
 
         try:
             r2 = root.attrib["Delegated"]
-        except:
+        except Exception:
             r2 = None
 
         print("Result Default Values for : Default=%s, Delegated=%s" % (r1, r2))
@@ -412,7 +412,7 @@ class DFCI_SupportLib(object):
         try:
             tree = ET.parse(resultfile)
             elem = tree.find("./SyncBody/Results/Item/Data")
-        except:
+        except Exception:
             elem = None
 
         if elem is None:
@@ -429,7 +429,7 @@ class DFCI_SupportLib(object):
         try:
             tree = ET.parse(resultfile)
             elem = tree.find("./SyncBody/Results/Item/Data")
-        except:
+        except Exception:
             elem = None
 
         if elem is None:
@@ -495,7 +495,7 @@ class DFCI_SupportLib(object):
                         "Setting %s - Code %s"
                         % (elem.find("Id").text, elem.find("Result").text)
                     )
-            except:
+            except Exception:
                 traceback.print_exc()
         return RsltRc, rslt.SessionId
 
@@ -541,7 +541,7 @@ class DFCI_SupportLib(object):
                     result = 0x8000000000000007  # EFI_DEVICE_ERROR
                     break
                 result = 0
-        except:
+        except Exception:
             traceback.print_exc()
 
         return result
@@ -566,7 +566,7 @@ class DFCI_SupportLib(object):
         try:
             tree = xml.dom.minidom.parse(XmlFileName)
             print("%s" % tree.toprettyxml())
-        except:
+        except Exception:
             traceback.print_exc()
             print("Unable to print settings XML")
 
@@ -614,7 +614,7 @@ class DFCI_SupportLib(object):
             for key in d:
                 print(" Key {0} has the value of {1}".format(key, d[key]))
 
-        except:
+        except Exception:
             traceback.print_exc()
             print("Unable to extract DeviceIdElements.")
             d = {}
@@ -653,7 +653,7 @@ class DFCI_SupportLib(object):
             d = elem.text
             print("Dfci Version detected as %s" % d)
 
-        except:
+        except Exception:
             traceback.print_exc()
             print("Unable to extract DfciVersion from %s" % XmlFileName)
             d = None
@@ -686,7 +686,7 @@ class DFCI_SupportLib(object):
             for key in d:
                 print(" Key {0} has the value of {1}".format(key, d[key]))
 
-        except:
+        except Exception:
             traceback.print_exc()
             print("Unable to extract DeviceIdElements.")
             d = {}

@@ -142,7 +142,7 @@ class validating_entry(tkinter.Entry):
         if len(value) > 0:
             try:
                 int(value, 16)
-            except:
+            except Exception:
                 return None
 
         # Normalize the cell format
@@ -634,7 +634,7 @@ class application(tkinter.Frame):
                 if value < min_val or value > max_val:
                     raise Exception("Invalid input!")
                 self.set_config_item_value(item, text, file_id)
-            except:
+            except Exception:
                 pass
 
             text = item["value"].strip("{").strip("}").strip()
@@ -1030,7 +1030,7 @@ class application(tkinter.Frame):
                 new_value = self.cfg_data_list[file_id].cfg_data_obj.reformat_value_str(
                     value_str, self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_length(item), item=item
                 )
-            except:
+            except Exception:
                 print("WARNING: Failed to format knob value string '%s' for '%s' !" % (value_str, item['path']))
                 new_value = item['value']
         else:
@@ -1040,7 +1040,7 @@ class application(tkinter.Frame):
                     self.cfg_data_list[file_id].cfg_data_obj.get_cfg_item_length(item),
                     item["value"],
                 )
-            except:
+            except Exception:
                 print(
                     "WARNING: Failed to format value string '%s' for '%s' !"
                     % (value_str, item["path"])
@@ -1104,7 +1104,7 @@ class application(tkinter.Frame):
     def evaluate_condition(self, item, file_id):
         try:
             result = self.cfg_data_list[file_id].cfg_data_obj.evaluate_condition(item)
-        except:
+        except Exception:
             print(
                 "WARNING: Condition '%s' is invalid for '%s' !"
                 % (item["condition"], item["path"])
@@ -1134,7 +1134,7 @@ class application(tkinter.Frame):
                     option_value = self.cfg_data_list[file_id].cfg_data_obj.get_value(
                         option_str, len(option_str), False
                     )
-                except:
+                except Exception:
                     option_value = 0
                     print(
                         'WARNING: Option "%s" has invalid format for "%s" !'
@@ -1208,7 +1208,7 @@ class application(tkinter.Frame):
                     option_value = self.cfg_data_list[file_id].cfg_data_obj.get_value(
                         item, len(option_str), False, option_str
                     )
-                except:
+                except Exception:
                     option_value = 0
                     print('WARNING: Option "%s" has invalid format for "%s" !' % (option_str, item['path']))
                 if option_value == current_value:
