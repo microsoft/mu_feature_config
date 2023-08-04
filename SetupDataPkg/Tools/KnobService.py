@@ -535,9 +535,11 @@ def generate_public_header(schema, header_path, efi_type=False):
 def format_guid(guid):
     u = uuid.UUID(guid)
 
-    byte_sequence = u.fields[3].to_bytes(1, byteorder='big') + \
-                    u.fields[4].to_bytes(1, byteorder='big') + \
-                    u.fields[5].to_bytes(6, byteorder='big')
+    byte_sequence = (
+        u.fields[3].to_bytes(1, byteorder='big')
+        + u.fields[4].to_bytes(1, byteorder='big')
+        + u.fields[5].to_bytes(6, byteorder='big')
+    )
 
     return "{{{},{},{},{{{},{},{},{},{},{},{},{}}}}}".format(
         hex(u.fields[0]),
