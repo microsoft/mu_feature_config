@@ -9,12 +9,15 @@
 
 #include <Library/GoogleTestLib.h>
 #include <GoogleTest/Library/MockUefiRuntimeServicesTableLib.h>
+#include <GoogleTest/Library/MockPeiServicesLib.h>
+#include <GoogleTest/Ppi/MockReadOnlyVariable2.h>
+
 extern "C" {
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 
-#include "../../ConfigKnobShimLibCommon.c" // include the c file to be able to unit test static function
+#include "../../ConfigKnobShimLibCommon.c"   // include the c file to be able to unit test static function
 }
 
 #define CONFIG_KNOB_GUID  {0x52d39693, 0x4f64, 0x4ee6, {0x81, 0xde, 0x45, 0x89, 0x37, 0x72, 0x78, 0x55}}
@@ -25,35 +28,57 @@ using namespace testing;
 class GetConfigKnobOverrideFromVariableStorageTest : public Test
 {
 protected:
-  MockPeiServicesLib PeiServicesMock; 
-  MockReadOnlyVariable2 PpiVariableServicesMock; // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
-  PPI_STATUS  PpiStatus;
-  EFI_STATUS Status;
-  EFI_GUID ConfigKnobGuid;
-  CHAR16 *ConfigKnobName;
-  UINT64 ProfileDefaultValue;
-  UINTN ProfileDefaultSize;
-  UINT64 VariableData;
-  UINT64 ConfigKnobData;
-
-  //
-  // Redefining the Test class's SetUp function for test fixtures.
-  //
-  void
-  SetUp (
-    ) override
-  {
-    ConfigKnobGuid      = CONFIG_KNOB_GUID;
-    ConfigKnobName      = (CHAR16 *)L"MyDeadBeefDelivery";
-    ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-    ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-    VariableData        = 0xBEEF7777BEEF7777;
-    ConfigKnobData      = ProfileDefaultValue;
-    PpiStatus           = { .Ppi = &peiReadOnlyVariablePpi, .Status = EFI_SUCCESS };
-    PPIActual           = (VOID **)&PPIVariableServices;
-
-  }
+MockPeiServicesLib PeiServicesMock;
+MockReadOnlyVariable2 PpiVariableServicesMock;   // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
+EFI_PEI_READ_ONLY_VARIABLE2_PPI *PPIVariableServicesObjToMock;
+///
+/// Mock version of the Pei Services Table
+///
+EFI_PEI_READ_ONLY_VARIABLE2_PPI  MockVariablePpi = {
+  .GetVariable = MockEfiPeiGetVariable2,
 };
+EFI_STATUS Status;
+EFI_GUID ConfigKnobGuid;
+CHAR16 *ConfigKnobName;
+UINT64 ProfileDefaultValue;
+UINTN ProfileDefaultSize;
+UINT64 VariableData;
+UINT64 ConfigKnobData;
+
+//
+// Redefining the Test class's SetUp function for test fixtures.
+//
+void
+SetUp (
+  ) override
+{
+  ConfigKnobGuid      = CONFIG_KNOB_GUID;
+  ConfigKnobName      = (CHAR16 *)L"MyDeadBeefDelivery";
+  ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+  ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+  VariableData        = 0xBEEF7777BEEF7777;
+  ConfigKnobData      = ProfileDefaultValue;
+}
+};
+
+//
+// Fail to locate PPI
+//
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, PPIServicesFailure) {
+  //
+  // expect the call to locate PPI to return error
+  //
+  EXPECT_CALL (
+    PeiServicesMock,
+    PeiServicesLocatePpi
+    )
+    .WillOnce (
+       Return (EFI_ERROR)
+       );
+
+  ASSERT_EQ (Status, EFI_ERROR);
+  ASSERT_EQ (ConfigKnobData, DefaultValue);
+}
 
 //
 // Fail to find a cached config knob policy and fail to fetch config knob from
@@ -65,28 +90,35 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSmallBuffer
   //
   EXPECT_CALL (
     PeiServicesMock,
-    PeiServicesLocatePpi ()
+    PeiServicesLocatePpi
     )
-    .WillByDefault (
-      Return (EFI_SUCCESS)
-    );
+    .WillOnce (
+       DoAll (
+         SetArgPointee<3>(PpiVariableServicesMock), //  type doesnt match, need dummy pointer?
+         Return (EFI_SUCCESS)
+         )
+       );
 
   //
   // expect the call to GetVariable
   //
-  EXPECT_CALL(
+  EXPECT_CALL (
     PpiVariableServicesMock,
-    pei_GetVariable ()
+    pei_GetVariable
     )
-    .WillOnce(
-      DoAll (
-        SetArgPointee<4>(sizeof (VariableData)),
-        SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
-        Return (EFI_SUCCESS)
-        )
-    );
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (VariableData)),
+         SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
+         Return (EFI_SUCCESS)
+         )
+       );
+
+  DEBUG ((DEBUG_ERROR, "before first call %a %d $0 \n", __FUNCTION__, __LINE__));
 
   Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+
+  DEBUG ((DEBUG_ERROR, "after first call %a %d $0 \n", __FUNCTION__, __LINE__));
 
   ASSERT_EQ (Status, EFI_NOT_FOUND);
   ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
@@ -102,28 +134,28 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
   //
   EXPECT_CALL (
     PeiServicesMock,
-    PeiServicesLocatePpi ()
+    PeiServicesLocatePpi
     )
-    .WillByDefault (
-      DoAll(
-        Return (EFI_SUCCESS)
-      )
-    );
+    .WillOnce (
+       DoAll (
+         Return (EFI_SUCCESS)
+         )
+       );
 
   //
   // expect the call to GetVaraible
   //
-  EXPECT_CALL(
+  EXPECT_CALL (
     PpiVariableServicesMock,
-    pei_GetVariable ()
+    pei_GetVariable
     )
-    .WillOnce(
-      DoAll (
-        SetArgPointee<4>(sizeof (VariableData)),
-        SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
-        Return (EFI_SUCCESS)
-        )
-    );
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (VariableData)),
+         SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
+         Return (EFI_SUCCESS)
+         )
+       );
   Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
 
   ASSERT_EQ (Status, EFI_SUCCESS);
