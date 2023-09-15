@@ -55,6 +55,7 @@ class UpdateConfigHdr(IUefiBuildPlugin):
         # this is a comma separated 2 character profile names to pair with CSV files identifying
         # the profiles. This field is optional.
         profile_names = thebuilder.env.GetValue("CONF_PROFILE_NAMES", "")
+        profile_ids = thebuilder.env.GetValue("CONF_PROFILE_IDS", "")
 
         params = ["generateheader_efi"]
 
@@ -71,6 +72,9 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             if profile_names != "":
                 params.append("-pn")
                 params.append(profile_names)
+            if profile_ids != "":
+                params.append("-pid")
+                params.append(profile_ids)
 
         ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dir)
         return ret
