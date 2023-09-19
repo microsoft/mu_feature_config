@@ -185,7 +185,9 @@ def write_uefi_getter_implementations(efi_type, out, schema):
             out.write("// {}".format(knob.help) + get_line_ending(efi_type))
 
         # Implement the cached getter function
-        out.write("// Get the current value of the {} knob from supplied cache".format(knob.name) + get_line_ending(efi_type))
+        out.write("// Get the current value of the {} knob from supplied cache".format(
+            knob.name
+        ) + get_line_ending(efi_type))
         out.write("EFI_STATUS {}{}FromCache (".format(
             naming_convention_filter("config_get_", False, efi_type),
             knob.name
@@ -271,7 +273,8 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         ) + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type) + ")" + get_line_ending(efi_type))
         out.write("{" + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + "return {}{}FromCache (Knob, CachedPolicy, sizeof (CachedPolicy));".format(
+        out.write(get_spacing_string(efi_type))
+        out.write("return {}{}FromCache (Knob, CachedPolicy, sizeof (CachedPolicy));".format(
             naming_convention_filter("config_get_", False, efi_type),
             knob.name
         ) + get_line_ending(efi_type))
@@ -966,8 +969,8 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("EFI_STATUS" + get_line_ending(efi_type))
         out.write(naming_convention_filter("init_config_policy_cache (", False, efi_type))
         out.write(get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + get_type_string("UINT8   *Cache,", efi_type) + get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + get_type_string("UINT16  CacheSize", efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT8   *Cache," + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT16  CacheSize")
         out.write(get_line_ending(efi_type) + ")" + get_line_ending(efi_type) + "{")
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
