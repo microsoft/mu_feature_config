@@ -207,7 +207,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         # minus the data size and CRC32, which comes after the data
         offset += get_variable_list_size(knob)
         offset -= 4 + knob.format.size_in_bytes()
-        out.write("CONST UINTN Offset = {};".format(
+        out.write("CONST UINTN Offset = CACHED_POLICY_HEADER_SIZE + {};".format(
             offset
         ) + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
@@ -216,7 +216,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         offset += 4 + knob.format.size_in_bytes()
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (Knob == NULL) {" + get_line_ending(efi_type))
+        out.write("if ((Knob == NULL) || (Cache == NULL)) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
         out.write("return EFI_INVALID_PARAMETER;" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
@@ -224,7 +224,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (!CachedPolicyInitialized) {" + get_line_ending(efi_type))
+        out.write("if (((CACHED_POLICY_HEADER*)Cache)->Signature != CACHED_POLICY_SINGATURE) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
         out.write("Status = InitConfigPolicyCache (Cache, CacheSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
@@ -952,15 +952,29 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_line_ending(efi_type))
 
         policy_size = hex(get_conf_policy_size(schema))
+        out.write("#define CACHED_POLICY_SINGATURE    SIGNATURE_32 ('C', 'P', 'O', 'L')" + get_line_ending(efi_type))
+        out.write("#define CACHED_POLICY_HEADER_SIZE  sizeof (CACHED_POLICY_HEADER)" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
         out.write("#define CACHED_POLICY_SIZE {}".format(
             policy_size
         ) + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
-        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE];" + get_line_ending(efi_type))
+        out.write("// Cached policy header, used to validate the cache internally" + get_line_ending(efi_type))
+        out.write("#pragma pack (1)" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+        out.write("typedef struct {" + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT32 Signature;" + get_line_ending(efi_type))
+        out.write("} CACHED_POLICY_HEADER;" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+        out.write("#pragma pack ()" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
+        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];" + get_line_ending(efi_type))
         out.write("STATIC BOOLEAN CachedPolicyInitialized = FALSE;")
         out.write(get_line_ending(efi_type))
-        out.write(get_assert_style(efi_type, "(CACHED_POLICY_SIZE <= MAX_UINT16", '"Config too large!"'))
+        out.write(get_assert_style(efi_type, "(CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE <= MAX_UINT16", '"Config too large!"'))
         out.write(get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
@@ -982,7 +996,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_spacing_string(efi_type))
         out.write("Status = GetPolicy (")
         out.write("PcdGetPtr (PcdConfigurationPolicyGuid), NULL,")
-        out.write(" Cache, &ConfPolSize);" + get_line_ending(efi_type))
+        out.write(" Cache + CACHED_POLICY_HEADER_SIZE, &ConfPolSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("if ((EFI_ERROR (Status)) || (ConfPolSize != CACHED_POLICY_SIZE)) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2) + "ASSERT (FALSE);")
@@ -993,7 +1007,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("}" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("CachedPolicyInitialized = TRUE;" + get_line_ending(efi_type))
+        out.write("((CACHED_POLICY_HEADER*)Cache)->Signature = CACHED_POLICY_SINGATURE;" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("return Status;" + get_line_ending(efi_type))
