@@ -976,7 +976,10 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_line_ending(efi_type))
         out.write("STATIC BOOLEAN CachedPolicyInitialized = FALSE;")
         out.write(get_line_ending(efi_type))
-        out.write(get_assert_style(efi_type, "(CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE <= MAX_UINT16", '"Config too large!"'))
+        out.write(get_assert_style(
+            efi_type,
+            "(CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE <= MAX_UINT16",
+            '"Config too large!"'))
         out.write(get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
