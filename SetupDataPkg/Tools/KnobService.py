@@ -224,7 +224,8 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (((CACHED_POLICY_HEADER*)Cache)->Signature != CACHED_POLICY_SINGATURE) {" + get_line_ending(efi_type))
+        out.write("if (((CACHED_POLICY_HEADER *)Cache)->Signature != CACHED_POLICY_SIGNATURE) {")
+        out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
         out.write("Status = InitConfigPolicyCache (Cache, CacheSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
@@ -952,7 +953,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_line_ending(efi_type))
 
         policy_size = hex(get_conf_policy_size(schema))
-        out.write("#define CACHED_POLICY_SINGATURE    SIGNATURE_32 ('C', 'P', 'O', 'L')" + get_line_ending(efi_type))
+        out.write("#define CACHED_POLICY_SIGNATURE    SIGNATURE_32 ('C', 'P', 'O', 'L')" + get_line_ending(efi_type))
         out.write("#define CACHED_POLICY_HEADER_SIZE  sizeof (CACHED_POLICY_HEADER)" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
@@ -971,7 +972,8 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("#pragma pack ()" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
-        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];" + get_line_ending(efi_type))
+        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];")
+        out.write(get_line_ending(efi_type))
         out.write("STATIC BOOLEAN CachedPolicyInitialized = FALSE;")
         out.write(get_line_ending(efi_type))
         out.write(get_assert_style(efi_type, "(CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE <= MAX_UINT16", '"Config too large!"'))
@@ -1007,7 +1009,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("}" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("((CACHED_POLICY_HEADER*)Cache)->Signature = CACHED_POLICY_SINGATURE;" + get_line_ending(efi_type))
+        out.write("((CACHED_POLICY_HEADER*)Cache)->Signature = CACHED_POLICY_SIGNATURE;" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("return Status;" + get_line_ending(efi_type))
