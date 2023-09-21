@@ -184,15 +184,20 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         if knob.help != "":
             out.write("// {}".format(knob.help) + get_line_ending(efi_type))
 
-        out.write("// Get the current value of the {} knob".format(knob.name) + get_line_ending(efi_type))
-        out.write("EFI_STATUS {}{} (".format(
+        # Implement the cached getter function
+        out.write("// Get the current value of the {} knob from supplied cache".format(
+            knob.name
+        ) + get_line_ending(efi_type))
+        out.write("EFI_STATUS {}{}FromCache (".format(
             naming_convention_filter("config_get_", False, efi_type),
             knob.name
         ) + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("{} *Knob".format(
+        out.write("{} *Knob,".format(
             get_type_string(knob.format.c_type, efi_type)
         ) + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT8 *Cache," + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT16 CacheSize" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type) + ")" + get_line_ending(efi_type))
         out.write("{" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type) + "EFI_STATUS Status;")
@@ -202,7 +207,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         # minus the data size and CRC32, which comes after the data
         offset += get_variable_list_size(knob)
         offset -= 4 + knob.format.size_in_bytes()
-        out.write("CONST UINTN Offset = {};".format(
+        out.write("CONST UINTN Offset = CACHED_POLICY_HEADER_SIZE + {};".format(
             offset
         ) + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
@@ -211,7 +216,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         offset += 4 + knob.format.size_in_bytes()
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (Knob == NULL) {" + get_line_ending(efi_type))
+        out.write("if ((Knob == NULL) || (Cache == NULL)) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
         out.write("return EFI_INVALID_PARAMETER;" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
@@ -219,9 +224,10 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (!CachedPolicyInitialized) {" + get_line_ending(efi_type))
+        out.write("if (((CACHED_POLICY_HEADER *)Cache)->Signature != CACHED_POLICY_SIGNATURE) {")
+        out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
-        out.write("Status = InitConfigPolicyCache ();" + get_line_ending(efi_type))
+        out.write("Status = InitConfigPolicyCache (Cache, CacheSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
         out.write("if (EFI_ERROR (Status)) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=3))
@@ -235,7 +241,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
-        out.write("if (Offset + sizeof({}) > CachedPolicySize) {{".format(
+        out.write("if (Offset + sizeof({}) > CacheSize) {{".format(
             get_type_string(knob.format.c_type, efi_type)
         ) + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
@@ -247,12 +253,32 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
-        out.write("CopyMem(Knob, CachedPolicy + Offset, sizeof ({}));".format(
+        out.write("CopyMem(Knob, Cache + Offset, sizeof ({}));".format(
             get_type_string(knob.format.c_type, efi_type)
         ) + get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
         out.write("return EFI_SUCCESS;" + get_line_ending(efi_type))
+        out.write("}" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
+        # Implement the normal getter function, from the global cache
+        out.write("// Get the current value of the {} knob from cache".format(knob.name) + get_line_ending(efi_type))
+        out.write("EFI_STATUS {}{} (".format(
+            naming_convention_filter("config_get_", False, efi_type),
+            knob.name
+        ) + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type))
+        out.write("{} *Knob".format(
+            get_type_string(knob.format.c_type, efi_type)
+        ) + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + ")" + get_line_ending(efi_type))
+        out.write("{" + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type))
+        out.write("return {}{}FromCache (Knob, CachedPolicy, sizeof (CachedPolicy));".format(
+            naming_convention_filter("config_get_", False, efi_type),
+            knob.name
+        ) + get_line_ending(efi_type))
         out.write("}" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         pass
@@ -535,9 +561,11 @@ def generate_public_header(schema, header_path, efi_type=False):
 def format_guid(guid):
     u = uuid.UUID(guid)
 
-    byte_sequence = u.fields[3].to_bytes(1, byteorder='big') + \
-                    u.fields[4].to_bytes(1, byteorder='big') + \
-                    u.fields[5].to_bytes(6, byteorder='big')
+    byte_sequence = (
+        u.fields[3].to_bytes(1, byteorder='big')
+        + u.fields[4].to_bytes(1, byteorder='big')
+        + u.fields[5].to_bytes(6, byteorder='big')
+    )
 
     return "{{{},{},{},{{{},{},{},{},{},{},{},{}}}}}".format(
         hex(u.fields[0]),
@@ -925,17 +953,33 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write(get_line_ending(efi_type))
 
         policy_size = hex(get_conf_policy_size(schema))
-        out.write("STATIC CONST UINT16  CachedPolicySize = {};".format(
+        out.write("#define CACHED_POLICY_SIGNATURE    SIGNATURE_32 ('C', 'P', 'O', 'L')" + get_line_ending(efi_type))
+        out.write("#define CACHED_POLICY_HEADER_SIZE  sizeof (CACHED_POLICY_HEADER)" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
+        out.write("#define CACHED_POLICY_SIZE {}".format(
             policy_size
         ) + get_line_ending(efi_type))
-        out.write("STATIC CHAR8 CachedPolicy[{}];".format(
-            policy_size
-        ) + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
+        out.write("// Cached policy header, used to validate the cache internally" + get_line_ending(efi_type))
+        out.write("#pragma pack (1)" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+        out.write("typedef struct {" + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT32 Signature;" + get_line_ending(efi_type))
+        out.write("} CACHED_POLICY_HEADER;" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+        out.write("#pragma pack ()" + get_line_ending(efi_type))
+        out.write(get_line_ending(efi_type))
+
+        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];")
+        out.write(get_line_ending(efi_type))
         out.write("STATIC BOOLEAN CachedPolicyInitialized = FALSE;")
         out.write(get_line_ending(efi_type))
-        out.write(get_assert_style(efi_type, "({} <= MAX_UINT16".format(
-            policy_size
-        ), '"Config too large!"'))
+        out.write(get_assert_style(
+            efi_type,
+            "(CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE <= MAX_UINT16",
+            '"Config too large!"'))
         out.write(get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
@@ -944,21 +988,22 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("EFI_STATUS" + get_line_ending(efi_type))
         out.write(naming_convention_filter("init_config_policy_cache (", False, efi_type))
         out.write(get_line_ending(efi_type))
-        out.write(get_spacing_string(efi_type) + get_type_string("void", efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT8   *Cache," + get_line_ending(efi_type))
+        out.write(get_spacing_string(efi_type) + "UINT16  CacheSize")
         out.write(get_line_ending(efi_type) + ")" + get_line_ending(efi_type) + "{")
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("EFI_STATUS Status;" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("UINT16 ConfPolSize = CachedPolicySize;" + get_line_ending(efi_type))
+        out.write("UINT16 ConfPolSize = CacheSize;" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
         out.write(get_spacing_string(efi_type))
         out.write("Status = GetPolicy (")
         out.write("PcdGetPtr (PcdConfigurationPolicyGuid), NULL,")
-        out.write(" CachedPolicy, &ConfPolSize);" + get_line_ending(efi_type))
+        out.write(" Cache + CACHED_POLICY_HEADER_SIZE, &ConfPolSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("if ((EFI_ERROR (Status)) || (ConfPolSize != CachedPolicySize)) {" + get_line_ending(efi_type))
+        out.write("if ((EFI_ERROR (Status)) || (ConfPolSize != CACHED_POLICY_SIZE)) {" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2) + "ASSERT (FALSE);")
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type, num=2))
@@ -967,7 +1012,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("}" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
-        out.write("CachedPolicyInitialized = TRUE;" + get_line_ending(efi_type))
+        out.write("((CACHED_POLICY_HEADER*)Cache)->Signature = CACHED_POLICY_SIGNATURE;" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("return Status;" + get_line_ending(efi_type))

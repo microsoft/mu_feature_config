@@ -19,7 +19,9 @@ class UpdateConfigHdr(IUefiBuildPlugin):
     # Consumes build environment variables: "CONF_AUTOGEN_INCLUDE_PATH", "MU_SCHEMA_DIR",
     # "MU_SCHEMA_FILE_NAME", "CONF_PROFILE_PATHS" and "CONF_PROFILE_NAMES"
     def do_pre_build(self, thebuilder):
-        default_generated_path = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Test", "Include")
+        default_generated_path = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(
+            "SetupDataPkg", "Test", "Include"
+        )
 
         final_dir = thebuilder.env.GetValue("CONF_AUTOGEN_INCLUDE_PATH", default_generated_path)
 
@@ -30,7 +32,9 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             os.makedirs(final_dir)
 
         # Add generate routine here
-        cmd = thebuilder.mws.join(thebuilder.ws, "SetupDataPkg", "Tools", "KnobService.py")
+        cmd = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(
+            "SetupDataPkg", "Tools", "KnobService.py"
+        )
 
         # MU_SCHEMA_DIR and MU_SCHEMA_FILE_NAME should be set by individual platforms
         # When running the CI, the configdata_ci scope will define MU_SCHEMA_DIR to the path of the
@@ -42,7 +46,7 @@ class UpdateConfigHdr(IUefiBuildPlugin):
 
         schema_file_name = thebuilder.env.GetValue("MU_SCHEMA_FILE_NAME", "testschema.xml")
 
-        schema_file = thebuilder.mws.join(schema_dir, schema_file_name)
+        schema_file = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(schema_dir, schema_file_name)
 
         if not os.path.isfile(schema_file):
             logging.error(f"XML schema file \"{schema_file}\" specified is not found!!!")

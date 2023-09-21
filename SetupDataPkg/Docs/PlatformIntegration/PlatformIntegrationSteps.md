@@ -140,6 +140,17 @@ are available for the code using the getters. In our mu_tiano_platforms example,
 Mapper is compiled with several C files that only include the client header, as the service header is only needed once
 per module to query the config knobs out of the config policy.
 
+The getter functions are implemented in the service header file. The traditional way to fetch a knob value will be to call
+the getter function with the knob name by supplying the pointer to hold such knob
+(i.e. `ConfigGetKnob1 (&Knob)`).
+
+Alternatively, getter functions can also be called with a knob name and a size-specified buffer. In this case, the getter
+function will inspect the cache buffer and try to populate the content if it is uninitialized. The caller should keep note
+of the intialized buffer for subsquent calls in the same module for optimal performance. The caller should also be aware
+that the buffer size should be large enough (`CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE`) to hold the knob value.
+The usage of this alternative could work around the limitation of the traditional way that the relies on global variables
+when the modules are XIP (execute in place).
+
 The Silicon Policy Consumers do not need to include any of the above headers and will instead fetch their configuration
 directly from silicon policy.
 
