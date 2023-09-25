@@ -972,9 +972,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
         out.write("#pragma pack ()" + get_line_ending(efi_type))
         out.write(get_line_ending(efi_type))
 
-        out.write("STATIC CHAR8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];")
-        out.write(get_line_ending(efi_type))
-        out.write("STATIC BOOLEAN CachedPolicyInitialized = FALSE;")
+        out.write("STATIC UINT8 CachedPolicy[CACHED_POLICY_SIZE + CACHED_POLICY_HEADER_SIZE];")
         out.write(get_line_ending(efi_type))
         out.write(get_assert_style(
             efi_type,
