@@ -30,13 +30,6 @@ class GetConfigKnobOverrideFromVariableStorageTest : public Test
 protected:
 MockPeiServicesLib PeiServicesMock;
 MockReadOnlyVariable2 PpiVariableServicesMock;   // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
-EFI_PEI_READ_ONLY_VARIABLE2_PPI *PPIVariableServicesObjToMock;
-///
-/// Mock version of the Pei Services Table
-///
-EFI_PEI_READ_ONLY_VARIABLE2_PPI  MockVariablePpi = {
-  .GetVariable = MockEfiPeiGetVariable2,
-};
 EFI_STATUS Status;
 EFI_GUID ConfigKnobGuid;
 CHAR16 *ConfigKnobName;
@@ -45,9 +38,7 @@ UINTN ProfileDefaultSize;
 UINT64 VariableData;
 UINT64 ConfigKnobData;
 
-//
 // Redefining the Test class's SetUp function for test fixtures.
-//
 void
 SetUp (
   ) override
@@ -62,113 +53,29 @@ SetUp (
 };
 
 //
-// Fail to locate PPI
+// Ditch out with invalid params to initial call.
 //
-TEST_F (GetConfigKnobOverrideFromVariableStorageTest, PPIServicesFailure) {
-  //
-  // expect the call to locate PPI to return error
-  //
-  EXPECT_CALL (
-    PeiServicesMock,
-    PeiServicesLocatePpi
-    )
-    .WillOnce (
-       Return (EFI_ERROR)
-       );
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, InvalidParamFailure) {
+  Status = GetConfigKnobOverride (NULL, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+  ASSERT_EQ (Status, EFI_INVALID_PARAMETER);
 
-  ASSERT_EQ (Status, EFI_ERROR);
-  ASSERT_EQ (ConfigKnobData, DefaultValue);
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, NULL, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+  ASSERT_EQ (Status, EFI_INVALID_PARAMETER);
+
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, NULL, ProfileDefaultSize);
+  ASSERT_EQ (Status, EFI_INVALID_PARAMETER);
+
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, 0);
+  ASSERT_EQ (Status, EFI_INVALID_PARAMETER);
 }
 
 //
-// Fail to find a cached config knob policy and fail to fetch config knob from
-// variable storage. Then, set the profile default value.
+// Fail to find a cached config knob policy and fail to locate PPI.
+// Then, set the profile default value.
 //
-TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSmallBufferFailure) {
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, PpiNotFoundFailure) {
   //
-  // expect the call to locate PPI to return success, "found" PPIVariableServices
-  //
-  EXPECT_CALL (
-    PeiServicesMock,
-    PeiServicesLocatePpi
-    )
-    .WillOnce (
-       DoAll (
-         SetArgPointee<3>(PpiVariableServicesMock), //  type doesnt match, need dummy pointer?
-         Return (EFI_SUCCESS)
-         )
-       );
-
-  //
-  // expect the call to GetVariable
-  //
-  EXPECT_CALL (
-    PpiVariableServicesMock,
-    pei_GetVariable
-    )
-    .WillOnce (
-       DoAll (
-         SetArgPointee<4>(sizeof (VariableData)),
-         SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
-         Return (EFI_SUCCESS)
-         )
-       );
-
-  DEBUG ((DEBUG_ERROR, "before first call %a %d $0 \n", __FUNCTION__, __LINE__));
-
-  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
-
-  DEBUG ((DEBUG_ERROR, "after first call %a %d $0 \n", __FUNCTION__, __LINE__));
-
-  ASSERT_EQ (Status, EFI_NOT_FOUND);
-  ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
-}
-
-//
-// With no cached config knob policy, successfully fetch config knob from
-// variable storage. Then, create cached policy.
-//
-TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
-  //
-  // expect the call to locate PPI to return success, "found" PPIVariableServices
-  //
-  EXPECT_CALL (
-    PeiServicesMock,
-    PeiServicesLocatePpi
-    )
-    .WillOnce (
-       DoAll (
-         Return (EFI_SUCCESS)
-         )
-       );
-
-  //
-  // expect the call to GetVaraible
-  //
-  EXPECT_CALL (
-    PpiVariableServicesMock,
-    pei_GetVariable
-    )
-    .WillOnce (
-       DoAll (
-         SetArgPointee<4>(sizeof (VariableData)),
-         SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
-         Return (EFI_SUCCESS)
-         )
-       );
-  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
-
-  ASSERT_EQ (Status, EFI_SUCCESS);
-  ASSERT_EQ (VariableData, ConfigKnobData);
-}
-
-//
-// Fail to find a cached config knob policy and fail to fetch config knob from
-// variable storage. Then, set the profile default value.
-//
-TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFailure) {
-  //
-  // Expect the first GetVariable call to get size to fail
+  // Expect the locate PPI call to fail
   //
   EXPECT_CALL (
     PeiServicesMock,
@@ -184,28 +91,121 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFai
   ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
 }
 
-/*
-  Fail to find a cached config knob policy and succeed to fetch config knob from
-  variable storage. Fail to match variable size with profile default size. Then, set the profile default value.
-*/
+//
+//  Fail to find a cached config knob policy and succeed to fetch config knob from
+//  variable storage. Fail to match variable size with profile default size. Then, set the profile default value.
+//
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSizeFailure) {
-  //
-  // Expect the first GetVariable call to get (non-matching) size
-  //
+  // Expect the call to LocatePpi to return success, "found" PPIVariableServices (mocked)
   EXPECT_CALL (
     PeiServicesMock,
     PeiServicesLocatePpi
     )
     .WillOnce (
        DoAll (
-         SetArgPointee<3>(sizeof (UINT32)),
+         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         Return (EFI_SUCCESS)
+         )
+       );
+
+  // Expect the call to GetVariable to return buffer too small and an invalid buffer size
+  EXPECT_CALL (
+    PpiVariableServicesMock,
+    GetVariable
+    )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (UINT32)),
          Return (EFI_BUFFER_TOO_SMALL)
          )
        );
 
   Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+
   ASSERT_EQ (Status, EFI_BAD_BUFFER_SIZE);
   ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
+}
+
+//
+// Fail to find a cached config knob policy and fail to fetch config knob from
+// variable storage. Then, set the profile default value.
+//
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFailure) {
+  // Expect the call to LocatePpi to return success, "found" PPIVariableServices (mocked)
+  EXPECT_CALL (
+    PeiServicesMock,
+    PeiServicesLocatePpi
+    )
+    .Times (2)
+    .WillRepeatedly (
+       DoAll (
+         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         Return (EFI_SUCCESS)
+         )
+       );
+
+  // Expect the calls to GetVariable to first return buffer too small then fail to retrieve variable
+  EXPECT_CALL (
+    PpiVariableServicesMock,
+    GetVariable
+    )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (VariableData)),
+         Return (EFI_BUFFER_TOO_SMALL)
+         )
+       )
+    .WillOnce (
+       Return (EFI_NOT_FOUND)
+       );
+
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+
+  ASSERT_EQ (Status, EFI_NOT_FOUND);
+  ASSERT_EQ (ConfigKnobData, ProfileDefaultValue);
+}
+
+//
+// With no cached config knob policy, successfully fetch config knob from
+// variable storage. Then, create cached policy.
+//
+TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
+  // Expect the call to LocatePpi to return success, "found" PPIVariableServices (mocked)
+  EXPECT_CALL (
+    PeiServicesMock,
+    PeiServicesLocatePpi
+    )
+    .Times (2)
+    .WillRepeatedly (
+       DoAll (
+         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         Return (EFI_SUCCESS)
+         )
+       );
+
+  // Expect the call to GetVariable to first return buffer too small then retrieve variable successfully
+  EXPECT_CALL (
+    PpiVariableServicesMock,
+    GetVariable
+    )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (VariableData)),
+         Return (EFI_BUFFER_TOO_SMALL)
+         )
+       )
+    .WillOnce (
+       DoAll (
+         SetArgPointee<4>(sizeof (VariableData)), // todo why do we need to set this again?
+         SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
+         Return (EFI_SUCCESS)
+         )
+       );
+
+  Status = GetConfigKnobOverride (&ConfigKnobGuid, ConfigKnobName, (VOID *)&ConfigKnobData, ProfileDefaultSize);
+
+  ASSERT_EQ (Status, EFI_SUCCESS);
+  ASSERT_EQ (VariableData, ConfigKnobData);
 }
 
 int
