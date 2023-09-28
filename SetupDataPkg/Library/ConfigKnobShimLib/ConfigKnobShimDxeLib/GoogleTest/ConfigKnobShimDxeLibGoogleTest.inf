@@ -20,6 +20,7 @@
 
 [Sources]
   ConfigKnobShimDxeLibGoogleTest.cpp
+  ../../ConfigKnobShimLibCommon.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -31,4 +32,3 @@
   BaseLib
   DebugLib
   ConfigKnobShimLib
-  

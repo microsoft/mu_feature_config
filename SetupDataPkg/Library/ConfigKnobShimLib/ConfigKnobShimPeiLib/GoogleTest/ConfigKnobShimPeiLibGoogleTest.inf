@@ -20,6 +20,7 @@
 
 [Sources]
   ConfigKnobShimPeiLibGoogleTest.cpp
+  ../../ConfigKnobShimLibCommon.c
   MdePkg/Test/Mock/Library/GoogleTest/Ppi/MockReadOnlyVariable2.cpp
 
 [Packages]

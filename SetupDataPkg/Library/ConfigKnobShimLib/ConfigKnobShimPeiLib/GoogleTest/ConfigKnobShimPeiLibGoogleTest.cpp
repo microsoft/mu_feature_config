@@ -16,8 +16,7 @@ extern "C" {
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
-
-#include "../../ConfigKnobShimLibCommon.c"   // include the c file to be able to unit test static function
+#include <Library/ConfigKnobShimLib.h>
 }
 
 #define CONFIG_KNOB_GUID  {0x52d39693, 0x4f64, 0x4ee6, {0x81, 0xde, 0x45, 0x89, 0x37, 0x72, 0x78, 0x55}}
@@ -194,7 +193,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
        )
     .WillOnce (
        DoAll (
-         SetArgPointee<4>(sizeof (VariableData)), // todo why do we need to set this again?
+         SetArgPointee<4>(sizeof (VariableData)),
          SetArgBuffer<5>(&VariableData, sizeof (VariableData)),
          Return (EFI_SUCCESS)
          )
