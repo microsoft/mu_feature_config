@@ -103,7 +103,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSizeFailure
     )
     .WillOnce (
        DoAll (
-         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         SetArgPointee<3>(ByRef (PpiReadOnlyVariableServices)),
          Return (EFI_SUCCESS)
          )
        );
@@ -139,7 +139,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFai
     .Times (2)
     .WillRepeatedly (
        DoAll (
-         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         SetArgPointee<3>(ByRef (PpiReadOnlyVariableServices)),
          Return (EFI_SUCCESS)
          )
        );
@@ -178,7 +178,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
     .Times (2)
     .WillRepeatedly (
        DoAll (
-         SetArgPointee<3>(ByRef (PPIReadOnlyVariableServices)),
+         SetArgPointee<3>(ByRef (PpiReadOnlyVariableServices)),
          Return (EFI_SUCCESS)
          )
        );
