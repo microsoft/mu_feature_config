@@ -31,6 +31,14 @@
   ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/ConfigKnobShimDxeLib.inf
 
 [Components]
+  #
+  # Build SetupDataPkg HOST_APPLICATION Tests
+  #
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/GoogleTest/ConfigKnobShimDxeLibGoogleTest.inf {
+    <LibraryClasses>
+      UefiRuntimeServicesTableLib|MdePkg/Test/Mock/Library/GoogleTest/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+  }
+
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
@@ -46,6 +54,12 @@
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimDxeLib/UnitTest/ConfigKnobShimDxeLibUnitTest.inf {
     <LibraryClasses>
       UefiRuntimeServicesTableLib|SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
+  }
+
+  SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/GoogleTest/ConfigKnobShimPeiLibGoogleTest.inf {
+    <LibraryClasses>
+      ConfigKnobShimLib|SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/ConfigKnobShimPeiLib.inf
+      PeiServicesLib|MU_BASECORE/MdePkg/Test/Mock/Library/GoogleTest/MockPeiServicesLib/MockPeiServicesLib.inf
   }
 
   SetupDataPkg/Library/ConfigKnobShimLib/ConfigKnobShimPeiLib/UnitTest/ConfigKnobShimPeiLibUnitTest.inf {
