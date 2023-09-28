@@ -74,9 +74,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, InvalidParamFailure) {
 // Then, set the profile default value.
 //
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, PpiNotFoundFailure) {
-  //
   // Expect the locate PPI call to fail
-  //
   EXPECT_CALL (
     PeiServicesMock,
     PeiServicesLocatePpi

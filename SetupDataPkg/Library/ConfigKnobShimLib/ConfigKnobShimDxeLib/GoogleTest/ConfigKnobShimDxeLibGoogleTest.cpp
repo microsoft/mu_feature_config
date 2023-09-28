@@ -34,9 +34,7 @@ protected:
   UINT64 VariableData;
   UINT64 ConfigKnobData;
 
-  //
   // Redefining the Test class's SetUp function for test fixtures.
-  //
   void
   SetUp (
     ) override
@@ -55,10 +53,8 @@ protected:
 // variable storage. Then, set the profile default value.
 //
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSmallBufferFailure) {
-  //
-  // expect the first GetVariable call to get size
-  // expect the second call to return an EFI_DEVICE_ERROR
-  //
+  // Expect the first GetVariable call to set the correct size
+  // Expect the second call to return an EFI_DEVICE_ERROR
   EXPECT_CALL (
     RtServicesMock,
     gRT_GetVariable (
@@ -90,9 +86,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSmallBuffer
 // variable storage. Then, create cached policy.
 //
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
-  //
   // Expect the first GetVariable call to get size
-  //
   EXPECT_CALL (
     RtServicesMock,
     gRT_GetVariable
@@ -104,10 +98,8 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
          )
        );
 
-  //
   // Expect the second getVariable call to update data
-  // NOTE: in this case, could also simply do another .WillOnce call. BUt wanted to show a little variety
-  //
+  // NOTE: in this case, could also simply do another .WillOnce call. But, wanted to show a little variety
   EXPECT_CALL (
     RtServicesMock,
     gRT_GetVariable (
@@ -137,9 +129,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSuccess) {
 // variable storage. Then, set the profile default value.
 //
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFailure) {
-  //
   // Expect the first GetVariable call to get size to fail
-  //
   EXPECT_CALL (
     RtServicesMock,
     gRT_GetVariable
@@ -159,9 +149,7 @@ TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageNotFoundFai
   variable storage. Fail to match variable size with profile default size. Then, set the profile default value.
 */
 TEST_F (GetConfigKnobOverrideFromVariableStorageTest, VariableStorageSizeFailure) {
-  //
   // Expect the first GetVariable call to get (non-matching) size
-  //
   EXPECT_CALL (
     RtServicesMock,
     gRT_GetVariable
