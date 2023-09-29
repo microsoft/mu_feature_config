@@ -417,7 +417,8 @@ ApplySettings (
     Status = Base64Decode (Value, b64Size, ByteArray, &ValueSize);
     if (EFI_ERROR (Status)) {
       FreePool (ByteArray);
-      DEBUG ((DEBUG_ERROR, "Cannot set binary data. Code=%r\n", Status));
+      DEBUG ((DEBUG_ERROR, "Cannot decode binary data. Code=%r\n", Status));
+      Status = EFI_NO_MAPPING;
       goto EXIT;
     }
 
@@ -586,7 +587,14 @@ ProcessSvdSerialInput (
     }
 
     Status = ApplySettings (TempAsciiStr, mConfDataOffset - 1);
-    if (EFI_ERROR (Status)) {
+    if (Status == EFI_NO_MAPPING) {
+      // When failing to parse incoming buffer, we give users another chance, after cleaning up the buffer.
+      DEBUG ((DEBUG_ERROR, "%a Failed to parse SVD file.\n", __FUNCTION__));
+      FreePool (mConfDataBuffer);
+      mConfDataBuffer = NULL;
+      goto Exit;
+    } else if (EFI_ERROR (Status)) {
+      // For other failures, we either assert or reboot.
       DEBUG ((DEBUG_ERROR, "%a Failed to apply received settings - %r\n", __FUNCTION__, Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
@@ -948,7 +956,15 @@ SetupConfMgr (
         mSetupConfState = SetupConfExit;
       } else {
         Status = ProcessSvdSerialInput (KeyData.Key.UnicodeChar);
-        if (EFI_ERROR (Status)) {
+        if (Status == EFI_NO_MAPPING) {
+          // Do not fail completely if we just cannot find the file...
+          gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK));
+          Print (L"\nFailed to parse input SVD data, please check the input and try again.\n");
+          gST->ConOut->SetAttribute (gST->ConOut, EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK));
+          Status          = EFI_SUCCESS;
+          mSetupConfState = SetupConfUpdateSerialHint;
+          break;
+        } else if (EFI_ERROR (Status)) {
           mSetupConfState = SetupConfExit;
         }
       }
