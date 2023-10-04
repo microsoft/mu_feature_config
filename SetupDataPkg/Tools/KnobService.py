@@ -1177,7 +1177,7 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
             if profile_ids is not None:
                 ids_list = profile_ids.split(",")
             else:
-                # If not specified, the indices will be the default profile names
+                # If not specified, the indices will be the default profile ids
                 ids_list = [format(i, '02x') for i in range(len(profile_paths))]
 
             out.write(get_line_ending(efi_type))
