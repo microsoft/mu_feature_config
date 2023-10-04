@@ -1225,7 +1225,7 @@ def usage():
     print("                   overridden config knobs")
     print("-pn names        : n-number of 2-character profile names that uniquely identify the")
     print("                   profiles specified in profile.csv")
-    print("-pn ids          : n-number of 1 bytes hexdecimal profile id that uniquely identify the")
+    print("-pn ids          : n-number of 1 byte hexdecimal profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
 
 
