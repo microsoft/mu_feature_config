@@ -1225,7 +1225,7 @@ def usage():
     print("                   overridden config knobs")
     print("-pn names        : n-number of 2-character profile names that uniquely identify the")
     print("                   profiles specified in profile.csv")
-    print("-pn ids          : n-number of 1 byte hexdecimal profile id that uniquely identify the")
+    print("-pid ids         : n-number of 1 byte hexdecimal profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
 
 
@@ -1238,8 +1238,8 @@ def arg_parse():
              '''or --profilenames <Name1,Name2,Name3>.''')
     parser.add_argument(
         '-pid', '--profileids', dest='profile_ids', type=str, default=None,
-        help='''Specify the comma separated profile ids by passing -pn <Id1,Id2> '''
-             '''or --profilenames <Id1,Id2,Id3>.''')
+        help='''Specify the comma separated profile ids by passing -pid <Id1,Id2> '''
+             '''or --profileids <Id1,Id2,Id3>.''')
 
     return parser.parse_known_args()
 
