@@ -122,6 +122,8 @@
       "NTSTATUS",
       "PVARIABLE",
       "ANYSIZE",
-      "profilenames"
+      "profilenames",
+      "profileid",
+      "profileids"
   ]
 }

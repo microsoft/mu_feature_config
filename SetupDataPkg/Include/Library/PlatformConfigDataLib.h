@@ -24,5 +24,5 @@ extern PROFILE    gProfileData[];
 // in gProfileData, but rather in gKnobData's defaults
 extern UINTN  gNumProfiles;
 extern CHAR8  *gProfileFlavorNames[];
-
+extern UINT8  gProfileFlavorIds[];
 #endif // PLATFORM_CONFIG_DATA_LIB_H_
