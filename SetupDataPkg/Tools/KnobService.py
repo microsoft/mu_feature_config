@@ -1225,7 +1225,7 @@ def usage():
     print("                   overridden config knobs")
     print("-pn names        : n-number of 2-character profile names that uniquely identify the")
     print("                   profiles specified in profile.csv")
-    print("-pid ids         : n-number of 1-byte hexdecimal (prepend with 0x) profile id that uniquely identify the")
+    print("-pid ids         : n-number of 1-byte hexadecimal (prepend with 0x) profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
 
 
@@ -1238,7 +1238,7 @@ def arg_parse():
              '''or --profilenames <Name1,Name2,Name3>.''')
     parser.add_argument(
         '-pid', '--profileids', dest='profile_ids', type=str, default=None,
-        help='''Specify the comma separated profile ids (1-byte hexdecimal number prepend with 0x) '''
+        help='''Specify the comma separated profile ids (1-byte hexadecimal number prepend with 0x) '''
              '''by passing -pid <Id1,Id2> or --profileids <Id1,Id2,Id3>.''')
 
     return parser.parse_known_args()
@@ -1325,7 +1325,7 @@ def main():
 
                     profileid = int(id, 16)
                     if profileid > 0xFF:
-                        sys.stderr.write('Invalid profile id value 0x%x, should be 1-byte hexdecimal number. \n'
+                        sys.stderr.write('Invalid profile id value 0x%x, should be 1-byte hexadecimal number. \n'
                                          % profileid)
                         return -1
                     formatted_profile_ids.append(hex(profileid))
