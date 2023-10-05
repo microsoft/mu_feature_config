@@ -1225,7 +1225,7 @@ def usage():
     print("                   overridden config knobs")
     print("-pn names        : n-number of 2-character profile names that uniquely identify the")
     print("                   profiles specified in profile.csv")
-    print("-pid ids         : n-number of 1 byte hexdecimal profile id that uniquely identify the")
+    print("-pid ids         : n-number of 1-byte hexdecimal (without 0x) profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
 
 
@@ -1238,7 +1238,7 @@ def arg_parse():
              '''or --profilenames <Name1,Name2,Name3>.''')
     parser.add_argument(
         '-pid', '--profileids', dest='profile_ids', type=str, default=None,
-        help='''Specify the comma separated profile ids by passing -pid <Id1,Id2> '''
+        help='''Specify the comma separated profile ids (1-byte hexdecimal number without 0x) by passing -pid <Id1,Id2> '''
              '''or --profileids <Id1,Id2,Id3>.''')
 
     return parser.parse_known_args()
@@ -1312,11 +1312,17 @@ def main():
 
             if known_args.profile_ids is not None:
                 # Do some minimal sanity checks
-                ids = known_args.profile_names.split(",")
+                ids = known_args.profile_ids.split(",")
                 if len(ids) != len(profile_paths):
                     sys.stderr.write('Invalid count of profile ids %d.\n' % len(ids))
                     return -1
 
+                for id in ids:
+                 profileid = int (id, 16)
+                 if profileid > 0xFF:
+                    sys.stderr.write('Invalid profile id value %d, should be 1-byte hexdecimal number. \n' % profileid)
+                    return -1
+ 
             generate_profiles(schema, profile_header_path, profile_paths, efi_type,
                               profile_names=known_args.profile_names, profile_ids=known_args.profile_ids)
         return 0
