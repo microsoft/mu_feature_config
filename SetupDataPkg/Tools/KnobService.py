@@ -1238,8 +1238,8 @@ def arg_parse():
              '''or --profilenames <Name1,Name2,Name3>.''')
     parser.add_argument(
         '-pid', '--profileids', dest='profile_ids', type=str, default=None,
-        help='''Specify the comma separated profile ids (1-byte hexdecimal number prepend with 0x) by passing -pid <Id1,Id2> '''
-             '''or --profileids <Id1,Id2,Id3>.''')
+        help='''Specify the comma separated profile ids (1-byte hexdecimal number prepend with 0x) '''
+             '''by passing -pid <Id1,Id2> or --profileids <Id1,Id2,Id3>.''')
 
     return parser.parse_known_args()
 
@@ -1316,16 +1316,17 @@ def main():
                 if len(ids) != len(profile_paths):
                     sys.stderr.write('Invalid count of profile ids %d.\n' % len(ids))
                     return -1
- 
+
                 formatted_profile_ids = []
                 for id in ids:
-                    if id.startswith('0x') == False:
+                    if id.startswith('0x') is False:
                         sys.stderr.write('Profile id does not start with \'0x\'. \n')
                         return -1
 
-                    profileid = int (id, 16)
+                    profileid = int(id, 16)
                     if profileid > 0xFF:
-                        sys.stderr.write('Invalid profile id value 0x%x, should be 1-byte hexdecimal number. \n' % profileid)
+                        sys.stderr.write('Invalid profile id value 0x%x, should be 1-byte hexdecimal number. \n'
+                                         % profileid)
                         return -1
                     formatted_profile_ids.append(hex(profileid))
 
