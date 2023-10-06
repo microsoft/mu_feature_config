@@ -1329,6 +1329,8 @@ def main():
                                          % profileid)
                         return -1
                     formatted_profile_ids.append(hex(profileid))
+            else:
+                formatted_profile_ids = None
 
             generate_profiles(schema, profile_header_path, profile_paths, efi_type,
                               profile_names=known_args.profile_names, profile_ids=formatted_profile_ids)
