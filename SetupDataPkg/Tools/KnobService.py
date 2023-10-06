@@ -1173,10 +1173,12 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
             out.write("};" + get_line_ending(efi_type))
             out.write(get_line_ending(efi_type))
             if profile_ids is not None:
-                ids_list = profile_ids
+                ids_iter = profile_ids
             else:
                 # If not specified, the indices will be the default profile ids
-                ids_list = [format(i, '02x') for i in range(len(profile_paths))]
+                ids_iter = range(len(profile_paths))
+
+            ids_list = ['0x' + format(i, '02x') for i in ids_iter]
 
             out.write(get_line_ending(efi_type))
             out.write(get_type_string("uint8_t", efi_type) + " g{}[PROFILE_COUNT]".format(
@@ -1328,7 +1330,9 @@ def main():
                         sys.stderr.write('Invalid profile id value 0x%x, should be 1-byte hexadecimal number. \n'
                                          % profileid)
                         return -1
-                    formatted_profile_ids.append(hex(profileid))
+                    formatted_profile_ids.append(profileid)
+            else:
+                formatted_profile_ids = None
 
             generate_profiles(schema, profile_header_path, profile_paths, efi_type,
                               profile_names=known_args.profile_names, profile_ids=formatted_profile_ids)
