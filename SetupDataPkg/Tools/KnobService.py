@@ -668,6 +668,8 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                     ) + get_line_ending(efi_type))
                     out.write(get_spacing_string(efi_type, 3) + "return {};".format(
                         get_value_string('true', efi_type)) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type, 2) + "default:" + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type, 3) + "break;" + get_line_ending(efi_type))
                 out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
                 out.write(get_spacing_string(efi_type) + "return {};".format(
                     get_value_string('false', efi_type)
