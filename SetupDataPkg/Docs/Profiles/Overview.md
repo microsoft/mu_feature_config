@@ -99,3 +99,48 @@ knobs that can be iterated through and applied to the `CacheValueAddress` of eac
 Alternatively, if the generic profile is chosen, ActiveProfileIndexSelectorLib will return MAX_UINT32 to indicdate the
 gProfileData structure is not used for this boot and instead only the defaults in gKnobData (and possibly any
 overrides found in variable storage) will be used.
+
+### Platform Usage Recommendations
+
+#### Generate Profile CSV Files
+
+There are 2 ways to generate the CSV files:
+
+- Through ConfigEditor UI tool:
+
+  - Load the XML configuration file
+  - Make any changes
+  - Save the CSV file by selecting the "Save Config Changes to Change File" button. Show below:
+
+    ![Profile Through ConfigEditor UI tool](Images/profile_ui.png)
+
+- Through the command line:
+
+  - Run the following command:
+
+    ```bash
+    GenNCCfgData  GENCSV  XmlFile[;BinFile]   CsvOutFile
+    ```
+
+#### Add Profile CSV Files to PlatformBuild.py
+
+If platforms would like to integrate the profile CSV files into their build, they can add the following to their build by
+following the statements outlined in the [section above](#flow).
+
+#### Provide Profile Names and IDs
+
+Platforms also can provide a 2-character name and/or 1-byte ID for each profile. These are used to identify the profile
+by the selector, which could be BMC, OS, or other.
+
+In firmware, the name and ID are provided in the `gProfileFlavorNames` and `gProfileFlavorIds`, respectively. Platforms
+can elect to create HOBs for these meta data information and provide them to the selector. See example [here](https://github.com/microsoft/mu_oem_sample/tree/release/202302/OemPkg/OemConfigPolicyCreatorPei).
+
+To integrate the name and ID into the build, platforms can add the following to their build by following the statements:
+
+```python
+self.env.SetValue('CONF_PROFILE_NAMES', "P2,P1", "Platform Hardcoded")
+self.env.SetValue('CONF_PROFILE_IDS', "2,1", "Platform Hardcoded")
+```
+
+Note that the profile names and IDs are optional. If they are not provided, the selector will use the profile index as
+the default name and ID.
