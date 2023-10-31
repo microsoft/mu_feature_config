@@ -132,7 +132,8 @@ following the statements outlined in the [section above](#flow).
 Platforms also can provide a 2-character name and/or 1-byte ID for each profile. These are used to identify the profile
 by the selector, which could be BMC, OS, or other.
 
-In firmware, the name and ID are provided in the `gProfileFlavorNames` and `gProfileFlavorIds`, respectively. Platforms
+In firmware, the name and ID are auto generated and can be accessed through `gProfileFlavorNames` and `gProfileFlavorIds`, respectively. Platforms
+
 can elect to create HOBs for these meta data information and provide them to the selector. See example [here](https://github.com/microsoft/mu_oem_sample/tree/release/202302/OemPkg/OemConfigPolicyCreatorPei).
 
 To integrate the name and ID into the build, platforms can add the following to their build by following the statements:
