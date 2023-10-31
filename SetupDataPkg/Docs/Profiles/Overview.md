@@ -134,7 +134,8 @@ by the selector, which could be BMC, OS, or other.
 
 In firmware, the name and ID are auto generated and can be accessed through `gProfileFlavorNames` and `gProfileFlavorIds`, respectively. Platforms
 
-can elect to create HOBs for these meta data information and provide them to the selector. See example [here](https://github.com/microsoft/mu_oem_sample/tree/release/202302/OemPkg/OemConfigPolicyCreatorPei).
+can elect to create HOBs for this meta data information and consume it in other drivers. See example [here](https://github.com/microsoft/mu_oem_sample/tree/release/202302/OemPkg/OemConfigPolicyCreatorPei).
+
 
 To integrate the name and ID into the build, platforms can add the following to their build by following the statements:
 
