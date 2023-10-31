@@ -116,10 +116,10 @@ There are 2 ways to generate the CSV files:
 
 - Through the command line:
 
-  - Run the following command:
+  - Run `GenNCCfgData.py` script with specified XML file and output CSV file, for example:
 
     ```bash
-    GenNCCfgData  GENCSV  XmlFile[;BinFile]   CsvOutFile
+    GenNCCfgData.py GENCSV sampleschema.xml;input.bin output.csv
     ```
 
 #### Add Profile CSV Files to PlatformBuild.py
