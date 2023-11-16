@@ -41,4 +41,4 @@
 
 [Depex]
   # Platforms can decide whether variable services are a hard dependency for config or not
-  gEfiPeiReadOnlyVariable2PpiGuid
+  gEfiPeiReadOnlyVariable2PpiGuid 

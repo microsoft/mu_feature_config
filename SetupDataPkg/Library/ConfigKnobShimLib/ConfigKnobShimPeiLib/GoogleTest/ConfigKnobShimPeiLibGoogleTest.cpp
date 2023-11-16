@@ -1,6 +1,5 @@
 /** @file ConfigKnobShimPeiLibGoogleTest.cpp
-  This is a sample to demonstrates the use of GoogleTest that supports host
-  execution environments.
+  Unit tests for the ConfigKnobShimPeiLib using GoogleTest
 
   Copyright (c) Microsoft Corporation.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -27,8 +26,8 @@ using namespace testing;
 class GetConfigKnobOverrideFromVariableStorageTest : public Test
 {
 protected:
-MockPeiServicesLib PeiServicesMock;
-MockReadOnlyVariable2 PpiVariableServicesMock;   // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
+StrictMock<MockPeiServicesLib> PeiServicesMock;
+StrictMock<MockReadOnlyVariable2> PpiVariableServicesMock;   // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
 EFI_STATUS Status;
 EFI_GUID ConfigKnobGuid;
 CHAR16 *ConfigKnobName;
