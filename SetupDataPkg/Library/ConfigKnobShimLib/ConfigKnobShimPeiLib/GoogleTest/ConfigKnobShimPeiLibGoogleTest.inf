@@ -1,0 +1,35 @@
+## @file
+# Unit test suite for the ConfigKnobShimPeiLib using Google Test
+#
+# Copyright (c) 2022, Intel Corporation. All rights reserved.
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = ConfigKnobShimPeiLibGoogleTest
+  FILE_GUID           = 3A2B1C8E-FFE2-4EA2-A003-BABCBCB85940
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = HOST_APPLICATION
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  ConfigKnobShimPeiLibGoogleTest.cpp
+  ../../ConfigKnobShimLibCommon.c
+  MdePkg/Test/Mock/Library/GoogleTest/Ppi/MockReadOnlyVariable2.cpp
+
+[Packages]
+  MdePkg/MdePkg.dec
+  SetupDataPkg/SetupDataPkg.dec
+  UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
+
+[LibraryClasses]
+  GoogleTestLib
+  BaseLib
+  DebugLib
+  ConfigKnobShimLib
