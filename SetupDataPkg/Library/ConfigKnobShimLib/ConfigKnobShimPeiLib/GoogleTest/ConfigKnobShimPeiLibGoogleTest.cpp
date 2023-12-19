@@ -12,10 +12,10 @@
 #include <GoogleTest/Ppi/MockReadOnlyVariable2.h>
 
 extern "C" {
-#include <Uefi.h>
-#include <Library/BaseLib.h>
-#include <Library/DebugLib.h>
-#include <Library/ConfigKnobShimLib.h>
+  #include <Uefi.h>
+  #include <Library/BaseLib.h>
+  #include <Library/DebugLib.h>
+  #include <Library/ConfigKnobShimLib.h>
 }
 
 #define CONFIG_KNOB_GUID  {0x52d39693, 0x4f64, 0x4ee6, {0x81, 0xde, 0x45, 0x89, 0x37, 0x72, 0x78, 0x55}}
@@ -26,28 +26,28 @@ using namespace testing;
 class GetConfigKnobOverrideFromVariableStorageTest : public Test
 {
 protected:
-StrictMock<MockPeiServicesLib> PeiServicesMock;
-StrictMock<MockReadOnlyVariable2> PpiVariableServicesMock;   // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
-EFI_STATUS Status;
-EFI_GUID ConfigKnobGuid;
-CHAR16 *ConfigKnobName;
-UINT64 ProfileDefaultValue;
-UINTN ProfileDefaultSize;
-UINT64 VariableData;
-UINT64 ConfigKnobData;
+  StrictMock<MockPeiServicesLib> PeiServicesMock;
+  StrictMock<MockReadOnlyVariable2> PpiVariableServicesMock; // mock of EFI_PEI_READ_ONLY_VARIABLE2_PPI
+  EFI_STATUS Status;
+  EFI_GUID ConfigKnobGuid;
+  CHAR16 *ConfigKnobName;
+  UINT64 ProfileDefaultValue;
+  UINTN ProfileDefaultSize;
+  UINT64 VariableData;
+  UINT64 ConfigKnobData;
 
-// Redefining the Test class's SetUp function for test fixtures.
-void
-SetUp (
-  ) override
-{
-  ConfigKnobGuid      = CONFIG_KNOB_GUID;
-  ConfigKnobName      = (CHAR16 *)L"MyDeadBeefDelivery";
-  ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
-  ProfileDefaultSize  = sizeof (ProfileDefaultValue);
-  VariableData        = 0xBEEF7777BEEF7777;
-  ConfigKnobData      = ProfileDefaultValue;
-}
+  // Redefining the Test class's SetUp function for test fixtures.
+  void
+  SetUp (
+    ) override
+  {
+    ConfigKnobGuid      = CONFIG_KNOB_GUID;
+    ConfigKnobName      = (CHAR16 *)L"MyDeadBeefDelivery";
+    ProfileDefaultValue = 0xDEADBEEFDEADBEEF;
+    ProfileDefaultSize  = sizeof (ProfileDefaultValue);
+    VariableData        = 0xBEEF7777BEEF7777;
+    ConfigKnobData      = ProfileDefaultValue;
+  }
 };
 
 //
