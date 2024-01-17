@@ -1,0 +1,13 @@
+###################################################
+# Line Ending Only Changes                        #
+###################################################
+# Fix line endings in repo (LF -> CRLF)
+72cead770bb7404c051b37639d5e289e95300cf1
+
+###################################################
+# Code Formatting (Uncrustify) Only Changes       #
+###################################################
+# SetupDataPkg: apply cpp uncrustify changes
+02367f1eba365565cc284a287f7c4ac0851b2363
+# Apply uncrustify changes to all *.c/*.h to SetupDataPkg
+1e549acbba1034b5ea8744c7ab0218aad53e7891
