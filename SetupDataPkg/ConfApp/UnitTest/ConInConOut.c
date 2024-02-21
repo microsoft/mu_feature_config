@@ -52,6 +52,13 @@ MockReadKey (
   OUT EFI_KEY_DATA                       *KeyData
   );
 
+EFI_STATUS
+EFIAPI
+MockReset (
+  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  IN BOOLEAN                            ExtendedVerification
+  );
+
 EFI_SIMPLE_TEXT_OUTPUT_MODE  MockMode = {
   .CursorColumn = 5,
   .CursorRow    = 5,
@@ -120,6 +127,7 @@ EFI_SYSTEM_TABLE  MockSys = {
 };
 
 EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput = {
+  .Reset           = MockReset,
   .ReadKeyStrokeEx = MockReadKey,
   .WaitForKeyEx    = (EFI_EVENT)(UINTN)0xDEADBEEF,
 };
@@ -142,5 +150,27 @@ MockReadKey (
   }
 
   CopyMem (KeyData, MockKey, sizeof (EFI_KEY_DATA));
+  return EFI_SUCCESS;
+}
+
+/**
+  Mock instance of Reset function.
+
+  @param  This                 Protocol instance pointer.
+  @param  ExtendedVerification Driver may perform diagnostics on reset.
+
+  @retval EFI_SUCCESS          The device was reset.
+  @retval EFI_DEVICE_ERROR     The device is not functioning properly and could not be reset.
+
+**/
+EFI_STATUS
+EFIAPI
+MockReset (
+  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  IN BOOLEAN                            ExtendedVerification
+  )
+{
+  assert_ptr_equal (This, &MockSimpleInput);
+
   return EFI_SUCCESS;
 }
