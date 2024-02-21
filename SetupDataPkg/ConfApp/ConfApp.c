@@ -357,7 +357,7 @@ ConfAppEntry (
     goto Exit;
   }
 
-  // This will be the serial ConIn, which could have some potential noise on the line, reset it before reading 
+  // This will be the serial ConIn, which could have some potential noise on the line, reset it before reading
   Status = mSimpleTextInEx->Reset (mSimpleTextInEx, FALSE);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to reset SimpleTextIn on ConIn. Code = %r.\n", Status));
