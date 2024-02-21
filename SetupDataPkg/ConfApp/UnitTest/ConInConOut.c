@@ -55,8 +55,8 @@ MockReadKey (
 EFI_STATUS
 EFIAPI
 MockReset (
-  IN  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
-  OUT EFI_KEY_DATA                       *KeyData
+  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  IN BOOLEAN                            ExtendedVerification
   );
 
 EFI_SIMPLE_TEXT_OUTPUT_MODE  MockMode = {
@@ -166,8 +166,8 @@ MockReadKey (
 EFI_STATUS
 EFIAPI
 MockReset (
-  IN EFI_SIMPLE_TEXT_INPUT_PROTOCOL  *This,
-  IN BOOLEAN                         ExtendedVerification
+  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *This,
+  IN BOOLEAN                            ExtendedVerification
   )
 {
   assert_ptr_equal (This, &MockSimpleInput);
