@@ -474,7 +474,7 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS  Status = EFI_NOT_FOUND;
   CHAR16      *FileName;
   CHAR8       *XmlString;
   UINTN       XmlStringSize;
@@ -641,7 +641,7 @@ CreateXmlStringFromCurrentSettings (
   CHAR8                  *EncodedBuffer = NULL;
   UINTN                  EncodedSize    = 0;
   VOID                   *Data          = NULL;
-  CHAR8                  *AsciiName;
+  CHAR8                  *AsciiName     = NULL;
   UINTN                  AsciiSize;
   UINTN                  i;
   UINTN                  NumPolicies;
