@@ -91,27 +91,6 @@ class UefiVariable(object):
             pass
 
     #
-    # Helper function to create buffer for var read/write
-    #
-    def CreateBuffer(self, init, size=None):
-        """CreateBuffer(aString) -> character array
-        CreateBuffer(anInteger) -> character array
-        CreateBuffer(aString, anInteger) -> character array
-        """
-        if isinstance(init, str):
-            if size is None:
-                size = len(init) + 1
-            buftype = c_char * size
-            buf = buftype()
-            buf.value = init
-            return buf
-        elif isinstance(init, int):
-            buftype = c_char * init
-            buf = buftype()
-            return buf
-        raise TypeError(init)
-
-    #
     # Function to get variable
     # return a tuple of error code and variable data as string
     #
@@ -135,8 +114,8 @@ class UefiVariable(object):
                 )
                 logging.error(WinError())
             if efi_var is None:
-                return (err, None, WinError(err))
-        return (err, efi_var[:length], WinError(err))
+                return (err, None)
+        return (err, efi_var[:length])
 
     #
     # Function to get all variable names
@@ -176,8 +155,8 @@ class UefiVariable(object):
             logging.error(
                 "EnumerateFirmwareEnvironmentVariable failed (GetLastError = 0x%x)" % status
             )
-            return (status, None, WinError(status))
-        return (status, efi_var_names, None)
+            return (status, None)
+        return (status, efi_var_names)
 
     #
     # Function to set variable
@@ -186,7 +165,6 @@ class UefiVariable(object):
     def SetUefiVar(self, name, guid, var=None, attrs=None):
         var_len = 0
         err = 0
-        error_string = None
         if var is None:
             var = bytes(0)
         else:
@@ -221,5 +199,4 @@ class UefiVariable(object):
                 "SetFirmwareEnvironmentVariable failed (GetLastError = 0x%x)" % err
             )
             logging.error(WinError())
-            error_string = WinError(err)
-        return (success, err, error_string)
+        return success

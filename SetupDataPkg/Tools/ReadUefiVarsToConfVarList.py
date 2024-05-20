@@ -12,7 +12,10 @@ import argparse
 import struct
 import uuid
 import ctypes
-from SettingSupport.UefiVariablesSupportLib import UefiVariable
+if os.name == 'nt':
+    from SettingSupport.UefiVariablesSupportLib import UefiVariable
+else:
+    from SettingSupport.UefiVariablesSupportLinuxLib import UefiVariable
 from VariableList import Schema, UEFIVariable, create_vlist_buffer
 
 
@@ -53,7 +56,7 @@ def option_parser():
 # array
 #
 def read_variable_into_variable_list(uefi_var, name, namespace):
-    (rc, var, _) = uefi_var.GetUefiVar(name, namespace)
+    (rc, var) = uefi_var.GetUefiVar(name, namespace)
     if rc != 0:
         if rc != UefiVariable.ERROR_ENVVAR_NOT_FOUND:
             # only log the errors other than EFI_NOT_FOUND, because not found is normal in this case...
@@ -78,7 +81,7 @@ def main():
         ret = b''
         if arguments.configuration_file is None:
             # Read all the variables
-            (rc, efi_var_names, error_string) = UefiVar.GetUefiAllVarNames()
+            (rc, efi_var_names) = UefiVar.GetUefiAllVarNames()
             if rc != 0:
                 logging.error(f"Error returned from GetUefiAllVarNames: {rc}")
 
@@ -117,9 +120,14 @@ if __name__ == "__main__":
     console.setLevel(logging.CRITICAL)
 
     # check the privilege level and report error
-    if not ctypes.windll.shell32.IsUserAnAdmin():
-        print("Administrator privilege required. Please launch from an Administrator privilege level.")
-        sys.exit(1)
+    if os.name == 'nt':
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            print("Administrator privilege required. Please launch from an Administrator privilege level.")
+            sys.exit(1)
+    else:
+        if os.geteuid() != 0:
+            print("Root permission required, please run script with sudo.")
+            sys.exit(1)
 
     # call main worker function
     retcode = main()
