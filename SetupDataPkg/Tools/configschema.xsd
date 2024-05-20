@@ -12,6 +12,7 @@
                     <xs:element name="Value" maxOccurs="unbounded">
                       <xs:complexType>
                         <xs:attribute name="name" use="required" />
+                        <xs:attribute name="prettyname" use="optional" />
                         <xs:attribute name="value" use="required" />
                         <xs:attribute name="help" use="optional" />
                         <xs:attribute name="deprecated" type="xs:boolean" use="optional" />
@@ -19,6 +20,7 @@
                     </xs:element>
                   </xs:sequence>
                   <xs:attribute name="name" use="required" />
+                  <xs:attribute name="prettyname" use="optional" />
                   <xs:attribute name="default" use="optional" />
                   <xs:attribute name="help" use="optional" />
                 </xs:complexType>
@@ -35,6 +37,7 @@
                     <xs:element name="Member" maxOccurs="unbounded">
                       <xs:complexType>
                         <xs:attribute name="name" use="required" />
+                        <xs:attribute name="prettyname" use="optional" />
                         <xs:attribute name="type" use="required" />
                         <xs:attribute name="default" use="optional" />
                         <xs:attribute name="min" use="optional" />
@@ -46,6 +49,7 @@
                     </xs:element>
                   </xs:sequence>
                   <xs:attribute name="name" use="required" />
+                  <xs:attribute name="prettyname" use="optional" />
                   <xs:attribute name="help" use="optional" />
                 </xs:complexType>
               </xs:element>
@@ -59,6 +63,7 @@
                 <xs:element name="Knob" maxOccurs="unbounded">
                   <xs:complexType>
                     <xs:attribute name="name" use="required" />
+                    <xs:attribute name="prettyname" use="optional" />
                     <xs:attribute name="type" use="required" />
                     <xs:attribute name="default" use="optional" />
                     <xs:attribute name="min" use="optional" />

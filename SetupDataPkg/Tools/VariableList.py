@@ -300,6 +300,7 @@ class EnumValue:
     def __init__(self, enum_name, xml_node):
         self.enum_name = enum_name
         self.name = xml_node.getAttribute("name")
+        self.pretty_name = xml_node.getAttribute("prettyname")
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Enum '{}' has invalid value name '{}'".format(
@@ -322,6 +323,7 @@ class EnumValue:
 class EnumFormat(DataFormat):
     def __init__(self, xml_node):
         self.name = xml_node.getAttribute("name")
+        self.pretty_name = xml_node.getAttribute("prettyname")
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Enum name '{}' is invalid".format(self.name))
@@ -501,6 +503,7 @@ class ArrayFormat(DataFormat):
 class StructMember:
     def __init__(self, schema, struct_name, xml_node):
         self.name = xml_node.getAttribute("name")
+        self.pretty_name = xml_node.getAttribute("prettyname")
         self.struct_name = struct_name
         if not is_valid_name(self.name):
             raise InvalidNameError(
@@ -566,6 +569,7 @@ class StructMember:
 class StructFormat(DataFormat):
     def __init__(self, schema, xml_node):
         self.name = xml_node.getAttribute("name")
+        self.pretty_name = xml_node.getAttribute("prettyname")
         if not is_valid_name(self.name):
             raise InvalidNameError("Struct name '{}' is invalid".format(
                 self.name))
@@ -731,6 +735,7 @@ class StructFormat(DataFormat):
 class Knob:
     def __init__(self, schema, xml_node, namespace):
         self.name = xml_node.getAttribute("name")
+        self.pretty_name = xml_node.getAttribute("prettyname")
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Knob name '{}' is invalid".format(self.name))
@@ -920,6 +925,7 @@ class SubKnob:
     def __init__(self, knob, path, format, help, leaf=False):
         self.knob = knob
         self.name = path
+        self.pretty_name = knob.pretty_name
         self.format = format
         self.help = help
         self.leaf = leaf
