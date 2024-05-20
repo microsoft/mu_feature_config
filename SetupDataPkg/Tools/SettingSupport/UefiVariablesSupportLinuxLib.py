@@ -54,13 +54,13 @@ class UefiVariable(object):
 
         if not os.path.exists(path):
             err = UefiVariable.ERROR_ENVVAR_NOT_FOUND
-            return (err, None, None)
+            return (err, None)
 
         efi_var = create_string_buffer(EFI_VAR_MAX_BUFFER_SIZE)
         with open(path, 'rb') as fd:
             efi_var = fd.read()
 
-        return (err, efi_var, None)
+        return (err, efi_var)
 
     #
     # Function to get all variable names
@@ -80,7 +80,7 @@ class UefiVariable(object):
         path = '/sys/firmware/efi/efivars'
         if not os.path.exists(path):
             status = UefiVariable.ERROR_ENVVAR_NOT_FOUND
-            return (status, None, None)
+            return (status, None)
 
         vars = os.listdir(path)
 
@@ -106,18 +106,18 @@ class UefiVariable(object):
             name = name.encode('utf-16')
 
             # NextEntryOffset
-            efi_var_names[offset] = struct.pack('=I', sys.getsizeof(int) + sys.getsizeof(name) + sys.getsizeof(guid))
+            struct.pack_into('=I', efi_var_names, offset, sys.getsizeof(int) + sys.getsizeof(name) + sys.getsizeof(guid))
             offset += sys.getsizeof(int)
 
             # VendorGuid
-            efi_var_names[offset] = struct.packed('=s', guid.toString())
+            struct.pack_into('=s', efi_var_names, offset, guid)
             offset += sys.getsizeof(guid)
 
             # Name
-            efi_var_names[offset] = name
+            struct.pack_into('=s', efi_var_names, offset, name)
             offset += sys.getsizeof(name)
 
-        return (status, efi_var_names, None)
+        return (status, efi_var_names)
 
     #
     # Function to set variable
