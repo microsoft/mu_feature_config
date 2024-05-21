@@ -88,7 +88,11 @@ class UefiVariable(object):
         length = 0
         offset = 0
         for var in vars:
-            length += sys.getsizeof(int) + (sys.getsizeof(var.encode('utf-16')))
+            split_string = var.split('-')
+            name = '-'.join(split_string[:-5])
+            name = name.encode('utf-16-le')
+            name_len = len(name)
+            length += (4 + 16 + name_len)
 
         efi_var_names = create_string_buffer(length)
 
@@ -103,19 +107,20 @@ class UefiVariable(object):
 
             # the other part is the name
             name = '-'.join(split_string[:-5])
-            name = name.encode('utf-16')
+            name = name.encode('utf-16-le')
+            name_len = len(name)
 
             # NextEntryOffset
-            struct.pack_into('=I', efi_var_names, offset, sys.getsizeof(int) + sys.getsizeof(name) + sys.getsizeof(guid))
-            offset += sys.getsizeof(int)
+            struct.pack_into('<I', efi_var_names, offset, 4 + 16 + name_len)
+            offset += 4
 
             # VendorGuid
-            struct.pack_into('=s', efi_var_names, offset, guid)
-            offset += sys.getsizeof(guid)
+            struct.pack_into('=16s', efi_var_names, offset, guid)
+            offset += 16
 
             # Name
-            struct.pack_into('=s', efi_var_names, offset, name)
-            offset += sys.getsizeof(name)
+            struct.pack_into(f'={name_len}s', efi_var_names, offset, name)
+            offset += name_len
 
         return (status, efi_var_names)
 
@@ -126,7 +131,9 @@ class UefiVariable(object):
     def SetUefiVar(self, name, guid, var=None, attrs=None):
         var_len = 0
         success = 0  # Fail
-        path = '/sys/firmware/efi/efivars/' + name + '-' + str(guid)
+
+        # There is a null terminator at the end of the name
+        path = '/sys/firmware/efi/efivars/' + name[:-1] + '-' + str(guid)
         if var is None:
             # we are deleting the variable
             if (os.path.exists(path)):
@@ -139,7 +146,11 @@ class UefiVariable(object):
         if attrs is None:
             attrs = 0x7
 
-        with open (path, 'wb') as fd:
+        # if the file exists, remove the immutable flag
+        if (os.path.exists(path)):
+            os.system('sudo chattr -i ' + path)
+
+        with open(path, 'wb') as fd:
             # var data is attribute (UINT32) followed by data
             packed = struct.pack('=I', attrs)
             packed += var
