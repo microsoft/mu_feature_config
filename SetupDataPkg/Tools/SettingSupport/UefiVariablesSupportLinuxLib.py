@@ -21,26 +21,6 @@ class UefiVariable(object):
 
     def __init__(self):
         pass
-    #
-    # Helper function to create buffer for var read/write
-    #
-    def CreateBuffer(self, init, size=None):
-        """CreateBuffer(aString) -> character array
-        CreateBuffer(anInteger) -> character array
-        CreateBuffer(aString, anInteger) -> character array
-        """
-        if isinstance(init, str):
-            if size is None:
-                size = len(init) + 1
-            buftype = c_char * size
-            buf = buftype()
-            buf.value = init
-            return buf
-        elif isinstance(init, int):
-            buftype = c_char * init
-            buf = buftype()
-            return buf
-        raise TypeError(init)
 
     #
     # Function to get variable
