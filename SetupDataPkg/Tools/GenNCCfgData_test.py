@@ -113,7 +113,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         # Get only a struct knob
         ret = cdata.get_cfg_list('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1a')
         self.assertGreater(len(ret), 1)
-        self.assertEqual(ret[0]['name'], 'COMPLEX_KNOB1a')
+        self.assertEqual(ret[0]['name'], 'Complex knob')
         self.assertEqual(ret[0]['type'], 'STRUCT_KNOB')
         self.assertEqual(cdata.schema.get_knob(
             "FE3ED49F-B173-41ED-9076-356661D46A42", "COMPLEX_KNOB1a"), ret[0]['inst'])
@@ -171,7 +171,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
-        val_str = 'THIRD'
+        val_str = 'Third Mode'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.reformat_value_str(val_str, cdata.get_cfg_item_length(ret), item=ret)
         self.assertEqual(val_str, ret_str)
@@ -232,7 +232,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
 
         # Run on an enum knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
-        val_str = 'THIRD'
+        val_str = 'Third Mode'
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_str = cdata.set_item_value(val_str, item=ret)
         self.assertEqual(ret_str, val_str)
@@ -274,7 +274,7 @@ class UncoreCfgUnitTests(unittest.TestCase):
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.COMPLEX_KNOB1b.mode')
         self.assertEqual(ret['type'], 'ENUM_KNOB')
         ret_list = cdata.get_cfg_item_options(item=ret)
-        self.assertEqual(ret_list, ["FIRST", "SECOND", "THIRD"])
+        self.assertEqual(ret_list, ["First Mode", "Second Mode", "Third Mode"])
 
         # Run on a boolean knob
         ret = cdata.get_item_by_path('FE3ED49F-B173-41ED-9076-356661D46A42.BOOLEAN_KNOB')
