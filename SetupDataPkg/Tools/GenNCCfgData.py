@@ -105,7 +105,7 @@ class CGenNCCfgData:
         if item["type"].upper() == "ENUM_KNOB":
             if type(item["inst"].format) is not EnumFormat:
                 raise Exception("The item is malformed!!!")
-            tmp_list = [i.name for i in item["inst"].format.values]
+            tmp_list = [i.pretty_name for i in item["inst"].format.values]
         elif item["type"].upper() == "BOOL_KNOB":
             if type(item["inst"].format) is not BoolFormat:
                 raise Exception("The item is malformed!!!")

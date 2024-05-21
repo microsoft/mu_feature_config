@@ -301,6 +301,8 @@ class EnumValue:
         self.enum_name = enum_name
         self.name = xml_node.getAttribute("name")
         self.pretty_name = xml_node.getAttribute("prettyname")
+        if self.pretty_name == '':
+            self.pretty_name = self.name
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Enum '{}' has invalid value name '{}'".format(
@@ -324,6 +326,8 @@ class EnumFormat(DataFormat):
     def __init__(self, xml_node):
         self.name = xml_node.getAttribute("name")
         self.pretty_name = xml_node.getAttribute("prettyname")
+        if self.pretty_name == '':
+            self.pretty_name = self.name
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Enum name '{}' is invalid".format(self.name))
@@ -362,7 +366,7 @@ class EnumFormat(DataFormat):
             return int(string_representation)
         except ValueError:
             for value in self.values:
-                if value.name == string_representation:
+                if value.name == string_representation or value.pretty_name == string_representation:
                     return value.number
         raise ParseError(
             "Value '{}' is not a valid value of enum '{}'".format(
@@ -378,7 +382,7 @@ class EnumFormat(DataFormat):
                 if options.c_format:
                     return "{}_{}".format(self.name, value.name)
                 else:
-                    return value.name
+                    return value.pretty_name
         return str(object_representation)
 
     def object_to_binary(self, object_representation):
@@ -605,7 +609,7 @@ class StructFormat(DataFormat):
 
     def create_subknobs(self, knob, path):
         subknobs = []
-        subknobs.append(SubKnob(knob, path, self, self.help))
+        subknobs.append(SubKnob(knob, path, self, self.help, self.pretty_name))
         for member in self.members:
             subpath = "{}.{}".format(path, member.name)
             if member.count == 1:
@@ -618,6 +622,7 @@ class StructFormat(DataFormat):
                             subpath,
                             member.format,
                             member.help,
+                            member.pretty_name,
                             True  # Leaf
                         ))
             else:
@@ -627,6 +632,7 @@ class StructFormat(DataFormat):
                         subpath,
                         member.format,
                         member.help,
+                        member.pretty_name,
                         False  # Leaf
                     ))
 
@@ -643,6 +649,7 @@ class StructFormat(DataFormat):
                                 indexed_subpath,
                                 member.format.format,
                                 member.help,
+                                member.pretty_name,
                                 True  # Leaf
                             ))
         return subknobs
@@ -797,6 +804,7 @@ class Knob:
                     self,
                     self.name,
                     self.format,
+                    self.pretty_name,
                     self.help))
             self.subknobs += self.format.create_subknobs(self, self.name)
         else:
@@ -806,6 +814,7 @@ class Knob:
                     self.name,
                     self.format,
                     self.help,
+                    self.pretty_name,
                     True  # Leaf
                 ))
 
@@ -922,10 +931,10 @@ class Knob:
 
 
 class SubKnob:
-    def __init__(self, knob, path, format, help, leaf=False):
+    def __init__(self, knob, path, format, help, pretty_name, leaf=False):
         self.knob = knob
         self.name = path
-        self.pretty_name = knob.pretty_name
+        self.pretty_name = pretty_name
         self.format = format
         self.help = help
         self.leaf = leaf
