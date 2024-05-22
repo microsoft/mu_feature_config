@@ -2,8 +2,11 @@
 #
 # Python lib to support Reading and writing UEFI variables from Linux
 #
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
 # Copyright (c), Microsoft Corporation
 # SPDX-License-Identifier: BSD-2-Clause-Patent
+#
 
 import os
 import uuid
@@ -55,7 +58,7 @@ class UefiVariable(object):
         # success
         status = 0
 
-        # implementation borrowed from https://github.com/awslabs/python-uefivars/blob/main/pyuefivars/efivarfs.py
+        # implementation borrowed from https://github.com/awslabs/python-uefivars/blob/main/pyuefivars/efivarfs.py hash 47291b3
         path = '/sys/firmware/efi/efivars'
         if not os.path.exists(path):
             status = UefiVariable.ERROR_ENVVAR_NOT_FOUND
