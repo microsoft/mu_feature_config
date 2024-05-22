@@ -2,12 +2,15 @@
 #
 # Python lib to support Reading and writing UEFI variables from Linux
 #
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT
 #
 # Copyright (c), Microsoft Corporation
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: BSD-2-Clause-Patent
 #
+# GetUefiAllVarNames is based on information from
+# https://github.com/awslabs/python-uefivars/blob/main/pyuefivars/efivarfs.py
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT
 
 import os
 import uuid
