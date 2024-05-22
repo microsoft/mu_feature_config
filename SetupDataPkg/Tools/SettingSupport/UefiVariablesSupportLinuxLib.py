@@ -18,6 +18,7 @@ from ctypes import (
 
 EFI_VAR_MAX_BUFFER_SIZE = 1024 * 1024
 
+
 class UefiVariable(object):
     ERROR_ENVVAR_NOT_FOUND = 0xcb
 
@@ -58,7 +59,7 @@ class UefiVariable(object):
         # success
         status = 0
 
-        # implementation borrowed from https://github.com/awslabs/python-uefivars/blob/main/pyuefivars/efivarfs.py hash 47291b3
+        # implementation borrowed from https://github.com/awslabs/python-uefivars/blob/main/pyuefivars/efivarfs.py
         path = '/sys/firmware/efi/efivars'
         if not os.path.exists(path):
             status = UefiVariable.ERROR_ENVVAR_NOT_FOUND
@@ -119,7 +120,7 @@ class UefiVariable(object):
             # we are deleting the variable
             if (os.path.exists(path)):
                 os.remove(path)
-                success = 1 # expect non-zero success
+                success = 1  # expect non-zero success
             return success
 
         if attrs is None:
