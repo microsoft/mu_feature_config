@@ -105,7 +105,7 @@ class CGenNCCfgData:
         if item["type"].upper() == "ENUM_KNOB":
             if type(item["inst"].format) is not EnumFormat:
                 raise Exception("The item is malformed!!!")
-            tmp_list = [i.name for i in item["inst"].format.values]
+            tmp_list = [i.pretty_name for i in item["inst"].format.values]
         elif item["type"].upper() == "BOOL_KNOB":
             if type(item["inst"].format) is not BoolFormat:
                 raise Exception("The item is malformed!!!")
@@ -158,17 +158,21 @@ class CGenNCCfgData:
 
         # Add the pages for each root knob
         for knob in self.schema.knobs:
+            # try to use pretty name if it exists
+            print_name = knob.pretty_name
+            if print_name == '':
+                print_name = knob.name
             if not self.add_cfg_page(
                 child=".".join([knob.namespace, knob.name]),
                 parent=knob.namespace,
-                title=knob.name,
+                title=print_name,
             ):
                 # The parent page may not exist yet
                 self.add_cfg_page(child=knob.namespace, parent=self._cur_page, title=knob.namespace)
                 if not self.add_cfg_page(
                     child=".".join([knob.namespace, knob.name]),
                     parent=knob.namespace,
-                    title=knob.name,
+                    title=print_name,
                 ):
                     raise Exception("Failed to add page for knob %s" % knob.name)
 
@@ -176,7 +180,9 @@ class CGenNCCfgData:
         # below is a shim layer that connects the UI and data structure
         for idx, data in enumerate(self.schema.subknobs):
             itype = type(data.format)
-            name = data.name
+            name = data.pretty_name
+            if name == '':
+                name = data.name
             ord_dict = OrderedDict()
             if itype is IntValueFormat:
                 ord_dict["type"] = "INTEGER_KNOB"
@@ -195,9 +201,9 @@ class CGenNCCfgData:
             ord_dict["inst"] = data
             ord_dict["order"] = idx
             ord_dict["name"] = name
-            ord_dict["cname"] = name
+            ord_dict["cname"] = data.name
             ord_dict["value"] = data.format.object_to_string(data.value)
-            ord_dict["path"] = ".".join([data.knob.namespace, name])
+            ord_dict["path"] = ".".join([data.knob.namespace, data.name])
             ord_dict["help"] = data.help
             ret_list.append(ord_dict)
 
