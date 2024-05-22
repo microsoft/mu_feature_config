@@ -7,7 +7,6 @@
 
 import os
 import uuid
-import sys
 import struct
 
 from ctypes import (
@@ -109,7 +108,6 @@ class UefiVariable(object):
     # return a tuple of boolean status, error_code, error_string (None if not error)
     #
     def SetUefiVar(self, name, guid, var=None, attrs=None):
-        var_len = 0
         success = 0  # Fail
 
         # There is a null terminator at the end of the name
@@ -120,8 +118,6 @@ class UefiVariable(object):
                 os.remove(path)
                 success = 1 # expect non-zero success
             return success
-        else:
-            var_len = len(var)
 
         if attrs is None:
             attrs = 0x7

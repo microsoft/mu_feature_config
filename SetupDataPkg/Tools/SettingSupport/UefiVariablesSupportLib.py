@@ -10,7 +10,6 @@ from ctypes import (
     c_wchar_p,
     c_void_p,
     c_int,
-    c_char,
     create_string_buffer,
     WinError,
     pointer
