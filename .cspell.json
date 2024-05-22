@@ -125,6 +125,9 @@
       "profilenames",
       "profileid",
       "profileids",
-      "prettyname"
+      "prettyname",
+      "efivars",
+      "efivarfs",
+      "chattr"
   ]
 }
