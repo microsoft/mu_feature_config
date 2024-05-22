@@ -124,6 +124,7 @@
       "ANYSIZE",
       "profilenames",
       "profileid",
-      "profileids"
+      "profileids",
+      "prettyname"
   ]
 }
