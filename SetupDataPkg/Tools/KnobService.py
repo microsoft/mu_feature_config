@@ -147,6 +147,24 @@ def get_spdx_header(header, efi_type):
     spdx += get_line_ending(efi_type)
     return spdx
 
+# Check schema for header references and extract #include directives
+def get_schema_header_references(schema, efi_type):
+    headerSet = set()
+    for enum in schema.enums:
+        if enum.headerRef != "":
+            headerSet.add(enum.headerRef.strip())
+    for struct in schema.structs:
+        if struct.headerRef != "":
+            headerSet.add(struct.headerRef.strip())
+    if headerSet:
+        headers = "/* Schema-referenced headers */" + get_line_ending(efi_type)
+        for include in headerSet:
+            headers += '#include "{}"'.format(include)
+            headers += get_line_ending(efi_type)
+        headers += "/*--------------------------*/" + get_line_ending(efi_type)
+        return headers
+    return ""
+
 
 # for UEFI, calculate what variable list size is for a given knob
 def get_variable_list_size(knob):
@@ -300,6 +318,7 @@ def generate_public_header(schema, header_path, efi_type=False):
             out.write("#include <stdint.h>" + get_line_ending(efi_type))
             out.write("#include <stddef.h>" + get_line_ending(efi_type))
             out.write("#include <stdbool.h>" + get_line_ending(efi_type))
+        out.write(get_schema_header_references(schema, efi_type))
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
         out.write("//  Schema: {}".format(schema.path) + get_line_ending(efi_type))
@@ -315,37 +334,38 @@ def generate_public_header(schema, header_path, efi_type=False):
         out.write("" + get_line_ending(efi_type))
         out.write("// Schema-defined enums" + get_line_ending(efi_type))
         for enum in schema.enums:
-            if enum.help != "":
-                out.write("// {}".format(enum.help) + get_line_ending(efi_type))
-            out.write("typedef enum {" + get_line_ending(efi_type))
-            has_negative = False
-            for value in enum.values:
-                if value.help != "":
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {}, // {}".format(
-                        enum.name,
-                        value.name,
-                        value.number,
-                        value.help
+            if enum.headerRef == "":
+                if enum.help != "":
+                    out.write("// {}".format(enum.help) + get_line_ending(efi_type))
+                out.write("typedef enum {" + get_line_ending(efi_type))
+                has_negative = False
+                for value in enum.values:
+                    if value.help != "":
+                        out.write(get_spacing_string(efi_type) + "{}_{} = {}, // {}".format(
+                            enum.name,
+                            value.name,
+                            value.number,
+                            value.help
+                        ) + get_line_ending(efi_type))
+                    else:
+                        out.write(get_spacing_string(efi_type) + "{}_{} = {},".format(
+                            enum.name,
+                            value.name,
+                            value.number
+                        ) + get_line_ending(efi_type))
+
+                    if value.number < 0:
+                        has_negative = True
+                if has_negative:
+                    out.write(get_spacing_string(efi_type) + "_{}_PADDING = 0x7fffffff // Force packing to int size".format(
+                        enum.name
                     ) + get_line_ending(efi_type))
                 else:
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {},".format(
-                        enum.name,
-                        value.name,
-                        value.number
+                    out.write(get_spacing_string(efi_type) + "_{}_PADDING = 0xffffffff // Force packing to int size".format(
+                        enum.name
                     ) + get_line_ending(efi_type))
-
-                if value.number < 0:
-                    has_negative = True
-            if has_negative:
-                out.write(get_spacing_string(efi_type) + "_{}_PADDING = 0x7fffffff // Force packing to int size".format(
-                    enum.name
-                ) + get_line_ending(efi_type))
-            else:
-                out.write(get_spacing_string(efi_type) + "_{}_PADDING = 0xffffffff // Force packing to int size".format(
-                    enum.name
-                ) + get_line_ending(efi_type))
-            out.write("}} {};".format(enum.name) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
+                out.write("}} {};".format(enum.name) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
             assert_string = f"(sizeof({enum.name}) == sizeof({get_type_string('uint32_t', efi_type)})"
             out.write(get_assert_style(efi_type, assert_string, '"enum must be unsigned 32 bit int"'))
             out.write(get_line_ending(efi_type))
@@ -354,24 +374,25 @@ def generate_public_header(schema, header_path, efi_type=False):
 
         out.write("// Schema-defined structures" + get_line_ending(efi_type))
         for struct_definition in schema.structs:
-            if struct_definition.help != "":
-                out.write("// {}".format(struct_definition.help) + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            for member in struct_definition.members:
-                if member.help != "":
-                    out.write(get_spacing_string(efi_type) + "// {}".format(member.help) + get_line_ending(efi_type))
-                if member.count == 1:
-                    out.write(get_spacing_string(efi_type) + "{} {};".format(
-                        get_type_string(member.format.c_type, efi_type),
-                        member.name) + get_line_ending(efi_type))
-                else:
-                    out.write(get_spacing_string(efi_type) + "{} {}[{}];".format(
-                        get_type_string(member.format.c_type, efi_type),
-                        member.name,
-                        member.count) + get_line_ending(efi_type))
+            if struct_definition.headerRef == "":
+                if struct_definition.help != "":
+                    out.write("// {}".format(struct_definition.help) + get_line_ending(efi_type))
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                for member in struct_definition.members:
+                    if member.help != "":
+                        out.write(get_spacing_string(efi_type) + "// {}".format(member.help) + get_line_ending(efi_type))
+                    if member.count == 1:
+                        out.write(get_spacing_string(efi_type) + "{} {};".format(
+                            get_type_string(member.format.c_type, efi_type),
+                            member.name) + get_line_ending(efi_type))
+                    else:
+                        out.write(get_spacing_string(efi_type) + "{} {}[{}];".format(
+                            get_type_string(member.format.c_type, efi_type),
+                            member.name,
+                            member.count) + get_line_ending(efi_type))
 
-            out.write("}} {};".format(struct_definition.name) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
+                out.write("}} {};".format(struct_definition.name) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
             out.write(get_assert_style(efi_type, "(sizeof({}) == {}".format(
                 struct_definition.name,
                 struct_definition.size_in_bytes()
