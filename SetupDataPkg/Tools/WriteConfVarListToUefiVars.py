@@ -12,7 +12,10 @@ import argparse
 import struct
 import uuid
 import ctypes
-from SettingSupport.UefiVariablesSupportLib import UefiVariable
+if os.name == 'nt':
+    from SettingSupport.UefiVariablesSupportLib import UefiVariable
+else:
+    from SettingSupport.UefiVariablesSupportLinuxLib import UefiVariable
 
 gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
@@ -93,7 +96,7 @@ def extract_single_var_from_file_and_write_nvram(var):
         logging.debug(f"Found Variable: {VarName} {Guid} {Attributes}")
 
         UefiVar = UefiVariable()
-        (rc, err, error_string) = UefiVar.SetUefiVar(
+        rc = UefiVar.SetUefiVar(
             VarName,
             Guid,
             Data,
@@ -136,9 +139,14 @@ if __name__ == "__main__":
     console.setLevel(logging.CRITICAL)
 
     # check the privilege level and report error
-    if not ctypes.windll.shell32.IsUserAnAdmin():
-        print("Administrator privilege required. Please launch from an Administrator privilege level.")
-        sys.exit(1)
+    if os.name == 'nt':
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            print("Administrator privilege required. Please launch from an Administrator privilege level.")
+            sys.exit(1)
+    else:
+        if os.geteuid() != 0:
+            print("Root permission required, please run script with sudo.")
+            sys.exit(1)
 
     # call main worker function
     retcode = main()
