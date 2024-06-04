@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>ConfigEditor</id>
+    <version>1.0.0</version>
+    <title>ConfigEditor</title>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>ConfigEditor</description>
+  </metadata>
+  <files>
+    <file src="dist\ConfigEditor.exe" target="dist" />
+  </files>
+</package>
+
