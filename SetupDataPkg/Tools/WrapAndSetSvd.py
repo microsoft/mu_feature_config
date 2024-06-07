@@ -15,6 +15,7 @@ import sys
 import logging
 import argparse
 from edk2toollib.utility_functions import RunPythonScript
+from edk2toollib.os.uefivariablesupport import UefiVariable
 
 # get script path
 sp = os.path.abspath(os.path.dirname(__file__))
@@ -22,7 +23,6 @@ sp = os.path.abspath(os.path.dirname(__file__))
 # setup python path for build modules
 sys.path.append(sp)
 
-from SettingSupport.UefiVariablesSupportLib import UefiVariable  # noqa: E402
 
 DFCI_SETTINGS_APPLY_INPUT_VAR_NAME = "DfciSettingsRequest"
 DFCI_SETTINGS_GUID = "D41C8C24-3F5E-4EF4-8FDD-073E1866CD01"
@@ -100,7 +100,7 @@ def main():
     with open(os.path.join(sp, setting_file), "rb") as file:
         var = file.read()
         UefiVar = UefiVariable()
-        (rc, err, error_string) = UefiVar.SetUefiVar(
+        rc = UefiVar.SetUefiVar(
             DFCI_SETTINGS_APPLY_INPUT_VAR_NAME,
             DFCI_SETTINGS_GUID,
             var,
@@ -108,7 +108,7 @@ def main():
         )
         if rc == 0:  # This is per function document...
             logging.error(
-                "Failed to set mailbox settings into UEFI variable - %r" % error_string
+                f"Failed to set mailbox settings into UEFI variable - {rc}"
             )
             return 1
     return 0

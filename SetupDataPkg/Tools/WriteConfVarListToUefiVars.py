@@ -12,10 +12,7 @@ import argparse
 import struct
 import uuid
 import ctypes
-if os.name == 'nt':
-    from SettingSupport.UefiVariablesSupportLib import UefiVariable
-else:
-    from SettingSupport.UefiVariablesSupportLinuxLib import UefiVariable
+from edk2toollib.os.uefivariablesupport import UefiVariable
 
 gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
