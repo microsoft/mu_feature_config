@@ -10,7 +10,7 @@
     <description>ConfigEditor</description>
   </metadata>
   <files>
-    <file src="dist\ConfigEditor.exe" target="dist" />
+    <!-- file src="dist\ConfigEditor.exe" target="dist" / -->
     <file src="SetupDataPkg/Tools/ConfigEditor.py" target="dist" />
   </files>
 </package>
