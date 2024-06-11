@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MuSignTools</id>
+    <version>1.0.0</version>
+    <title>ConfigEditor</title>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>ConfigEditor</description>
+  </metadata>
+  <files>
+    <file src="MuSignTools\ConfigEditor\ConfigEditor.exe" target="dist" />
+    <file src="MuSignTools\ConfigEditor\ReadUefiVarsToConfVarList.exe" target="dist" />
+    <file src="MuSignTools\ConfigEditor\WriteConfVarListToUefiVars.exe" target="dist" />
+    <file src="MuSignTools\ConfigEditor\ConfigEditor.py" target="dist" />
+    <file src="MuSignTools\ConfigEditor\ReadUefiVarsToConfVarList.py" target="dist" />
+    <file src="MuSignTools\ConfigEditor\WriteConfVarListToUefiVars.py" target="dist" />
+  </files>
+</package>
+
