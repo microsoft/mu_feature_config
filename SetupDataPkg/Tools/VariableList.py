@@ -1240,7 +1240,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = subknob.namespace
-                        print("test1")
+
                         writer.writerow([
                             guid,
                             subknob.name,
@@ -1248,7 +1248,6 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             string_binary,
                             subknob.help])
                     else:
-                        print("test2")
                         writer.writerow([
                             '*',
                             subknob.name,
@@ -1265,7 +1264,6 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace
-                        print("test1")
                         writer.writerow([
                             guid,
                             knob.name,
@@ -1273,7 +1271,6 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             string_binary,
                             knob.help])
                     else:
-                        print("test2")
                         writer.writerow([
                             '*',
                             knob.name,
