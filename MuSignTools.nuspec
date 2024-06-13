@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MuSignTools</id>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <title>ConfigEditor</title>
     <authors>Microsoft</authors>
     <owners>Microsoft</owners>
@@ -16,6 +16,10 @@
     <file src="MuSignTools\ConfigEditor\ConfigEditor.py" target="dist" />
     <file src="MuSignTools\ConfigEditor\ReadUefiVarsToConfVarList.py" target="dist" />
     <file src="MuSignTools\ConfigEditor\WriteConfVarListToUefiVars.py" target="dist" />
+    <file src="MuSignTools\ConfigEditor\py-requirements.txt" target="dist" />
+    <file src="MuSignTools\ConfigEditor\pip-requirements.txt" target="dist" />
+    <file src="MuSignTools\ConfigEditor\*" target="dist" />
+
   </files>
 </package>
 
