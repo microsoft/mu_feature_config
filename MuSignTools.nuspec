@@ -10,16 +10,7 @@
     <description>ConfigEditor</description>
   </metadata>
   <files>
-    <file src="MuSignTools\ConfigEditor\ConfigEditor.exe" target="dist" />
-    <file src="MuSignTools\ConfigEditor\ReadUefiVarsToConfVarList.exe" target="dist" />
-    <file src="MuSignTools\ConfigEditor\WriteConfVarListToUefiVars.exe" target="dist" />
-    <file src="MuSignTools\ConfigEditor\ConfigEditor.py" target="dist" />
-    <file src="MuSignTools\ConfigEditor\ReadUefiVarsToConfVarList.py" target="dist" />
-    <file src="MuSignTools\ConfigEditor\WriteConfVarListToUefiVars.py" target="dist" />
-    <file src="MuSignTools\ConfigEditor\py-requirements.txt" target="dist" />
-    <file src="MuSignTools\ConfigEditor\pip-requirements.txt" target="dist" />
     <file src="MuSignTools\ConfigEditor\*" target="dist" />
-
   </files>
 </package>
 
