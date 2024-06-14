@@ -10,7 +10,8 @@
     <description>ConfigEditor</description>
   </metadata>
   <files>
-    <file src="MuSignTools\ConfigEditor\*" target="dist" />
+    <file src="MuSignTools\ConfigEditor\*" target="dist\ConfigEditor" />
+    <file src="MuSignTools\ConfigEditor\SettingSupport" target="dist\ConfigEditor\SettingSupport" />
   </files>
 </package>
 
