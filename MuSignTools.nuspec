@@ -11,6 +11,7 @@
   </metadata>
   <files>
     <file src="MuSignTools\ConfigEditor\*" target="dist\ConfigEditor" />
+    <file src="mu_feature_config\SetupDataPkg\Tools\SettingSupport" target="dist\ConfigEditor" />
   </files>
 </package>
 
