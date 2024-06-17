@@ -1212,13 +1212,18 @@ def read_csv(schema, csv_path):
             read_guid = row[guid_index]
             if read_guid != '*':
                 guid = read_guid
+            print(guid)
             knob_name = row[knob_index]
             knob_value_string = row[value_index]
-
+            print(knob_name)
+            print(knob_value_string)
             knob = schema.get_knob(guid, knob_name)
+
             if knob is not None:
                 knob.value = knob.format.string_to_object(knob_value_string)
                 updated_knobs += 1
+                print(knob.name)
+        print(updated_knobs)
     return updated_knobs
 
 
@@ -1240,7 +1245,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = subknob.namespace
-
+                        print("test1")
                         writer.writerow([
                             guid,
                             subknob.name,
@@ -1248,6 +1253,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             string_binary,
                             subknob.help])
                     else:
+                        print("test2")
                         writer.writerow([
                             '*',
                             subknob.name,
@@ -1264,6 +1270,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace
+                        print("test1")
                         writer.writerow([
                             guid,
                             knob.name,
@@ -1271,6 +1278,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             string_binary,
                             knob.help])
                     else:
+                        print("test2")
                         writer.writerow([
                             '*',
                             knob.name,
@@ -1290,56 +1298,37 @@ def write_csv_detailed(schema, csv_path):
         writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
         # Get the knobs one at a time
         for knob in schema.knobs:
-            # Check if the guid has changed
-            if knob.namespace == guid:
-                namespace_changed = False
-            else:
-                guid = knob.namespace
-                namespace_changed = True
+            # Get the guid of each knob   
+            guid = knob.namespace
                 
             # For each subknob of the current knob, if it's a leaf, write it to the CSV file
             for subknob in knob.subknobs:  
-                subknob_values = ""
-                
                 # Get the binary value
                 binary = subknob.format.object_to_binary(subknob.value)
                 string_binary = " ".join(map("%2.2x".__mod__, binary))
                 # Check if subknob is a leaf; skip otherwise
                 if subknob.leaf:
                     # Get all valid values for each knob
-                    for enum in schema.enums:
-                        if enum.name in subknob.format.c_type:
-                            for entry in enum.values:
-                                subknob_values = subknob_values + ', ' + entry.name
-                            subknob_values = subknob_values.lstrip(",")
-                            break
-                        elif subknob.format.c_type == "bool":
-                            subknob_values = "TRUE, FALSE"
+                    subknob_values = ""
+                    if isinstance(subknob.format, EnumFormat):
+                        subknob_values = subknob.format.values
+                        subknob_values_str = '[' + ', '.join(f"'{value.name}'" for value in subknob_values) + ']'
+                    elif isinstance(subknob.format, BoolFormat):
+                        subknob_values_str = [ "TRUE", "FALSE" ]
+                       
                     # Get default value of the knob
                     default_value = subknob.format.object_to_string(subknob.default)
                     
-                    # print the guid for initial row
-                    if namespace_changed == True:
-                        writer.writerow([
-                            guid,
-                            subknob.name,
-                            subknob.format.object_to_string(subknob.value),
-                            string_binary,
-                            default_value,
-                            subknob_values,
-                            subknob.help])
-                        namespace_changed = False
-                    # Print '*' if guid has not changed from previous row
-                    else:                        
-                        writer.writerow([
-                            '*',
-                            subknob.name,
-                            subknob.format.object_to_string(subknob.value),
-                            string_binary,
-                            default_value,
-                            subknob_values,
-                            subknob.help])
-
+                    # print the guid for each row along with current & default value, binary, valid value options, and description of the knob
+                    writer.writerow([
+                        guid,
+                        subknob.name,
+                        subknob.format.object_to_string(subknob.value),
+                        string_binary,
+                        default_value,
+                        subknob_values_str,
+                        subknob.help])
+                        
 
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
