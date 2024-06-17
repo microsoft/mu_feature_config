@@ -1287,7 +1287,7 @@ def write_csv_detailed(schema, csv_path):
         namespace_changed = True # Used to print the guid on the first row and then only print
                                  # another guid if it changes
         
-        writer.writerow(['Guid', 'Knob', 'Current Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
+        writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
         # Get the knobs one at a time
         for knob in schema.knobs:
             # Check if the guid has changed
