@@ -1212,18 +1212,14 @@ def read_csv(schema, csv_path):
             read_guid = row[guid_index]
             if read_guid != '*':
                 guid = read_guid
-            #print(guid)
+            
             knob_name = row[knob_index]
             knob_value_string = row[value_index]
-            #print(knob_name)
-            #print(knob_value_string)
             knob = schema.get_knob(guid, knob_name)
 
             if knob is not None:
                 knob.value = knob.format.string_to_object(knob_value_string)
                 updated_knobs += 1
-                #print(knob.name)
-        #print(updated_knobs)
     return updated_knobs
 
 
@@ -1245,7 +1241,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = subknob.namespace
-                        print("test1")
+                        
                         writer.writerow([
                             guid,
                             subknob.name,
@@ -1253,7 +1249,6 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             string_binary,
                             subknob.help])
                     else:
-                        print("test2")
                         writer.writerow([
                             '*',
                             subknob.name,
@@ -1270,15 +1265,14 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace
-                        print("test1")
+                        
                         writer.writerow([
                             guid,
                             knob.name,
                             knob.format.object_to_string(knob.value),
                             string_binary,
                             knob.help])
-                    else:
-                        print("test2")
+                    else:                        
                         writer.writerow([
                             '*',
                             knob.name,
