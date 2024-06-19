@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MuSignTools</id>
-    <version>1.6.0</version>
+    <version>1.7.0</version>
     <title>ConfigEditor</title>
     <authors>Microsoft</authors>
     <owners>Microsoft</owners>
@@ -12,6 +12,7 @@
   <files>
     <file src="MuSignTools\ConfigEditor\*" target="dist\ConfigEditor" />
     <file src="SetupDataPkg\Tools\SettingSupport\*" target="dist\ConfigEditor\SettingSupport" />
+    <file src="SetupDataPkg\Tools\*" target="dist\ConfigEditor" />
     <file src="SetupDataPkg\Tools\SettingSupport\Data\*" target="dist\ConfigEditor\SettingSupport/Data" />
   </files>
 </package>
