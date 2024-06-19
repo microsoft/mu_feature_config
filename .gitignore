@@ -15,3 +15,4 @@ BuildConfig.conf
 _TEMP_*/
 /Conf/
 **/Include/Generated
+MuSignTools.nuspec
