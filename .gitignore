@@ -1,3 +1,4 @@
+*.nuspec
 /Build/
 .DS_Store
 *_extdep/
