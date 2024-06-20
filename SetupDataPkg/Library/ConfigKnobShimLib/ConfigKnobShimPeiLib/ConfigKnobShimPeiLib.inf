@@ -23,8 +23,6 @@
 
 [Sources]
   ConfigKnobShimPeiLib.c
-  ../ConfigKnobShimLibCommon.c
-  ../ConfigKnobShimLibCommon.h
 
 [Packages]
   MdePkg/MdePkg.dec
