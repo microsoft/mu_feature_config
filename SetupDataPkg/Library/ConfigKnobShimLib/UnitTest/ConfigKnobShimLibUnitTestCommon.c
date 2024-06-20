@@ -25,7 +25,7 @@
 #include <SetupDataPkgUnitTestStructs.h>
 
 // include the c file to be able to unit test static function
-#include "ConfigKnobShimLibCommon.c"
+#include "../ConfigKnobShimLibCommon.c"
 
 #define UNIT_TEST_APP_NAME     "Config Knob Shim Common Lib Unit Tests"
 #define UNIT_TEST_APP_VERSION  "1.0"

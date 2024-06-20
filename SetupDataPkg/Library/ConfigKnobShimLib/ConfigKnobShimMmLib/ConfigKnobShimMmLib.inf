@@ -25,7 +25,6 @@
 [Sources]
   ConfigKnobShimMmLib.c
   ../ConfigKnobShimLibCommon.c
-  ../ConfigKnobShimLibCommon.h
 
 [Packages]
   MdePkg/MdePkg.dec
