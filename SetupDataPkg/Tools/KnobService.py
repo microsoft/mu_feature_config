@@ -311,7 +311,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         pass
 
 
-def generate_public_header(schema, header_path, efi_type=False, types_only=False):
+def generate_public_header(schema, header_path, efi_type=False, types_only=False, no_change=False):
 
     format_options = VariableList.StringFormatOptions()
     format_options.c_format = True
@@ -352,15 +352,15 @@ def generate_public_header(schema, header_path, efi_type=False, types_only=False
             has_negative = False
             for value in enum.values:
                 if value.help != "":
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {}, // {}".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type) + "{}{} = {}, // {}".format(
+                        "" if no_change else enum.name + '_',
                         value.name,
                         value.number,
                         value.help
                     ) + get_line_ending(efi_type))
                 else:
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {},".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type) + "{}{} = {},".format(
+                        "" if no_change else enum.name + '_',
                         value.name,
                         value.number
                     ) + get_line_ending(efi_type))
@@ -620,7 +620,7 @@ def format_guid(guid):
         hex(byte_sequence[7]))
 
 
-def generate_cached_implementation(schema, header_path, efi_type=False):
+def generate_cached_implementation(schema, header_path, efi_type=False, no_change=False):
     with open(header_path, 'w', newline='') as out:
         out.write(get_spdx_header(header_path, efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=True))
@@ -701,8 +701,8 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                 ) + get_line_ending(efi_type) + "{" + get_line_ending(efi_type))
 
                 for value in enum.values:
-                    out.write(get_spacing_string(efi_type, 2) + "case {}_{}:".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type, 2) + "case {}{}:".format(
+                        "" if no_change else enum.name + '_',
                         value.name
                     ) + get_line_ending(efi_type))
                     out.write(get_spacing_string(efi_type, 3) + "return {};".format(
@@ -1240,8 +1240,8 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
         out.write(get_include_once_style(profile_header_path, uefi=efi_type, header=False))
 
 
-def generate_sources(schema, public_header, service_header, data_header, efi_type, types_only):
-    generate_public_header(schema, public_header, efi_type, types_only)
+def generate_sources(schema, public_header, service_header, data_header, efi_type, options):
+    generate_public_header(schema, public_header, efi_type, options.types_only, options.no_change)
     # in UEFI builds, getter implementations go to service_header and data to
     # data_header. In non-UEFI builds, both go to service_header
     # The parameters used below can be received as 'None' if a 'types_only' generation is used
@@ -1292,6 +1292,9 @@ def arg_parse():
         '-t', '--typesonly', action='store_true', dest='types_only',
         help='''Set this option when you wish to generate only type definitions from the schema.'''
              '''Using this option will override all other parameters except <public_header.h>, and they can be omitted.''')
+    parser.add_argument(
+        '-nc', '--nochange', action='store_true', dest='no_change',
+        help='''Set this option when you wish to let all schema-defined names be passed-through without modification.''')
 
     return parser.parse_known_args()
 
@@ -1342,7 +1345,7 @@ def main():
         # Load the schema
         schema = VariableList.Schema.load(schema_path)
 
-        generate_sources(schema, header_path, service_path, data_path, efi_type, known_args.types_only)
+        generate_sources(schema, header_path, service_path, data_path, efi_type, known_args)
 
         if (len(sys.argv) >= arg_num + 1) and not known_args.types_only:
             profile_header_path = sys.argv[arg_num]
