@@ -76,7 +76,10 @@ def get_line_ending(uefi=False):
 def get_include_once_style(name, uefi=False, header=True):
     if uefi is True:
         # convert . to _
-        while match := re.search(r'\.', name):
+        while True:
+            match = re.search(r'\.', name)
+            if not match:
+                break
             name = name[:match.start()] + "_" + name[match.end():]
         if header is True:
             return "#ifndef " + name.upper() + get_line_ending(uefi) + "#define " + name.upper() + get_line_ending(uefi)
@@ -114,7 +117,10 @@ def naming_convention_filter(value, type, uefi=False):
             value = value[:-1]
 
         # remove the underscores and capitalize each word
-        while match := re.search("_", value):
+        while True:
+            match = re.search("_", value)
+            if not match:
+                break
             value = value[:match.start()] + value[match.end()].upper() + value[match.end() + 1:]
 
     return value
