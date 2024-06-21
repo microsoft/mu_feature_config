@@ -823,10 +823,11 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                         else:
                             if subknob.min != subknob.format.min:
                                 out.write(get_spacing_string(efi_type))
-                                out.write("if ({}->{} < KNOB__{}__MIN) {{".format(
+                                out.write("if ({}{}{}{} < KNOB__{}__MIN) {{".format(
+                                    "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    # don't take the '.'
-                                    path[1:],
+                                    "->" if '.' in path else "",
+                                    path[1:], # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
@@ -838,10 +839,11 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                                 out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
                             if subknob.max != subknob.format.max:
                                 out.write(get_spacing_string(efi_type))
-                                out.write("if ({}->{} > KNOB__{}__MAX) {{".format(
+                                out.write("if ({}{}{}{} > KNOB__{}__MAX) {{".format(
+                                    "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    # don't take the '.'
-                                    path[1:],
+                                    "->" if '.' in path else "",
+                                    path[1:], # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
