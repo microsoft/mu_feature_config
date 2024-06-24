@@ -153,6 +153,7 @@ def get_spdx_header(header, efi_type):
     spdx += get_line_ending(efi_type)
     return spdx
 
+
 # Check schema for header references and extract #include directives
 def get_schema_header_references(schema, efi_type):
     headerSet = set()
@@ -389,7 +390,8 @@ def generate_public_header(schema, header_path, efi_type=False, types_only=False
         for struct_definition in schema.structs:
             if struct_definition.headerRef != "":
                 out.write("#ifdef STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type))
-                out.write("//The struct below is defined in {}".format(struct_definition.headerRef) + get_line_ending(efi_type))
+                out.write("//The struct below is defined in {}".format(struct_definition.headerRef)
+                          + get_line_ending(efi_type))
             if struct_definition.help != "":
                 out.write("// {}".format(struct_definition.help) + get_line_ending(efi_type))
             out.write("typedef struct {" + get_line_ending(efi_type))
@@ -432,11 +434,13 @@ def generate_public_header(schema, header_path, efi_type=False, types_only=False
                         if subknob.min != subknob.format.min:
                             out.write("#define KNOB__{}__MIN {}".format(
                                 define_name,
-                                subknob.format.object_to_string(subknob.min, format_options)) + get_line_ending(efi_type))
+                                subknob.format.object_to_string(subknob.min, format_options))
+                                + get_line_ending(efi_type))
                         if subknob.max != subknob.format.max:
                             out.write("#define KNOB__{}__MAX {}".format(
                                 define_name,
-                                subknob.format.object_to_string(subknob.max, format_options)) + get_line_ending(efi_type))
+                                subknob.format.object_to_string(subknob.max, format_options))
+                                + get_line_ending(efi_type))
 
                 out.write("" + get_line_ending(efi_type))
                 # uefi has getters return a status and pass in a ptr
@@ -445,8 +449,8 @@ def generate_public_header(schema, header_path, efi_type=False, types_only=False
                     out.write("{} {}{}();".format(
                         get_type_string(knob.format.c_type, efi_type),
                         naming_convention_filter("config_get_",
-                                                False,
-                                                efi_type),
+                                                 False,
+                                                 efi_type),
                         knob.name))
                     out.write("" + get_line_ending(efi_type))
                 else:
@@ -828,7 +832,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
                                     "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
                                     "->" if '.' in path else "",
-                                    path[1:], # don't take the '.'
+                                    path[1:],  # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
@@ -844,7 +848,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
                                     "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
                                     "->" if '.' in path else "",
-                                    path[1:], # don't take the '.'
+                                    path[1:],  # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
@@ -1291,10 +1295,12 @@ def arg_parse():
     parser.add_argument(
         '-t', '--typesonly', action='store_true', dest='types_only',
         help='''Set this option when you wish to generate only type definitions from the schema.'''
-             '''Using this option will override all other parameters except <public_header.h>, and they can be omitted.''')
+             '''Using this option will override all other parameters except <public_header.h>,'''
+             '''and they can be omitted.''')
     parser.add_argument(
         '-nc', '--nochange', action='store_true', dest='no_change',
-        help='''Set this option when you wish to let all schema-defined names be passed-through without modification.''')
+        help='''Set this option when you wish to let all schema-defined names be '''
+             '''passed-through without modification.''')
 
     return parser.parse_known_args()
 
