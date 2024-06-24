@@ -831,7 +831,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
                                 out.write("if ({}{}{}{} < KNOB__{}__MIN) {{".format(
                                     "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    "->" if '.' in path else "",
+                                    "->" if path else "",
                                     path[1:],  # don't take the '.'
                                     define_name
                                 ))
@@ -847,7 +847,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
                                 out.write("if ({}{}{}{} > KNOB__{}__MAX) {{".format(
                                     "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    "->" if '.' in path else "",
+                                    "->" if path else "",
                                     path[1:],  # don't take the '.'
                                     define_name
                                 ))
