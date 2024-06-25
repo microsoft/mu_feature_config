@@ -9,6 +9,10 @@
       <Value name="SECOND" prettyname="Second Mode" value="1" help="Second mode" />
       <Value name="THIRD" prettyname="Third Mode" value="2" help="Third mode" />
     </Enum>
+    <Enum name="MODULE_MODE" headerRef="module_defs.h" help="Module modes">
+      <Value name="MODEA" prettyname="Mode A" value="0" help="Fast mode" />
+      <Value name="MODEB" prettyname="Mode B" value="1" help="Slow mode" />
+    </Enum>
   </Enums>
 
   <Structs>
@@ -19,7 +23,7 @@
       <Member name="data" prettyname="child Data" type="uint8_t" count="5" help="Bytes" />
       <Member name="mode" type="OPTION_MODE" />
     </Struct>
-    <Struct name="sample_t" help="Sample struct">
+    <Struct name="sample_t" headerRef="module_defs.h" help="Sample struct">
       <Member name="counter" type="uint32_t" help="Number value" />
       <Member name="children" type="child_t" count="2" help="Child data" />
     </Struct>
