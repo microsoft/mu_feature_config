@@ -21,7 +21,6 @@
 [Sources]
   ../../UnitTest/ConfigKnobShimLibUnitTestCommon.c
   ../ConfigKnobShimDxeLib.c
-  ../../ConfigKnobShimLibCommon.c
 
 [Packages]
   MdePkg/MdePkg.dec
