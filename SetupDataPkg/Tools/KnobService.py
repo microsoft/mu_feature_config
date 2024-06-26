@@ -1279,6 +1279,11 @@ def usage():
     print("                   profiles specified in profile.csv")
     print("-pid ids         : n-number of 1-byte hexadecimal (prepend with 0x) profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
+    print("-t               : Option flag to enable 'types only' outputting, forcing the generation of 'public_header.h'")
+    print("                   with Enum/Struct type declarations only. 'service_header.h' generation is skipped if this")
+    print("                   option is used.")
+    print("-nc              : Option flag to enable 'no change' behavior which disables any type name modifications from the")
+    print("                   input schema. All names become passthrough.")
 
 
 def arg_parse():

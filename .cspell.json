@@ -131,6 +131,8 @@
       "chattr",
       "typesonly",
       "nochange",
-      "headerRef"
+      "headerRef",
+      "modea",
+      "modeb"
   ]
 }
