@@ -12,10 +12,7 @@ import argparse
 import struct
 import uuid
 import ctypes
-if os.name == 'nt':
-    from SettingSupport.UefiVariablesSupportLib import UefiVariable
-else:
-    from SettingSupport.UefiVariablesSupportLinuxLib import UefiVariable
+from edk2toollib.os.uefivariablesupport import UefiVariable
 from VariableList import Schema, UEFIVariable, create_vlist_buffer
 
 
