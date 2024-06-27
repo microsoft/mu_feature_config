@@ -84,14 +84,14 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             params.append("ConfigServiceGenerated.h")
             params.append("ConfigDataGenerated.h")
 
-            if len(profile_path_list) >= i and profile_path_list[i] != "":
+            if len(profile_path_list) > i and profile_path_list[i] != "":
                 params.append("ConfigProfilesGenerated.h")
                 params.append(profile_path_list[i])
 
-                if len(profile_names) >= i and profile_names[i] != "":
+                if len(profile_names) > i and profile_names[i] != "":
                     params.append("-pn")
                     params.append(profile_names[i])
-                if len(profile_ids) >= i and profile_ids[i] != "":
+                if len(profile_ids) > i and profile_ids[i] != "":
                     params.append("-pid")
                     params.append(profile_ids[i])
 
