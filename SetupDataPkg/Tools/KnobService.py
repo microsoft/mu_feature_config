@@ -76,7 +76,10 @@ def get_line_ending(uefi=False):
 def get_include_once_style(name, uefi=False, header=True):
     if uefi is True:
         # convert . to _
-        while match := re.search(r'\.', name):
+        while True:
+            match = re.search(r'\.', name)
+            if not match:
+                break
             name = name[:match.start()] + "_" + name[match.end():]
         if header is True:
             return "#ifndef " + name.upper() + get_line_ending(uefi) + "#define " + name.upper() + get_line_ending(uefi)
@@ -114,7 +117,10 @@ def naming_convention_filter(value, type, uefi=False):
             value = value[:-1]
 
         # remove the underscores and capitalize each word
-        while match := re.search("_", value):
+        while True:
+            match = re.search("_", value)
+            if not match:
+                break
             value = value[:match.start()] + value[match.end()].upper() + value[match.end() + 1:]
 
     return value
@@ -146,6 +152,28 @@ def get_spdx_header(header, efi_type):
     spdx += get_line_ending(efi_type)
     spdx += get_line_ending(efi_type)
     return spdx
+
+
+# Check schema for header references and extract #include directives
+def get_schema_header_references(schema, efi_type):
+    headerSet = set()
+    for enum in schema.enums:
+        if enum.headerRef != "":
+            headerSet.add(enum.headerRef.strip())
+    for struct in schema.structs:
+        if struct.headerRef != "":
+            headerSet.add(struct.headerRef.strip())
+    if headerSet:
+        headersSorted = sorted(headerSet)
+        headers = "/* Schema-referenced headers */" + get_line_ending(efi_type)
+        headers += "#ifndef STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type)
+        for include in headersSorted:
+            headers += '#include "{}"'.format(include)
+            headers += get_line_ending(efi_type)
+        headers += "#endif // STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type)
+        headers += "/*--------------------------*/" + get_line_ending(efi_type)
+        return headers
+    return ""
 
 
 # for UEFI, calculate what variable list size is for a given knob
@@ -284,7 +312,7 @@ def write_uefi_getter_implementations(efi_type, out, schema):
         pass
 
 
-def generate_public_header(schema, header_path, efi_type=False):
+def generate_public_header(schema, header_path, efi_type=False, types_only=False, no_change=False):
 
     format_options = VariableList.StringFormatOptions()
     format_options.c_format = True
@@ -303,6 +331,7 @@ def generate_public_header(schema, header_path, efi_type=False):
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
         out.write("//  Schema: {}".format(schema.path) + get_line_ending(efi_type))
+        out.write(get_schema_header_references(schema, efi_type))
         out.write("" + get_line_ending(efi_type))
         # UEFI code uses STATIC_ASSERT, already defined in the environment
         if not efi_type:
@@ -315,21 +344,24 @@ def generate_public_header(schema, header_path, efi_type=False):
         out.write("" + get_line_ending(efi_type))
         out.write("// Schema-defined enums" + get_line_ending(efi_type))
         for enum in schema.enums:
+            if enum.headerRef != "":
+                out.write("#ifdef STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type))
+                out.write("//The enum below is defined in {}".format(enum.headerRef) + get_line_ending(efi_type))
             if enum.help != "":
                 out.write("// {}".format(enum.help) + get_line_ending(efi_type))
             out.write("typedef enum {" + get_line_ending(efi_type))
             has_negative = False
             for value in enum.values:
                 if value.help != "":
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {}, // {}".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type) + "{}{} = {}, // {}".format(
+                        "" if no_change else enum.name + '_',
                         value.name,
                         value.number,
                         value.help
                     ) + get_line_ending(efi_type))
                 else:
-                    out.write(get_spacing_string(efi_type) + "{}_{} = {},".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type) + "{}{} = {},".format(
+                        "" if no_change else enum.name + '_',
                         value.name,
                         value.number
                     ) + get_line_ending(efi_type))
@@ -346,6 +378,8 @@ def generate_public_header(schema, header_path, efi_type=False):
                 ) + get_line_ending(efi_type))
             out.write("}} {};".format(enum.name) + get_line_ending(efi_type))
             out.write("" + get_line_ending(efi_type))
+            if enum.headerRef != "":
+                out.write("#endif // STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type))
             assert_string = f"(sizeof({enum.name}) == sizeof({get_type_string('uint32_t', efi_type)})"
             out.write(get_assert_style(efi_type, assert_string, '"enum must be unsigned 32 bit int"'))
             out.write(get_line_ending(efi_type))
@@ -354,6 +388,10 @@ def generate_public_header(schema, header_path, efi_type=False):
 
         out.write("// Schema-defined structures" + get_line_ending(efi_type))
         for struct_definition in schema.structs:
+            if struct_definition.headerRef != "":
+                out.write("#ifdef STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type))
+                out.write("//The struct below is defined in {}".format(struct_definition.headerRef)
+                          + get_line_ending(efi_type))
             if struct_definition.help != "":
                 out.write("// {}".format(struct_definition.help) + get_line_ending(efi_type))
             out.write("typedef struct {" + get_line_ending(efi_type))
@@ -372,6 +410,8 @@ def generate_public_header(schema, header_path, efi_type=False):
 
             out.write("}} {};".format(struct_definition.name) + get_line_ending(efi_type))
             out.write("" + get_line_ending(efi_type))
+            if struct_definition.headerRef != "":
+                out.write("#endif // STANDALONE_HEADER_NO_REFS" + get_line_ending(efi_type))
             out.write(get_assert_style(efi_type, "(sizeof({}) == {}".format(
                 struct_definition.name,
                 struct_definition.size_in_bytes()
@@ -379,183 +419,186 @@ def generate_public_header(schema, header_path, efi_type=False):
             out.write("" + get_line_ending(efi_type))
             pass
         out.write("#pragma pack(pop)" + get_line_ending(efi_type))
-        out.write("" + get_line_ending(efi_type))
-        out.write("// Schema-defined knobs" + get_line_ending(efi_type))
-        for knob in schema.knobs:
-            out.write("// {} knob".format(knob.name) + get_line_ending(efi_type))
-            if knob.help != "":
-                out.write("// {}".format(knob.help) + get_line_ending(efi_type))
-
+        if not types_only:
             out.write("" + get_line_ending(efi_type))
-            for subknob in knob.subknobs:
-                if subknob.leaf:
-                    define_name = subknob.name.replace('[', '_').replace(']', '_').replace('.', '__')
-                    if subknob.min != subknob.format.min:
-                        out.write("#define KNOB__{}__MIN {}".format(
-                            define_name,
-                            subknob.format.object_to_string(subknob.min, format_options)) + get_line_ending(efi_type))
-                    if subknob.max != subknob.format.max:
-                        out.write("#define KNOB__{}__MAX {}".format(
-                            define_name,
-                            subknob.format.object_to_string(subknob.max, format_options)) + get_line_ending(efi_type))
+            out.write("// Schema-defined knobs" + get_line_ending(efi_type))
+            for knob in schema.knobs:
+                out.write("// {} knob".format(knob.name) + get_line_ending(efi_type))
+                if knob.help != "":
+                    out.write("// {}".format(knob.help) + get_line_ending(efi_type))
 
-            out.write("" + get_line_ending(efi_type))
-            # uefi has getters return a status and pass in a ptr
-            if not efi_type:
-                out.write("// Get the current value of the {} knob".format(knob.name) + get_line_ending(efi_type))
-                out.write("{} {}{}();".format(
-                    get_type_string(knob.format.c_type, efi_type),
-                    naming_convention_filter("config_get_",
-                                             False,
-                                             efi_type),
-                    knob.name))
                 out.write("" + get_line_ending(efi_type))
+                for subknob in knob.subknobs:
+                    if subknob.leaf:
+                        define_name = subknob.name.replace('[', '_').replace(']', '_').replace('.', '__')
+                        if subknob.min != subknob.format.min:
+                            out.write("#define KNOB__{}__MIN {}".format(
+                                define_name,
+                                subknob.format.object_to_string(subknob.min, format_options))
+                                + get_line_ending(efi_type))
+                        if subknob.max != subknob.format.max:
+                            out.write("#define KNOB__{}__MAX {}".format(
+                                define_name,
+                                subknob.format.object_to_string(subknob.max, format_options))
+                                + get_line_ending(efi_type))
+
+                out.write("" + get_line_ending(efi_type))
+                # uefi has getters return a status and pass in a ptr
+                if not efi_type:
+                    out.write("// Get the current value of the {} knob".format(knob.name) + get_line_ending(efi_type))
+                    out.write("{} {}{}();".format(
+                        get_type_string(knob.format.c_type, efi_type),
+                        naming_convention_filter("config_get_",
+                                                 False,
+                                                 efi_type),
+                        knob.name))
+                    out.write("" + get_line_ending(efi_type))
+                else:
+                    out.write("EFI_STATUS {}{} (".format(
+                        naming_convention_filter("config_get_", False, efi_type),
+                        knob.name
+                    ))
+                    out.write("{} *Knob);".format(
+                        get_type_string(knob.format.c_type, efi_type)
+                    ) + get_line_ending(efi_type))
+
+                # no concept of setting config variables in UEFI
+                if not efi_type:
+                    out.write("#ifdef CONFIG_SET_VARIABLES" + get_line_ending(efi_type))
+                    out.write("// Set the current value of the {} knob".format(knob.name) + get_line_ending(efi_type))
+                    out.write("{} config_set_{}({} value);".format(
+                        get_type_string('bool', efi_type),
+                        knob.name,
+                        get_type_string(knob.format.c_type, efi_type),
+                    ) + get_line_ending(efi_type))
+                    out.write("#endif // CONFIG_SET_VARIABLES" + get_line_ending(efi_type))
+                    out.write("" + get_line_ending(efi_type))
+                pass
+
+            out.write("" + get_line_ending(efi_type))
+            # UEFI uses a core header with the standard definitions
+            # so we must use #defines instead of the enum
+            if efi_type is False:
+                out.write("typedef enum {" + get_line_ending(efi_type))
+                for knob in schema.knobs:
+                    out.write(get_spacing_string(efi_type) + "KNOB_{},".format(knob.name) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "KNOB_MAX" + get_line_ending(efi_type))
+                out.write("}" + " {};".format(
+                    naming_convention_filter("knob_t", True, efi_type)) + get_line_ending(efi_type))
             else:
-                out.write("EFI_STATUS {}{} (".format(
-                    naming_convention_filter("config_get_", False, efi_type),
-                    knob.name
-                ))
-                out.write("{} *Knob);".format(
-                    get_type_string(knob.format.c_type, efi_type)
-                ) + get_line_ending(efi_type))
-
-            # no concept of setting config variables in UEFI
+                idx = 0
+                for knob in schema.knobs:
+                    out.write("#define KNOB_{} {}".format(
+                        knob.name,
+                        idx
+                    ) + get_line_ending(efi_type))
+                    idx += 1
+                out.write("#define KNOB_MAX {}".format(idx))
+            out.write("" + get_line_ending(efi_type))
+            # UEFI already defines EFI_GUID and puts these
+            # definitions in a standard core header
             if not efi_type:
-                out.write("#ifdef CONFIG_SET_VARIABLES" + get_line_ending(efi_type))
-                out.write("// Set the current value of the {} knob".format(knob.name) + get_line_ending(efi_type))
-                out.write("{} config_set_{}({} value);".format(
-                    get_type_string('bool', efi_type),
-                    knob.name,
-                    get_type_string(knob.format.c_type, efi_type),
-                ) + get_line_ending(efi_type))
-                out.write("#endif // CONFIG_SET_VARIABLES" + get_line_ending(efi_type))
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                out.write("    unsigned long  Data1;" + get_line_ending(efi_type))
+                out.write("    unsigned short Data2;" + get_line_ending(efi_type))
+                out.write("    unsigned short Data3;" + get_line_ending(efi_type))
+                out.write("    unsigned char  Data4[8];" + get_line_ending(efi_type))
+                out.write("} config_guid_t;" + get_line_ending(efi_type))
                 out.write("" + get_line_ending(efi_type))
-            pass
-
-        out.write("" + get_line_ending(efi_type))
-        # UEFI uses a core header with the standard definitions
-        # so we must use #defines instead of the enum
-        if efi_type is False:
-            out.write("typedef enum {" + get_line_ending(efi_type))
-            for knob in schema.knobs:
-                out.write(get_spacing_string(efi_type) + "KNOB_{},".format(knob.name) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "KNOB_MAX" + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("knob_t", True, efi_type)) + get_line_ending(efi_type))
-        else:
-            idx = 0
-            for knob in schema.knobs:
-                out.write("#define KNOB_{} {}".format(
-                    knob.name,
-                    idx
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("int", efi_type),
+                    naming_convention_filter("get_count", False, efi_type)
                 ) + get_line_ending(efi_type))
-                idx += 1
-            out.write("#define KNOB_MAX {}".format(idx))
-        out.write("" + get_line_ending(efi_type))
-        # UEFI already defines EFI_GUID and puts these
-        # definitions in a standard core header
-        if not efi_type:
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write("    unsigned long  Data1;" + get_line_ending(efi_type))
-            out.write("    unsigned short Data2;" + get_line_ending(efi_type))
-            out.write("    unsigned short Data3;" + get_line_ending(efi_type))
-            out.write("    unsigned char  Data4[8];" + get_line_ending(efi_type))
-            out.write("} config_guid_t;" + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("int", efi_type),
-                naming_convention_filter("get_count", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("int", efi_type),
-                naming_convention_filter("set_count", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("knob_statistics_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef {} ({})({} {});".format(
-                get_type_string('bool', efi_type),
-                naming_convention_filter("knob_validation_fn", True, efi_type),
-                get_type_string("const", efi_type),
-                get_type_string("void*", efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                naming_convention_filter("knob_t", True, efi_type),
-                naming_convention_filter("knob", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {} {};".format(
-                get_type_string("const", efi_type),
-                get_type_string("void*", efi_type),
-                naming_convention_filter("default_value_address", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("void*", efi_type),
-                naming_convention_filter("cache_value_address", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string('size_t', efi_type),
-                naming_convention_filter("value_size", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {} {};".format(
-                get_type_string("const", efi_type),
-                get_type_string("char*", efi_type),
-                naming_convention_filter("name", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string('size_t', efi_type),
-                naming_convention_filter("name_size", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("config_guid_t", efi_type),
-                naming_convention_filter("vendor_namespace", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("int", efi_type),
-                naming_convention_filter("attributes", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                naming_convention_filter("knob_statistics_t", True, efi_type),
-                naming_convention_filter("statistics", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                naming_convention_filter("knob_validation_fn*", True, efi_type),
-                naming_convention_filter("validator", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("knob_data_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                naming_convention_filter("knob_t", True, efi_type),
-                naming_convention_filter("knob", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string("void*", efi_type),
-                naming_convention_filter("value", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("knob_override_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-            out.write("typedef struct {" + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{}* {};".format(
-                naming_convention_filter("knob_override_t", True, efi_type),
-                naming_convention_filter("overrides", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write(get_spacing_string(efi_type) + "{} {};".format(
-                get_type_string('size_t', efi_type),
-                naming_convention_filter("override_count", False, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("}" + " {};".format(
-                naming_convention_filter("profile_t", True, efi_type)
-            ) + get_line_ending(efi_type))
-            out.write("" + get_line_ending(efi_type))
-        out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("int", efi_type),
+                    naming_convention_filter("set_count", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("}" + " {};".format(
+                    naming_convention_filter("knob_statistics_t", True, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
+                out.write("typedef {} ({})({} {});".format(
+                    get_type_string('bool', efi_type),
+                    naming_convention_filter("knob_validation_fn", True, efi_type),
+                    get_type_string("const", efi_type),
+                    get_type_string("void*", efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    naming_convention_filter("knob_t", True, efi_type),
+                    naming_convention_filter("knob", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {} {};".format(
+                    get_type_string("const", efi_type),
+                    get_type_string("void*", efi_type),
+                    naming_convention_filter("default_value_address", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("void*", efi_type),
+                    naming_convention_filter("cache_value_address", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string('size_t', efi_type),
+                    naming_convention_filter("value_size", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {} {};".format(
+                    get_type_string("const", efi_type),
+                    get_type_string("char*", efi_type),
+                    naming_convention_filter("name", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string('size_t', efi_type),
+                    naming_convention_filter("name_size", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("config_guid_t", efi_type),
+                    naming_convention_filter("vendor_namespace", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("int", efi_type),
+                    naming_convention_filter("attributes", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    naming_convention_filter("knob_statistics_t", True, efi_type),
+                    naming_convention_filter("statistics", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    naming_convention_filter("knob_validation_fn*", True, efi_type),
+                    naming_convention_filter("validator", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("}" + " {};".format(
+                    naming_convention_filter("knob_data_t", True, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    naming_convention_filter("knob_t", True, efi_type),
+                    naming_convention_filter("knob", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string("void*", efi_type),
+                    naming_convention_filter("value", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("}" + " {};".format(
+                    naming_convention_filter("knob_override_t", True, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
+                out.write("typedef struct {" + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{}* {};".format(
+                    naming_convention_filter("knob_override_t", True, efi_type),
+                    naming_convention_filter("overrides", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write(get_spacing_string(efi_type) + "{} {};".format(
+                    get_type_string('size_t', efi_type),
+                    naming_convention_filter("override_count", False, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("}" + " {};".format(
+                    naming_convention_filter("profile_t", True, efi_type)
+                ) + get_line_ending(efi_type))
+                out.write("" + get_line_ending(efi_type))
+            out.write(get_include_once_style(header_path, uefi=efi_type, header=False))
 
 
 def format_guid(guid):
@@ -581,7 +624,7 @@ def format_guid(guid):
         hex(byte_sequence[7]))
 
 
-def generate_cached_implementation(schema, header_path, efi_type=False):
+def generate_cached_implementation(schema, header_path, efi_type=False, no_change=False):
     with open(header_path, 'w', newline='') as out:
         out.write(get_spdx_header(header_path, efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=True))
@@ -662,8 +705,8 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                 ) + get_line_ending(efi_type) + "{" + get_line_ending(efi_type))
 
                 for value in enum.values:
-                    out.write(get_spacing_string(efi_type, 2) + "case {}_{}:".format(
-                        enum.name,
+                    out.write(get_spacing_string(efi_type, 2) + "case {}{}:".format(
+                        "" if no_change else enum.name + '_',
                         value.name
                     ) + get_line_ending(efi_type))
                     out.write(get_spacing_string(efi_type, 3) + "return {};".format(
@@ -785,10 +828,11 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                         else:
                             if subknob.min != subknob.format.min:
                                 out.write(get_spacing_string(efi_type))
-                                out.write("if ({}->{} < KNOB__{}__MIN) {{".format(
+                                out.write("if ({}{}{}{} < KNOB__{}__MIN) {{".format(
+                                    "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    # don't take the '.'
-                                    path[1:],
+                                    "->" if path else "",
+                                    path[1:],  # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
@@ -800,10 +844,11 @@ def generate_cached_implementation(schema, header_path, efi_type=False):
                                 out.write(get_spacing_string(efi_type) + "}" + get_line_ending(efi_type))
                             if subknob.max != subknob.format.max:
                                 out.write(get_spacing_string(efi_type))
-                                out.write("if ({}->{} > KNOB__{}__MAX) {{".format(
+                                out.write("if ({}{}{}{} > KNOB__{}__MAX) {{".format(
+                                    "" if '.' in path else "*",
                                     naming_convention_filter("value", False, efi_type),
-                                    # don't take the '.'
-                                    path[1:],
+                                    "->" if path else "",
+                                    path[1:],  # don't take the '.'
                                     define_name
                                 ))
                                 out.write(get_line_ending(efi_type))
@@ -1199,14 +1244,17 @@ def generate_profiles(schema, profile_header_path, profile_paths, efi_type, prof
         out.write(get_include_once_style(profile_header_path, uefi=efi_type, header=False))
 
 
-def generate_sources(schema, public_header, service_header, data_header, efi_type):
-    generate_public_header(schema, public_header, efi_type)
+def generate_sources(schema, public_header, service_header, data_header, efi_type, options):
+    generate_public_header(schema, public_header, efi_type, options.types_only, options.no_change)
     # in UEFI builds, getter implementations go to service_header and data to
     # data_header. In non-UEFI builds, both go to service_header
+    # The parameters used below can be received as 'None' if a 'types_only' generation is used
     if efi_type is True:
-        generate_getter_implementation(schema, service_header, efi_type)
-        generate_cached_implementation(schema, data_header, efi_type)
-    else:
+        if service_header:
+            generate_getter_implementation(schema, service_header, efi_type)
+        if data_header:
+            generate_cached_implementation(schema, data_header, efi_type)
+    elif service_header:
         generate_cached_implementation(schema, service_header, efi_type)
 
 
@@ -1231,6 +1279,11 @@ def usage():
     print("                   profiles specified in profile.csv")
     print("-pid ids         : n-number of 1-byte hexadecimal (prepend with 0x) profile id that uniquely identify the")
     print("                   profiles specified in profile.csv")
+    print("-t               : Option flag to enable 'types only' outputting, forcing the generation of")
+    print("                   'public_header.h' with Enum/Struct type declarations only.")
+    print("                   'service_header.h' generation is skipped if this option is used.")
+    print("-nc              : Option flag to enable 'no change' behavior which disables any type name modifications")
+    print("                   from the input schema. All names become passthrough.")
 
 
 def arg_parse():
@@ -1244,6 +1297,15 @@ def arg_parse():
         '-pid', '--profileids', dest='profile_ids', type=str, default=None,
         help='''Specify the comma separated profile ids (1-byte hexadecimal number prepend with 0x) '''
              '''by passing -pid <Id1,Id2> or --profileids <Id1,Id2,Id3>.''')
+    parser.add_argument(
+        '-t', '--typesonly', action='store_true', dest='types_only',
+        help='''Set this option when you wish to generate only type definitions from the schema.'''
+             '''Using this option will override all other parameters except <public_header.h>,'''
+             '''and they can be omitted.''')
+    parser.add_argument(
+        '-nc', '--nochange', action='store_true', dest='no_change',
+        help='''Set this option when you wish to let all schema-defined names be '''
+             '''passed-through without modification.''')
 
     return parser.parse_known_args()
 
@@ -1262,13 +1324,13 @@ def main():
         return
 
     if sys.argv[arg_num].lower() == "generateheader" or sys.argv[arg_num].lower() == "generateheader_efi":
-        if sys.argv[arg_num].lower() == "generateheader" and len(sys.argv) < 5:
+        if sys.argv[arg_num].lower() == "generateheader" and len(sys.argv) < (4 if known_args.types_only else 5):
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
 
-        if sys.argv[arg_num].lower() == "generateheader_efi" and len(sys.argv) < 6:
+        if sys.argv[arg_num].lower() == "generateheader_efi" and len(sys.argv) < (4 if known_args.types_only else 6):
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
@@ -1281,20 +1343,22 @@ def main():
         arg_num += 1
         header_path = sys.argv[arg_num]
         arg_num += 1
-        service_path = sys.argv[arg_num]
+        service_path = None
+        if not known_args.types_only:
+            service_path = sys.argv[arg_num]
         arg_num += 1
         data_path = None
 
-        if efi_type is True:
+        if efi_type is True and not known_args.types_only:
             data_path = sys.argv[arg_num]
             arg_num += 1
 
         # Load the schema
         schema = VariableList.Schema.load(schema_path)
 
-        generate_sources(schema, header_path, service_path, data_path, efi_type)
+        generate_sources(schema, header_path, service_path, data_path, efi_type, known_args)
 
-        if (len(sys.argv) >= arg_num + 1):
+        if (len(sys.argv) >= arg_num + 1) and not known_args.types_only:
             profile_header_path = sys.argv[arg_num]
             arg_num += 1
             profile_paths = sys.argv[arg_num:]
