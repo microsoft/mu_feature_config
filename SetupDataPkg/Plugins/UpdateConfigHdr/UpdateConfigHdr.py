@@ -23,13 +23,17 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             "SetupDataPkg", "Test", "Include"
         )
 
-        final_dir = thebuilder.env.GetValue("CONF_AUTOGEN_INCLUDE_PATH", default_generated_path)
+        # we can have a semicolon delimited list of include paths to generate to
+        dirs = thebuilder.env.GetValue("CONF_AUTOGEN_INCLUDE_PATH", default_generated_path).split(";")
+        final_dirs = []
 
         # Add Generated dir
-        final_dir = os.path.join(final_dir, "Generated")
+        for directory in dirs:
+            gen_dir = os.path.join(directory, "Generated")
+            final_dirs.append(gen_dir)
 
-        if not os.path.isdir(final_dir):
-            os.makedirs(final_dir)
+            if not os.path.isdir(gen_dir):
+                os.makedirs(gen_dir)
 
         # Add generate routine here
         cmd = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(
@@ -44,41 +48,54 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             logging.error("MU_SCHEMA_DIR not set")
             return -1
 
-        schema_file_name = thebuilder.env.GetValue("MU_SCHEMA_FILE_NAME", "testschema.xml")
+        # This may be a semicolon delimited string
+        schema_file_names = thebuilder.env.GetValue("MU_SCHEMA_FILE_NAME", "testschema.xml").split(";")
+        schema_files = []
 
-        schema_file = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(schema_dir, schema_file_name)
+        for name in schema_file_names:
+            file = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(schema_dir, name)
+            schema_files.append(file)
 
-        if not os.path.isfile(schema_file):
-            logging.error(f"XML schema file \"{schema_file}\" specified is not found!!!")
+            if not os.path.isfile(file):
+                logging.error(f"XML schema file \"{file}\" specified is not found!!!")
+                return -1
+
+        # this is a semicolon delimited list of space separated lists of paths to CSV files describing the profiles for
+        # this platform. It is allowed to be empty if there are no profiles.
+        # e.g.: "CONF_PATH_1 CONF_PATH_2 CONF_PATH3;CONF_PATH4 CONF_PATH5 CONF_PATH6;CONF_PATH7 CONF_PATH8 CONF_PATH9"
+        profile_path_list = thebuilder.env.GetValue("CONF_PROFILE_PATHS", "").split(";")
+
+        # this is a semicolon delimited list of comma separated 2 character profile names to pair with CSV files
+        # identifying the profiles. This field is optional.
+        profile_names = thebuilder.env.GetValue("CONF_PROFILE_NAMES", "").split(";")
+        profile_ids = thebuilder.env.GetValue("CONF_PROFILE_IDS", "").split(";")
+
+        if len(schema_files) != len(final_dirs):
+            logging.error("Differing number of items in CONF_AUTOGEN_INCLUDE_PATH and MU_SCHEMA_FILE_NAME!\
+                           They must be the same")
             return -1
 
-        # this is a space separated list of paths to CSV files describing the profiles for
-        # this platform. It is allowed to be empty if there are no profiles.
-        profile_paths = thebuilder.env.GetValue("CONF_PROFILE_PATHS", "")
+        for i in range(len(schema_files)):
+            params = ["generateheader_efi"]
 
-        # this is a comma separated 2 character profile names to pair with CSV files identifying
-        # the profiles. This field is optional.
-        profile_names = thebuilder.env.GetValue("CONF_PROFILE_NAMES", "")
-        profile_ids = thebuilder.env.GetValue("CONF_PROFILE_IDS", "")
+            params.append(schema_files[i])
 
-        params = ["generateheader_efi"]
+            params.append("ConfigClientGenerated.h")
+            params.append("ConfigServiceGenerated.h")
+            params.append("ConfigDataGenerated.h")
 
-        params.append(schema_file)
+            if len(profile_path_list) > i and profile_path_list[i] != "":
+                params.append("ConfigProfilesGenerated.h")
+                params.append(profile_path_list[i])
 
-        params.append("ConfigClientGenerated.h")
-        params.append("ConfigServiceGenerated.h")
-        params.append("ConfigDataGenerated.h")
+                if len(profile_names) > i and profile_names[i] != "":
+                    params.append("-pn")
+                    params.append(profile_names[i])
+                if len(profile_ids) > i and profile_ids[i] != "":
+                    params.append("-pid")
+                    params.append(profile_ids[i])
 
-        if profile_paths != "":
-            params.append("ConfigProfilesGenerated.h")
-            params.append(profile_paths)
-
-            if profile_names != "":
-                params.append("-pn")
-                params.append(profile_names)
-            if profile_ids != "":
-                params.append("-pid")
-                params.append(profile_ids)
-
-        ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dir)
-        return ret
+            ret = RunPythonScript(cmd, " ".join(params), workingdir=final_dirs[i])
+            if ret != 0:
+                return ret
+        return 0
