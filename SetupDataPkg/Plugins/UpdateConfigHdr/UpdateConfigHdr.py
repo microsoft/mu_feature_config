@@ -56,8 +56,8 @@ class UpdateConfigHdr(IUefiBuildPlugin):
             file = thebuilder.edk2path.GetAbsolutePathOnThisSystemFromEdk2RelativePath(schema_dir, name)
             schema_files.append(file)
 
-            if not os.path.isfile(file):
-                logging.error(f"XML schema file \"{file}\" specified is not found!!!")
+            if file is None:
+                logging.error(f"XML schema file \"{schema_dir}/{name}\" specified is not found!!!")
                 return -1
 
         # this is a semicolon delimited list of space separated lists of paths to CSV files describing the profiles for
