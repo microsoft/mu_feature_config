@@ -732,20 +732,20 @@ CreateXmlStringFromCurrentSettings (
         DataSize = 0;
         Status   = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (Status != EFI_BUFFER_TOO_SMALL) {
-          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, &TargetGuids[i], Status));
           ASSERT (FALSE);
           continue;
         }
 
         Data = AllocatePool (DataSize);
         if (Data == NULL) {
-          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __FUNCTION__, TargetGuids[i]));
+          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __FUNCTION__, &TargetGuids[i]));
           break;
         }
 
         Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, TargetGuids[i], Status));
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, &TargetGuids[i], Status));
           ASSERT (FALSE);
           FreePool (Data);
           Data = NULL;
