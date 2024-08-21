@@ -15,13 +15,16 @@ import os
 from xml.dom.minidom import parse, parseString
 from enum import Enum
 
+
 class ParseError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+
 class InvalidNameError(ParseError):
     def __init__(self, message):
         super().__init__(message)
+
 
 class InvalidTypeError(ParseError):
     def __init__(self, message):
@@ -32,9 +35,11 @@ class InvalidKnobError(ParseError):
     def __init__(self, message):
         super().__init__(message)
 
+
 class InvalidRangeError(Exception):
     def __init__(self, message):
         super().__init__(message)
+
 
 # The evaluation context is used to determine how to construct implicit values from types
 # When an empty string is evaluated in a "default" tag, it will implicitly be interpreted as
@@ -44,6 +49,7 @@ class StringEvaluationContext(Enum):
     DEFAULT = 1
     MIN = 2
     MAX = 3
+
 
 # Decodes a comma separated list within curly braces in to a list
 # "{1,2, 3,{A, B}} " -> ["1", "2", "3", "{A, B}"]
@@ -84,10 +90,12 @@ def split_braces(string_object):
         ParseError("expected '}'")
     return segments
 
+
 # Checks to see if a token is a valid C identifier
 def is_valid_name(token):
     matches = re.findall("^[a-zA-Z_][0-9a-zA-Z_]*$", token)
     return len(matches) == 1
+
 
 # This class can be used to modify the behavior of string formatting
 #  of variable values
@@ -101,6 +109,7 @@ class StringFormatOptions:
     # of "true" and "false"
     efi_format = False
 
+
 # A DataFormat defines how a variable element is serialized
 # * to/from strings (as in the XML attributes) as well as
 # * to/from binary (as in the variable list)
@@ -111,6 +120,7 @@ class DataFormat:
         self.min = None
         self.max = None
         pass
+
 
 # Represents all data types that have an object representation as a
 # Python int
@@ -165,6 +175,7 @@ class IntValueFormat(DataFormat):
             if value > max:
                 raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
 
+
 # Represents all data types that have an object representation as a
 # Python float
 class FloatValueFormat(DataFormat):
@@ -214,6 +225,7 @@ class FloatValueFormat(DataFormat):
             if value > max:
                 raise InvalidRangeError("Value {} above maximum of {}".format(value, max))
 
+
 # Represents all data types that have an object representation as a Python bool
 class BoolFormat(DataFormat):
     def __init__(self):
@@ -261,6 +273,7 @@ class BoolFormat(DataFormat):
             raise ParseError("bool may not have max value of {}".format(max))
         pass
 
+
 builtin_types = {
     'uint8_t'  : (lambda: IntValueFormat(c_type='uint8_t', min=0, max=0xff, pack_format='<B')),  # noqa: E203, E501
     'int8_t'   : (lambda: IntValueFormat(c_type='int8_t', min=-0x80, max=0x7f, pack_format='<b')),  # noqa: E203, E501
@@ -274,6 +287,7 @@ builtin_types = {
     'double'   : (lambda: FloatValueFormat(c_type='double', pack_format='<d')),  # noqa: E203, E501
     'bool'     : (lambda: BoolFormat()),  # noqa: E203, E501
 }
+
 
 # Represents a value in a user defined enum
 class EnumValue:
@@ -298,6 +312,7 @@ class EnumValue:
                     self.name))
 
         self.help = xml_node.getAttribute("help")
+
 
 # Represents a user defined enum
 class EnumFormat(DataFormat):
@@ -467,6 +482,7 @@ class ArrayFormat(DataFormat):
             except InvalidRangeError as e:
                 raise InvalidRangeError("At index {}: {}".format(i, e))
 
+
 # Represents a member of a user defined struct
 # Each member may be of any type, and may also have a count
 # value to treat it as an array
@@ -529,6 +545,7 @@ class StructMember:
             self.format.check_bounds(value, min, max)
         except InvalidRangeError as e:
             raise InvalidRangeError("Member {} of {}: {}".format(self.name, self.struct_name, e))
+
 
 # Represents a user defined struct
 class StructFormat(DataFormat):
@@ -691,6 +708,7 @@ class StructFormat(DataFormat):
             member_max = max[member.name]
             member.check_bounds(member_value, member_min, member_max)
 
+
 # Represents a "knob", a modifiable variable
 class Knob:
     def __init__(self, schema, xml_node, namespace):
@@ -852,6 +870,7 @@ class Knob:
             name = match.group('name')
             return (name, None)
 
+
 class SubKnob:
     def __init__(self, knob, path, format, help, pretty_name, leaf=False):
         self.knob = knob
@@ -882,6 +901,7 @@ class SubKnob:
     @property
     def max(self):
         return self.knob._get_child_value(self.name, self.knob.max)
+
 
 class Schema:
     def __init__(self, dom, origin_path=""):
@@ -1080,6 +1100,7 @@ def uefi_variables_to_knobs(schema, variables):
         if knob is not None:
             knob.value = knob.format.binary_to_object(variable.data)
 
+
 def read_csv(schema, csv_path):
     updated_knobs = 0
     with open(csv_path, 'r') as csv_file:
@@ -1162,28 +1183,26 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             knob.format.object_to_string(knob.value),
                             string_binary,
                             knob.help])
-                    else:                        
+                    else:
                         writer.writerow([
                             '*',
                             knob.name,
                             knob.format.object_to_string(knob.value),
                             string_binary,
                             knob.help])
-                                          
+
+
 def write_csv_detailed(schema, csv_path):
     with open(csv_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
         guid = None
-        namespace_changed = True # Used to print the guid on the first row and then only print another guid if it changes
-        
         writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
         # Get the knobs one at a time
         for knob in schema.knobs:
             # Get the guid of each knob   
             guid = knob.namespace
-                
             # For each subknob of the current knob, if it's a leaf, write it to the CSV file
-            for subknob in knob.subknobs:  
+            for subknob in knob.subknobs:
                 # Get the binary value
                 binary = subknob.format.object_to_binary(subknob.value)
                 string_binary = " ".join(map("%2.2x".__mod__, binary))
@@ -1195,10 +1214,11 @@ def write_csv_detailed(schema, csv_path):
                         subknob_values = subknob.format.values
                         subknob_values_str = '[' + ', '.join(f"'{value.name}'" for value in subknob_values) + ']'
                     elif isinstance(subknob.format, BoolFormat):
-                        subknob_values_str = [ "TRUE", "FALSE" ]
+                        subknob_values_str = ["TRUE", "FALSE"]
                     # Get default value of the knob
                     default_value = subknob.format.object_to_string(subknob.default)
-                    # print the guid for each row along with current & default value, binary, valid value options, and description of the knob
+                    # print the guid for each row along with current & default value, binary, 
+                    # valid value options, and description of the knob
                     writer.writerow([
                         guid,
                         subknob.name,
@@ -1207,11 +1227,13 @@ def write_csv_detailed(schema, csv_path):
                         default_value,
                         subknob_values_str,
                         subknob.help])
-                        
+
+
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
         buf = vlist_to_binary(schema)
         vlist_file.write(buf)
+
 
 def usage():
     print("Commands:\n")
@@ -1224,6 +1246,7 @@ def usage():
     print("blob.vl : file is a binary list of UEFI variables in the")
     print("          format used by the EFI 'dmpstore' command")
     print("values.csv : file is a text list of knobs")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -1257,9 +1280,8 @@ def main():
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
-            
+
     if sys.argv[1].lower() == "write_csv":
-        
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             csv_path = sys.argv[3]
@@ -1285,7 +1307,7 @@ def main():
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
-            
+
     if sys.argv[1].lower() == "write_csv_detailed":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
@@ -1302,6 +1324,7 @@ def main():
             sys.stderr.write('Invalid number of arguments.\n')
             sys.exit(1)
             return
+
 
 if __name__ == '__main__':
     sys.exit(main())
