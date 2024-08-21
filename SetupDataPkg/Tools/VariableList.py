@@ -1199,7 +1199,7 @@ def write_csv_detailed(schema, csv_path):
         writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
         # Get the knobs one at a time
         for knob in schema.knobs:
-            # Get the guid of each knob   
+            # Get the guid of each knob
             guid = knob.namespace
             # For each subknob of the current knob, if it's a leaf, write it to the CSV file
             for subknob in knob.subknobs:
@@ -1217,7 +1217,7 @@ def write_csv_detailed(schema, csv_path):
                         subknob_values_str = ["TRUE", "FALSE"]
                     # Get default value of the knob
                     default_value = subknob.format.object_to_string(subknob.default)
-                    # print the guid for each row along with current & default value, binary, 
+                    # print the guid for each row along with current & default value, binary,
                     # valid value options, and description of the knob
                     writer.writerow([
                         guid,
