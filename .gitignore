@@ -1,3 +1,4 @@
+*.nuspec
 /Build/
 .DS_Store
 *_extdep/
@@ -15,3 +16,4 @@ BuildConfig.conf
 _TEMP_*/
 /Conf/
 **/Include/Generated
+MuSignTools.nuspec

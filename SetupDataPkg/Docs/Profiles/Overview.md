@@ -59,6 +59,12 @@ self.env.SetValue('CONF_PROFILE_PATHS',
 )
 ```
 
+If `MU_SCHEMA_FILE_NAME` has multiple entries (see
+[Platform Integration Steps](../PlatformIntegration/PlatformIntegrationSteps.md)), then there may be a semicolon
+delimited list of `CONF_PROFILE_PATHS`. `UpdateConfigHdr.py` will match these in the same order as the schema files,
+i.e. `CONF_PROFILE_PATHS` first entry will be applied to the first entry of `MU_SCHEMA_FILE_NAME`. If there is no
+corresponding entry, it will be assumed there is no profile override to that schema file.
+
 Platform owners can develop a configuration profile for their use case. Following examples and the format provided in
 the [ConfigurationFiles doc](../ConfigurationFiles/ConfigurationFiles.md), these owners can create an XML change file
 describing the set of configuration variables and their values that are in the profile that differ from the generic

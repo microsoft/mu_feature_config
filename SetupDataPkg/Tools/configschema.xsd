@@ -23,6 +23,7 @@
                   <xs:attribute name="prettyname" use="optional" />
                   <xs:attribute name="default" use="optional" />
                   <xs:attribute name="help" use="optional" />
+                  <xs:attribute name="headerRef" use="optional" />
                 </xs:complexType>
               </xs:element>
             </xs:sequence>
@@ -51,6 +52,7 @@
                   <xs:attribute name="name" use="required" />
                   <xs:attribute name="prettyname" use="optional" />
                   <xs:attribute name="help" use="optional" />
+                  <xs:attribute name="headerRef" use="optional" />
                 </xs:complexType>
               </xs:element>
             </xs:sequence>

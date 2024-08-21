@@ -333,6 +333,7 @@ class EnumFormat(DataFormat):
                 "Enum name '{}' is invalid".format(self.name))
 
         self.help = xml_node.getAttribute("help")
+        self.headerRef = xml_node.getAttribute("headerRef")
         self.values = []
         self.default = None
 
@@ -578,6 +579,7 @@ class StructFormat(DataFormat):
             raise InvalidNameError("Struct name '{}' is invalid".format(
                 self.name))
         self.help = xml_node.getAttribute("help")
+        self.headerRef = xml_node.getAttribute("headerRef")
         self.members = []
 
         super().__init__(c_type=self.name)
