@@ -3,7 +3,6 @@
 # Copyright (c) 2022, Microsoft Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
-
 import sys
 import re
 import struct
@@ -64,9 +63,7 @@ def split_braces(string_object):
             continue
         elif complete:
             raise ParseError(
-                "Unexpected character after '}}', found '{}'".format(
-                    c))
-
+                "Unexpected character after '}}', found '{}'".format(c))
         if c == '{':
             if depth > 0:
                 chars.append(c)
@@ -398,6 +395,7 @@ class EnumFormat(DataFormat):
     def check_bounds(self, value, min, max):
         if min is not None:
             raise ParseError("Enum {} may not have min value of {}".format(self.name, min))
+
         if max is not None:
             raise ParseError("Enum {} may not have max value of {}".format(self.name, max))
 
@@ -589,7 +587,6 @@ class StructFormat(DataFormat):
 
         # Struct definitions themselves should not include default/min/max tags
         # The default/min/max values are interpreted from the struct members
-
         if xml_node.getAttribute("default") != "":
             raise ParseError("Struct {} may not have a 'default' attribute".format(self.name))
         if xml_node.getAttribute("min") != "":
@@ -760,7 +757,6 @@ class Knob:
         # The format may be a built-in format (e.g. 'uint32_t') or a
         # user defined enum or struct
         self.format = schema.get_format(data_type)
-
         self._value = None
 
         # Use the format to decode the default value from its
@@ -771,29 +767,20 @@ class Knob:
             # Capture the ParseError and create a more specific error
             # message
             raise ParseError(
-                "Unable to parse default value of '{}': {}".format(
-                    self.name,
-                    e))
+                "Unable to parse default value of '{}': {}".format(self.name, e))
 
         try:
             self._min = self.format.string_to_object(xml_node.getAttribute("min"), StringEvaluationContext.MIN)
         except ParseError as e:
             raise ParseError(
-                "Unable to parse the min value of '{}': {}".format(
-                    self.name, e
-                )
-            )
-
+                "Unable to parse the min value of '{}': {}".format(self.name, e))
         self.format.check_bounds(self._min, self.format.min, self.format.max)
 
         try:
             self._max = self.format.string_to_object(xml_node.getAttribute("max"), StringEvaluationContext.MAX)
         except ParseError as e:
             raise ParseError(
-                "Unable to parse the max value of '{}': {}".format(
-                    self.name, e
-                )
-            )
+                "Unable to parse the max value of '{}': {}".format(self.name, e))
 
         self.format.check_bounds(self._max, self.format.min, self.format.max)
 
@@ -872,22 +859,19 @@ class Knob:
         else:
             path_elements = child_path.split(".")
             child_object = self.value
-
             if child_object is None:
                 child_object = self.default
-
             # The full object is the entire object represented by the knob
             # the child object will be updated to point to sub-objects within the full object
             # until the final value can be updated
             full_object = child_object
-
             first_element = path_elements[0]
+
             if first_element != self.name:
                 raise Exception(
                     "Path '{}' is not a member of knob '{}'".format(
                         child_path,
                         self.name))
-
             # The final element will reference a value type, not an object,
             # so it needs to be handled differently
             final_element = path_elements[-1]
@@ -913,10 +897,7 @@ class Knob:
             self.value = full_object
 
     def _decode_subpath(self, subpath_segment):
-        match = re.match(
-            r'^(?P<name>[a-zA-Z_][0-9a-zA-Z_]*)(\[(?P<index>[0-9]+)\])?$',
-            subpath_segment)
-
+        match = re.match(r'^(?P<name>[a-zA-Z_][0-9a-zA-Z_]*)(\[(?P<index>[0-9]+)\])?$', subpath_segment)
         if match is None:
             raise ParseError(
                 "'{}' is not a valid sub-path of knob '{}'".format(
@@ -1024,7 +1005,6 @@ class Schema:
 
     # Get a format by name
     def get_format(self, type_name):
-
         type_name = type_name.strip()
 
         # Look for the type in the set of built in types
@@ -1033,7 +1013,6 @@ class Schema:
             return builtin_types[type_name]()
 
         # Check for custom enum or struct types
-
         for enum in self.enums:
             if enum.name == type_name:
                 return enum
@@ -1062,7 +1041,6 @@ class UEFIVariable:
 
 # Writes a vlist entry to the vlist file
 def create_vlist_buffer(variable):
-
     # Each entry has the following values
     #   NameSize(int32, size of Name in bytes),
     #   DataSize(int32, size of Data in bytes),
@@ -1097,7 +1075,6 @@ def get_delta_vlist(schema):
             # knob value didn't change
             continue
         value_bytes = knob.format.object_to_binary(knob.value)
-
         variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
         var_list.append(create_vlist_buffer(variable))
         name_list.append(knob.name)
@@ -1107,7 +1084,6 @@ def get_delta_vlist(schema):
 
 # Create a byte array for all the knobs in this schema
 def vlist_to_binary(schema):
-
     ret = b''
     for knob in schema.knobs:
         if knob.value is not None:
@@ -1123,7 +1099,6 @@ def vlist_to_binary(schema):
 def read_vlist(file):
     with open(file, 'rb') as vl_file:
         variables = read_vlist_from_buffer(vl_file.read())
-
     return variables
 
 
@@ -1216,7 +1191,6 @@ def read_csv(schema, csv_path):
                 guid = read_guid
             knob_name = row[knob_index]
             knob_value_string = row[value_index]
-
             knob = schema.get_knob(guid, knob_name)
             if knob is not None:
                 knob.value = knob.format.string_to_object(knob_value_string)
@@ -1282,6 +1256,43 @@ def write_csv(schema, csv_path, full, subknobs=True):
                             knob.help])
 
 
+def write_csv_detailed(schema, csv_path):
+    with open(csv_path, 'w', newline='') as csv_file:
+        writer = csv.writer(csv_file)
+        guid = None
+        writer.writerow(['Guid', 'Knob', 'Value', 'Binary', 'Default Value', 'Valid Value Options', 'Help'])
+        # Get the knobs one at a time
+        for knob in schema.knobs:
+            # Get the guid of each knob
+            guid = knob.namespace
+            # For each subknob of the current knob, if it's a leaf, write it to the CSV file
+            for subknob in knob.subknobs:
+                # Get the binary value
+                binary = subknob.format.object_to_binary(subknob.value)
+                string_binary = " ".join(map("%2.2x".__mod__, binary))
+                # Check if subknob is a leaf; skip otherwise
+                if subknob.leaf:
+                    # Get all valid values for each knob
+                    subknob_values = ""
+                    if isinstance(subknob.format, EnumFormat):
+                        subknob_values = subknob.format.values
+                        subknob_values_str = '[' + ', '.join(f"'{value.name}'" for value in subknob_values) + ']'
+                    elif isinstance(subknob.format, BoolFormat):
+                        subknob_values_str = ["TRUE", "FALSE"]
+                    # Get default value of the knob
+                    default_value = subknob.format.object_to_string(subknob.default)
+                    # print the guid for each row along with current & default value, binary,
+                    # valid value options, and description of the knob
+                    writer.writerow([
+                        guid,
+                        subknob.name,
+                        subknob.format.object_to_string(subknob.value),
+                        string_binary,
+                        default_value,
+                        subknob_values_str,
+                        subknob.help])
+
+
 def write_vlist(schema, vlist_path):
     with open(vlist_path, 'wb') as vlist_file:
         buf = vlist_to_binary(schema)
@@ -1292,6 +1303,7 @@ def usage():
     print("Commands:\n")
     print("  write_vl <schema.xml> [<values.csv>] <blob.vl>")
     print("  write_csv <schema.xml> [<blob.vl>] <values.csv>")
+    print("  write_csv_detailed <schema.xml> <values.csv>")
     print("")
     print("schema.xml : An XML with the definition of a set of known")
     print("             UEFI variables ('knobs') and types to interpret them")
@@ -1344,6 +1356,7 @@ def main():
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             csv_path = sys.argv[3]
+
             # Load the schema
             schema = Schema.load(schema_path)
 
@@ -1366,6 +1379,23 @@ def main():
 
             # Write the full vlist CSV with complete knobs
             write_csv(schema, csv_path, True, False)
+        else:
+            usage()
+            sys.stderr.write('Invalid number of arguments.\n')
+            sys.exit(1)
+            return
+
+    if sys.argv[1].lower() == "write_csv_detailed":
+        if len(sys.argv) == 4:
+            schema_path = sys.argv[2]
+            csv_path = sys.argv[3]
+            # Load the schema
+            schema = Schema.load(schema_path)
+            # Assign all values to their defaults
+            for knob in schema.knobs:
+                knob.value = knob.default
+            # Write the full vlist CSV with all the subknobs
+            write_csv_detailed(schema, csv_path)
         else:
             usage()
             sys.stderr.write('Invalid number of arguments.\n')
