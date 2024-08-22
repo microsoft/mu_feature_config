@@ -88,7 +88,7 @@ def split_braces(string_object):
             raise ParseError("expected '{{', found '{}'".format(c))
     if not complete:
         ParseError("expected '}'")
-        
+
     return segments
 
 
@@ -103,11 +103,11 @@ def is_valid_name(token):
 class StringFormatOptions:
     def __init__(self):
         pass
-        
+
     # When true, format the values for use in "C"
     # When false, format the values for use in the XML
     c_format = False
-    
+
     # When true, boolean values are formatted as "TRUE" and "FALSE" instead
     # of "true" and "false"
     efi_format = False
@@ -305,7 +305,7 @@ class EnumValue:
                 "Enum '{}' has invalid value name '{}'".format(
                     enum_name,
                     self.name))
-            
+
         try:
             self.number = int(xml_node.getAttribute("value"), 0)
         except ValueError:
@@ -328,27 +328,27 @@ class EnumFormat(DataFormat):
         if not is_valid_name(self.name):
             raise InvalidNameError(
                 "Enum name '{}' is invalid".format(self.name))
-            
+
         self.help = xml_node.getAttribute("help")
         self.headerRef = xml_node.getAttribute("headerRef")
         self.values = []
         self.default = None
-        
+
         super().__init__(c_type=self.name)
-        
+
         for value in xml_node.getElementsByTagName('Value'):
             enumvalue = EnumValue(self.name, value)
             self.values.append(enumvalue)
             if self.default is None:
                 self.default = enumvalue.number
-                
+
         self.default = self.string_to_object(xml_node.getAttribute("default"))
-        
+
         if xml_node.getAttribute("min") != "":
             raise ParseError("Enum {} may not have a 'min' attribute".format(self.name))
         if xml_node.getAttribute("max") != "":
             raise ParseError("Enum {} may not have a 'max' attribute".format(self.name))
-            
+
         pass
 
     def string_to_object(self, string_representation, eval_context=StringEvaluationContext.DEFAULT):
@@ -359,7 +359,7 @@ class EnumFormat(DataFormat):
                 return self.min
             elif eval_context == StringEvaluationContext.MAX:
                 return self.max
-                
+
         try:
             return int(string_representation)
         except ValueError:
@@ -395,10 +395,10 @@ class EnumFormat(DataFormat):
     def check_bounds(self, value, min, max):
         if min is not None:
             raise ParseError("Enum {} may not have min value of {}".format(self.name, min))
-            
+
         if max is not None:
             raise ParseError("Enum {} may not have max value of {}".format(self.name, max))
-            
+
         if value is not None:
             found = False
             for member_value in self.values:
@@ -416,9 +416,9 @@ class ArrayFormat(DataFormat):
         self.count = count
         self.struct_name = struct_name
         self.member_name = member_name
-        
+
         super().__init__(c_type=child_format.c_type)
-        
+
         self.default = []
         self.min = []
         self.max = []
@@ -436,7 +436,7 @@ class ArrayFormat(DataFormat):
                 return self.min
             elif eval_context == StringEvaluationContext.MAX:
                 return self.max
-                
+
         object_array = []
 
         # If an array is specified with "{1,2,3}" and the number of elements
@@ -471,7 +471,7 @@ class ArrayFormat(DataFormat):
         for element in object_representation:
             element_strings.append(
                 self.format.object_to_string(element, options))
-            
+
         return "{{{}}}".format(",".join(element_strings))
 
     def object_to_binary(self, object_representation):
@@ -519,13 +519,13 @@ class StructMember:
             self.count = 1
         else:
             self.count = int(count)
-            
+
         data_type = xml_node.getAttribute("type")
         # Look up the format using the schema
         # The format may be a built-in format (e.g. 'uint32_t') or a user
         # defined enum or struct
         format = schema.get_format(data_type)
-        
+
         if self.count != 1:
             self.format = ArrayFormat(
                 format,
@@ -534,11 +534,11 @@ class StructMember:
                 self.count)
         else:
             self.format = format
-            
+
         self.default = self.format.string_to_object(xml_node.getAttribute("default"))
         self.min = self.format.string_to_object(xml_node.getAttribute("min"), StringEvaluationContext.MIN)
         self.max = self.format.string_to_object(xml_node.getAttribute("max"), StringEvaluationContext.MAX)
-        
+
         self.format.check_bounds(self.min, self.format.min, self.format.max)
         self.format.check_bounds(self.max, self.format.min, self.format.max)
         self.format.check_bounds(self.default, self.min, self.max)
@@ -579,12 +579,12 @@ class StructFormat(DataFormat):
         self.help = xml_node.getAttribute("help")
         self.headerRef = xml_node.getAttribute("headerRef")
         self.members = []
-        
+
         super().__init__(c_type=self.name)
-        
+
         for member in xml_node.getElementsByTagName('Member'):
             self.members.append(StructMember(schema, self.name, member))
-            
+
         # Struct definitions themselves should not include default/min/max tags
         # The default/min/max values are interpreted from the struct members
         if xml_node.getAttribute("default") != "":
@@ -593,17 +593,17 @@ class StructFormat(DataFormat):
             raise ParseError("Struct {} may not have a 'min' attribute".format(self.name))
         if xml_node.getAttribute("max") != "":
             raise ParseError("Struct {} may not have a 'max' attribute".format(self.name))
-            
+
         # Construct the default value from the members
         self.default = self.string_to_object('')
-        
+
         self.min = OrderedDict()
         self.max = OrderedDict()
-        
+
         for member in self.members:
             self.min[member.name] = member.min
             self.max[member.name] = member.max
-            
+
         pass
 
     def create_subknobs(self, knob, path):
@@ -747,18 +747,18 @@ class Knob:
                 "Knob name '{}' is invalid".format(self.name))
         self.help = xml_node.getAttribute("help")
         self.namespace = namespace
-        
+
         data_type = xml_node.getAttribute("type")
         if data_type == "":
             raise ParseError(
                 "Knob '{}' does not have a type".format(self.name))
-            
+
         # Look up the format using the schema
         # The format may be a built-in format (e.g. 'uint32_t') or a
         # user defined enum or struct
         self.format = schema.get_format(data_type)
         self._value = None
-        
+
         # Use the format to decode the default value from its
         # string representation
         try:
@@ -768,24 +768,24 @@ class Knob:
             # message
             raise ParseError(
                 "Unable to parse default value of '{}': {}".format(self.name, e))
-            
+
         try:
             self._min = self.format.string_to_object(xml_node.getAttribute("min"), StringEvaluationContext.MIN)
         except ParseError as e:
             raise ParseError(
                 "Unable to parse the min value of '{}': {}".format(self.name, e))
         self.format.check_bounds(self._min, self.format.min, self.format.max)
-        
+
         try:
             self._max = self.format.string_to_object(xml_node.getAttribute("max"), StringEvaluationContext.MAX)
         except ParseError as e:
             raise ParseError(
                 "Unable to parse the max value of '{}': {}".format(self.name, e))
-            
+  
         self.format.check_bounds(self._max, self.format.min, self.format.max)
-        
+
         self.format.check_bounds(self._default, self._min, self._max)
-        
+
         self.subknobs = []
         if isinstance(self.format, StructFormat):
             self.subknobs.append(
@@ -806,7 +806,7 @@ class Knob:
                     self.pretty_name,
                     True  # Leaf
                 ))
-            
+
         pass
 
     # Get the default value for this knob
@@ -866,7 +866,7 @@ class Knob:
             # until the final value can be updated
             full_object = child_object
             first_element = path_elements[0]
-            
+
             if first_element != self.name:
                 raise Exception(
                     "Path '{}' is not a member of knob '{}'".format(
@@ -875,7 +875,7 @@ class Knob:
             # The final element will reference a value type, not an object,
             # so it needs to be handled differently
             final_element = path_elements[-1]
-            
+
             # Iterate the path until we find the object
             for element in path_elements[1:-1]:
                 (name, index) = self._decode_subpath(element)
@@ -883,7 +883,7 @@ class Knob:
                     child_object = child_object[name]
                 else:
                     child_object = child_object[name][index]
-                    
+
             # The last iteration is in reference to a value, not an object, so we
             # will use the last child_object pointer to update the value
             (name, index) = self._decode_subpath(final_element)
@@ -891,7 +891,7 @@ class Knob:
                 child_object[name] = value
             else:
                 child_object[name][index] = value
-                
+
             # Update the knob to the value of the full_object, which has been modified by virtue of
             # updating the child object (which was a pointer to an internal structure of the full object)
             self.value = full_object
@@ -903,7 +903,7 @@ class Knob:
                 "'{}' is not a valid sub-path of knob '{}'".format(
                     subpath_segment,
                     self.name))
-            
+
         if match.group('index') is not None:  # An index was included
             name = match.group('name')
             index = int(match.group('index'))
@@ -951,11 +951,11 @@ class Schema:
         self.structs = []
         self.knobs = []
         self.path = origin_path
-        
+
         for section in dom.getElementsByTagName('Enums'):
             for enum in section.getElementsByTagName('Enum'):
                 self.enums.append(EnumFormat(enum))
-                
+
         for section in dom.getElementsByTagName('Structs'):
             for struct_node in section.getElementsByTagName('Struct'):
                 self.structs.append(StructFormat(self, struct_node))
@@ -964,11 +964,11 @@ class Schema:
             namespace = re.sub('[{}]', '', section.getAttribute('namespace'))
             for knob in section.getElementsByTagName('Knob'):
                 self.knobs.append(Knob(self, knob, namespace))
-                
+
         self.subknobs = []
         for knob in self.knobs:
             self.subknobs += knob.subknobs
-            
+
         pass
 
     # Load a schema given a path to a schema xml file
@@ -987,7 +987,7 @@ class Schema:
 
             # raises exception if validation fails
             xsd.validate(path)
-            
+ 
         return Schema(parse(path), path)
 
     # Parse a schema given a string representation of the xml content
@@ -1000,27 +1000,27 @@ class Schema:
             # namespace guid lives at the Knob level, not the subknob level
             if str(knob.knob.namespace).upper() == str(guid).upper() and knob.name == knob_name:
                 return knob
-                
+       
         return None
 
     # Get a format by name
     def get_format(self, type_name):
         type_name = type_name.strip()
-        
+
         # Look for the type in the set of built in types
         if type_name in builtin_types:
             # Construct a new instance of the built in type format
             return builtin_types[type_name]()
-            
+
         # Check for custom enum or struct types
         for enum in self.enums:
             if enum.name == type_name:
                 return enum
-                
+ 
         for struct_definition in self.structs:
             if struct_definition.name == type_name:
                 return struct_definition
-                
+     
         raise InvalidTypeError(
             "Data type '{}' is not defined".format(type_name))
 
@@ -1055,15 +1055,15 @@ def create_vlist_buffer(variable):
     data = variable.data
     guid = variable.guid.bytes_le
     attributes = variable.attributes
-    
+
     payload = struct.pack("<ii", len(name), len(data)) + \
         name + \
         guid + \
         struct.pack("<I", attributes) + \
         data
-    
+
     crc = zlib.crc32(payload)
-    
+
     return payload + struct.pack("<I", crc)
 
 
@@ -1091,7 +1091,7 @@ def vlist_to_binary(schema):
 
             variable = UEFIVariable(knob.name, knob.namespace, value_bytes)
             ret += create_vlist_buffer(variable)
-            
+
     return ret
 
 
@@ -1145,9 +1145,9 @@ def read_vlist_from_buffer(array):
         attributes_bytes = payload[(name_size + 8 + 16):(name_size + 8 + 16 + 4)]
         attributes = struct.unpack("<I", attributes_bytes)[0]
         data = payload[(name_size + 8 + 16 + 4):]
-        
+
         variables.append(UEFIVariable(name, guid, data, attributes))
-        
+
     # If there are no more entries left, returns
     return variables
 
@@ -1165,7 +1165,7 @@ def read_csv(schema, csv_path):
         guid = None
         reader = csv.reader(csv_file)
         header = next(reader)
-        
+
         knob_index = 0
         value_index = 0
         guid_index = 0
@@ -1174,17 +1174,17 @@ def read_csv(schema, csv_path):
             guid_index = header.index('Guid')
         except ValueError:
             raise ParseError("CSV is missing 'Guid' column header. Ensure CSV was generated with latest changes.")
-            
+ 
         try:
             knob_index = header.index('Knob')
         except ValueError:
             raise ParseError("CSV is missing 'Knob' column header")
-            
+    
         try:
             value_index = header.index('Value')
         except ValueError:
             raise ParseError("CSV is missing 'Value' column header")
-            
+  
         for row in reader:
             read_guid = row[guid_index]
             if read_guid != '*':
@@ -1216,7 +1216,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = subknob.namespace
-                        
+
                         writer.writerow([
                             guid,
                             subknob.name,
@@ -1240,7 +1240,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace
-                        
+ 
                         writer.writerow([
                             guid,
                             knob.name,
@@ -1318,32 +1318,32 @@ def main():
         sys.stderr.write('Must provide a command.\n')
         sys.exit(1)
         return
-        
+
     if sys.argv[1].lower() == "write_vl":
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
-            
+
             # Load the schema
             schema = Schema.load(schema_path)
-            
+ 
             # Assign all values to their defaults
             for knob in schema.knobs:
                 knob.value = knob.default
-                
+   
             # Write the vlist
             write_vlist(schema, vlist_path)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             values_path = sys.argv[3]
             vlist_path = sys.argv[4]
-            
+
             # Load the schema
             schema = Schema.load(schema_path)
-            
+ 
             # Read values from the CSV
             read_csv(schema, values_path)
-            
+ 
             # Write the vlist
             write_vlist(schema, vlist_path)
         else:
@@ -1356,27 +1356,27 @@ def main():
         if len(sys.argv) == 4:
             schema_path = sys.argv[2]
             csv_path = sys.argv[3]
-            
+
             # Load the schema
             schema = Schema.load(schema_path)
-            
+
             # Assign all values to their defaults
             for knob in schema.knobs:
                 knob.value = knob.default
-                
+     
             # Write the full vlist with complete knobs
             write_csv(schema, csv_path, True, False)
         elif len(sys.argv) == 5:
             schema_path = sys.argv[2]
             vlist_path = sys.argv[3]
             csv_path = sys.argv[4]
-            
+
             # Load the schema
             schema = Schema.load(schema_path)
-            
+
             # Read values from the vlist
             read_vlist(schema, vlist_path)
-            
+
             # Write the full vlist CSV with complete knobs
             write_csv(schema, csv_path, True, False)
         else:
