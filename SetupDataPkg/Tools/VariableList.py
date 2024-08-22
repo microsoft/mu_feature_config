@@ -781,7 +781,7 @@ class Knob:
         except ParseError as e:
             raise ParseError(
                 "Unable to parse the max value of '{}': {}".format(self.name, e))
-  
+
         self.format.check_bounds(self._max, self.format.min, self.format.max)
 
         self.format.check_bounds(self._default, self._min, self._max)
@@ -987,7 +987,7 @@ class Schema:
 
             # raises exception if validation fails
             xsd.validate(path)
- 
+
         return Schema(parse(path), path)
 
     # Parse a schema given a string representation of the xml content
@@ -1000,7 +1000,7 @@ class Schema:
             # namespace guid lives at the Knob level, not the subknob level
             if str(knob.knob.namespace).upper() == str(guid).upper() and knob.name == knob_name:
                 return knob
-       
+
         return None
 
     # Get a format by name
@@ -1016,11 +1016,11 @@ class Schema:
         for enum in self.enums:
             if enum.name == type_name:
                 return enum
- 
+
         for struct_definition in self.structs:
             if struct_definition.name == type_name:
                 return struct_definition
-     
+
         raise InvalidTypeError(
             "Data type '{}' is not defined".format(type_name))
 
@@ -1174,17 +1174,17 @@ def read_csv(schema, csv_path):
             guid_index = header.index('Guid')
         except ValueError:
             raise ParseError("CSV is missing 'Guid' column header. Ensure CSV was generated with latest changes.")
- 
+
         try:
             knob_index = header.index('Knob')
         except ValueError:
             raise ParseError("CSV is missing 'Knob' column header")
-    
+
         try:
             value_index = header.index('Value')
         except ValueError:
             raise ParseError("CSV is missing 'Value' column header")
-  
+
         for row in reader:
             read_guid = row[guid_index]
             if read_guid != '*':
@@ -1240,7 +1240,7 @@ def write_csv(schema, csv_path, full, subknobs=True):
                         # We print the guid on the first row and then only print
                         # another guid if it changes
                         guid = knob.namespace
- 
+
                         writer.writerow([
                             guid,
                             knob.name,
@@ -1326,11 +1326,11 @@ def main():
 
             # Load the schema
             schema = Schema.load(schema_path)
- 
+
             # Assign all values to their defaults
             for knob in schema.knobs:
                 knob.value = knob.default
-   
+
             # Write the vlist
             write_vlist(schema, vlist_path)
         elif len(sys.argv) == 5:
@@ -1340,10 +1340,10 @@ def main():
 
             # Load the schema
             schema = Schema.load(schema_path)
- 
+
             # Read values from the CSV
             read_csv(schema, values_path)
- 
+
             # Write the vlist
             write_vlist(schema, vlist_path)
         else:
@@ -1363,7 +1363,7 @@ def main():
             # Assign all values to their defaults
             for knob in schema.knobs:
                 knob.value = knob.default
-     
+
             # Write the full vlist with complete knobs
             write_csv(schema, csv_path, True, False)
         elif len(sys.argv) == 5:
