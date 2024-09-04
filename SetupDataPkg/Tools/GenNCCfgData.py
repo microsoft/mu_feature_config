@@ -11,7 +11,8 @@ import re
 from collections import OrderedDict
 import base64
 
-from SettingSupport.DFCI_SupportLib import DFCI_SupportLib  # noqa: E402
+import xml.etree.ElementTree as ET
+
 from CommonUtility import bytes_to_value
 from VariableList import (
     Schema,
@@ -228,6 +229,43 @@ class CGenNCCfgData:
                     break
         return actual_var_list
 
+    def iterate_each_setting(self, resultfile, handler):
+        xmlstring = ""
+        found = False
+        a = open(resultfile, "r")
+
+        # find the start of the xml string and then copy all lines to xmlstring variable
+        for line in a.readlines():
+            if found:
+                xmlstring += line
+            else:
+                if line.lstrip().startswith("<?xml"):
+                    xmlstring = line
+                    found = True
+        a.close()
+
+        if (len(xmlstring) == 0) or (not found):
+            print("Result XML not found")
+            return None
+
+        # make an element tree from xml string
+        r = None
+        root = ET.fromstring(xmlstring)
+
+        # Process Settings produced by SettingsXMLLib.py
+        for e in root.findall(
+            "./{urn:UefiSettings-Schema}Settings/{urn:UefiSettings-Schema}Setting"
+        ):
+            i = e.find("{urn:UefiSettings-Schema}Id")
+            r = e.find("{urn:UefiSettings-Schema}Value")
+            handler(i.text, r.text)
+
+        # Process SettingsCurrent from ConfApp output (from DFCI Libs)
+        for e in root.findall("./Settings/SettingCurrent"):
+            i = e.find("Id")
+            r = e.find("Value")
+            handler(i.text, r.text)
+
     def load_from_svd(self, path):
         def handler(id, value):
             # ignore YAML entries
@@ -240,9 +278,7 @@ class CGenNCCfgData:
                 uefi_variables_to_knobs(self.schema, actual_var_list)
                 self.sync_shim_and_schema()
 
-        a = DFCI_SupportLib()
-
-        a.iterate_each_setting(path, handler)
+        self.iterate_each_setting(path, handler)
 
     def load_default_from_bin(self, bin_data, is_variable_list_format):
         var_list = read_vlist_from_buffer(bin_data)
