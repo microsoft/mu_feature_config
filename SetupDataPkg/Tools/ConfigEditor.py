@@ -8,6 +8,7 @@
 import os
 import sys
 import base64
+import datetime
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -917,6 +918,44 @@ class application(tkinter.Frame):
                 csv_path, self.cfg_data_list[file_id].org_cfg_data_bin, new_data, full
             )
 
+    def create_settings_xml(self, filename, version, lsv, settingslist):
+
+        with open(filename, "w") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write('<SettingsPacket xmlns="urn:UefiSettings-Schema">\n')
+            f.write('    <CreatedBy>Dfci Testcase Libraries</CreatedBy>\n')
+            f.write('    <CreatedOn>')
+
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), end='', file=f)
+
+            f.write('</CreatedOn>\n')
+            f.write('    <Version>')
+            print(version, end='', file=f)
+            f.write('</Version>\n')
+            f.write('    <LowestSupportedVersion>')
+            print(lsv, end='', file=f)
+            f.write('</LowestSupportedVersion>\n')
+            f.write('    <Settings>\n')
+
+            #
+            # The settings list is a list of a list.  The lowest level list is really a tuple of
+            # setting id and value
+            #
+            for setting in settingslist:
+                f.write('        <Setting>\n')
+                f.write('            <Id>')
+                print(setting[0], end='', file=f)
+                f.write('</Id>\n')
+                f.write('            <Value>')
+                print(setting[1], end='', file=f)
+                f.write('</Value>\n')
+                f.write('        </Setting>\n')
+
+            f.write('    </Settings>\n')
+            f.write('</SettingsPacket>\n')
+
+        return True
+
     def save_to_svd(self, full):
         path = self.get_save_file_name("svd")
         if not path:
@@ -951,8 +990,7 @@ class application(tkinter.Frame):
                         (name_array[index], b64data.decode("utf-8"))
                     )
 
-        set_lib = SettingsXMLLib()
-        set_lib.create_settings_xml(
+        self.create_settings_xml(
             filename=temp_file, version=1, lsv=1, settingslist=settings
         )
 
