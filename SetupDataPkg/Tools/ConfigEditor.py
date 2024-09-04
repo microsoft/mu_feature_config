@@ -17,7 +17,6 @@ import tkinter                                                  # noqa: E402
 import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
-from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
 from GenNCCfgData import CGenNCCfgData                          # noqa: E402
 from CommonUtility import (                                     # noqa: E402
     bytes_to_value,
