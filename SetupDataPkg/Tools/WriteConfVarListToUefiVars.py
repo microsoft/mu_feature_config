@@ -108,15 +108,9 @@ def extract_single_var_from_file_and_write_nvram(var):
 
     return len(var)
 
-
-#
-# main script function
-#
-def main():
-    arguments = option_parser()
-
+def set_variable_from_file(setting_file):
     # read the entire file
-    with open(arguments.setting_file, "rb") as file:
+    with open(setting_file, "rb") as file:
         var = file.read()
 
         # go through the entire file parsing each dmpstore variable
@@ -124,6 +118,12 @@ def main():
         while len(var[start:]) != 0:
             start = start + extract_single_var_from_file_and_write_nvram(var[start:])
 
+#
+# main script function
+#
+def main():
+    arguments = option_parser()
+    set_variable_from_file(arguments.setting_file)
     return 0
 
 

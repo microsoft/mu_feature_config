@@ -24,7 +24,8 @@ from CommonUtility import (                                     # noqa: E402
     value_to_bytes,
     array_str_to_value,
 )
-
+import WriteConfVarListToUefiVars as uefi_var_write
+import ReadUefiVarsToConfVarList as uefi_var_read
 
 class create_tool_tip(object):
     """
@@ -39,6 +40,7 @@ class create_tool_tip(object):
         self.text = text
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
+        self.config_xml_path = None
 
     def enter(self, event=None):
         if self.in_progress:
@@ -371,7 +373,6 @@ class cfg_data:
 class application(tkinter.Frame):
     def __init__(self, master=None):
         root = master
-
         self.debug = True
         self.page_id = ""
         self.page_list = {}
@@ -406,6 +407,8 @@ class application(tkinter.Frame):
             'Save Full Config Data to Change File',
             'Save Config Changes to Change File',
             'Load Config from Change File',
+            'Load Runtime Variables from system',
+            'Save Runtime Variables to system',
         ]
 
         self.xml_specific_setting = [
@@ -417,10 +420,10 @@ class application(tkinter.Frame):
         paned = ttk.Panedwindow(root, orient=tkinter.HORIZONTAL)
         paned.pack(fill=tkinter.BOTH, expand=True, padx=(4, 4))
 
-        status = tkinter.Label(
-            master, text="", bd=1, relief=tkinter.SUNKEN, anchor=tkinter.W
+        self.status = tkinter.Text(
+            master, height=8, bd=1, relief=tkinter.SUNKEN, wrap=tkinter.WORD
         )
-        status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 
         frame_left = ttk.Frame(paned, height=800, relief="groove")
 
@@ -501,6 +504,12 @@ class application(tkinter.Frame):
         )
         file_menu.add_command(
             label=self.menu_string[8], command=self.load_from_delta, state="disabled"
+        )
+        file_menu.add_command(
+            label=self.menu_string[9], command=self.load_variable_runtime, state="disabled"
+        )
+        file_menu.add_command(
+            label=self.menu_string[10], command=self.set_variable_runtime, state="disabled"
         )
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -784,6 +793,22 @@ class application(tkinter.Frame):
             return
         self.load_delta_file(path)
 
+
+    def set_variable_runtime(self):
+        self.update_config_data_on_page()
+
+        runtime_var_delta_path = "RuntimeVarToWrite.vl"
+        bin = b''
+        for idx in self.cfg_data_list:
+            if self.cfg_data_list[idx].config_type == 'xml':
+                bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
+
+        with open(runtime_var_delta_path, "wb") as fd:
+            fd.write(bin)
+
+        uefi_var_write.set_variable_from_file(runtime_var_delta_path)
+        self.load_variable_runtime()
+
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
@@ -866,24 +891,28 @@ class application(tkinter.Frame):
         return 0
 
     def load_from_ml_and_clear(self):
-        path = self.get_open_file_name('xml')
-        if not path:
+        self.config_xml_path = self.get_open_file_name('xml')
+        if not self.config_xml_path:
             return
 
         # we are opening a new file and clearing out the other ones, start at 0
         file_id = 0
 
-        self.load_cfg_file(path, file_id, True)
+        self.load_cfg_file(self.config_xml_path, file_id, True)
 
     def load_from_ml(self):
-        path = self.get_open_file_name('xml')
-        if not path:
+        self.config_xml_path = self.get_open_file_name('xml')
+        if not self.config_xml_path:
             return
 
         # we are opening a new file, so increment the file_id
         file_id = len(self.cfg_data_list)
 
-        self.load_cfg_file(path, file_id, False)
+        self.load_cfg_file(self.config_xml_path, file_id, False)
+
+    def load_variable_runtime(self):
+        uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
+        self.load_bin_file("RuntimeVar.vl")
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -1281,7 +1310,6 @@ class application(tkinter.Frame):
         self.walk_widgets_in_layout(
             self.right_grid, self.update_config_data_from_widget
         )
-
 
 if __name__ == "__main__":
     root = tkinter.Tk()
