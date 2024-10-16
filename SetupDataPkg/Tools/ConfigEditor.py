@@ -26,6 +26,7 @@ from CommonUtility import (                                     # noqa: E402
 )
 import WriteConfVarListToUefiVars as uefi_var_write
 import ReadUefiVarsToConfVarList as uefi_var_read
+import BoardMiscInfo
 
 def ask_yes_no(prompt):
     result = messagebox.askyesno("Question", prompt)
@@ -520,6 +521,15 @@ class application(tkinter.Frame):
         self.file_menu = file_menu
 
         root.config(menu=menubar)
+
+        # Checking if we are in Manufaturing mode
+        bios_info_smbios_data = BoardMiscInfo.locate_smbios_entry(0)
+        # Check if we have the SMBIOS data in the first entry
+        bios_info_smbios_data = bios_info_smbios_data[0]
+        if (bios_info_smbios_data != []):
+            char_ext2_data = bios_info_smbios_data[0x13]
+            Manufaturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
+            print(f"Manufaturing : {Manufaturing_enabled:02X}")
 
         idx = 0
 
