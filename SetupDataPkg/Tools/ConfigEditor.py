@@ -531,6 +531,11 @@ class application(tkinter.Frame):
             Manufaturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
             print(f"Manufaturing : {Manufaturing_enabled:02X}")
 
+        self.canvas = tkinter.Canvas(master, width=150, height=50, bg="white")
+        self.canvas.place(relx=1.0, rely=1.0, x=-10, y=-10, anchor='se')
+        self.canvas.create_rectangle(10, 10, 140, 40, fill="blue", outline="black")
+        self.canvas.create_text(75, 25, text=f"Manufacturing Mode: {Manufaturing_enabled}", fill="white")
+
         idx = 0
 
         if len(sys.argv) > 1:
