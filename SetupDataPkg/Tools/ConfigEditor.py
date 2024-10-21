@@ -534,10 +534,9 @@ class application(tkinter.Frame):
         # get mfci policy
         mfci_policy_result = BoardMiscInfo.get_mfci_policy()
 
-
-        self.canvas = tkinter.Canvas(master, width=170, height=50, bg=master['bg'], highlightthickness=0)
+        self.canvas = tkinter.Canvas(master, width=240, height=50, bg=master['bg'], highlightthickness=0)
         self.canvas.place(relx=1.0, rely=1.0, x=0, y=0, anchor='se')
-        self.canvas.create_text(85, 20, text=f"Manufacturing Mode: {Manufaturing_enabled}\nMfci Policy: {mfci_policy_result}", fill="black", font=("Helvetica", 10, "bold"))
+        self.canvas.create_text(120, 25, text=f"Manufacturing Mode: {Manufaturing_enabled}\nMfci Policy: {mfci_policy_result}", fill="black", font=("Helvetica", 10, "bold"))
 
         idx = 0
 
