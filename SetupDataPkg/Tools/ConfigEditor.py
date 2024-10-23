@@ -27,6 +27,7 @@ from CommonUtility import (                                     # noqa: E402
 import WriteConfVarListToUefiVars as uefi_var_write
 import ReadUefiVarsToConfVarList as uefi_var_read
 import BoardMiscInfo
+from VariableList import Schema
 
 def ask_yes_no(prompt):
     result = messagebox.askyesno("Question", prompt)
@@ -414,6 +415,7 @@ class application(tkinter.Frame):
             'Load Config from Change File',
             'Load Runtime Variables from system',
             'Save Runtime Variables to system',
+            'Delete Runtime Variables to system',
         ]
 
         self.xml_specific_setting = [
@@ -515,6 +517,9 @@ class application(tkinter.Frame):
         )
         file_menu.add_command(
             label=self.menu_string[10], command=self.set_variable_runtime, state="disabled"
+        )
+        file_menu.add_command(
+            label=self.menu_string[11], command=self.del_all_variable_runtime, state="disabled"
         )
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
@@ -814,7 +819,6 @@ class application(tkinter.Frame):
             return
         self.load_delta_file(path)
 
-
     def set_variable_runtime(self):
         self.update_config_data_on_page()
         if (not ask_yes_no(f"Do you want to save the variable to the system?\n")):
@@ -832,6 +836,16 @@ class application(tkinter.Frame):
         uefi_var_write.set_variable_from_file(runtime_var_delta_path)
         self.load_variable_runtime()
         self.output_current_status(f"Settings are set to system and save to RuntimeVar.vl")
+
+    def del_all_variable_runtime(self):
+        if (not ask_yes_no(f"Do you want to delete all varables in {self.config_xml_path} on system?\n")):
+            return
+
+        schema = Schema.load(self.config_xml_path)
+        for knob in schema.knobs:
+            self.output_current_status(f"Delete variable {knob.name} with namespace {knob.namespace}")
+            uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
+            self.output_current_status(f"{knob.name} variable is deleted from system")
 
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
