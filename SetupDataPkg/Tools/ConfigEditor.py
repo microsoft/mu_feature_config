@@ -27,6 +27,10 @@ from CommonUtility import (                                     # noqa: E402
 import WriteConfVarListToUefiVars as uefi_var_write
 import ReadUefiVarsToConfVarList as uefi_var_read
 
+def ask_yes_no(prompt):
+    result = messagebox.askyesno("Question", prompt)
+    return result
+
 class create_tool_tip(object):
     """
     create a tooltip for a given widget
@@ -796,6 +800,8 @@ class application(tkinter.Frame):
 
     def set_variable_runtime(self):
         self.update_config_data_on_page()
+        if (not ask_yes_no(f"Do you want to save the variable to the system?\n")):
+            return
 
         runtime_var_delta_path = "RuntimeVarToWrite.vl"
         bin = b''
@@ -808,6 +814,7 @@ class application(tkinter.Frame):
 
         uefi_var_write.set_variable_from_file(runtime_var_delta_path)
         self.load_variable_runtime()
+        self.output_current_status(f"Settings are set to system and save to RuntimeVar.vl")
 
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
@@ -862,6 +869,8 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
+        self.output_current_status(f"{path} file is loaded")
+
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
         if clear_config is True:
@@ -888,6 +897,7 @@ class application(tkinter.Frame):
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
 
+        self.output_current_status(f"{path} file is loaded")
         return 0
 
     def load_from_ml_and_clear(self):
@@ -913,6 +923,7 @@ class application(tkinter.Frame):
     def load_variable_runtime(self):
         uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
         self.load_bin_file("RuntimeVar.vl")
+        self.output_current_status(f"Settings are read from system and save to RuntimeVar.vl")
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -1119,6 +1130,7 @@ class application(tkinter.Frame):
                     "Update %s from %s to %s !"
                     % (item["cname"], item["value"], new_value)
                 )
+                self.output_current_status("Update %s from %s to %s !" % (item["cname"], item["value"], new_value))
             item["value"] = new_value
 
     def get_config_data_item_from_widget(self, widget, label=False):
@@ -1310,6 +1322,10 @@ class application(tkinter.Frame):
         self.walk_widgets_in_layout(
             self.right_grid, self.update_config_data_from_widget
         )
+
+    def output_current_status(self, output_log):
+        self.status.insert(tkinter.END, output_log + "\n")
+        self.status.see(tkinter.END)
 
 if __name__ == "__main__":
     root = tkinter.Tk()
