@@ -32,7 +32,7 @@ def get_mfci_policy():
 
 def locate_smbios_data():
     # Define constants
-    FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smibios table
+    FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
     SMBIOS_TABLE = 0x53
 
     # Load the kernel32.dll library
@@ -90,4 +90,3 @@ def locate_smbios_entry(smbios_type):
         print(f"Type {smbios_type} structure not found.")
         return None
     return found_smbios_entry
-

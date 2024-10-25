@@ -64,7 +64,8 @@ def read_variable_into_variable_list(uefi_var, name, namespace):
     b_array = create_vlist_buffer(variable)
     return b_array
 
-def read_all_uefi_vars(output_file, configuration_file = None):
+
+def read_all_uefi_vars(output_file, configuration_file=None):
     UefiVar = UefiVariable()
 
     # Get ready to write vl file
@@ -102,12 +103,14 @@ def read_all_uefi_vars(output_file, configuration_file = None):
             logging.warning("No variables found!!!")
             return -1
 
+
 #
 # main script function
 #
 def main():
     arguments = option_parser()
     return read_all_uefi_vars(arguments.output_file, arguments.configuration_file)
+
 
 if __name__ == "__main__":
     # setup main console as logger

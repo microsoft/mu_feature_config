@@ -18,20 +18,22 @@ import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
 from GenNCCfgData import CGenNCCfgData                          # noqa: E402
+import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
+import ReadUefiVarsToConfVarList as uefi_var_read               # noqa: E402
+import BoardMiscInfo                                            # noqa: E402
+from VariableList import Schema                                 # noqa: E402
 from CommonUtility import (                                     # noqa: E402
     bytes_to_value,
     bytes_to_bracket_str,
     value_to_bytes,
     array_str_to_value,
 )
-import WriteConfVarListToUefiVars as uefi_var_write
-import ReadUefiVarsToConfVarList as uefi_var_read
-import BoardMiscInfo
-from VariableList import Schema
+
 
 def ask_yes_no(prompt):
     result = messagebox.askyesno("Question", prompt)
     return result
+
 
 class create_tool_tip(object):
     """
@@ -527,21 +529,25 @@ class application(tkinter.Frame):
 
         root.config(menu=menubar)
 
-        # Checking if we are in Manufaturing mode
+        # Checking if we are in Manufacturing mode
         bios_info_smbios_data = BoardMiscInfo.locate_smbios_entry(0)
         # Check if we have the SMBIOS data in the first entry
         bios_info_smbios_data = bios_info_smbios_data[0]
         if (bios_info_smbios_data != []):
             char_ext2_data = bios_info_smbios_data[0x13]
-            Manufaturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
-            print(f"Manufaturing : {Manufaturing_enabled:02X}")
+            Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
+            print(f"Manufacturing : {Manufacturing_enabled:02X}")
 
         # get mfci policy
         mfci_policy_result = BoardMiscInfo.get_mfci_policy()
-
         self.canvas = tkinter.Canvas(master, width=240, height=50, bg=master['bg'], highlightthickness=0)
         self.canvas.place(relx=1.0, rely=1.0, x=0, y=0, anchor='se')
-        self.canvas.create_text(120, 25, text=f"Manufacturing Mode: {Manufaturing_enabled}\nMfci Policy: {mfci_policy_result}", fill="black", font=("Helvetica", 10, "bold"))
+        self.canvas.create_text(
+            120, 25,
+            text=f"Manufacturing Mode: {Manufacturing_enabled}\nMfci Policy: {mfci_policy_result}",
+            fill="black",
+            font=("Helvetica", 10, "bold")
+        )
 
         idx = 0
 
@@ -821,7 +827,7 @@ class application(tkinter.Frame):
 
     def set_variable_runtime(self):
         self.update_config_data_on_page()
-        if (not ask_yes_no(f"Do you want to save the variable to the system?\n")):
+        if (not ask_yes_no("Do you want to save the variable to the system?\n")):
             return
 
         runtime_var_delta_path = "RuntimeVarToWrite.vl"
@@ -835,10 +841,10 @@ class application(tkinter.Frame):
 
         uefi_var_write.set_variable_from_file(runtime_var_delta_path)
         self.load_variable_runtime()
-        self.output_current_status(f"Settings are set to system and save to RuntimeVar.vl")
+        self.output_current_status("Settings are set to system and save to RuntimeVar.vl")
 
     def del_all_variable_runtime(self):
-        if (not ask_yes_no(f"Do you want to delete all varables in {self.config_xml_path} on system?\n")):
+        if (not ask_yes_no(f"Do you want to delete all variables in {self.config_xml_path} on system?\n")):
             return
 
         schema = Schema.load(self.config_xml_path)
@@ -927,29 +933,29 @@ class application(tkinter.Frame):
 
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
-
+        self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
         return 0
 
     def load_from_ml_and_clear(self):
-        self.config_xml_path = self.get_open_file_name('xml')
-        if not self.config_xml_path:
+        path = self.get_open_file_name('xml')
+        if not path:
             return
 
         # we are opening a new file and clearing out the other ones, start at 0
         file_id = 0
 
-        self.load_cfg_file(self.config_xml_path, file_id, True)
+        self.load_cfg_file(path, file_id, True)
 
     def load_from_ml(self):
-        self.config_xml_path = self.get_open_file_name('xml')
-        if not self.config_xml_path:
+        path = self.get_open_file_name('xml')
+        if not path:
             return
 
         # we are opening a new file, so increment the file_id
         file_id = len(self.cfg_data_list)
 
-        self.load_cfg_file(self.config_xml_path, file_id, False)
+        self.load_cfg_file(path, file_id, False)
 
     def load_variable_runtime(self):
         status = uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
@@ -957,7 +963,7 @@ class application(tkinter.Frame):
             messagebox.showinfo("WARNING", f"No Config Var is found, all the data from from {self.config_xml_path}")
             self.output_current_status(f"No Config Var is found, all the data from from {self.config_xml_path}")
         self.load_bin_file("RuntimeVar.vl")
-        self.output_current_status(f"Settings are read from system and save to RuntimeVar.vl")
+        self.output_current_status("Settings are read from system and save to RuntimeVar.vl")
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -1360,6 +1366,7 @@ class application(tkinter.Frame):
     def output_current_status(self, output_log):
         self.status.insert(tkinter.END, output_log + "\n")
         self.status.see(tkinter.END)
+
 
 if __name__ == "__main__":
     root = tkinter.Tk()
