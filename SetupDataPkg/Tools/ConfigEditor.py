@@ -9,6 +9,7 @@ import os
 import sys
 import base64
 import datetime
+import ctypes
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -415,6 +416,9 @@ class application(tkinter.Frame):
             'Save Full Config Data to Change File',
             'Save Config Changes to Change File',
             'Load Config from Change File',
+        ]
+
+        self.variable_menu_string = [
             'Load Runtime Variables from system',
             'Save Runtime Variables to system',
             'Delete Runtime Variables to system',
@@ -487,6 +491,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label="Open Config file and Clear Old Config", command=self.load_from_ml_and_clear
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
@@ -496,6 +501,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[2], command=self.load_from_bin, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[3], command=self.save_full_to_svd, state="disabled"
         )
@@ -505,6 +511,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[5], command=self.load_from_svd, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[6], command=self.save_full_to_delta, state="disabled"
         )
@@ -514,18 +521,32 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[8], command=self.load_from_delta, state="disabled"
         )
-        file_menu.add_command(
-            label=self.menu_string[9], command=self.load_variable_runtime, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[10], command=self.set_variable_runtime, state="disabled"
-        )
-        file_menu.add_command(
-            label=self.menu_string[11], command=self.del_all_variable_runtime, state="disabled"
-        )
+
+        file_menu.add_separator()
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
         self.file_menu = file_menu
+
+        self.admin_mode = False
+        if os.name == 'nt' and ctypes.windll.shell32.IsUserAnAdmin():
+            self.admin_mode = True
+        elif os.name == 'posix' and os.getuid() == 0:
+            self.admin_mode = True
+
+        if self.admin_mode:
+            # Variable Menu
+            variable_menu = tkinter.Menu(menubar, tearoff=0)
+            variable_menu.add_command(
+                label=self.variable_menu_string[0], command=self.load_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[1], command=self.set_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[2], command=self.del_all_variable_runtime, state="disabled"
+            )
+            menubar.add_cascade(label="Variables", menu=variable_menu)
+            self.variable_menu = variable_menu
 
         root.config(menu=menubar)
 
@@ -544,7 +565,11 @@ class application(tkinter.Frame):
         self.canvas.place(relx=1.0, rely=1.0, x=0, y=0, anchor='se')
         self.canvas.create_text(
             120, 25,
-            text=f"Manufacturing Mode: {Manufacturing_enabled}\nMfci Policy: {mfci_policy_result}",
+            text=(
+                f"AdminMode: {self.admin_mode}\n"
+                f"Manufacturing Mode: {Manufacturing_enabled}\n"
+                f"Mfci Policy: {mfci_policy_result}"
+            ),
             fill="black",
             font=("Helvetica", 10, "bold")
         )
@@ -933,6 +958,10 @@ class application(tkinter.Frame):
 
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
+
+        for menu in self.variable_menu_string:
+            self.variable_menu.entryconfig(menu, state="normal")
+
         self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
         return 0
