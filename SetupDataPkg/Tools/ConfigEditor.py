@@ -875,8 +875,11 @@ class application(tkinter.Frame):
         schema = Schema.load(self.config_xml_path)
         for knob in schema.knobs:
             self.output_current_status(f"Delete variable {knob.name} with namespace {knob.namespace}")
-            uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
-            self.output_current_status(f"{knob.name} variable is deleted from system")
+            rc = uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
+            if rc == 0:
+                self.output_current_status(f"{knob.name} variable was not deleted from system {rc}")
+            else:
+                self.output_current_status(f"{knob.name} variable is deleted from system")
 
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
@@ -959,8 +962,9 @@ class application(tkinter.Frame):
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
 
-        for menu in self.variable_menu_string:
-            self.variable_menu.entryconfig(menu, state="normal")
+        if self.admin_mode:
+            for menu in self.variable_menu_string:
+                self.variable_menu.entryconfig(menu, state="normal")
 
         self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
