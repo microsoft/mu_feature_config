@@ -9,6 +9,7 @@ import os
 import sys
 import base64
 import datetime
+import ctypes
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -18,12 +19,21 @@ import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
 from GenNCCfgData import CGenNCCfgData                          # noqa: E402
+import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
+import ReadUefiVarsToConfVarList as uefi_var_read               # noqa: E402
+import BoardMiscInfo                                            # noqa: E402
+from VariableList import Schema                                 # noqa: E402
 from CommonUtility import (                                     # noqa: E402
     bytes_to_value,
     bytes_to_bracket_str,
     value_to_bytes,
     array_str_to_value,
 )
+
+
+def ask_yes_no(prompt):
+    result = messagebox.askyesno("Question", prompt)
+    return result
 
 
 class create_tool_tip(object):
@@ -39,6 +49,7 @@ class create_tool_tip(object):
         self.text = text
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
+        self.config_xml_path = None
 
     def enter(self, event=None):
         if self.in_progress:
@@ -371,7 +382,6 @@ class cfg_data:
 class application(tkinter.Frame):
     def __init__(self, master=None):
         root = master
-
         self.debug = True
         self.page_id = ""
         self.page_list = {}
@@ -408,6 +418,12 @@ class application(tkinter.Frame):
             'Load Config from Change File',
         ]
 
+        self.variable_menu_string = [
+            'Load Runtime Variables from system',
+            'Save Runtime Variables to system',
+            'Delete Runtime Variables to system',
+        ]
+
         self.xml_specific_setting = [
             'Save Config Changes to Binary'
         ]
@@ -417,10 +433,10 @@ class application(tkinter.Frame):
         paned = ttk.Panedwindow(root, orient=tkinter.HORIZONTAL)
         paned.pack(fill=tkinter.BOTH, expand=True, padx=(4, 4))
 
-        status = tkinter.Label(
-            master, text="", bd=1, relief=tkinter.SUNKEN, anchor=tkinter.W
+        self.status = tkinter.Text(
+            master, height=8, bd=1, relief=tkinter.SUNKEN, wrap=tkinter.WORD
         )
-        status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 
         frame_left = ttk.Frame(paned, height=800, relief="groove")
 
@@ -475,6 +491,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label="Open Config file and Clear Old Config", command=self.load_from_ml_and_clear
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
@@ -484,6 +501,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[2], command=self.load_from_bin, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[3], command=self.save_full_to_svd, state="disabled"
         )
@@ -493,6 +511,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[5], command=self.load_from_svd, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[6], command=self.save_full_to_delta, state="disabled"
         )
@@ -502,11 +521,58 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[8], command=self.load_from_delta, state="disabled"
         )
+
+        file_menu.add_separator()
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
         self.file_menu = file_menu
 
+        self.admin_mode = False
+        if os.name == 'nt' and ctypes.windll.shell32.IsUserAnAdmin():
+            self.admin_mode = True
+        elif os.name == 'posix' and os.getuid() == 0:
+            self.admin_mode = True
+
+        if self.admin_mode:
+            # Variable Menu
+            variable_menu = tkinter.Menu(menubar, tearoff=0)
+            variable_menu.add_command(
+                label=self.variable_menu_string[0], command=self.load_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[1], command=self.set_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[2], command=self.del_all_variable_runtime, state="disabled"
+            )
+            menubar.add_cascade(label="Variables", menu=variable_menu)
+            self.variable_menu = variable_menu
+
         root.config(menu=menubar)
+
+        # Checking if we are in Manufacturing mode
+        bios_info_smbios_data = BoardMiscInfo.locate_smbios_entry(0)
+        # Check if we have the SMBIOS data in the first entry
+        bios_info_smbios_data = bios_info_smbios_data[0]
+        if (bios_info_smbios_data != []):
+            char_ext2_data = bios_info_smbios_data[0x13]
+            Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
+            print(f"Manufacturing : {Manufacturing_enabled:02X}")
+
+        # get mfci policy
+        mfci_policy_result = BoardMiscInfo.get_mfci_policy()
+        self.canvas = tkinter.Canvas(master, width=240, height=50, bg=master['bg'], highlightthickness=0)
+        self.canvas.place(relx=1.0, rely=1.0, x=0, y=0, anchor='se')
+        self.canvas.create_text(
+            120, 25,
+            text=(
+                f"AdminMode: {self.admin_mode}\n"
+                f"Manufacturing Mode: {Manufacturing_enabled}\n"
+                f"Mfci Policy: {mfci_policy_result}"
+            ),
+            fill="black",
+            font=("Helvetica", 10, "bold")
+        )
 
         idx = 0
 
@@ -784,6 +850,37 @@ class application(tkinter.Frame):
             return
         self.load_delta_file(path)
 
+    def set_variable_runtime(self):
+        self.update_config_data_on_page()
+        if (not ask_yes_no("Do you want to save the variable to the system?\n")):
+            return
+
+        runtime_var_delta_path = "RuntimeVarToWrite.vl"
+        bin = b''
+        for idx in self.cfg_data_list:
+            if self.cfg_data_list[idx].config_type == 'xml':
+                bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
+
+        with open(runtime_var_delta_path, "wb") as fd:
+            fd.write(bin)
+
+        uefi_var_write.set_variable_from_file(runtime_var_delta_path)
+        self.load_variable_runtime()
+        self.output_current_status("Settings are set to system and save to RuntimeVar.vl")
+
+    def del_all_variable_runtime(self):
+        if (not ask_yes_no(f"Do you want to delete all variables in {self.config_xml_path} on system?\n")):
+            return
+
+        schema = Schema.load(self.config_xml_path)
+        for knob in schema.knobs:
+            self.output_current_status(f"Delete variable {knob.name} with namespace {knob.namespace}")
+            rc = uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
+            if rc == 0:
+                self.output_current_status(f"{knob.name} variable was not deleted from system {rc}")
+            else:
+                self.output_current_status(f"{knob.name} variable is deleted from system")
+
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
@@ -837,6 +934,8 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
+        self.output_current_status(f"{path} file is loaded")
+
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
         if clear_config is True:
@@ -863,6 +962,12 @@ class application(tkinter.Frame):
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
 
+        if self.admin_mode:
+            for menu in self.variable_menu_string:
+                self.variable_menu.entryconfig(menu, state="normal")
+
+        self.config_xml_path = path
+        self.output_current_status(f"{path} file is loaded")
         return 0
 
     def load_from_ml_and_clear(self):
@@ -884,6 +989,17 @@ class application(tkinter.Frame):
         file_id = len(self.cfg_data_list)
 
         self.load_cfg_file(path, file_id, False)
+
+    def load_variable_runtime(self):
+        status = uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
+        info_msg = "Settings are read from system and save to RuntimeVar.vl"
+        if status == -1:
+            info_msg = f"No Config Var is found, all the data from from {self.config_xml_path}"
+            messagebox.showinfo("WARNING", f"No Config Var is found, all the data from from {self.config_xml_path}")
+        else:
+            self.load_bin_file("RuntimeVar.vl")
+
+        self.output_current_status(info_msg)
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -1090,6 +1206,7 @@ class application(tkinter.Frame):
                     "Update %s from %s to %s !"
                     % (item["cname"], item["value"], new_value)
                 )
+                self.output_current_status("Update %s from %s to %s !" % (item["cname"], item["value"], new_value))
             item["value"] = new_value
 
     def get_config_data_item_from_widget(self, widget, label=False):
@@ -1281,6 +1398,10 @@ class application(tkinter.Frame):
         self.walk_widgets_in_layout(
             self.right_grid, self.update_config_data_from_widget
         )
+
+    def output_current_status(self, output_log):
+        self.status.insert(tkinter.END, output_log + "\n")
+        self.status.see(tkinter.END)
 
 
 if __name__ == "__main__":
