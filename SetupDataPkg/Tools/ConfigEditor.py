@@ -992,11 +992,14 @@ class application(tkinter.Frame):
 
     def load_variable_runtime(self):
         status = uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
+        info_msg = "Settings are read from system and save to RuntimeVar.vl"
         if status == -1:
+            info_msg = f"No Config Var is found, all the data from from {self.config_xml_path}"
             messagebox.showinfo("WARNING", f"No Config Var is found, all the data from from {self.config_xml_path}")
-            self.output_current_status(f"No Config Var is found, all the data from from {self.config_xml_path}")
-        self.load_bin_file("RuntimeVar.vl")
-        self.output_current_status("Settings are read from system and save to RuntimeVar.vl")
+        else:
+            self.load_bin_file("RuntimeVar.vl")
+
+        self.output_current_status(info_msg)
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
