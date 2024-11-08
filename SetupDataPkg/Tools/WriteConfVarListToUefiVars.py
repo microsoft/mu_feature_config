@@ -30,16 +30,6 @@ def option_parser():
         help="""Specify the input setting file""",
     )
 
-    parser.add_argument(
-        "-x",
-        "--xml",
-        dest="xml_file",
-        required=True,
-        type=str,
-        default='""',
-        help="""Specify the xml file""",
-    )
-
     arguments = parser.parse_args()
 
     if not os.path.isfile(arguments.setting_file):
