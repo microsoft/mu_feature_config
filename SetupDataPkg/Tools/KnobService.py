@@ -11,6 +11,7 @@ import uuid
 import argparse
 import re
 import VariableList
+from CommonUtility import get_xml_full_hash
 
 
 # Converts a type name from standard C to UEFI
@@ -632,6 +633,10 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
         out.write("//  Schema: {}".format(schema.path) + get_line_ending(efi_type))
+        out.write('#define SCHEMA_XML_HASH "' + get_xml_full_hash(schema.path) + '"' + get_line_ending(efi_type))
+        out.write('#define SCHEMA_XML_HASH_VAR_NAME "SCHEMA_XML_HASH"' + get_line_ending(efi_type))
+        xml_hash_guid = "{0x1321e012, 0x14c5, 0x42db, { 0x8c, 0xa9, 0xe7, 0x97, 0x1d, 0x88, 0x15, 0x18 }}"
+        out.write('#define SCHEMA_XML_HASH_GUID ' + xml_hash_guid + get_line_ending(efi_type))
         out.write("" + get_line_ending(efi_type))
 
         out.write("typedef struct {" + get_line_ending(efi_type))
