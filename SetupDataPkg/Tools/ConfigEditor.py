@@ -28,6 +28,7 @@ from CommonUtility import (                                     # noqa: E402
     bytes_to_bracket_str,
     value_to_bytes,
     array_str_to_value,
+    get_xml_full_hash
 )
 
 
@@ -393,6 +394,8 @@ class application(tkinter.Frame):
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
 
+        self.bios_schema_xml_hash = "Unknown"
+
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
         # easier to locate *BoardPkg\CfgData\*Def.yaml files
@@ -558,6 +561,9 @@ class application(tkinter.Frame):
             char_ext2_data = bios_info_smbios_data[0x13]
             Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
             print(f"Manufacturing : {Manufacturing_enabled:02X}")
+
+        self.bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
+        print(f"Schema XML Hash: {self.bios_schema_xml_hash}")
 
         # get mfci policy
         mfci_policy_result = BoardMiscInfo.get_mfci_policy()
@@ -934,7 +940,7 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
-        self.output_current_status(f"{path} file is loaded")
+        self.output_current_status(f"{path} file is loaded", color="red")
 
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
@@ -968,6 +974,15 @@ class application(tkinter.Frame):
 
         self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
+        # load xml file and get the hash value of all xml nodes
+        config_xml_hash = get_xml_full_hash(self.config_xml_path)
+
+        # compare the xml version with self.bios_git_info, 7 digits should be enough
+        if self.bios_schema_xml_hash != "Unknown" and config_xml_hash != self.bios_schema_xml_hash:
+            self.output_current_status("WARNING: Config xml file hash mismatches with SUT BIOS", color="red")
+            self.output_current_status(f"BIOS ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
+            self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")
+
         return 0
 
     def load_from_ml_and_clear(self):
