@@ -1399,9 +1399,15 @@ class application(tkinter.Frame):
             self.right_grid, self.update_config_data_from_widget
         )
 
-    def output_current_status(self, output_log):
-        self.status.insert(tkinter.END, output_log + "\n")
-        self.status.see(tkinter.END)
+    def output_current_status(self, output_log, color="black"):
+        unique_tag = f"color_{color}"
+        # Configure the color tag only if it hasn't been set before
+        if unique_tag not in self.status.tag_names():
+            self.status.tag_config(unique_tag, foreground=color)
+
+        # Insert the log with the unique color tag
+        self.status.insert(tkinter.END, output_log + "\n", (unique_tag,))
+        self.status.see(tkinter.END)  # Auto-scroll to the bottom
 
 
 if __name__ == "__main__":
