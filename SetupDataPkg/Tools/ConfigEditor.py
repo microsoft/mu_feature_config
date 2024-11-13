@@ -940,7 +940,7 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
-        self.output_current_status(f"{path} file is loaded", color="red")
+        self.output_current_status(f"{path} file is loaded")
 
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
@@ -979,8 +979,8 @@ class application(tkinter.Frame):
 
         # compare the xml version with self.bios_git_info, 7 digits should be enough
         if self.bios_schema_xml_hash != "Unknown" and config_xml_hash != self.bios_schema_xml_hash:
-            self.output_current_status("WARNING: Config xml file hash mismatches with SUT BIOS", color="red")
-            self.output_current_status(f"BIOS ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
+            self.output_current_status("WARNING: Config xml file hash mismatches with system FW", color="red")
+            self.output_current_status(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
             self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")
 
         return 0

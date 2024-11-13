@@ -102,33 +102,29 @@ def array_str_to_value(val_str):
 
 
 def get_xml_full_hash(xml_path):
-    try:
-        # Parse the XML file
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
+    # Parse the XML file
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
 
-        # List to store all tags, attributes, and values
-        hash_content = []
+    # List to store all tags, attributes, and values
+    hash_content = []
 
-        def traverse(element):
-            # Add tag name
-            hash_content.append(element.tag)
+    def traverse(element):
+        # Add tag name
+        hash_content.append(element.tag)
 
-            # Add attribute names and values
-            for key, value in sorted(element.attrib.items()):
-                hash_content.append(f"{key}={value}")
+        # Add attribute names and values
+        for key, value in sorted(element.attrib.items()):
+            hash_content.append(f"{key}={value}")
 
-            # Recursively process each child element
-            for child in element:
-                traverse(child)
+        # Recursively process each child element
+        for child in element:
+            traverse(child)
 
-        # Start traversing the root node
-        traverse(root)
+    # Start traversing the root node
+    traverse(root)
 
-        # Combine all items in hash_content list into a single string
-        combined_string = ''.join(hash_content)
+    # Combine all items in hash_content list into a single string
+    combined_string = ''.join(hash_content)
 
-        return hashlib.md5(combined_string.encode('utf-8')).hexdigest()
-    except Exception as e:
-        print(f"Error while calc hash of xml: {e}")
-        return "Unknown"
+    return hashlib.md5(combined_string.encode('utf-8')).hexdigest()

@@ -87,6 +87,7 @@
 
 [Components.X64, Components.AARCH64]
   SetupDataPkg/ConfApp/ConfApp.inf
+  SetupDataPkg/SetupDataDxe/SchemaXmlHashDriver/SchemaXmlHash.inf
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES
