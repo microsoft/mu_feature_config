@@ -394,7 +394,7 @@ class application(tkinter.Frame):
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
 
-        self.bios_schema_xml_hash = "Unknown"
+        self.bios_schema_xml_hash = None
 
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
@@ -977,8 +977,8 @@ class application(tkinter.Frame):
         # load xml file and get the hash value of all xml nodes
         config_xml_hash = get_xml_full_hash(self.config_xml_path)
 
-        # compare the xml version with self.bios_git_info, 7 digits should be enough
-        if self.bios_schema_xml_hash != "Unknown" and config_xml_hash != self.bios_schema_xml_hash:
+        # Compare the xml hash and the hash claimed in FW.
+        if self.bios_schema_xml_hash is not None and config_xml_hash != self.bios_schema_xml_hash:
             self.output_current_status("WARNING: Config xml file hash mismatches with system FW", color="red")
             self.output_current_status(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
             self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")

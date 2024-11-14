@@ -41,8 +41,11 @@ def get_schema_xml_hash_from_bios():
     UefiVar = UefiVariable()
     (errorcode, data) = UefiVar.GetUefiVar(SCHEMA_XML_HASH_VAR_NAME, SCHEMA_XML_HASH_GUID)
 
-    result = "Unknown"
+    result = None
     if errorcode == 0:
+        # Remove null byte if exist
+        if data[-1] == 0:
+            data = data[:-1]
         result = data.decode("utf-8")
 
     return result
