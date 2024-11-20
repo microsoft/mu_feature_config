@@ -563,7 +563,6 @@ class application(tkinter.Frame):
             print(f"Manufacturing : {Manufacturing_enabled:02X}")
 
         self.bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
-        print(f"Schema XML Hash: {self.bios_schema_xml_hash}")
 
         # get mfci policy
         mfci_policy_result = BoardMiscInfo.get_mfci_policy()
