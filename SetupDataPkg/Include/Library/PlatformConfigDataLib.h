@@ -16,10 +16,6 @@
 #include <Uefi.h>
 #include <ConfigStdStructDefs.h>
 
-#define SCHEMA_XML_HASH_VAR_NAME  L"SCHEMA_XML_HASH"
-#define SCHEMA_XML_HASH_GUID      {0x1321e012, 0x14c5, 0x42db, { 0x8c, 0xa9, 0xe7, 0x97, 0x1d, 0x88, 0x15, 0x18 }}
-#define SCHEMA_XML_HASH_LEN       33
-
 extern CHAR8      *gSchemaXmlHash;
 extern KNOB_DATA  gKnobData[];
 extern UINTN      gNumKnobs;
