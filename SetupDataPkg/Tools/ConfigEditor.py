@@ -28,6 +28,7 @@ from CommonUtility import (                                     # noqa: E402
     bytes_to_bracket_str,
     value_to_bytes,
     array_str_to_value,
+    get_xml_full_hash
 )
 
 
@@ -393,6 +394,8 @@ class application(tkinter.Frame):
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
 
+        self.bios_schema_xml_hash = None
+
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
         # easier to locate *BoardPkg\CfgData\*Def.yaml files
@@ -558,6 +561,8 @@ class application(tkinter.Frame):
             char_ext2_data = bios_info_smbios_data[0x13]
             Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
             print(f"Manufacturing : {Manufacturing_enabled:02X}")
+
+        self.bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
 
         # get mfci policy
         mfci_policy_result = BoardMiscInfo.get_mfci_policy()
@@ -968,6 +973,15 @@ class application(tkinter.Frame):
 
         self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
+        # load xml file and get the hash value of all xml nodes
+        config_xml_hash = get_xml_full_hash(self.config_xml_path)
+
+        # Compare the xml hash and the hash claimed in FW.
+        if self.bios_schema_xml_hash is not None and config_xml_hash != self.bios_schema_xml_hash:
+            self.output_current_status("WARNING: Config xml file hash mismatches with system FW", color="red")
+            self.output_current_status(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
+            self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")
+
         return 0
 
     def load_from_ml_and_clear(self):
@@ -1399,9 +1413,15 @@ class application(tkinter.Frame):
             self.right_grid, self.update_config_data_from_widget
         )
 
-    def output_current_status(self, output_log):
-        self.status.insert(tkinter.END, output_log + "\n")
-        self.status.see(tkinter.END)
+    def output_current_status(self, output_log, color="black"):
+        unique_tag = f"color_{color}"
+        # Configure the color tag only if it hasn't been set before
+        if unique_tag not in self.status.tag_names():
+            self.status.tag_config(unique_tag, foreground=color)
+
+        # Insert the log with the unique color tag
+        self.status.insert(tkinter.END, output_log + "\n", (unique_tag,))
+        self.status.see(tkinter.END)  # Auto-scroll to the bottom
 
 
 if __name__ == "__main__":

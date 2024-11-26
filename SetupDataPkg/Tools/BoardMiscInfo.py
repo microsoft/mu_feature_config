@@ -30,6 +30,27 @@ def get_mfci_policy():
     return result
 
 
+def get_schema_xml_hash_from_bios():
+    """
+    Function to get SCHEMA_XML_HASH variable from BIOS
+    Returns the SCHEMA_XML_HASH in hexadecimal format or 'Unknown' if an error occurs.
+    """
+    SCHEMA_XML_HASH_VAR_NAME = "SCHEMA_XML_HASH"
+    SCHEMA_XML_HASH_GUID = "1321e012-14c5-42db-8ca9-e7971d881518"
+
+    UefiVar = UefiVariable()
+    (errorcode, data) = UefiVar.GetUefiVar(SCHEMA_XML_HASH_VAR_NAME, SCHEMA_XML_HASH_GUID)
+
+    result = None
+    if errorcode == 0:
+        # Remove null byte if exist
+        if data[-1] == 0:
+            data = data[:-1]
+        result = data.decode("utf-8")
+
+    return result
+
+
 def locate_smbios_data():
     # Define constants
     FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
