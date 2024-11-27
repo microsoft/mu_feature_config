@@ -935,7 +935,6 @@ class application(tkinter.Frame):
         self.conf_list.clear()
 
     def build_config_page_tree(self, cfg_page, parent, file_id):
-        print('build left tree')
         for page in cfg_page["child"]:
             page_id = next(iter(page))
             # Put CFG items into related page list
