@@ -21,3 +21,5 @@ UINTN  gNumProfiles = 0;
 CHAR8  *gProfileFlavorNames[1] = { NULL };
 
 UINT8  gProfileFlavorIds[1] = { 0 };
+
+CHAR8  *gSchemaXmlHash = NULL;
