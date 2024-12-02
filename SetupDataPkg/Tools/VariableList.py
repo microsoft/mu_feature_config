@@ -752,7 +752,7 @@ class Knob:
         if data_type == "":
             raise ParseError(
                 "Knob '{}' does not have a type".format(self.name))
-
+        self.type = data_type
         # Look up the format using the schema
         # The format may be a built-in format (e.g. 'uint32_t') or a
         # user defined enum or struct
