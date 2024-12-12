@@ -650,12 +650,12 @@ class application(tkinter.Frame):
         self.current_match_index = -1
 
         def expand_tree_to_page(page_id_list):
-            subchild_list = []
+            leaf_list = []
             for item in self.left.get_children():
                 for child in self.left.get_children(item):
-                    for subchild in self.left.get_children(child):
-                        subchild_list.append(subchild)
-            sorted_page_id_list = sorted(page_id_list, key=lambda x: subchild_list.index(x))
+                    for leaf in self.left.get_children(child):
+                        leaf_list.append(leaf)
+            sorted_page_id_list = sorted(page_id_list, key=lambda x: leaf_list.index(x))
             first_page_id = sorted_page_id_list[0]
             self.left.selection_set(first_page_id)
             self.left.see(first_page_id)
@@ -667,10 +667,10 @@ class application(tkinter.Frame):
             self.left.tag_configure("highlight", background="yellow")
             for item in self.left.get_children():
                 for child in self.left.get_children(item):
-                    for subchild in self.left.get_children(child):
-                        if subchild in page_id_list:
-                            self.left.item(subchild, tags="highlight")
-                            self.left.see(subchild)
+                    for leaf in self.left.get_children(child):
+                        if leaf in page_id_list:
+                            self.left.item(leaf, tags="highlight")
+                            self.left.see(leaf)
 
         def search_in_config_data(search_term):
             search_term = search_term.lower()
@@ -709,8 +709,8 @@ class application(tkinter.Frame):
     def remove_highlight_in_left_tree(self):
         for item in self.left.get_children():
             for child in self.left.get_children(item):
-                for subchild in self.left.get_children(child):
-                    self.left.item(subchild, tags=())
+                for leaf in self.left.get_children(child):
+                    self.left.item(leaf, tags=())
 
     def clear_search(self, clear_search_bar=True):
         if clear_search_bar:
