@@ -433,6 +433,35 @@ class application(tkinter.Frame):
 
         root.geometry("1200x800")
 
+        # Add a frame for the top search bar
+        top_frame = tkinter.Frame(root)
+        top_frame.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=5)
+
+        # Add search label and entry
+        search_label = tkinter.Label(top_frame, text="Search:")
+        search_label.pack(side=tkinter.LEFT)
+
+        self.search_active = False
+        self.search_var = tkinter.StringVar()
+        search_entry = tkinter.Entry(top_frame, textvariable=self.search_var)
+        search_entry.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True)
+        search_entry.bind('<Return>', lambda event: self.search_widget_label())
+
+        search_button = tkinter.Button(top_frame, text="Search", command=self.search_widget_label)
+        search_button.pack(side=tkinter.LEFT, padx=5)
+
+        self.match_label = tkinter.Label(top_frame, text="")
+        self.match_label.pack(side=tkinter.LEFT, padx=5)
+
+        up_button = tkinter.Button(top_frame, text="↑", command=self.search_previous)
+        up_button.pack(side=tkinter.LEFT)
+
+        down_button = tkinter.Button(top_frame, text="↓", command=self.search_next)
+        down_button.pack(side=tkinter.LEFT, padx=(0, 5))
+
+        clear_button = tkinter.Button(top_frame, text="Clear", command=self.clear_search)
+        clear_button.pack(side=tkinter.LEFT, padx=5)
+
         paned = ttk.Panedwindow(root, orient=tkinter.HORIZONTAL)
         paned.pack(fill=tkinter.BOTH, expand=True, padx=(4, 4))
 
@@ -616,8 +645,146 @@ class application(tkinter.Frame):
                         idx += 1
                         self.load_cfg_file(sub_path, idx, False)
 
+    def search_widget_label(self):
+        self.current_matches = []
+        self.current_match_index = -1
+
+        def expand_tree_to_page(page_id_list):
+            leaf_list = []
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for leaf in self.left.get_children(child):
+                        leaf_list.append(leaf)
+            sorted_page_id_list = sorted(page_id_list, key=lambda x: leaf_list.index(x))
+            first_page_id = sorted_page_id_list[0]
+            self.left.selection_set(first_page_id)
+            self.left.see(first_page_id)
+
+        def find_matching_knob_name(data, struct_name):
+            return next((knob.name for knob in data.schema.knobs if knob.type == struct_name), False)
+
+        def highlight_left_tree_label(page_id_list):
+            self.left.tag_configure("highlight", background="yellow")
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for leaf in self.left.get_children(child):
+                        if leaf in page_id_list:
+                            self.left.item(leaf, tags="highlight")
+                            self.left.see(leaf)
+
+        def search_in_config_data(search_term):
+            search_term = search_term.lower()
+            page_id_list = set()
+            for cfg_data in self.cfg_data_list.values():
+                data = cfg_data.cfg_data_obj
+                for struct in data.schema.structs:
+                    for member in struct.members:
+                        name = (member.pretty_name or member.name).lower()
+                        if search_term in name:
+                            knob_name = find_matching_knob_name(data, struct.name)
+                            if knob_name:
+                                page_id = f"{data.schema.knobs[0].namespace}.{knob_name}"
+                                page_id_list.add(page_id)
+            return list(page_id_list)
+
+        search_term = self.search_var.get().lower()
+        if not search_term:
+            print("'Search term' is empty.")
+            return
+
+        self.clear_search(clear_search_bar=False)
+        search_result = search_in_config_data(search_term)
+        print(f"search result: {search_result}")
+        if search_result:
+            self.remove_highlight_in_left_tree()
+            self.search_active = True
+            expand_tree_to_page(search_result)
+            highlight_left_tree_label(search_result)
+            self.build_config_data_page(search_result[0])
+            print(f"'{search_term}' found.")
+        else:
+            print(f"'{search_term}' not found.")
+            self.output_current_status(f"search term '{search_term}' not found.")
+
+    def remove_highlight_in_left_tree(self):
+        for item in self.left.get_children():
+            for child in self.left.get_children(item):
+                for leaf in self.left.get_children(child):
+                    self.left.item(leaf, tags=())
+
+    def clear_search(self, clear_search_bar=True):
+        if clear_search_bar:
+            self.search_var.set('')
+        self.remove_highlight_in_left_tree()
+        self.reset_widget_backgrounds()
+        self.master.focus_set()
+        self.search_active = False
+        self.current_matches = []
+        self.current_match_index = -1
+        self.match_label.config(text="")
+
+    def reset_widget_backgrounds(self):
+        for widget in self.right_grid.winfo_children()[2::2]:
+            if isinstance(widget, tkinter.Entry) or isinstance(widget, tkinter.Label):
+                widget.configure(background=self.cget("background"))
+
+    def highlight_label(self):
+        search_term = self.search_var.get().lower()
+        self.current_matches = [
+            widget for widget in self.right_grid.winfo_children()[2::2]
+            if search_term in widget.cget('text').lower()
+        ]
+
+        for widget in self.current_matches:
+            widget.configure(background="yellow")
+
+        if self.current_matches:
+            self.current_match_index = 0
+            self.highlight_current_entry()
+        else:
+            self.match_label.config(text="")
+
+    def highlight_current_entry(self):
+        if not self.current_matches:
+            return
+
+        widget_list = self.right_grid.winfo_children()
+        for widget in widget_list[3::2]:
+            if hasattr(widget, 'configure'):
+                widget.configure(background=self.cget("background"))
+
+        current_widget = self.current_matches[self.current_match_index]
+        label_index = widget_list.index(current_widget)
+        entry_widget = widget_list[label_index + 1]
+
+        if hasattr(entry_widget, 'selection_range'):
+            entry_value = entry_widget.get()
+            entry_widget.selection_range(0, len(entry_value))
+            entry_widget.focus_set()
+
+        self.conf_canvas.update_idletasks()
+        widget_y = current_widget.winfo_y()
+        new_scroll = max(0, min(1, widget_y / self.right_grid.winfo_height()))
+        self.conf_canvas.update()
+        self.conf_canvas.yview_moveto(new_scroll)
+
+        self.match_label.config(text=f"{self.current_match_index + 1}/{len(self.current_matches)}")
+
+    def search_previous(self):
+        if not self.search_active or not self.current_matches:
+            return
+
+        self.current_match_index = (self.current_match_index - 1) % len(self.current_matches)
+        self.highlight_current_entry()
+
+    def search_next(self):
+        if not self.search_active or not self.current_matches:
+            return
+
+        self.current_match_index = (self.current_match_index + 1) % len(self.current_matches)
+        self.highlight_current_entry()
+
     def set_object_name(self, widget, name, file_id):
-        # associate the name of the widget with the file it came from, in case of name conflicts
         self.conf_list[id(widget)] = (name, file_id)
 
     def get_object_name(self, widget):
@@ -783,6 +950,8 @@ class application(tkinter.Frame):
         for item in disp_list:
             self.add_config_item(item, row, self.page_cfg_map[page_id])
             row += 2
+        if self.search_active:
+            self.highlight_label()
 
     def load_config_data(self, file_name):
         if file_name.endswith('.xml'):
