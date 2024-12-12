@@ -457,7 +457,7 @@ class application(tkinter.Frame):
         up_button.pack(side=tkinter.LEFT)
 
         down_button = tkinter.Button(top_frame, text="↓", command=self.search_next)
-        down_button.pack(side=tkinter.LEFT, padx=(0,5))
+        down_button.pack(side=tkinter.LEFT, padx=(0, 5))
 
         clear_button = tkinter.Button(top_frame, text="Clear", command=self.clear_search)
         clear_button.pack(side=tkinter.LEFT, padx=5)
@@ -650,57 +650,45 @@ class application(tkinter.Frame):
         self.current_match_index = -1
 
         def expand_tree_to_page(page_id_list):
-            level_3_list = []
-            for level_1 in self.left.get_children():
-                for level_2 in self.left.get_children(level_1):
-                    for level_3 in self.left.get_children(level_2):
-                        level_3_list.append(level_3)
-            print(f'level3: {level_3_list}')
-            print(f'page_id_list: {page_id_list}')
-            sorted_page_id_list = sorted(page_id_list, key=lambda x: level_3_list.index(x))
+            subchild_list = []
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for subchild in self.left.get_children(child):
+                        subchild_list.append(subchild)
+            sorted_page_id_list = sorted(page_id_list, key=lambda x: subchild_list.index(x))
             first_page_id = sorted_page_id_list[0]
             self.left.selection_set(first_page_id)
             self.left.see(first_page_id)
 
         def find_matching_knob_name(data, struct_name):
-            for knob in data.schema.knobs:
-                if knob.type == struct_name:
-                    return knob.name
-            return False
+            return next((knob.name for knob in data.schema.knobs if knob.type == struct_name), False)
 
         def highlight_left_tree_label(page_id_list):
             self.left.tag_configure("highlight", background="yellow")
-            for level_1 in self.left.get_children():
-                for level_2 in self.left.get_children(level_1):
-                    for level_3 in self.left.get_children(level_2):
-                        for page_id in page_id_list:
-                            if page_id == level_3:
-                                self.left.item(level_3, tags="highlight")
-                                self.left.see(level_3)
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for subchild in self.left.get_children(child):
+                        if subchild in page_id_list:
+                            self.left.item(subchild, tags="highlight")
+                            self.left.see(subchild)
 
         def search_in_config_data(search_term):
-            print("-----------------------cfg_data_list content-----------------------")
+            search_term = search_term.lower()
             page_id_list = set()
-            for file_id, cfg_data in self.cfg_data_list.items():
+            for cfg_data in self.cfg_data_list.values():
                 data = cfg_data.cfg_data_obj
-                print(f"File ID: {file_id}")
-                print(f"Config Data Object: {data}")
-                # Iterate through the 'structs' and find the 'prettyname'
                 for struct in data.schema.structs:
                     for member in struct.members:
-                        prettyname = member.pretty_name.lower()
-                        if search_term in prettyname[1:-1]:
-                            print(prettyname)
-                            print(f"Found '{search_term}' in prettyname: {prettyname}")
-                            # Retrieve corresponding page_id
+                        name = (member.pretty_name or member.name).lower()
+                        if search_term in name:
                             knob_name = find_matching_knob_name(data, struct.name)
-                            page_id = f"{data.schema.knobs[0].namespace}.{knob_name}"
-                            print(f"search page id: {page_id}")
-                            page_id_list.add(page_id)
+                            if knob_name:
+                                page_id = f"{data.schema.knobs[0].namespace}.{knob_name}"
+                                page_id_list.add(page_id)
             return list(page_id_list)
 
         search_term = self.search_var.get().lower()
-        if search_term == '':
+        if not search_term:
             print("'Search term' is empty.")
             return
 
@@ -719,54 +707,55 @@ class application(tkinter.Frame):
             self.output_current_status(f"search term '{search_term}' not found.")
 
     def remove_highlight_in_left_tree(self):
-        for level_1 in self.left.get_children():
-            for level_2 in self.left.get_children(level_1):
-                for level_3 in self.left.get_children(level_2):
-                    self.left.item(level_3, tags=())
+        for item in self.left.get_children():
+            for child in self.left.get_children(item):
+                for subchild in self.left.get_children(child):
+                    self.left.item(subchild, tags=())
 
     def clear_search(self, clear_search_bar=True):
         if clear_search_bar:
             self.search_var.set('')
         self.remove_highlight_in_left_tree()
-        widget_list = self.right_grid.winfo_children()
-        for widget in widget_list[2::2]:
-            widget.configure(background=self.cget("background"))
+        self.reset_widget_backgrounds()
         self.master.focus_set()
         self.search_active = False
         self.current_matches = []
         self.current_match_index = -1
         self.match_label.config(text="")
 
+    def reset_widget_backgrounds(self):
+        for widget in self.right_grid.winfo_children()[2::2]:
+            if isinstance(widget, tkinter.Entry) or isinstance(widget, tkinter.Label):
+                widget.configure(background=self.cget("background"))
+
     def highlight_label(self):
         search_term = self.search_var.get().lower()
-        widget_list = self.right_grid.winfo_children()
-        self.current_matches = []
+        self.current_matches = [
+            widget for widget in self.right_grid.winfo_children()[2::2]
+            if search_term in widget.cget('text').lower()
+        ]
 
-        for widget in widget_list[2::2]:
-            label_text = widget.cget('text').lower()
-            if search_term in label_text:
-                self.current_matches.append(widget)
-                widget.configure(background="yellow")
+        for widget in self.current_matches:
+            widget.configure(background="yellow")
 
         if self.current_matches:
             self.current_match_index = 0
             self.highlight_current_entry()
+        else:
+            self.match_label.config(text="")
 
     def highlight_current_entry(self):
         if not self.current_matches:
             return
 
         widget_list = self.right_grid.winfo_children()
-
         for widget in widget_list[3::2]:
             if hasattr(widget, 'configure'):
                 widget.configure(background=self.cget("background"))
 
-        # Highlight only the current entry
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
         entry_widget = widget_list[label_index + 1]
-
 
         if hasattr(entry_widget, 'selection_range'):
             entry_value = entry_widget.get()
@@ -774,42 +763,28 @@ class application(tkinter.Frame):
             entry_widget.focus_set()
 
         self.conf_canvas.update_idletasks()
-
         widget_y = current_widget.winfo_y()
-        canvas_height = self.conf_canvas.winfo_height()
-
-        new_scroll = widget_y / self.right_grid.winfo_height()
-
-        new_scroll = max(0, min(1, new_scroll))
+        new_scroll = max(0, min(1, widget_y / self.right_grid.winfo_height()))
+        self.conf_canvas.update()
         self.conf_canvas.yview_moveto(new_scroll)
 
-        if self.current_matches:
-            self.match_label.config(text=f"{self.current_match_index + 1}/{len(self.current_matches)}")
+        self.match_label.config(text=f"{self.current_match_index + 1}/{len(self.current_matches)}")
 
     def search_previous(self):
         if not self.search_active or not self.current_matches:
             return
 
-        self.current_match_index -= 1
-        if self.current_match_index < 0:
-            self.current_match_index = len(self.current_matches) - 1
-
+        self.current_match_index = (self.current_match_index - 1) % len(self.current_matches)
         self.highlight_current_entry()
-        self.output_current_status(f"Showing match {self.current_match_index + 1} of {len(self.current_matches)}")
 
     def search_next(self):
         if not self.search_active or not self.current_matches:
             return
 
-        self.current_match_index += 1
-        if self.current_match_index >= len(self.current_matches):
-            self.current_match_index = 0
-
+        self.current_match_index = (self.current_match_index + 1) % len(self.current_matches)
         self.highlight_current_entry()
-        self.output_current_status(f"Showing match {self.current_match_index + 1} of {len(self.current_matches)}")
 
     def set_object_name(self, widget, name, file_id):
-        # associate the name of the widget with the file it came from, in case of name conflicts
         self.conf_list[id(widget)] = (name, file_id)
 
     def get_object_name(self, widget):
@@ -959,14 +934,12 @@ class application(tkinter.Frame):
 
     def get_current_config_data(self):
         page_id = self.get_current_config_page()
-        print(f'page_id: {page_id}')
         if page_id in self.page_list:
             return self.page_list[page_id]
         else:
             return []
 
     def build_config_data_page(self, page_id):
-        print('build right widget')
         self.clear_widgets_inLayout()
         self.set_current_config_page(page_id)
         disp_list = []
