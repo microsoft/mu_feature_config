@@ -35,7 +35,7 @@ CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {
   {
     .KeyName             = L"ESC",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description         = L"Exit this menu and reboot system.",
+    .Description         = L"Return to main menu.",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
     .UnicodeChar         = CHAR_NULL,
     .ScanCode            = SCAN_ESC,
