@@ -724,15 +724,15 @@ class application(tkinter.Frame):
         self.match_label.config(text="")
 
     def reset_widget_backgrounds(self):
-        for widget in self.right_grid.winfo_children()[2::2]:
-            if isinstance(widget, tkinter.Entry) or isinstance(widget, tkinter.Label):
+        for widget in self.right_grid.winfo_children():
+            if isinstance(widget, tkinter.Label):
                 widget.configure(background=self.cget("background"))
 
     def highlight_label(self):
         search_term = self.search_var.get().lower()
         self.current_matches = [
-            widget for widget in self.right_grid.winfo_children()[2::2]
-            if search_term in widget.cget('text').lower()
+            widget for widget in self.right_grid.winfo_children()[2:]
+            if search_term in widget.cget('text').lower() and isinstance(widget, tkinter.Label)
         ]
 
         for widget in self.current_matches:
@@ -748,14 +748,10 @@ class application(tkinter.Frame):
         if not self.current_matches:
             return
 
-        widget_list = self.right_grid.winfo_children()
-        for widget in widget_list[3::2]:
-            if hasattr(widget, 'configure'):
-                widget.configure(background=self.cget("background"))
-
+        widget_list = [widget for widget in self.right_grid.winfo_children()[2:] if isinstance(widget, tkinter.Label)]
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
-        entry_widget = widget_list[label_index + 1]
+        entry_widget = widget_list[label_index]
 
         if hasattr(entry_widget, 'selection_range'):
             entry_value = entry_widget.get()
