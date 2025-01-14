@@ -19,7 +19,6 @@
   BootOptions.c
   ConfApp.c
   ConfApp.h
-  SecureBoot.c
   SetupConf.c
   SystemInfo.c
   SvdUsb/SvdUsb.c
@@ -44,8 +43,6 @@
   UefiLib
   ResetSystemLib
   UefiBootManagerLib
-  MuSecureBootKeySelectorLib
-  SecureBootKeyStoreLib
   JsonLiteParserLib
   FileHandleLib
   XmlTreeLib
