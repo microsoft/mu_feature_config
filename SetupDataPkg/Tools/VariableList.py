@@ -384,13 +384,13 @@ class EnumFormat(DataFormat):
         return str(object_representation)
 
     def object_to_binary(self, object_representation):
-        return struct.pack("<i", object_representation)
+        return struct.pack("<I", object_representation)
 
     def binary_to_object(self, binary_representation):
-        return struct.unpack("<i", binary_representation)[0]
+        return struct.unpack("<I", binary_representation)[0]
 
     def size_in_bytes(self):
-        return struct.calcsize("<i")
+        return struct.calcsize("<I")
 
     def check_bounds(self, value, min, max):
         if min is not None:
