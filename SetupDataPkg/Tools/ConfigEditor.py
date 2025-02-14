@@ -748,10 +748,10 @@ class application(tkinter.Frame):
         if not self.current_matches:
             return
 
-        widget_list = [widget for widget in self.right_grid.winfo_children()[2:] if isinstance(widget, tkinter.Label)]
+        widget_list = self.right_grid.winfo_children()[2:]
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
-        entry_widget = widget_list[label_index]
+        entry_widget = widget_list[label_index+1]
 
         if hasattr(entry_widget, 'selection_range'):
             entry_value = entry_widget.get()
