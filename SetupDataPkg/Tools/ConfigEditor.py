@@ -751,7 +751,7 @@ class application(tkinter.Frame):
         widget_list = self.right_grid.winfo_children()[2:]
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
-        entry_widget = widget_list[label_index+1]
+        entry_widget = widget_list[label_index + 1]
 
         if hasattr(entry_widget, 'selection_range'):
             entry_value = entry_widget.get()
