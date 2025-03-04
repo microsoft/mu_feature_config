@@ -500,7 +500,7 @@ def vfr_process_includes(vfr_content, vfr_dir):
         path_parts[0] = path_parts[0] + os.sep  # Patch the separator for Drive
     for i, part in enumerate(path_parts):
         if 'Pkg' in part:
-            pkg_dir = os.path.join(*path_parts[:i+1])
+            pkg_dir = os.path.join(*path_parts[:i + 1])
             break
     if pkg_dir:
         # Recursively search pkg directory and subdirectories
@@ -1045,7 +1045,7 @@ def get_defines_list_and_add_arg(vfrpp_resp):
     defines_list = []  # Do nothing for now
     add_arg = ''  # Do nothing for now
     base_name, ext = os.path.splitext(os.path.basename(vfrpp_resp))
-    modified_resp = os.path.join(srcdir, base_name+'_mod.txt')
+    modified_resp = os.path.join(srcdir, base_name + '_mod.txt')
 
     print('\nApplying resp file: %s -> %s' % (vfrpp_resp, modified_resp))
     clean_up_list.append(modified_resp)
@@ -1149,7 +1149,7 @@ def get_header_file_list(vfr_content, vfr_dir, search_path_list, dump_file_name=
         path_parts[0] = path_parts[0] + os.sep  # Patch the separator for Drive
     for i, part in enumerate(path_parts):
         if 'Pkg' in part:
-            pkg_dir = os.path.join(*path_parts[:i+1])
+            pkg_dir = os.path.join(*path_parts[:i + 1])
             break
 
     if pkg_dir:
@@ -1376,12 +1376,12 @@ def print_blocks(blocks, newlines=1):
 # prefix: Prefix string for debug print
 # indent: Indentation level
 def print_time(time_start, prefix='', indent=0):
-    period = time.time()-time_start
+    period = time.time() - time_start
     print()
     print(' ' * indent, end='')
     if prefix:
         print('%s ' % prefix, end='')
-    print('Time = %02dm %02ds\n' % (int(period/60), int(period % 60)))
+    print('Time = %02dm %02ds\n' % (int(period / 60), int(period % 60)))
 
 
 # Parse given VFR content (typically from a single file) and append its structure to the XML element
@@ -1662,7 +1662,7 @@ def parse_default_value(processed_vfr_dict, root, structs, repeated_items):
                 vfr_content_statements = vfr_process_statements(
                     vfr_content_no_comments,
                     structs,
-                    dump_file_name=os.path.splitext(vfr_file_name)[0]+'_statements.vfr'
+                    dump_file_name=os.path.splitext(vfr_file_name)[0] + '_statements.vfr'
                 )
                 parse_vfr_content(vfr_content_statements, uni_str_dict, root,
                                   structs, repeated_items, verbose=2, parse_mode=1)
@@ -2091,18 +2091,18 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                         vfr_found = True
 
                         # Remove comments
-                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_01_no_comments.vfr'
+                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_01_no_comments.vfr'
                         vfr_content = vfr_remove_comments(vfr_content, dump_file_name=dump_vfr_file_name)
 
                         # Process the including vfr and hfr files
                         # time_before_include = time.time()
-                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_02_includes.vfr'
+                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_02_includes.vfr'
                         vfr_content = vfr_process_includes(vfr_content, vfr_dir)
                         vfr_content = vfr_remove_comments(vfr_content, dump_file_name=dump_vfr_file_name)
                         # print_time(time_before_include, 'vfr_process_includes', indent=2)
 
                         # Get a list of header files to be processed
-                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_03_headers.vfr'
+                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_03_headers.vfr'
                         header_file_list, include_path_list, vfr_content = get_header_file_list(
                             vfr_content,
                             vfr_dir,
@@ -2122,14 +2122,14 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
 
                         # Process PCDs
                         if len(FixedPcd_dict) > 0:
-                            dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_04_pcds.vfr'
+                            dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_04_pcds.vfr'
                             vfr_content = vfr_process_pcds(
                                 vfr_content, FixedPcd_dict, dump_file_name=dump_vfr_file_name
                             )
 
                         # Process header files for includes and defines
                         input_vfr_file_name = dump_vfr_file_name
-                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_05_macros.vfr'
+                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_05_macros.vfr'
                         vfr_content = run_preprocess(
                             input_vfr_file_name, search_path_list, defines_list,
                             add_arg, modified_resp,
@@ -2138,7 +2138,7 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
 
                         # Process PCDs again since preprocess may bring additional macros with FixedPcdGet wording,
                         # and then remove redundant newlines
-                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0]+'_processed_06_trimmed.vfr'
+                        dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_06_trimmed.vfr'
                         if len(FixedPcd_dict) > 0:
                             vfr_content = vfr_process_pcds(vfr_content, FixedPcd_dict, dump_file_name=None)
                         vfr_content = vfr_remove_redundant_newlines(vfr_content, dump_file_name=dump_vfr_file_name)
@@ -2290,7 +2290,7 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
     guid_parts = knobs_guid.hex
     formatted_guid = (
         f' {{ 0x{guid_parts[:8]}, 0x{guid_parts[8:12]}, 0x{guid_parts[12:16]}, '
-        f'{{{", ".join(f"0x{guid_parts[i:i+2]}" for i in range(16, 32, 2))}}} }} '
+        f'{{{", ".join(f"0x{guid_parts[i:i + 2]}" for i in range(16, 32, 2))}}} }} '
     )
     knobs_element.append(ET.Comment(formatted_guid))
 
@@ -2695,7 +2695,7 @@ class vfrxml_app(ConfigEditor.application):
             if not is_name(last_name):
                 last_name = parent.winfo_children()[-2]
                 last_widget = parent.winfo_children()[-1]
-                last_widget.grid(row=row+1, column=0, padx=25, pady=5, sticky="nsew")
+                last_widget.grid(row=row + 1, column=0, padx=25, pady=5, sticky="nsew")
             last_name.grid(row=row, column=0, padx=25, pady=5, sticky="nsew")
 
             # Add Checkbox for each item
