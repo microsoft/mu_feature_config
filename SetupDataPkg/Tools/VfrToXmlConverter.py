@@ -1,3 +1,9 @@
+# @ VfrToXmlConverter.py
+#
+# Copyright (c) 2025, Microsoft Corporation. All rights reserved.<BR>
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+
 import os
 import sys
 import shutil
@@ -304,32 +310,6 @@ def vfr_remove_redundant_newlines(vfr_content, dump_file_name=None):
             f.write(vfr_content)
 
     return vfr_content
-
-
-# (Deprecated) Function to use GCC preprocessor to handle #define, #undef, and include handling
-# file_path: Path to the file to be preprocessed
-# working_dir: Directory to use for GCC's working directory
-# Return: Preprocessed content as string
-def preprocess_with_gcc(file_path, working_dir):
-    try:
-        # Run GCC preprocessor with -E flag (preprocess only) and get the output
-        result = subprocess.run(
-            ['gcc', '-E', file_path],
-            cwd=working_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-        
-        if result.returncode != 0:
-            raise Exception(f'GCC Preprocessor Error: {result.stderr}')
-        
-        return result.stdout
-    
-    except Exception as e:
-        print(f'  [gcc] Error running GCC preprocessor on: {file_path}')
-        print(f'        {e}')
-        return ''
 
 
 # Process given INF file to retrieve misc information
