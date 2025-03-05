@@ -936,8 +936,8 @@ def find_vfrpp_resp(inf_file_path, WorkspaceRoot, verbose=0):
         print(f'  [find_vfrpp_resp] inf_file_path: {inf_file_path}')
 
     # Validate inf_file_path and create a search string
-    # e.g. Silicon\Amd\Turin_SERVER\AmdCbsPkg\Library\Family\0x1A\BRH\External\CbsSetupLib.inf
-    #                                      => library\family\0x1a\brh\external\cbssetuplib\output\vfrpp_resp.txt
+    # e.g. MU_BASECORE\MdeModulePkg\Universal\HiiResourcesSampleDxe\HiiResourcesSampleDxe.inf
+    #                            => universal\hiiresourcessampledxe\hiiresourcessampledxe\output\vfrpp_resp.txt
     if inf_file_path and os.path.isfile(inf_file_path):
         search_string = os.path.join(
             os.path.splitext(os.path.normpath(inf_file_path).lower().split('pkg\\')[-1])[0],
@@ -1121,7 +1121,7 @@ def load_string_from_uni(uni_file_list, language='en-US', encoding=None, verbose
 
 
 # Get a list of header files and include paths regarding the given vfr file,
-#   and patches unfound header files in the given vfr content
+#   and patches missing header files in the given vfr content
 # vfr_content: Content read and processed from a vfr file
 # vfr_dir: directory of the source vfr file
 # search_path_list: A list of include paths from the inf file
@@ -1269,7 +1269,7 @@ def validate_member(struct_name, current_member, verbose=2):
     warning_count = 0
     if current_member.get('name') == '':
         if verbose:
-            print('  [vfr] Error: Member is missing a name attibute')
+            print('  [vfr] Error: Member is missing a name attribute')
         error_count += 1
 
     if current_member.get('default') == '':
@@ -1326,20 +1326,20 @@ def validate_enums(enums_element, patch_mode=0, verbose=1):
         enum_name = enum.get('name')
         if not enum_name:
             if verbose:
-                print('  [vfr] Error: Enum is missing a name attibute')
+                print('  [vfr] Error: Enum is missing a name attribute')
             error_count += 1
 
         value_valid = True
         for value in enum.findall('Value'):
             if value.get('name') == '':
                 if verbose:
-                    print('  [vfr] Error: Value is missing a name attibute in Enum %s' % enum_name)
+                    print('  [vfr] Error: Value is missing a name attribute in Enum %s' % enum_name)
                 error_count += 1
                 value_valid = False
 
             if value.get('value') == '':
                 if verbose:
-                    print('  [vfr] Error: Value is missing a value attibute in Enum %s' % enum_name)
+                    print('  [vfr] Error: Value is missing a value attribute in Enum %s' % enum_name)
                 error_count += 1
                 value_valid = False
 
@@ -2813,7 +2813,7 @@ if __name__ == '__main__':
         if input_ref_xml and os.path.isfile(input_ref_xml):
             print('Reference XML: %s' % input_ref_xml)
 
-        # Execute XML comparison or INF/VFR convertion in CLI
+        # Execute XML comparison or INF/VFR conversion in CLI
         if args.compare_xml:
             # Compare XML
             if args.compare_xml[0] and os.path.isfile(args.compare_xml[0]):
