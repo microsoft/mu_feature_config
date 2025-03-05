@@ -936,8 +936,8 @@ def find_vfrpp_resp(inf_file_path, WorkspaceRoot, verbose=0):
         print(f'  [find_vfrpp_resp] inf_file_path: {inf_file_path}')
 
     # Validate inf_file_path and create a search string
-    # e.g. MU_BASECORE\MdeModulePkg\Universal\HiiResourcesSampleDxe\HiiResourcesSampleDxe.inf
-    #                            => universal\hiiresourcessampledxe\hiiresourcessampledxe\output\vfrpp_resp.txt
+    # e.g. Repository\MdeModulePkg\Sample\File.inf
+    #                           => sample\file\output\vfrpp_resp.txt
     if inf_file_path and os.path.isfile(inf_file_path):
         search_string = os.path.join(
             os.path.splitext(os.path.normpath(inf_file_path).lower().split('pkg\\')[-1])[0],
