@@ -703,7 +703,6 @@ class application(tkinter.Frame):
             self.search_active = True
             expand_tree_to_page(search_result)
             highlight_left_tree_label(search_result)
-            self.build_config_data_page(search_result[0])
             print(f"'{search_term}' found.")
         else:
             print(f"'{search_term}' not found.")
@@ -891,8 +890,6 @@ class application(tkinter.Frame):
         if len(sel) > 0:
             page_id = sel[0]
             self.build_config_data_page(page_id)
-            self.update_widgets_visibility_on_page()
-            self.update_page_scroll_bar()
 
     def walk_widgets_in_layout(self, parent, callback_function, args=None):
         for widget in parent.winfo_children():
@@ -971,6 +968,11 @@ class application(tkinter.Frame):
         for item in disp_list[page_start:page_end]:
             self.add_config_item(item, row, self.page_cfg_map[page_id])
             row += 2
+
+        # Update widgets and scrollbar
+        self.update_widgets_visibility_on_page()
+        self.update_page_scroll_bar()
+
         if self.search_active:
             self.highlight_label()
 
@@ -1006,8 +1008,6 @@ class application(tkinter.Frame):
         if self.current_page > 0:
             self.current_page -= 1
             self.build_config_data_page(page_id)
-            self.update_widgets_visibility_on_page()
-            self.update_page_scroll_bar()
 
     # Goes to a specific page if the input is valid
     def go_to_page(self, page_id, page_num):
@@ -1016,8 +1016,6 @@ class application(tkinter.Frame):
             if page_index >= 0 and page_index < self.total_pages:
                 self.current_page = page_index
                 self.build_config_data_page(page_id)
-                self.update_widgets_visibility_on_page()
-                self.update_page_scroll_bar()
             else:
                 self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
         except ValueError:
@@ -1028,8 +1026,6 @@ class application(tkinter.Frame):
         if self.current_page < self.total_pages - 1:
             self.current_page += 1
             self.build_config_data_page(page_id)
-            self.update_widgets_visibility_on_page()
-            self.update_page_scroll_bar()
 
     def load_config_data(self, file_name):
         if file_name.endswith('.xml'):
