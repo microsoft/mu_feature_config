@@ -734,7 +734,7 @@ class application(tkinter.Frame):
     def highlight_label(self):
         search_term = self.search_var.get().lower()
         self.current_matches = [
-            widget for widget in self.right_grid.winfo_children()[2:]
+            widget for widget in self.right_grid.winfo_children()[1:]
             if search_term in widget.cget('text').lower() and isinstance(widget, tkinter.Label)
         ]
 
@@ -751,7 +751,7 @@ class application(tkinter.Frame):
         if not self.current_matches:
             return
 
-        widget_list = self.right_grid.winfo_children()[2:]
+        widget_list = self.right_grid.winfo_children()[1:]
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
         entry_widget = widget_list[label_index + 1]
