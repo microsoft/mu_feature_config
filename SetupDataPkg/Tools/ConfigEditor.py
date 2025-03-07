@@ -393,8 +393,11 @@ class application(tkinter.Frame):
         # this maps page id to cfg_data index, needed for when user changes pages
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
-
         self.bios_schema_xml_hash = None
+        # Pagination Setup
+        self.page_size = 500   # Number of items per page, this should be <= 532 in current version
+        self.current_page = 0  # Initial page
+        self.total_pages = 0   # Default value
 
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
@@ -700,7 +703,6 @@ class application(tkinter.Frame):
             self.search_active = True
             expand_tree_to_page(search_result)
             highlight_left_tree_label(search_result)
-            self.build_config_data_page(search_result[0])
             print(f"'{search_term}' found.")
         else:
             print(f"'{search_term}' not found.")
@@ -731,7 +733,7 @@ class application(tkinter.Frame):
     def highlight_label(self):
         search_term = self.search_var.get().lower()
         self.current_matches = [
-            widget for widget in self.right_grid.winfo_children()[2:]
+            widget for widget in self.right_grid.winfo_children()[1:]
             if search_term in widget.cget('text').lower() and isinstance(widget, tkinter.Label)
         ]
 
@@ -748,7 +750,7 @@ class application(tkinter.Frame):
         if not self.current_matches:
             return
 
-        widget_list = self.right_grid.winfo_children()[2:]
+        widget_list = self.right_grid.winfo_children()[1:]
         current_widget = self.current_matches[self.current_match_index]
         label_index = widget_list.index(current_widget)
         entry_widget = widget_list[label_index + 1]
@@ -888,8 +890,6 @@ class application(tkinter.Frame):
         if len(sel) > 0:
             page_id = sel[0]
             self.build_config_data_page(page_id)
-            self.update_widgets_visibility_on_page()
-            self.update_page_scroll_bar()
 
     def walk_widgets_in_layout(self, parent, callback_function, args=None):
         for widget in parent.winfo_children():
@@ -943,11 +943,89 @@ class application(tkinter.Frame):
             disp_list.append(item)
         row = 0
         disp_list.sort(key=lambda x: x["order"])
-        for item in disp_list:
+
+        # Handle empty list case
+        if len(disp_list) <= 2:
+            return
+
+        # Pagination
+        self.total_pages = (len(disp_list) - 2 + self.page_size - 1) // self.page_size  # Subtract 2 for header
+        # If the current page is out of range, set it to the last page
+        if self.current_page >= self.total_pages:
+            self.current_page = max(0, self.total_pages - 1)
+        page_start = 2 + self.current_page * self.page_size
+        page_end = min(page_start + self.page_size, len(disp_list))
+
+        # Add pagination buttons when total pages > 1
+        if self.total_pages > 1:
+            self.add_pagination_controls(page_id)
+            row += 1
+
+        # Always display the second row as the header
+        self.add_config_item(disp_list[1], row, self.page_cfg_map[page_id])
+        row += 2
+
+        for item in disp_list[page_start:page_end]:
             self.add_config_item(item, row, self.page_cfg_map[page_id])
             row += 2
+
+        # Update widgets and scrollbar
+        self.update_widgets_visibility_on_page()
+        self.update_page_scroll_bar()
+
         if self.search_active:
             self.highlight_label()
+
+    # Add pagination controls to navigate through pages
+    def add_pagination_controls(self, page_id):
+        button_frame = tkinter.Frame(self.right_grid)
+        button_frame.grid(row=0, column=0, pady=10, sticky="w")
+
+        # Previous Page Button
+        prev_button = tkinter.Button(button_frame, text="Previous Page", command=lambda: self.previous_page(page_id))
+        prev_button.pack(side=tkinter.LEFT, padx=5)
+        prev_button["state"] = "normal" if self.current_page > 0 else "disabled"
+
+        # Page Info Label
+        page_label = tkinter.Label(button_frame, text=f"Page {self.current_page + 1} / {self.total_pages}")
+        page_label.pack(side=tkinter.LEFT, padx=5)
+
+        # Page Entry (for user input)
+        page_entry = tkinter.Entry(button_frame, width=5)
+        page_entry.pack(side=tkinter.LEFT, padx=5)
+
+        # Go Button (Jump to specific page)
+        go_button = tkinter.Button(button_frame, text="Go", command=lambda: self.go_to_page(page_id, page_entry.get()))
+        go_button.pack(side=tkinter.LEFT, padx=5)
+
+        # Next Page Button
+        next_button = tkinter.Button(button_frame, text="Next Page", command=lambda: self.next_page(page_id))
+        next_button.pack(side=tkinter.LEFT, padx=5)
+        next_button["state"] = "normal" if self.current_page < self.total_pages - 1 else "disabled"
+
+    # Goes to the previous page and rebuilds the config page
+    def previous_page(self, page_id):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.build_config_data_page(page_id)
+
+    # Goes to a specific page if the input is valid
+    def go_to_page(self, page_id, page_num):
+        try:
+            page_index = int(page_num) - 1  # Convert to 0-based
+            if page_index >= 0 and page_index < self.total_pages:
+                self.current_page = page_index
+                self.build_config_data_page(page_id)
+            else:
+                self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
+        except ValueError:
+            self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
+
+    # Goes to the next page and rebuilds the config page
+    def next_page(self, page_id):
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self.build_config_data_page(page_id)
 
     def load_config_data(self, file_name):
         if file_name.endswith('.xml'):
