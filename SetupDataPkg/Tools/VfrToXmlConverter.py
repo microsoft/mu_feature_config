@@ -2448,8 +2448,8 @@ def create_vfrxml_app(super_class):
 
             # Choose INF file and PlatformBuild.py prior to executing Process INF File
             if not self.tool_config.platform_build_py_required or (
-                    self.tool_config.input_platform_build_py and
-                    os.path.isfile(self.tool_config.input_platform_build_py)):
+                    self.tool_config.input_platform_build_py and os.path.isfile(
+                    self.tool_config.input_platform_build_py)):
                 self.vfrxml_menu.entryconfig("Process INF File", state=inf_dict_state)
             else:
                 self.vfrxml_menu.entryconfig("Process INF File", state='disabled')
