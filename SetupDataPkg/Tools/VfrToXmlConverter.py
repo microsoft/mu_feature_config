@@ -30,34 +30,189 @@ from edk2toollib.uefi.edk2.path_utilities import Edk2Path
 from edk2toolext.environment import plugin_manager, shell_environment
 from edk2toolext.environment.multiple_workspace import MultipleWorkspace
 from edk2toolext.environment.plugintypes.uefi_helper_plugin import HelperFunctions
+
+# Mute warning messages from Edk2Path logger
 Edk2Path_logger = logging.getLogger("Edk2Path")
 Edk2Path_logger.setLevel(logging.ERROR)
+
+# Logger
+logger = logging.getLogger("VfrToXmlConverter")
+console_handler = logging.StreamHandler()
+logger.addHandler(console_handler)
+logger.propagate = False
+
 this_version = '0.2'
 
-################################ Configuration ################################
-srcdir = ''
-workdir = os.path.dirname(os.path.abspath(__file__))  # Directory of this python script
-sys.path.append(workdir)
 
-# (Optional) For preprocessing the FixedPcdGet portions in vfr files
-input_build_report = ''
+class vfr_xml_config:
+    def __init__(self):
+        self.srcdir = ''  # Source directory
+        self.workdir = os.path.dirname(os.path.abspath(__file__))  # Directory of this script
+        self.verbosity = 1  # Verbosity level: 0 - Error only; 1 - Normal; 2 - Keep temp files; 3 - Debug
+        self.verbosity_list = [logging.ERROR, logging.INFO, logging.INFO, logging.DEBUG]
+        self.set_verbosity(self.verbosity)
 
-# PlatformBuild.py path
-input_platform_build_py = ''
-input_platform_build_py = os.path.join('Platform', 'PlatformPkg', 'PlatformBuild.py')  # Default path
+        # Input file dictionary {INF file path to be processed : Corresponding vfr_resp file path}
+        self.input_inf_dict = {}
 
-# Input file dictionary
-# {INF file path to be processed : Corresponding vfr_resp file path}
-input_file_name_dict = {
-}
+        # PlatformBuild.py path, this is just a default path
+        self.input_platform_build_py = os.path.join('Platform', 'PlatformPkg', 'PlatformBuild.py')
 
-input_ref_xml = ''
-output_file_path = os.path.join(workdir, 'output.xml')
-export_file_path = os.path.join(workdir, 'output_export.xml')
-debug_file_path = os.path.join(workdir, 'output_debug_log.txt')
-clean_up_list = []
-patch_numeric_default_for_debug = 1
-################################ Configuration ################################
+        # (Optional) For preprocessing the FixedPcdGet portions in VFR files
+        self.input_build_report = ''
+
+        # Default path setup for cl
+        self.VsDevCmd_path = r'C:\BuildTools\Common7\Tools\VsDevCmd.bat'
+
+        # Misc
+        self.input_ref_xml = ''
+        self.output_file_path = os.path.join(self.workdir, 'output.xml')
+        self.export_file_path = os.path.join(self.workdir, 'output_export.xml')
+        self.debug_file_path = os.path.join(self.workdir, 'output_debug_log.txt')
+        self.clean_up_list = []
+        self.patch_numeric_default_for_debug = 1
+        self.platform_build_py_required = False
+        self.path_ready = False
+        self.configeditor_path = ''
+        self.basetools_python_path = ''
+        self.candidate_paths = [
+            os.path.join('MU_BASECORE', 'BaseTools', 'Source', 'Python'),
+            os.path.join('Common', 'mu_feature_config', 'SetupDataPkg', 'Tools')
+        ]
+
+    # Set verbosity: 0 - Error only; 1 - Normal; 2 - Keep temp files; 3 - Debug
+    def set_verbosity(self, verbosity):
+        if verbosity in range(len(self.verbosity_list)):
+            self.verbosity = verbosity
+            logger.setLevel(self.verbosity_list[verbosity])
+
+    # Try various combinations of candidate paths, locate srcdir and append sys.path if available
+    def configure_paths(self):
+        sys.path.append(self.workdir)
+        for cand_dir in [os.getcwd(), self.workdir]:
+            can_dirs = [cand_dir]
+            if 'SetupDataPkg' in cand_dir:
+                temp_path = os.path.dirname(os.path.dirname(
+                                            os.path.normpath(cand_dir[:cand_dir.find('SetupDataPkg')])))
+                if os.path.isdir(temp_path):
+                    can_dirs.append(temp_path)
+            if 'BaseTools' in cand_dir:
+                temp_path = os.path.dirname(os.path.normpath(cand_dir[:cand_dir.find('BaseTools')]))
+                if os.path.isdir(temp_path):
+                    can_dirs.append(temp_path)
+            for cdir in can_dirs:
+                for cand_path in self.candidate_paths:
+                    cand_dir_path = os.path.join(cdir, cand_path)
+                    if os.path.isdir(cand_dir_path):
+                        self.srcdir = cdir
+                        sys.path.append(cand_dir_path)
+
+    # Check if ConfigEditor module has been imported
+    def is_config_editor(self):
+        if 'ConfigEditor' not in sys.modules:
+            return False
+        return True
+
+    # Import ConfigEditor module
+    def import_config_editor(self):
+        try:
+            ConfigEditor = importlib.import_module('ConfigEditor')
+            return ConfigEditor
+        except Exception:
+            # If the ConfigEditor module is not found, ask for PlatformBuild.py first
+            messagebox.showinfo("Information", "Please provide a path to PlatformBuild.py")
+            self.input_platform_build_py = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(
+                    ("PlatformBuild", "PlatformBuild*.py"),
+                    ("all files", "*.*")
+                )
+            ))
+            if self.input_platform_build_py and os.path.isfile(self.input_platform_build_py):
+                logger.info('PlatformBuild: %s' % self.input_platform_build_py)
+                gPlatformBuilder = setup_platform_builder(self.input_platform_build_py)
+                if gPlatformBuilder is not None:
+                    self.srcdir = gPlatformBuilder.GetWorkspaceRoot()
+                    for package_path in gPlatformBuilder.GetPackagesPath():
+                        if os.path.isdir(os.path.join(self.srcdir, package_path, 'SetupDataPkg', 'Tools')):
+                            self.configeditor_path = os.path.normpath(os.path.join(
+                                self.srcdir,
+                                package_path,
+                                'SetupDataPkg',
+                                'Tools'
+                            ))
+                            sys.path.append(self.configeditor_path)
+                        if os.path.isdir(os.path.join(self.srcdir, package_path, 'BaseTools', 'Source', 'Python')):
+                            self.basetools_python_path = os.path.normpath(os.path.join(
+                                self.srcdir,
+                                package_path,
+                                'BaseTools',
+                                'Source',
+                                'Python'
+                            ))
+                            sys.path.append(self.basetools_python_path)
+            try:
+                ConfigEditor = importlib.import_module('ConfigEditor')
+                return ConfigEditor
+            except Exception as e:
+                logger.error(e)
+                return None
+
+    # Try to validate srcdir and set path_ready
+    def validate_path_ready(self):
+        if self.basetools_python_path and os.path.isdir(self.basetools_python_path):
+            self.path_ready = True
+        else:
+            for cand_path in self.candidate_paths:
+                if os.path.isfile(os.path.join(self.srcdir, cand_path, 'Trim', 'Trim.py')):
+                    self.basetools_python_path = os.path.join(self.srcdir, cand_path)
+                    self.path_ready = True
+
+        if not self.path_ready:
+            self.platform_build_py_required = True
+
+        # Info print
+        logger.info(f'path_ready={self.path_ready}')
+        logger.info(f'  srcdir={self.srcdir}')
+        logger.info(f'  workdir={self.workdir}')
+
+    # Check if there is any inf file available in input_inf_dict
+    # Return True if there is inf file available, else return False
+    def check_inf_dict(self):
+        found = False
+        for inf_file in self.input_inf_dict.keys():
+            if os.path.isfile(inf_file):
+                found = True
+                break
+        return found
+
+    # Update input_inf_dict by automatically finding vfrpp_resp file
+    def update_inf_dict(self):
+        for inf_file, vfrpp_resp_file in self.input_inf_dict.items():
+            if not vfrpp_resp_file:
+                vfrpp_resp_file = find_vfrpp_resp(inf_file, self.srcdir)  # Return '' if not found
+                self.input_inf_dict[inf_file] = vfrpp_resp_file
+
+    # Display input files
+    def display_input_files(self, log_method=print):
+        inf_ready = False
+        for inf_file, vfrpp_resp_file in self.input_inf_dict.items():
+            if os.path.isfile(inf_file):
+                log_method('INF File: %s' % inf_file)
+                inf_ready = True
+                if vfrpp_resp_file and os.path.isfile(vfrpp_resp_file):
+                    log_method('VFRPP_RESP: %s' % vfrpp_resp_file)
+        if self.input_platform_build_py and os.path.isfile(self.input_platform_build_py):
+            log_method('PlatformBuild: %s' % self.input_platform_build_py)
+        if self.input_build_report and os.path.isfile(self.input_build_report):
+            log_method('BUILD REPORT: %s' % self.input_build_report)
+        if self.input_ref_xml and os.path.isfile(self.input_ref_xml):
+            log_method('Reference XML: %s' % self.input_ref_xml)
+        return inf_ready
+
+    # Put a file into clean_up_list
+    def add_to_clean_up_list(self, file_path, target_verbosity=2):
+        if self.verbosity < target_verbosity and file_path not in self.clean_up_list:
+            self.clean_up_list.append(file_path)
 
 
 # Parse PlatformBuild.py and setup platform_builder for later use
@@ -68,7 +223,7 @@ def setup_platform_builder(platform_build_py_path):
     platform_builder = None
     if os.path.isfile(platform_build_py_path):
         # Attempt to import PlatformBuild.py from the given path
-        print('\nImporting PlatformBuild: %s' % platform_build_py_path)
+        logger.info('\nImporting PlatformBuild: %s' % platform_build_py_path)
         try:
             module_name = 'PlatformBuild'
             spec = importlib.util.spec_from_file_location(module_name, platform_build_py_path)
@@ -76,8 +231,8 @@ def setup_platform_builder(platform_build_py_path):
             spec.loader.exec_module(PlatformBuild)
             platform_builder = PlatformBuild.PlatformBuilder()
         except Exception as e:
-            print(e)
-            print('  [PlatformBuild] Failed to import: %s' % platform_build_py_path)
+            logger.warning(e)
+            logger.warning('  [PlatformBuild] Failed to import: %s' % platform_build_py_path)
             return None
 
         # Invoke SetPlatformEnv() and PlatformPreBuild() to setup the environment variables
@@ -95,127 +250,30 @@ def setup_platform_builder(platform_build_py_path):
             platform_builder.pp = os.pathsep.join(pathobj.PackagePathList)
             platform_builder.Helper = HelperFunctions()
             platform_builder.pm = plugin_manager.PluginManager()
-        except Exception:
-            # The mandatory info is platform_builder.GetPackagesPath(), others are optional/additional for most cases
-            # print(e)
-            pass
+        except Exception as e:
+            logger.debug(e)
+            logger.debug('The mandatory info is platform_builder.GetPackagesPath(), '
+                         'others are optional/additional for most cases')
 
         try:
-            print('  [PlatformBuild] Invoke SetPlatformEnv()...')
+            logger.info('  [PlatformBuild] Invoke SetPlatformEnv()...')
             platform_builder.SetPlatformEnv()
-        except Exception:
-            # print(e)
-            pass
+        except Exception as e:
+            logger.debug(e)
+
         try:
-            print('  [PlatformBuild] Invoke PlatformPreBuild()...')
+            logger.info('  [PlatformBuild] Invoke PlatformPreBuild()...')
             platform_builder.PlatformPreBuild()
-        except Exception:
-            # print(e)
-            pass
+        except Exception as e:
+            logger.debug(e)
 
     else:
-        print('PlatformBuild.py File not found: %s' % platform_build_py_path)
+        logger.warning('PlatformBuild.py File not found: %s' % platform_build_py_path)
+
     return platform_builder
 
 
-# Path Configuration >>>
-# We do not have srcdir from gPlatformBuilder.GetWorkspaceRoot() yet,
-#   try to assign a temporary srcdir until PlatformBuild.py is loaded
-# Try various combinations of candidate paths, in most cases we could locate srcdir and ConfigEditor here
-candidate_paths = [
-    os.path.join('MU_BASECORE', 'BaseTools', 'Source', 'Python'),
-    os.path.join('Common', 'mu_feature_config', 'SetupDataPkg', 'Tools')
-]
-
-for cand_dir in [os.getcwd(), workdir]:
-    can_dirs = [cand_dir]
-    if 'SetupDataPkg' in cand_dir:
-        temp_path = os.path.dirname(os.path.dirname(os.path.normpath(cand_dir[:cand_dir.find('SetupDataPkg')])))
-        if os.path.isdir(temp_path):
-            can_dirs.append(temp_path)
-    if 'BaseTools' in cand_dir:
-        temp_path = os.path.dirname(os.path.normpath(cand_dir[:cand_dir.find('BaseTools')]))
-        if os.path.isdir(temp_path):
-            can_dirs.append(temp_path)
-    for cdir in can_dirs:
-        for cand_path in candidate_paths:
-            cand_dir_path = os.path.join(cdir, cand_path)
-            if os.path.isdir(cand_dir_path):
-                srcdir = cdir
-                sys.path.append(cand_dir_path)
-
-# Try to locate the ConfigEditor module
-default_configeditor_path = ''
-default_basetools_python_path = ''
-try:
-    import ConfigEditor
-except Exception:
-    # If the ConfigEditor module is not found, ask for PlatformBuild.py first
-    messagebox.showinfo("Information", "Please provide a path to PlatformBuild.py")
-    input_platform_build_py = os.path.normpath(filedialog.askopenfilename(
-        filetypes=(
-            ("PlatformBuild", "PlatformBuild*.py"),
-            ("all files", "*.*")
-        )
-    ))
-    if input_platform_build_py and os.path.isfile(input_platform_build_py):
-        print('PlatformBuild File: %s' % input_platform_build_py)
-        gPlatformBuilder = setup_platform_builder(input_platform_build_py)
-        if gPlatformBuilder is not None:
-            srcdir = gPlatformBuilder.GetWorkspaceRoot()
-            for package_path in gPlatformBuilder.GetPackagesPath():
-                if os.path.isdir(os.path.join(srcdir, package_path, 'SetupDataPkg', 'Tools')):
-                    default_configeditor_path = os.path.normpath(os.path.join(
-                        srcdir,
-                        package_path,
-                        'SetupDataPkg',
-                        'Tools'
-                    ))
-                    sys.path.append(default_configeditor_path)
-                if os.path.isdir(os.path.join(srcdir, package_path, 'BaseTools', 'Source', 'Python')):
-                    default_basetools_python_path = os.path.normpath(os.path.join(
-                        srcdir,
-                        package_path,
-                        'BaseTools',
-                        'Source',
-                        'Python'
-                    ))
-                    sys.path.append(default_basetools_python_path)
-    try:
-        import ConfigEditor
-    except Exception:
-        pass
-
-if 'ConfigEditor' not in sys.modules:
-    print('Cannot locate ConfigEditor nor PlatformBuild.py, exiting...')
-    print(f'  srcdir={srcdir}')
-    print(f'  workdir={workdir}')
-    exit(1)
-
-# Default path setup for cl
-default_VsDevCmd_path = r'C:\BuildTools\Common7\Tools\VsDevCmd.bat'
-
-# Try to validate srcdir a little bit
-path_ready = False
-if default_basetools_python_path and os.path.isdir(default_basetools_python_path):
-    path_ready = True
-else:
-    for cand_path in candidate_paths:
-        if os.path.isfile(os.path.join(srcdir, cand_path, 'Trim', 'Trim.py')):
-            default_basetools_python_path = os.path.join(srcdir, cand_path)
-            path_ready = True
-
-platform_build_py_required = 0
-if not path_ready:
-    platform_build_py_required = 1
-
-print(f'path_ready={path_ready}')
-print(f'  srcdir={srcdir}')
-print(f'  workdir={workdir}')
-# Path Configuration <<<
-
-
-# This is copied from shutil.rmtree example https://docs.python.org/3.12/library/shutil.html
+# This is copied from shutil.rmtree example https://docs.python.org/3.12/library/shutil.html#rmtree-example
 def remove_readonly(func, path, _):
     "Clear the readonly bit and reattempt the removal"
     os.chmod(path, stat.S_IWRITE)
@@ -223,19 +281,16 @@ def remove_readonly(func, path, _):
 
 
 # Clean up an item in current working directory with given folder/file/link name
-def clean_up_workspace(item_name, verbose=0):
+def clean_up_workspace(item_name):
     if os.path.isfile(item_name):
         os.remove(item_name)
-        if verbose:
-            print('File \'%s\' has been removed' % item_name)
+        logger.debug('File \'%s\' has been removed' % item_name)
     if os.path.isdir(item_name):
         shutil.rmtree(item_name, onexc=remove_readonly)
-        if verbose:
-            print('Folder \'%s\' has been removed' % item_name)
+        logger.debug('Folder \'%s\' has been removed' % item_name)
     if os.path.islink(item_name):
         os.unlink(item_name)
-        if verbose:
-            print('Link \'%s\' has been removed' % item_name)
+        logger.debug('Link \'%s\' has been removed' % item_name)
 
 
 # Normalize a name to a valid C identifier, which complies with is_valid_name() in VariableList.py
@@ -368,15 +423,15 @@ def inf_get_info(inf_file_path, platform_builder):
                 platform_builder.env.GetAllBuildKeyValues(BuildType=platform_env_dict.get('TARGET', '*'))
             )
             platform_env_status = 1
-        except Exception:
-            # print(e)
+        except Exception as e:
+            logger.warning(e)
             platform_env_status = 0
 
         # Parse Platform DSC
         dsc_file_path = platform_env_dict.get('ACTIVE_PLATFORM')
         dsc_parser = None
         try:
-            print('\nParsing file: %s' % dsc_file_path)
+            logger.info('\nParsing file: %s' % dsc_file_path)
             dsc_parser = DscParser()
             if platform_env_status:
                 dsc_parser.SetEdk2Path(pathobj)
@@ -385,23 +440,23 @@ def inf_get_info(inf_file_path, platform_builder):
             dsc_parser.Logger.setLevel(logging.FATAL)  # Ignore error messages
             dsc_parser.ParseFile(dsc_file_path)
         except FileNotFoundError:
-            print('DSC File not found: %s' % dsc_file_path)
+            logger.warning('DSC File not found: %s' % dsc_file_path)
         except Exception as e:
-            print(e)
-            print('Exception occurred while parsing DSC file: %s' % dsc_file_path)
+            logger.warning(e)
+            logger.warning('Exception occurred while parsing DSC file: %s' % dsc_file_path)
 
         # Parse INF
-        print('\nParsing file: %s' % inf_file_path)
+        logger.info('\nParsing file: %s' % inf_file_path)
         inf_parser = InfParser()
         if platform_env_status:
             inf_parser.SetEdk2Path(pathobj)
             inf_parser.SetInputVars(platform_env_dict)
         inf_parser.ParseFile(inf_file_path)
         base_name = inf_parser.Dict.get('BASE_NAME', '')
-        print('  [inf] BASE_NAME: %s' % base_name)
+        logger.info('  [inf] BASE_NAME: %s' % base_name)
 
         if not platform_env_status:
-            print(
+            logger.warning(
                 '  [inf] Exception occurred which might be related to invalid PlatformBuild.py and paths. '
                 'Skip the DscParser and DecParser'
             )
@@ -413,7 +468,6 @@ def inf_get_info(inf_file_path, platform_builder):
                     # Try to find the dec file path
                     dec_file_path = os.path.normpath(os.path.join(common_pkg_path, inf_package))
                     if os.path.isfile(dec_file_path):
-                        # print('  [dec] %s' % dec_file_path)  # Print the file path of all dec files
                         if dec_file_path not in dec_file_list:
                             dec_file_list.append(dec_file_path)
                         dec_dir = os.path.dirname(dec_file_path)
@@ -444,9 +498,9 @@ def inf_get_info(inf_file_path, platform_builder):
                     FixedPcd_dict.update({pcd_name: pcd_value})
 
             # Print the include paths
-            print('  [inf] Include Paths:')
+            logger.info('  [inf] Include Paths:')
             for search_path in search_path_list:
-                print(f'        {search_path}')
+                logger.info(f'        {search_path}')
 
         # Routine to get a list of real file paths
         def get_file_list_from_inf(inf_parser, file_ext, verify_path=True):
@@ -455,24 +509,24 @@ def inf_get_info(inf_file_path, platform_builder):
                 if os.path.splitext(source_file)[1].lower() == file_ext:
                     file_path = os.path.normpath(os.path.join(inf_dir, source_file))
                     if verify_path and not os.path.isfile(file_path):
-                        print('        [NOT FOUND] %s' % file_path)
+                        logger.info('        [NOT FOUND] %s' % file_path)
                         continue
                     else:
                         if file_path not in file_list:
                             file_list.append(file_path)
-                        print(f'        {file_path}')
+                        logger.info(f'        {file_path}')
             return file_list
 
         # Get vfr_file_list form the INF file
-        print('  [vfr] vfr file(s):')
+        logger.info('  [vfr] vfr file(s):')
         vfr_file_list = get_file_list_from_inf(inf_parser, '.vfr')
 
         # Get the list of uni files from the INF file
-        print('  [uni] uni file(s):')
+        logger.info('  [uni] uni file(s):')
         uni_file_list = get_file_list_from_inf(inf_parser, '.uni')
 
     else:
-        print('INF File not found: %s' % inf_file_path)
+        logger.warning('INF File not found: %s' % inf_file_path)
 
     return vfr_file_list, uni_file_list, dec_file_list, search_path_list, base_name, FixedPcd_dict
 
@@ -517,7 +571,7 @@ def vfr_process_includes(vfr_content, vfr_dir):
             if os.path.isfile(include_file_path):
                 try:
                     # Print the found include file path
-                    print('  [vfr] %s' % include_file_path)
+                    logger.info('  [vfr] %s' % include_file_path)
 
                     with open(include_file_path, 'r') as file:
                         include_content = file.read()
@@ -527,14 +581,14 @@ def vfr_process_includes(vfr_content, vfr_dir):
                     include_content = vfr_process_includes(include_content, include_dir)
                     break  # Stop once we find and load the include file
                 except Exception as e:
-                    print(f'  [vfr] Error reading included file: {include_file_path}')
-                    print(f'        {e}')
+                    logger.warning(f'  [vfr] Error reading included file: {include_file_path}')
+                    logger.warning(f'        {e}')
 
         # If we found and loaded the include file, replace the #include line with the actual content
         if include_content:
             vfr_content = vfr_content.replace(f'#include "{include_file}"', include_content)
         else:
-            print(f'  [vfr] Warning: Include file "{include_file}" not found.')
+            logger.warning(f'  [vfr] Warning: Include file "{include_file}" not found.')
 
     return vfr_content
 
@@ -566,16 +620,15 @@ def vfr_process_pcds(vfr_content, FixedPcd_dict, dump_file_name=None):
 
 # Update os.environ with the environment variables from VsDevCmd.bat
 # VsDevCmd_path (Optional): Specify the path to VsDevCmd.bat if necessary
-# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Info
 # Return: 0 if successful, non-zero otherwise
-def update_env_by_VsDevCmd(VsDevCmd_path=None, verbose=0):
+def update_env_by_VsDevCmd(VsDevCmd_path):
     if VsDevCmd_path is None:
-        VsDevCmd_path = default_VsDevCmd_path
+        VsDevCmd_path = 'VsDevCmd.bat'
 
     if os.path.isfile(VsDevCmd_path):
         # Execute VsDevCmd.bat and capture the environment variables
         try:
-            print('  [cl] Info: Loading environment variables from VsDevCmd.bat...')
+            logger.info('  [cl] Info: Loading environment variables from VsDevCmd.bat...')
             completed = subprocess.run(
                 f'cmd /c "{VsDevCmd_path} && set"',
                 capture_output=True,
@@ -584,8 +637,7 @@ def update_env_by_VsDevCmd(VsDevCmd_path=None, verbose=0):
             )
 
             if completed.returncode != 0:
-                if verbose:
-                    print(f'  [cl] Error: Failed to run {VsDevCmd_path}: {completed.stderr}')
+                logger.warning(f'  [cl] Error: Failed to run {VsDevCmd_path}: {completed.stderr}')
                 return completed.returncode
 
             # Parse the environment variables from the output
@@ -597,18 +649,15 @@ def update_env_by_VsDevCmd(VsDevCmd_path=None, verbose=0):
 
             # Update os.environ with the new variables
             os.environ.update(env_vars)
-            if verbose > 1:
-                print('  [cl] Info: VsDevCmd environment loaded successfully.')
+            logger.info('  [cl] Info: VsDevCmd environment loaded successfully.')
             return 0
 
         except Exception as e:
-            if verbose:
-                print(f'  [cl] Exception: {e}')
+            logger.warning(f'  [cl] Exception: {e}')
             return 1
 
     else:
-        if verbose:
-            print('  [cl] Error: VsDevCmd.bat not found.')
+        logger.warning('  [cl] Error: VsDevCmd.bat not found.')
         return 1
 
 
@@ -633,7 +682,7 @@ def run_cl(
 
     # Run VsDevCmd.bat to set path for cl.exe if necessary
     if ret != 0:
-        update_env_by_VsDevCmd(VsDevCmd_path, verbose=2)
+        update_env_by_VsDevCmd(VsDevCmd_path)
 
     # Execute cl.exe
     ret = os.system(verify_cmd)
@@ -676,10 +725,12 @@ def run_cl(
         # Execute cl.exe
         ret = os.system(cmd)
         if ret:
-            print('  [cl] cmd: %s' % cmd)
+            logger.warning('  [cl] cmd: %s' % cmd)
+        else:
+            logger.debug('  [cl] cmd: %s' % cmd)
 
     else:
-        print('  [cl] Error: cl.exe is not available.')
+        logger.warning('  [cl] Error: cl.exe is not available.')
 
     return ret
 
@@ -687,15 +738,16 @@ def run_cl(
 # Invoke TrimPreprocessedVfr or TrimPreprocessedFile in Trim.py to preprocess the given file
 # input_file_name: vfr file name to be processed
 # vfr_mode (Optional): 0 - normal; 1 - vfr
-# dump_file_name: Dump the preprocessed vfr content to the file.
+# dump_file_name (Optional): Dump the preprocessed vfr content to the file
 #   If not specified, dump to the default file name: input_file_name.iii
-def run_trim(input_file_name, vfr_mode=0, dump_file_name=None):
-    basetools_python_path = default_basetools_python_path
-    sys.path.append(basetools_python_path)
+# basetools_python_path (Optional): Specify the path to basetools python if necessary
+def run_trim(input_file_name, vfr_mode=0, dump_file_name=None, basetools_python_path=None):
+    if basetools_python_path and os.path.isdir(basetools_python_path):
+        sys.path.append(basetools_python_path)
     try:
         import Trim.Trim as trim  # type: ignore
     except ImportError:
-        print('  [Trim] Error: Failed to import Trim module')
+        logger.warning('  [Trim] Error: Failed to import Trim module')
         return 1
 
     if dump_file_name is None:
@@ -711,7 +763,7 @@ def run_trim(input_file_name, vfr_mode=0, dump_file_name=None):
     if os.path.isfile(dump_file_name):
         return 0
     else:
-        print('  [Trim] Error: Failed to create output file: %s' % dump_file_name)
+        logger.warning('  [Trim] Error: Failed to create output file: %s' % dump_file_name)
         return 1
 
 
@@ -723,29 +775,31 @@ def run_trim(input_file_name, vfr_mode=0, dump_file_name=None):
 # resp_file (Optional): Response file for cl
 # vfr_mode (Optional): 0 - normal; 1 - vfr
 # dump_file_name (Optional): If a dump file name is given, write the preprocessed vfr content to the file
+# tool_config (Optional): The config object holding VsDevCmd_path and basetools_python_path
 # Return: Processed vfr content
 def run_preprocess(
     input_file_name, include_path_list, defines_list=[],
-    add_arg='', resp_file=None, vfr_mode=0, dump_file_name=None
+    add_arg='', resp_file=None, vfr_mode=0, dump_file_name=None, tool_config=None
 ):
     temp_processed_vfr = input_file_name + '.i'
 
-    # for include_path in include_path_list:
-    #    print('  [vfr]   %s' % include_path)
+    if tool_config is None:
+        tool_config = vfr_xml_config()
 
     # Invoke cl to preprocess vfr file
-    ret = run_cl(input_file_name, include_path_list, defines_list, add_arg, resp_file, vfr_mode, temp_processed_vfr)
+    ret = run_cl(input_file_name, include_path_list, defines_list, add_arg,
+                 resp_file, vfr_mode, temp_processed_vfr, tool_config.VsDevCmd_path)
 
     # Invoke Trim to preprocess vfr file
     if os.path.isfile(temp_processed_vfr):
-        ret += run_trim(temp_processed_vfr, vfr_mode, dump_file_name)
+        ret += run_trim(temp_processed_vfr, vfr_mode, dump_file_name, tool_config.basetools_python_path)
         os.remove(temp_processed_vfr)
     else:
         # If cl fails, still use run_trim to preprocess vfr file
-        ret += run_trim(input_file_name, dump_file_name)
+        ret += run_trim(input_file_name, vfr_mode, dump_file_name, tool_config.basetools_python_path)
 
     if ret != 0:
-        print('  [vfr] Warning: Error occurred while preprocessing vfr file: %s, ret = %d' % (input_file_name, ret))
+        logger.warning(f'  [vfr] Warning: Error occurred while preprocessing vfr file: {input_file_name}, ret = {ret}')
         output_vfr = input_file_name
     elif not os.path.isfile(dump_file_name):
         output_vfr = input_file_name
@@ -762,9 +816,8 @@ def run_preprocess(
 # Collect varstore, efivarstore, and namevaluevarstore information from vfr content
 # vfr_content: Content read and processed from a vfr file
 # uni_str_dict: Dictionary containing {<string token>: <string content>} mappings from uni files
-# verbose: 0 - Default; 1 - Print Debug message
 # Return: A dictionary containing varstore information: {name: varstore}
-def vfr_collect_varstore(vfr_content, uni_str_dict, verbose=0):
+def vfr_collect_varstore(vfr_content, uni_str_dict):
     varstore_dict = {}
 
     # Regular expression for varstore/efivarstore/namevaluevarstore blocks
@@ -792,13 +845,12 @@ def vfr_collect_varstore(vfr_content, uni_str_dict, verbose=0):
             if token in uni_str_dict:
                 varstore_dict[f'{varstore}[{idx}]'] = uni_str_dict[token]
             else:
-                print(f'  [vfr] Warning: STRING_TOKEN {token} not found in UNI.')
+                logger.warning(f'  [vfr] Warning: STRING_TOKEN {token} not found in UNI.')
 
     # Debug print for varstore_dict
-    if verbose:
-        print()
-        print_dict(varstore_dict, 'varstore_dict', indent=2)
-        print()
+    logger.debug('')
+    print_dict(varstore_dict, 'varstore_dict', indent=2, log_method=logger.debug)
+    logger.debug('')
 
     return varstore_dict
 
@@ -820,6 +872,7 @@ def vfr_condition_judge(condition, structs):
     # Function to evaluate each condition part
     def evaluate_condition(match):
         neg, struct_name, member_name, value = match.groups()
+        struct_name = struct_name + '_STRUCT'  # struct_name in XML got patched with _STRUCT
 
         # Get the current value from structs
         struct = structs.get(struct_name)
@@ -844,14 +897,14 @@ def vfr_condition_judge(condition, structs):
 
     # Evaluate all conditions and substitute their results in the condition string
     result_str = condition_pattern.sub(lambda match: str(evaluate_condition(match)), condition)
-    # print('condition: %s' % condition)
-    # print('result_str: %s' % result_str)
+    logger.debug('condition: %s' % condition)
+    logger.debug('result_str: %s' % result_str)
 
     # Evaluate the combined condition string
     try:
         result = eval(result_str)
-    except Exception:
-        # print(f'Error evaluating condition: {condition}. Error: {e}')
+    except Exception as e:
+        logger.debug(f'Error evaluating condition: {condition}. Error: {e}')
         result = False
 
     return result
@@ -871,13 +924,13 @@ def vfr_process_statements(vfr_content, structs, dump_file_name=None):
     )
 
     for statement in statements:
-        # condition_type = statement[0].lower()  # Convert to lowercase for consistency
+        condition_type = statement[0].lower()  # Convert to lowercase for consistency
         condition = statement[1].strip()  # Remove extra spaces and newline for condition processing
 
         # Evaluate the condition
-        # print(f'Found {condition_type} condition: {condition}')
+        logger.debug(f'Found {condition_type} condition: {condition}')
         result = vfr_condition_judge(condition, structs)
-        # print(f'result: {result}\n')
+        logger.debug(f'result: {result}\n')
 
         if result:
             # Locate the statement in vfr_content
@@ -899,9 +952,9 @@ def vfr_process_statements(vfr_content, structs, dump_file_name=None):
             )
             stack = []  # Initialize a stack to keep track of opened conditions
             for match in sgd_matches:
-                # print(match)
-                # print(f'  match.group(): {match.group()}')
-                # print(f'  stack before: {stack}')
+                logger.debug(match)
+                logger.debug(f'  match.group(): {match.group()}')
+                logger.debug(f'  stack before: {stack}')
                 token = match.group().lower()
                 if token in ['suppressif', 'grayoutif', 'disableif']:
                     stack.append(token)
@@ -910,9 +963,7 @@ def vfr_process_statements(vfr_content, structs, dump_file_name=None):
                         stack.pop()
                     else:
                         vfr_content_post = vfr_content_post[:match.start()] + '*/' + vfr_content_post[match.end():]
-                        # print(f'  stack after: {stack}')
                         break
-                # print(f'  stack after: {stack}')
 
             vfr_content = vfr_content_pre + vfr_content_post
 
@@ -922,18 +973,15 @@ def vfr_process_statements(vfr_content, structs, dump_file_name=None):
 
 # According to the given INF file path, attempt to find the corresponding vfrpp_resp file automatically
 # inf_file_path: Path to the INF file
-# WorkspaceRoot: Root of the workspace directory.
+# ws_root: Root of the workspace directory.
 #   In this file it should be the same as srcdir or PlatformBuilder.GetWorkspaceRoot()
-# verbose (Optional): Print verbose information
 # Return: Path to the vfrpp_resp file. Empty string '' if not found
-def find_vfrpp_resp(inf_file_path, WorkspaceRoot, verbose=0):
+def find_vfrpp_resp(inf_file_path, ws_root):
     vfrpp_resp_path = ''
 
-    # Debug message
-    if verbose:
-        time_start = time.time()
-        print(f'  [find_vfrpp_resp] WorkspaceRoot: {WorkspaceRoot}')
-        print(f'  [find_vfrpp_resp] inf_file_path: {inf_file_path}')
+    time_start = time.time()
+    logger.debug(f'  [find_vfrpp_resp] ws_root: {ws_root}')
+    logger.debug(f'  [find_vfrpp_resp] inf_file_path: {inf_file_path}')
 
     # Validate inf_file_path and create a search string
     # e.g. Repository\MdeModulePkg\Sample\File.inf
@@ -944,23 +992,20 @@ def find_vfrpp_resp(inf_file_path, WorkspaceRoot, verbose=0):
             'output',
             'vfrpp_resp.txt'
         )
-        if verbose:
-            print(f'  [find_vfrpp_resp] search_string = {search_string}')
+        logger.debug(f'  [find_vfrpp_resp] search_string = {search_string}')
 
     else:
-        if verbose:
-            print(f'  [find_vfrpp_resp] inf_file_path is not valid: {inf_file_path}')
+        logger.debug(f'  [find_vfrpp_resp] inf_file_path is not valid: {inf_file_path}')
         return vfrpp_resp_path
 
-    # Validate WorkspaceRoot
-    if not WorkspaceRoot or not os.path.isdir(WorkspaceRoot):
-        if verbose:
-            print(f'  [find_vfrpp_resp] WorkspaceRoot is not valid: {WorkspaceRoot}')
+    # Validate ws_root
+    if not ws_root or not os.path.isdir(ws_root):
+        logger.debug(f'  [find_vfrpp_resp] ws_root is not valid: {ws_root}')
         return vfrpp_resp_path
 
     # Collect a candidate file list of all vfrpp_resp.txt under Build folder
     vfrpp_resp_list = []
-    for root, _, files in os.walk(os.path.join(WorkspaceRoot, 'Build')):
+    for root, _, files in os.walk(os.path.join(ws_root, 'Build')):
         if "vfrpp_resp.txt" in files:
             vfrpp_resp_list.append(os.path.normpath(os.path.join(root, 'vfrpp_resp.txt')))
 
@@ -971,9 +1016,8 @@ def find_vfrpp_resp(inf_file_path, WorkspaceRoot, verbose=0):
             break
 
     # Debug message
-    if verbose:
-        print(f'  [find_vfrpp_resp] vfrpp_resp_path: {vfrpp_resp_path}')
-        print_time(time_start, '[find_vfrpp_resp] ', 2)
+    logger.debug(f'  [find_vfrpp_resp] vfrpp_resp_path: {vfrpp_resp_path}')
+    print_time(time_start, '[find_vfrpp_resp]', indent=2, log_method=logger.debug)
 
     return vfrpp_resp_path
 
@@ -989,7 +1033,7 @@ def get_pcd_from_build_report(build_report, module_name, platform_builder):
     module_found = False
 
     # Parse the given build report
-    print('\nParsing file: %s' % build_report)
+    logger.info('\nParsing file: %s' % build_report)
     try:
         packagepathcsv = ','.join(platform_builder.GetPackagesPath())
         protectedWordsDict = {}
@@ -1002,7 +1046,7 @@ def get_pcd_from_build_report(build_report, module_name, platform_builder):
         build_report_parser.BasicParse()
 
     except Exception as e:
-        print('  [PCD] Failed to parse build report %s: %s' % (build_report, e))
+        logger.warning('  [PCD] Failed to parse build report %s: %s' % (build_report, e))
         return FixedPcd_dict
 
     # Look up module with module name, and get the PCD values
@@ -1014,11 +1058,11 @@ def get_pcd_from_build_report(build_report, module_name, platform_builder):
 
     # Validate whether the module is found with PCDs
     if not module_found:
-        print('  [PCD] Module %s is not found in build report %s' % (module_name, build_report))
+        logger.info('  [PCD] Module %s is not found in build report %s' % (module_name, build_report))
         return FixedPcd_dict  # Return an empty dictionary
 
     elif len(module_pcd_dict) == 0:
-        print('  [PCD] Module %s found but has no PCDs' % module_name)
+        logger.info('  [PCD] Module %s found but has no PCDs' % module_name)
         return FixedPcd_dict  # Return an empty dictionary
 
     else:
@@ -1037,18 +1081,19 @@ def get_pcd_from_build_report(build_report, module_name, platform_builder):
 
 # Extract a list of defines and additional attributes from the given vfrpp_resp file
 # vfrpp_resp: The input file containing the response string from the vfr preprocessor
+# tool_config: The config object holding srcdir and clean_up_list
 # Return:
 #   defines_list: A list of defines (currently unused, but reserved for future implementation)
 #   add_arg: Additional attributes (currently unused, but reserved for future implementation)
 #   modified_resp: Modified resp file for later usage
-def get_defines_list_and_add_arg(vfrpp_resp):
+def get_defines_list_and_add_arg(vfrpp_resp, tool_config):
     defines_list = []  # Do nothing for now
     add_arg = ''  # Do nothing for now
     base_name, ext = os.path.splitext(os.path.basename(vfrpp_resp))
-    modified_resp = os.path.join(srcdir, base_name + '_mod.txt')
+    modified_resp = os.path.join(tool_config.srcdir, base_name + '_mod.txt')
 
-    print('\nApplying resp file: %s -> %s' % (vfrpp_resp, modified_resp))
-    clean_up_list.append(modified_resp)
+    logger.info('\nApplying resp file: %s -> %s' % (vfrpp_resp, modified_resp))
+    tool_config.clean_up_list.append(modified_resp)
 
     # Open and read the input file
     with open(vfrpp_resp, 'r') as file:
@@ -1071,9 +1116,8 @@ def get_defines_list_and_add_arg(vfrpp_resp):
 # uni_file_list: A list of uni files
 # language: language selection
 # encoding (Optional): encoding for reading files, if not provided we should detect encoding with chardet (recommended)
-# verbose: Print encoding information or not
 # Return: A dictionary with {<string token>:<string content>}
-def load_string_from_uni(uni_file_list, language='en-US', encoding=None, verbose=0):
+def load_string_from_uni(uni_file_list, language='en-US', encoding=None):
     uni_str_dict = {}
     # Regular expression pattern for string tokens
     token_pattern = re.compile(rf'#string\s+(\w+)\s+#language\s+{language}\s+"(.*?)"')
@@ -1092,11 +1136,10 @@ def load_string_from_uni(uni_file_list, language='en-US', encoding=None, verbose
                 chardet_result = chardet.detect(raw_data)
                 target_enc = chardet_result['encoding']
                 confidence = chardet_result['confidence']
-                if verbose:
-                    print(
-                        f'  [uni] Detected encoding: {target_enc} with confidence {confidence}, '
-                        f'uni_file: {os.path.basename(uni_file)}'
-                    )
+                logger.debug(
+                    f'  [uni] Detected encoding: {target_enc} with confidence {confidence}, '
+                    f'uni_file: {os.path.basename(uni_file)}'
+                )
 
             # Read file with the detected encoding
             if target_enc:
@@ -1112,10 +1155,10 @@ def load_string_from_uni(uni_file_list, language='en-US', encoding=None, verbose
                                     str_content = ' '
                                 uni_str_dict[str_token] = str_content
                 except Exception as e:
-                    print(f'  [uni] Error reading uni file with {target_enc} encoding: {uni_file}')
-                    print(f'        {e}')
+                    logger.warning(f'  [uni] Error reading uni file with {target_enc} encoding: {uni_file}')
+                    logger.warning(f'        {e}')
             else:
-                print(f'  [uni] Encoding could not be detected: {uni_file}')
+                logger.warning(f'  [uni] Encoding could not be detected: {uni_file}')
 
     return uni_str_dict
 
@@ -1159,14 +1202,13 @@ def get_header_file_list(vfr_content, vfr_dir, search_path_list, dump_file_name=
 
     # Recursive function to find header files
     def find_header_files(include, vfr_content):
-        # print('  [*.h] Looking for header file: %s' % include)
         path_found = 0
         for path in search_paths:
             header_file_path = os.path.normpath(os.path.join(path, include))
             if os.path.isfile(header_file_path):
                 path_found = 1
                 if header_file_path not in header_files:
-                    print('  [*.h] %s' % header_file_path)
+                    logger.info('  [*.h] %s' % header_file_path)
                     header_files.add(header_file_path)
                     include_paths.add(path)
 
@@ -1178,7 +1220,7 @@ def get_header_file_list(vfr_content, vfr_dir, search_path_list, dump_file_name=
                             find_header_files(nested_include, vfr_content)  # Recursive call
                 break  # Stop after finding the first match
         if not path_found:
-            print('  [*.h] Warning: Header file not found: %s' % include)
+            logger.warning('  [*.h] Warning: Header file not found: %s' % include)
             # Comment out the #include line in vfr_content
             vfr_content = vfr_content.replace(f'#include "{include}"', f'//(NOT_FOUND)#include "{include}"')
             vfr_content = vfr_content.replace(f'#include <{include}>', f'//(NOT_FOUND)#include <{include}>')
@@ -1195,7 +1237,7 @@ def get_header_file_list(vfr_content, vfr_dir, search_path_list, dump_file_name=
 
     # Print a warning if no header files are found
     if not header_file_list:
-        print('  [vfr] Warning: No header files found for the given vfr files.')
+        logger.warning('  [vfr] Warning: No header files found for the given vfr files.')
 
     # Write to a dump file if provided
     if dump_file_name:
@@ -1224,18 +1266,16 @@ StringIdentifier_dict = {
 
 # Search struct definition in the given header files
 # header_file_list: A list of header files
-# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Info
 # Return: A dictionary with {<struct_name>:{<member_name>:<member_type>}},
 #   while member_type might point to certain struct_name
-def load_type_from_header(header_file_list, verbose=2):
+def load_type_from_header(header_file_list):
     # Regular expression patterns for typedef struct and members
     struct_pattern = re.compile(r'typedef\s+struct(\s+_\w+)?\s*{([\s\S]*?)}\s*(\w+);', re.DOTALL)
     member_pattern = re.compile(r'\s*(\w+)\s+(\w+)(\[\d+\])?;', re.DOTALL)
 
     typedef_struct_dict = {}
     for header_file in header_file_list:
-        if verbose > 1:
-            print(f'  [*.h] Loading {header_file}')
+        logger.info(f'  [*.h] Loading {header_file}')
         try:
             with open(header_file, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -1253,43 +1293,45 @@ def load_type_from_header(header_file_list, verbose=2):
                             typedef_struct_dict[struct_name][member_name] = member_type
 
         except FileNotFoundError:
-            if verbose:
-                print(f'  [*.h] File not found: {header_file}')
+            logger.warning(f'  [*.h] File not found: {header_file}')
         except Exception as e:
-            if verbose:
-                print(f'  [*.h] Error reading {header_file}: {e}')
+            logger.warning(f'  [*.h] Error reading {header_file}: {e}')
 
     return typedef_struct_dict
 
 
 # Print error/warning message for invalid values in current_member
-# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Warnings
+# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Warning
 def validate_member(struct_name, current_member, verbose=2):
     error_count = 0
     warning_count = 0
     if current_member.get('name') == '':
         if verbose:
-            print('  [vfr] Error: Member is missing a name attribute')
+            logger.warning('  [vfr] Error: Member is missing a name attribute')
         error_count += 1
 
     if current_member.get('default') == '':
         if verbose > 1:
-            print(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} is missing a default value')
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+                           'is missing a default value')
         warning_count += 1
 
     if current_member.get('type') == '':
         if verbose:
-            print(f'  [vfr] Error: Member {struct_name}.{current_member.get('name')} is missing type')
+            logger.warning(f'  [vfr] Error: Member {struct_name}.{current_member.get('name')} '
+                           'is missing type')
         error_count += 1
 
     if current_member.get('prompt') == '':
         if verbose > 1:
-            print(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} is missing a prompt string')
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+                           'is missing a prompt string')
         warning_count += 1
 
     if current_member.get('help') == '':
         if verbose > 1:
-            print(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} is missing a help string')
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+                           'is missing a help string')
         warning_count += 1
 
     return error_count, warning_count
@@ -1297,19 +1339,19 @@ def validate_member(struct_name, current_member, verbose=2):
 
 # Validate all structs and their members in the structs dictionary
 # structs: Dictionary containing all structs and their associated members
-# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Warnings
+# verbose: 0 - Not to print; 1 - Print Error; 2 - Print Error and Warning
 def validate_structs(structs, verbose=1):
     error_count = 0
     warning_count = 0
     # Iterate over each struct in the structs dictionary
     for struct_name, struct in structs.items():
         if verbose > 2:
-            print('Validating Struct: %s' % struct_name)
+            logger.info('Validating Struct: %s' % struct_name)
         # Iterate over each member in the current struct
         for member in struct.findall('Member'):
             member_name = member.get('name')
             if verbose > 2:
-                print('  Validating Member: %s' % member_name)
+                logger.info('  Validating Member: %s' % member_name)
             err, warn = validate_member(struct_name, member, verbose)  # Call the existing validate_member function
             error_count += err
             warning_count += warn
@@ -1326,20 +1368,20 @@ def validate_enums(enums_element, patch_mode=0, verbose=1):
         enum_name = enum.get('name')
         if not enum_name:
             if verbose:
-                print('  [vfr] Error: Enum is missing a name attribute')
+                logger.warning('  [vfr] Error: Enum is missing a name attribute')
             error_count += 1
 
         value_valid = True
         for value in enum.findall('Value'):
             if value.get('name') == '':
                 if verbose:
-                    print('  [vfr] Error: Value is missing a name attribute in Enum %s' % enum_name)
+                    logger.warning('  [vfr] Error: Value is missing a name attribute in Enum %s' % enum_name)
                 error_count += 1
                 value_valid = False
 
             if value.get('value') == '':
                 if verbose:
-                    print('  [vfr] Error: Value is missing a value attribute in Enum %s' % enum_name)
+                    logger.warning('  [vfr] Error: Value is missing a value attribute in Enum %s' % enum_name)
                 error_count += 1
                 value_valid = False
 
@@ -1353,35 +1395,42 @@ def validate_enums(enums_element, patch_mode=0, verbose=1):
 # print_dict: A dictionary to be printed
 # dict_name: Name of the dictionary
 # indent: Indentation level
-def print_dict(print_dict, dict_name='dict', indent=0):
-    if len(print_dict) == 0:
-        print(f'{dict_name} = {print_dict}')
+# log_method: Logging method
+def print_dict(dict_to_print, dict_name='dict', indent=0, log_method=print):
+    if len(dict_to_print) == 0:
+        log_method(f'{dict_name} = {dict_to_print}')
         return
-    for key, value in print_dict.items():
-        print(' ' * indent, end='')
-        print(f'{dict_name}[{key}] = {value}')
+    for key, value in dict_to_print.items():
+        msg = ' ' * indent
+        msg += f'{dict_name}[{key}] = {value}'
+        log_method(msg)
 
 
 # Debug function to print a tuple of blocks
 # blocks: A list of tuples ('oneof|numeric|checkbox', 'block_content')
-def print_blocks(blocks, newlines=1):
+# newlines: Number of newlines between each block
+# log_method: Logging method
+def print_blocks(blocks, newlines=1, log_method=print):
     for index, block in enumerate(blocks):
-        print('\n' * newlines, end='')
-        print(index)
-        print(block)
+        msg = '\n' * newlines
+        msg += f'{index}\n'
+        msg += f'{block}'
+        log_method(msg)
 
 
 # Debug function to print time period from time_start to now time.time()
 # time_start: Start time
 # prefix: Prefix string for debug print
 # indent: Indentation level
-def print_time(time_start, prefix='', indent=0):
+# log_method: Logging method
+def print_time(time_start, prefix='', indent=0, log_method=print):
     period = time.time() - time_start
-    print()
-    print(' ' * indent, end='')
+    msg = '\n'
+    msg += ' ' * indent
     if prefix:
-        print('%s ' % prefix, end='')
-    print('Time = %02dm %02ds\n' % (int(period / 60), int(period % 60)))
+        msg += f'{prefix} '
+    msg += 'Time = %02dm %02ds\n' % (int(period / 60), int(period % 60))
+    log_method(msg)
 
 
 # Parse given VFR content (typically from a single file) and append its structure to the XML element
@@ -1390,9 +1439,12 @@ def print_time(time_start, prefix='', indent=0):
 # root: Root element of the XML tree
 # structs: A dictionary of all struct elements
 # repeated_items: List of tuples containing (struct_name, member_name) for repeated items
-# verbose: 0 - Not to print; 1 - Print Warning; 2 - Print Info and Warning
 # parse_mode: 0 - Generate a new xml from a vfr; 1 - re-parse vfr to update values in xml
-def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, verbose=2, parse_mode=0):
+# tool_config: The config object holding patch_numeric_default_for_debug
+def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, parse_mode=0, tool_config=None):
+    if tool_config is None:
+        tool_config = vfr_xml_config()
+
     # Prepare a dictionary for varstore
     varstore_dict = vfr_collect_varstore(vfr_content, uni_str_dict)
 
@@ -1400,7 +1452,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
     enums_element = root.find('Enums')
     structs_element = root.find('Structs')
 
-    print('\n  Start parsing...')
+    logger.info('\n  Start parsing...')
     # Initialize variables and data structures
     current_member = None
     current_struct = None
@@ -1415,7 +1467,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
         vfr_content,
         re.DOTALL | re.IGNORECASE
     )
-    # print_blocks(all_blocks)  # Temporary debug print
+    print_blocks(all_blocks, log_method=logger.debug)  # Debug print
 
     # Iterate over each block
     for block in all_blocks:
@@ -1472,12 +1524,11 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
                 if len(varid_split) > 1:
                     member_name = '.'.join(varid_split[1:])
                 else:
-                    print('  [vfr] Warning: Invalid varid = %s' % varid)
+                    logger.warning('  [vfr] Warning: Invalid varid = %s' % varid)
                     continue
 
                 # Patch struct_name according to varstore/efivarstore/namevaluevarstore names
                 if varstore_dict.get(struct_name) is not None:
-                    # print('  [vfr] Patch varstore_dict: %s -> %s' % (struct_name, varstore_dict[struct_name]))
                     struct_name = varstore_dict[struct_name]
 
                 struct_name = struct_name + '_STRUCT'  # Add _STRUCT to struct name to avoid enum redefinition
@@ -1497,8 +1548,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
                         # New parse mode: Add to repeated_items list if not already present
                         if (struct_name, member_name) not in repeated_items:
                             repeated_items.append((struct_name, member_name))
-                            if verbose > 1:
-                                print(f'  [vfr] Info: Duplicate Member found in Struct: {struct_name}.{member_name}')
+                            logger.info(f'  [vfr] Info: Duplicate Member found in Struct: {struct_name}.{member_name}')
                 else:
                     current_member.set('name', member_name)
 
@@ -1511,8 +1561,8 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
             if matches:
                 prompt_token = matches[0]  # If there are more than one prompt, just take the first one
                 current_prettyname = uni_str_dict.get(prompt_token, '')
-                if current_prettyname is None and verbose:
-                    print(
+                if current_prettyname is None:
+                    logger.warning(
                         '  [uni] Warning: Pretty Name not found. '
                         f'Member name={current_member.get('name')}, '
                         f'Token={prompt_token}, '
@@ -1527,8 +1577,8 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
             if matches:
                 help_token = matches[0]  # If there are more than one help, just take the first one
                 current_help = uni_str_dict.get(help_token, '')
-                if current_help is None and verbose:
-                    print(
+                if current_help is None:
+                    logger.warning(
                         '  [uni] Warning: Help not found. '
                         f'Member name={current_member.get('name')}, Token={help_token}, '
                     )
@@ -1622,7 +1672,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
             # Debug patch for numeric items, use this only for generating test data
             # Sometimes we have default="", but 0 is not in the range of (min, max),
             #   that will cause a InvalidRangeError in ConfigEditor
-            if patch_numeric_default_for_debug and (block_type == 'numeric') and not default_set:
+            if tool_config.patch_numeric_default_for_debug and (block_type == 'numeric') and not default_set:
                 num_min = eval(current_member.get('min', '0'))
                 num_max = eval(current_member.get('max', '0'))
                 if (num_min > 0) or (num_max < 0):
@@ -1651,21 +1701,27 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
 # root: Root element of the XML tree
 # structs: A dictionary of all struct elements
 # repeated_items: List of tuples containing (struct_name, member_name) for repeated items
-def parse_default_value(processed_vfr_dict, root, structs, repeated_items):
+# tool_config: The config object holding patch_numeric_default_for_debug
+def parse_default_value(processed_vfr_dict, root, structs, repeated_items, tool_config=None):
+    if tool_config is None:
+        tool_config = vfr_xml_config()
+
     for vfr_file_name, uni_str_dict in processed_vfr_dict.items():
         if os.path.isfile(vfr_file_name):
-            print('Re-Parsing file: %s' % vfr_file_name)
+            logger.info('Re-Parsing file: %s' % vfr_file_name)
             # Get uni file list for reference
             with open(vfr_file_name, 'r') as file:
                 vfr_content = file.read()
                 vfr_content_no_comments = vfr_remove_comments(vfr_content)
+                dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_statements.vfr'
+                tool_config.add_to_clean_up_list(dump_vfr_file_name)
                 vfr_content_statements = vfr_process_statements(
                     vfr_content_no_comments,
                     structs,
-                    dump_file_name=os.path.splitext(vfr_file_name)[0] + '_statements.vfr'
+                    dump_file_name=dump_vfr_file_name
                 )
                 parse_vfr_content(vfr_content_statements, uni_str_dict, root,
-                                  structs, repeated_items, verbose=2, parse_mode=1)
+                                  structs, repeated_items, parse_mode=1, tool_config=tool_config)
 
 
 # Load struct definition from the header files, and update data type for each struct.member
@@ -1677,9 +1733,9 @@ def parse_default_value(processed_vfr_dict, root, structs, repeated_items):
 #   This is not used if load_type_from_header() succeeds with processed_vfr_list
 def parse_data_type(processed_vfr_list, structs, header_file_list=[]):
     # Prepare struct definition dictionary (like a tree)
-    typedef_struct_dict = load_type_from_header(processed_vfr_list, verbose=2)
+    typedef_struct_dict = load_type_from_header(processed_vfr_list)
     if len(typedef_struct_dict) == 0:
-        typedef_struct_dict = load_type_from_header(header_file_list, verbose=2)
+        typedef_struct_dict = load_type_from_header(header_file_list)
 
     # Remove Index Pattern
     array_pattern = re.compile(r'\[\d+\]$')
@@ -1708,7 +1764,7 @@ def parse_data_type(processed_vfr_list, structs, header_file_list=[]):
 
                     current_dict = typedef_struct_dict.get(current_struct_name)
                     if current_dict is None:
-                        print(
+                        logger.warning(
                             f'  [*.h] Warning: Struct: "{current_struct_name}" '
                             'is not found in the provided header files'
                         )
@@ -1716,7 +1772,7 @@ def parse_data_type(processed_vfr_list, structs, header_file_list=[]):
                     else:
                         next_struct_name = current_dict.get(member_part_base)
                         if next_struct_name is None:
-                            print(
+                            logger.warning(
                                 f'  [*.h] Struct/Member: {member_part_base} '
                                 f'is not found in struct: {current_struct_name}'
                             )
@@ -1775,8 +1831,9 @@ def xml_get_root_from_file(file_path):
         with open(file_path, 'r') as f:
             xml_string = f.read()
         xml_root = ET.fromstring(xml_string)
-    except Exception:
-        print('Failed to get root from file: %s' % file_path)
+    except Exception as e:
+        logger.warning(e)
+        logger.warning('Failed to get root from file: %s' % file_path)
         xml_root = None
     return xml_root
 
@@ -1809,7 +1866,7 @@ def xml_get_knobs_namespace_dict(xml_root, dict_type='NameToType'):
         elif dict_type == 'TypeToName':
             knobs_namespace_dict[knob.get('type')] = knob.get('name')
         else:
-            print('Unsupported dict_type: %s' % dict_type)
+            logger.warning('Unsupported dict_type: %s' % dict_type)
     return knobs_namespace_dict
 
 
@@ -1860,14 +1917,14 @@ def xml_ref_compare(xml_root, ref_cfg_root, concern_cname_list=[], verbose=1):
                             if ref_member.get('default') != member.get('default'):
                                 struct_diff_count += 1
                                 if verbose:
-                                    print(
+                                    logger.warning(
                                         f'  Default value of {cname} ({pretty_name}) is different: '
                                         f'\"{member.get("default")}\" != \"{ref_member.get("default")}\"'
                                     )
                                 if cname not in diff_cname_list:
                                     diff_cname_list.append(cname)
     if verbose:
-        print(f'==> Number of differences in Structs: {struct_diff_count}\n')
+        logger.warning(f'==> Number of differences in Structs: {struct_diff_count}\n')
 
     # Compare enum values
     for ref_enums in ref_cfg_root.findall('./Enums'):
@@ -1929,29 +1986,31 @@ def xml_ref_compare(xml_root, ref_cfg_root, concern_cname_list=[], verbose=1):
                         if enum_help not in diff_cname_list:
                             diff_cname_list.append(enum_help)  # enum_help is actually identical to cname
                         if verbose:
-                            print(f'  Enum name=\"{enum_name}\":')
+                            logger.warning(f'  Enum name=\"{enum_name}\":')
                             if added:
-                                print(f'    Added Value(s): {', '.join([f'\"{item}\"' for item in added])}')
+                                logger.warning(f'    Added Value(s): {', '.join([f'\"{item}\"' for item in added])}')
                             if removed:
-                                print(f'    Removed Value(s): {', '.join([f'\"{item}\"' for item in removed])}')
+                                logger.warning(
+                                    f'    Removed Value(s): {', '.join([f'\"{item}\"' for item in removed])}'
+                                )
                             if changed:
                                 for diff in changed:
                                     if diff['ref_help'] == diff['current_help']:
                                         help_print = f'\"{diff["ref_help"]}\"'
                                     else:
                                         help_print = f'\"{diff["ref_help"]}\" -> \"{diff["current_help"]}\"'
-                                    print(
+                                    logger.warning(
                                         f'    Changed Value(s): \"{diff["name"]}\" (value: \"{diff["ref_value"]}\"'
                                         f'-> \"{diff['current_value']}\", help: {help_print})'
                                     )
 
     if verbose:
-        print(f'==> Number of differences in Enums: {enum_diff_count}')
+        logger.warning(f'==> Number of differences in Enums: {enum_diff_count}')
         if enum_diff_count > 0:
-            print('  Help:')
-            print('    Added Value(s): Values in current config but not in the reference config file')
-            print('    Removed Value(s): Values in the reference config file but not in current config')
-            print(
+            logger.warning('  Help:')
+            logger.warning('    Added Value(s): Values in current config but not in the reference config file')
+            logger.warning('    Removed Value(s): Values in the reference config file but not in current config')
+            logger.warning(
                 '    Changed Value(s): Value names are in both current config and the reference file, '
                 'but Value values are different\n'
             )
@@ -1977,18 +2036,18 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
     with open(xml_file_path, 'w', encoding='utf-8') as f:
         f.write(formatted_xml)
         if verbose:
-            print('\nOutput file: %s' % xml_file_path)
+            logger.info('\nOutput file: %s' % xml_file_path)
 
 
 # Parse a list of vfr files according to the given input inf files, and generate a xml file with the option structures
-# input_inf_dict: Dictionary that stores the input inf files:
-#   {INF file path to be processed : Corresponding vfr_resp file path}
-# input_platform_build_py_path: PlatformBuild.py file path
-# output_xml_file_path: XML file output path
-# build_report (Optional): Project build report for preprocessing PCD values
+# tool_config:
+#   input_inf_dict: Dictionary that stores the input inf files:
+#     {INF file path to be processed : Corresponding vfr_resp file path}
+#   input_platform_build_py: PlatformBuild.py file path
+#   output_file_path: XML file output path
+#   input_build_report (Optional): Project build report for preprocessing PCD values
 # Return: root element in XML, return code: 0 - Completed; 1 - Aborted
-def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_file_path, build_report=None):
-    global srcdir, default_basetools_python_path, path_ready
+def parse_inf_to_xml(tool_config):
     tempdir = os.getcwd()
     # Create root element with namespaces
     root = ET.Element('ConfigSchema', attrib={
@@ -2011,38 +2070,38 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
     processed_vfr_dict = {}  # {Processed vfr files: Corresponding uni_str_dict}
     header_master_list = []
 
-    if len(input_inf_dict) == 0:
-        print('No input inf files provided')
+    if len(tool_config.input_inf_dict) == 0:
+        logger.error('No input inf files provided')
         return None, 1
     vfr_found = False
 
     # Parse PlatformBuild.py and setup platform_builder object
-    os.chdir(srcdir)
-    platform_builder = setup_platform_builder(input_platform_build_py_path)
-    if platform_build_py_required and platform_builder is None:
-        print('Failed to parse PlatformBuild.py in the path: %s' % input_platform_build_py_path)
+    os.chdir(tool_config.srcdir)
+    platform_builder = setup_platform_builder(tool_config.input_platform_build_py)
+    if tool_config.platform_build_py_required and platform_builder is None:
+        logger.error('Failed to parse PlatformBuild.py in the path: %s' % tool_config.input_platform_build_py)
         return None, 1
 
     # Setup path again with the right srcdir
     if platform_builder:
-        srcdir = platform_builder.GetWorkspaceRoot()
-    if not path_ready:
-        os.chdir(srcdir)
+        tool_config.srcdir = platform_builder.GetWorkspaceRoot()
+    if not tool_config.path_ready:
+        os.chdir(tool_config.srcdir)
         for package_path in platform_builder.GetPackagesPath():
-            if os.path.isdir(os.path.join(srcdir, package_path, 'BaseTools', 'Source', 'Python')):
-                default_basetools_python_path = os.path.normpath(os.path.join(
-                    srcdir,
+            if os.path.isdir(os.path.join(tool_config.srcdir, package_path, 'BaseTools', 'Source', 'Python')):
+                tool_config.basetools_python_path = os.path.normpath(os.path.join(
+                    tool_config.srcdir,
                     package_path,
                     'BaseTools',
                     'Source',
                     'Python')
                 )
-                sys.path.append(default_basetools_python_path)
-                path_ready = True
+                sys.path.append(tool_config.basetools_python_path)
+                tool_config.path_ready = True
                 break
 
     # Parse INF file
-    for inf_file_name, vfrpp_resp in input_inf_dict.items():
+    for inf_file_name, vfrpp_resp in tool_config.input_inf_dict.items():
         vfr_file_list = []
         uni_file_list = []
         dec_file_list = []
@@ -2060,16 +2119,17 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                 inf_file_name, platform_builder)  # Parse INF/DEC/Platform DSC file
             # Only vfr_file_list is mandatory, others are optional for some cases
             if len(vfr_file_list) == 0:
-                print(f'No vfr files found in {inf_file_name}')
+                logger.warning(f'No vfr files found in {inf_file_name}')
                 continue
 
             # If given, parse Build Report to get PCD values
-            if os.path.isfile(build_report):
-                FixedPcd_dict.update(get_pcd_from_build_report(build_report, module_name, platform_builder))
+            if os.path.isfile(tool_config.input_build_report):
+                FixedPcd_dict.update(get_pcd_from_build_report(
+                    tool_config.input_build_report, module_name, platform_builder))
 
             # If given, parse resp to get defines for cl
             if os.path.isfile(vfrpp_resp):
-                defines_list, add_arg, modified_resp = get_defines_list_and_add_arg(vfrpp_resp)
+                defines_list, add_arg, modified_resp = get_defines_list_and_add_arg(vfrpp_resp, tool_config)
 
             # Prepare a dictionary for string token
             uni_str_dict = load_string_from_uni(uni_file_list, language='en-US')
@@ -2083,26 +2143,27 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                         # Get the directory of the VFR file
                         vfr_dir = os.path.dirname(vfr_file_name)
                         if not vfr_dir:
-                            vfr_dir = srcdir
+                            vfr_dir = tool_config.srcdir
 
                         # Parse VFR file
-                        print('\nParsing file: %s' % vfr_file_name)
+                        logger.info('\nParsing file: %s' % vfr_file_name)
                         vfr_content = file.read()
                         vfr_found = True
 
                         # Remove comments
                         dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_01_no_comments.vfr'
+                        tool_config.add_to_clean_up_list(dump_vfr_file_name)
                         vfr_content = vfr_remove_comments(vfr_content, dump_file_name=dump_vfr_file_name)
 
                         # Process the including vfr and hfr files
-                        # time_before_include = time.time()
                         dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_02_includes.vfr'
+                        tool_config.add_to_clean_up_list(dump_vfr_file_name)
                         vfr_content = vfr_process_includes(vfr_content, vfr_dir)
                         vfr_content = vfr_remove_comments(vfr_content, dump_file_name=dump_vfr_file_name)
-                        # print_time(time_before_include, 'vfr_process_includes', indent=2)
 
                         # Get a list of header files to be processed
                         dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_03_headers.vfr'
+                        tool_config.add_to_clean_up_list(dump_vfr_file_name)
                         header_file_list, include_path_list, vfr_content = get_header_file_list(
                             vfr_content,
                             vfr_dir,
@@ -2123,6 +2184,7 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                         # Process PCDs
                         if len(FixedPcd_dict) > 0:
                             dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_04_pcds.vfr'
+                            tool_config.add_to_clean_up_list(dump_vfr_file_name)
                             vfr_content = vfr_process_pcds(
                                 vfr_content, FixedPcd_dict, dump_file_name=dump_vfr_file_name
                             )
@@ -2130,15 +2192,17 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                         # Process header files for includes and defines
                         input_vfr_file_name = dump_vfr_file_name
                         dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_05_macros.vfr'
+                        tool_config.add_to_clean_up_list(dump_vfr_file_name)
                         vfr_content = run_preprocess(
                             input_vfr_file_name, search_path_list, defines_list,
                             add_arg, modified_resp,
-                            vfr_mode=1, dump_file_name=dump_vfr_file_name
+                            vfr_mode=1, dump_file_name=dump_vfr_file_name, tool_config=tool_config
                         )
 
                         # Process PCDs again since preprocess may bring additional macros with FixedPcdGet wording,
                         # and then remove redundant newlines
                         dump_vfr_file_name = os.path.splitext(vfr_file_name)[0] + '_processed_06_trimmed.vfr'
+                        tool_config.add_to_clean_up_list(dump_vfr_file_name)
                         if len(FixedPcd_dict) > 0:
                             vfr_content = vfr_process_pcds(vfr_content, FixedPcd_dict, dump_file_name=None)
                         vfr_content = vfr_remove_redundant_newlines(vfr_content, dump_file_name=dump_vfr_file_name)
@@ -2146,28 +2210,29 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
 
                         # Parse VFR content
                         parse_vfr_content(
-                            vfr_content, uni_str_dict, root, structs, repeated_items, verbose=2, parse_mode=0
+                            vfr_content, uni_str_dict, root, structs, repeated_items, parse_mode=0,
+                            tool_config=tool_config
                         )
 
                 else:
-                    print('VFR File not found: %s' % vfr_file_name)
+                    logger.warning('VFR File not found: %s' % vfr_file_name)
         else:
-            print('INF File not found: %s' % inf_file_name)
+            logger.error('INF File not found: %s' % inf_file_name)
             os.chdir(tempdir)
             return None, 1
 
     if not vfr_found:
-        print('No VFR file found')
+        logger.error('No VFR file found')
         os.chdir(tempdir)
         return None, 1
 
     # Process Data Type
-    print('\nparse_data_type:')
+    logger.info('\nparse_data_type:')
     processed_vfr_list = processed_vfr_dict.keys()
     parse_data_type(processed_vfr_list, structs, header_master_list)
 
     # Process Default values for duplicate items >>>
-    print('\nvalidate_structs:')
+    logger.info('\nvalidate_structs:')
     error_count = 0
     warning_count = 0
     new_error_count = 0
@@ -2177,12 +2242,12 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
         # until no more pending value can be determined in a parsing
         error_count, warning_count = validate_structs(structs, verbose=0)
         if (error_count == 0) and (warning_count == 0):
-            print('  error_count = %d, warning_count = %d' % (error_count, warning_count))
+            logger.info('  error_count = %d, warning_count = %d' % (error_count, warning_count))
             break
-        parse_default_value(processed_vfr_dict, root, structs, repeated_items)
+        parse_default_value(processed_vfr_dict, root, structs, repeated_items, tool_config)
 
         new_error_count, new_warning_count = validate_structs(structs, verbose=1)
-        print(
+        logger.info(
             f'  previous_error_count = {error_count}, '
             f'previous_warning_count = {warning_count}, '
             f'error_count = {new_error_count}, '
@@ -2211,14 +2276,14 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
                     enum_value.set('name', normalized_enum_value_name)
 
     # Validate Enums as well as Structs
-    print('\nvalidate_enums:')
+    logger.info('\nvalidate_enums:')
     error_count = validate_enums(enums_element, patch_mode=0, verbose=1)
-    print('  error_count = %d' % (error_count))
+    logger.info('  error_count = %d' % (error_count))
 
     # Normalize member names before generating xml file
     #   If there are same pretty names under the same struct, differentiate them by member_name
     #   If Enum is available, update member type and member default accordingly
-    print('\nNormalize member names:')
+    logger.info('\nNormalize member names:')
     pretty_name_dict = {}
     for struct in structs_element.findall('Struct'):
         struct_name = struct.get('name')
@@ -2238,7 +2303,6 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
             normalized_member_name = normalize_name(member_name)
             if normalized_member_name != member_name:
                 member.set('name', normalized_member_name)
-                # print(f'  member_name={member_name}, normalized_member_name={normalized_member_name}')
 
             # Update member type and member default if Enum is available
             look_up_enum_name = xml_get_enum_name(struct_name, member_name)
@@ -2246,7 +2310,7 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
             if enum_found is not None:
                 # If member type is a large number, skip it to avoid the VariableList error with struct.pack("<i",...)
                 if member_type in ['uint64_t', 'int64_t']:
-                    print(
+                    logger.info(
                         '  Skipped updating Enum type for oneof option: '
                         f'member_name={member_name}, member_type={member_type}'
                     )
@@ -2303,420 +2367,383 @@ def parse_inf_to_xml(input_inf_dict, input_platform_build_py_path, output_xml_fi
         })
 
     # Generate the XML string and output to a file
-    xml_root_to_string(root, output_xml_file_path, verbose=1)
+    xml_root_to_string(root, tool_config.output_file_path, verbose=1)
     os.chdir(tempdir)
     return root, 0
 
 
 # GUI based on ConfigEditor application
-class vfrxml_app(ConfigEditor.application):
-    def __init__(self, master=None):
-        temp_argv = sys.argv
-        sys.argv = sys.argv[:1]  # Patch sys.argv to avoid unnecessary errors from ConfigEditor
-        super().__init__(master)
-        sys.argv = temp_argv  # Restore sys.argv
+def create_vfrxml_app(super_class):
+    class vfrxml_app(super_class):
+        def __init__(self, master=None, tool_config=None):
+            temp_argv = sys.argv
+            sys.argv = sys.argv[:1]  # Patch sys.argv to avoid unnecessary errors from ConfigEditor
+            super().__init__(master)
+            sys.argv = temp_argv  # Restore sys.argv
 
-        # Hide self.canvas at the right bottom of status bar, which is not necessary to this program
-        if hasattr(self, 'canvas'):
-            self.hide_item(self.canvas)
+            # Hide self.canvas at the right bottom of status bar, which is not necessary to this program
+            if hasattr(self, 'canvas'):
+                self.hide_item(self.canvas)
 
-        # Input/Output Defaults
-        if srcdir and os.path.isdir(srcdir):
-            os.chdir(srcdir)
-        self.inf_dict = input_file_name_dict
-        self.platform_build_py = input_platform_build_py
-        self.build_report = input_build_report
-        self.output_file_path = output_file_path
-        self.export_file_path = export_file_path
-        self.update_inf_dict()
-        self.display_inputs()
+            # Initialize tool_config
+            if tool_config is None:
+                self.tool_config = vfr_xml_config()
+            else:
+                self.tool_config = tool_config
+            if self.tool_config.srcdir and os.path.isdir(self.tool_config.srcdir):
+                os.chdir(self.tool_config.srcdir)
+            self.tool_config.update_inf_dict()
+            self.tool_config.display_input_files(log_method=self.print_msg)
 
-        # XML
-        self.xml_root = None
-        self.ref_cfg_path = input_ref_xml
-        if self.ref_cfg_path and os.path.isfile(self.ref_cfg_path):
-            self.print_msg('Reference XML: %s' % self.ref_cfg_path)
-            self.ref_cfg_root = xml_get_root_from_file(self.ref_cfg_path)
-        else:
-            self.ref_cfg_root = None
+            # XML
+            self.xml_root = None
+            if self.tool_config.input_ref_xml and os.path.isfile(self.tool_config.input_ref_xml):
+                self.ref_cfg_root = xml_get_root_from_file(self.tool_config.input_ref_xml)
+            else:
+                self.ref_cfg_root = None
 
-        # Checkbox states {<checkbox id>: <checkbox state>}
-        self.checkbox_state = {}
-        self.checkbox_default = False
+            # Checkbox states {<checkbox id>: <checkbox state>}
+            self.checkbox_state = {}
+            self.checkbox_default = False
 
-        # Highlight items {<cname>: <background>}
-        self.highlight_items = {}
+            # Highlight items {<cname>: <background>}
+            self.highlight_items = {}
 
-        # menubar and File Menu
-        menubar = tkinter.Menu(root)
-        self.vfrxml_menu = tkinter.Menu(menubar, tearoff=0)
-        self.vfrxml_menu.add_command(label='Open INF File...', command=self.open_inf_file)
-        self.vfrxml_menu.add_command(label='Open PlatformBuild.py...', command=self.open_platform_build)
-        self.vfrxml_menu.add_command(label='Open vfrpp_resp File...', command=self.open_vfrpp_resp)
-        self.vfrxml_menu.add_command(label='Process INF File', command=self.process_inf)
-        self.vfrxml_menu.add_command(label='Export Config to XML', command=self.export_config_to_xml)
-        self.vfrxml_menu.add_separator()
-        self.vfrxml_menu.add_command(label='Load a reference PlatformCfgData.xml...', command=self.load_ref_cfg_xml)
-        self.vfrxml_menu.add_command(label='Compare current config with reference xml', command=self.compare_cfg_xml)
-        self.vfrxml_menu.add_separator()
-        # self.vfrxml_menu.add_command(label='Open Build Report File...', command=self.open_build_report)
-        self.vfrxml_menu.add_command(label='Debug Dump', command=self.debug_dump)
-        self.vfrxml_menu.add_command(label="About", command=self.about)
-        menubar.add_cascade(label="File", menu=self.vfrxml_menu)
-        root.config(menu=menubar)
-        self.refresh_vfrxml_menu()
-
-    # Check if there is any inf file available in self.inf_dict
-    # Return True if there is inf file available, else return False
-    def check_inf_dict(self):
-        found = False
-        for inf_file in self.inf_dict.keys():
-            if os.path.isfile(inf_file):
-                found = True
-                break
-        return found
-
-    # Update inf_dict by automatically finding vfrpp_resp file
-    def update_inf_dict(self):
-        for inf_file, vfrpp_resp_file in self.inf_dict.items():
-            if not vfrpp_resp_file:
-                vfrpp_resp_file = find_vfrpp_resp(inf_file, srcdir)  # Return '' if not found
-                self.inf_dict[inf_file] = vfrpp_resp_file
-
-    # Show input files
-    def display_inputs(self):
-        # INF File and vfrpp_resp
-        for inf_file, vfrpp_resp_file in self.inf_dict.items():
-            if os.path.isfile(inf_file):
-                self.print_msg('INF File: %s' % inf_file)
-                if vfrpp_resp_file and os.path.isfile(vfrpp_resp_file):
-                    self.print_msg('VFRPP_RESP: %s' % vfrpp_resp_file)
-
-        # PlatformBuild.py
-        if self.platform_build_py and os.path.isfile(self.platform_build_py):
-            self.print_msg('PlatformBuild File: %s' % self.platform_build_py)
-
-        # Build Report
-        if self.build_report and os.path.isfile(self.build_report):
-            self.print_msg('BUILD REPORT: %s' % self.build_report)
-
-    # Check whether the data has been loaded to page list
-    def check_page(self):
-        if len(self.page_cfg_map) > 0:
-            return True
-        else:
-            return False
-
-    # Refresh vfrxml_file_menu
-    def refresh_vfrxml_menu(self):
-        # Choose INF file prior to vfrpp_resp file
-        if self.check_inf_dict():
-            inf_dict_state = 'normal'
-        else:
-            inf_dict_state = 'disabled'
-        self.vfrxml_menu.entryconfig("Open vfrpp_resp File...", state=inf_dict_state)
-
-        # Choose INF file and PlatformBuild.py prior to executing Process INF File
-        if not platform_build_py_required or (self.platform_build_py and os.path.isfile(self.platform_build_py)):
-            self.vfrxml_menu.entryconfig("Process INF File", state=inf_dict_state)
-        else:
-            self.vfrxml_menu.entryconfig("Process INF File", state='disabled')
-
-        # Menu items depend on page data availability
-        if self.check_page():
-            page_state = 'normal'
-        else:
-            page_state = 'disabled'
-        self.vfrxml_menu.entryconfig("Export Config to XML", state=page_state)
-
-        # Validate page data and reference xml availability before comparing them
-        if self.check_page() and self.ref_cfg_root is not None:
-            self.vfrxml_menu.entryconfig("Compare current config with reference xml", state='normal')
-        else:
-            self.vfrxml_menu.entryconfig("Compare current config with reference xml", state='disabled')
-
-    # Hide an item no matter it is mapped by pack, grid, or place
-    def hide_item(self, widget):
-        widget_winfo_manager = widget.winfo_manager()
-        if widget_winfo_manager == 'place':
-            widget.place_forget()
-        elif widget_winfo_manager == 'pack':
-            widget.pack_forget()
-        elif widget_winfo_manager == 'grid':
-            widget.grid_forget()
-        else:
-            print(f'widget.winfo_manager() = {widget.winfo_manager()}')
-
-    # Output message to the status bar and as well as console
-    def print_msg(self, msg):
-        print(msg)
-        if hasattr(self, 'output_current_status'):
-            self.output_current_status(msg)
-
-    # File -> Open INF File...
-    # Select input inf file
-    def open_inf_file(self):
-        file_path = os.path.normpath(filedialog.askopenfilename(
-            filetypes=(("INF files", "*.inf"), ("all files", "*.*"))))
-        if file_path and os.path.isfile(file_path):
-            self.print_msg('INF FILE: %s' % file_path)
-            self.inf_dict.clear()
-            # Auto find vfrpp_resp. If necessary, select vfrpp_resp again after selecting inf file
-            self.inf_dict[file_path] = find_vfrpp_resp(file_path, srcdir)
-            if self.inf_dict[file_path] and os.path.isfile(self.inf_dict[file_path]):
-                self.print_msg('VFRPP_RESP: %s' % self.inf_dict[file_path])
-            self.refresh_vfrxml_menu()
-        # print(f'file_path = {file_path}')
-        # print_dict(self.inf_dict, 'self.inf_dict', 2)
-
-    # File -> Open PlatformBuild.py...
-    # Select input PlatformBuild.py
-    def open_platform_build(self):
-        file_path = os.path.normpath(filedialog.askopenfilename(
-            filetypes=(("PlatformBuild", "PlatformBuild*.py"), ("all files", "*.*"))))
-        if file_path and os.path.isfile(file_path):
-            self.print_msg('PlatformBuild File: %s' % file_path)
-            self.platform_build_py = file_path
+            # menubar and File Menu
+            menubar = tkinter.Menu(root)
+            self.vfrxml_menu = tkinter.Menu(menubar, tearoff=0)
+            self.vfrxml_menu.add_command(label='Open INF File...', command=self.open_inf_file)
+            self.vfrxml_menu.add_command(label='Open PlatformBuild.py...', command=self.open_platform_build)
+            self.vfrxml_menu.add_command(label='Open vfrpp_resp File...', command=self.open_vfrpp_resp)
+            self.vfrxml_menu.add_command(label='Process INF File', command=self.process_inf)
+            self.vfrxml_menu.add_command(label='Export Config to XML', command=self.export_config_to_xml)
+            self.vfrxml_menu.add_separator()
+            self.vfrxml_menu.add_command(label='Load a reference PlatformCfgData.xml...',
+                                         command=self.load_ref_cfg_xml)
+            self.vfrxml_menu.add_command(label='Compare current config with reference xml',
+                                         command=self.compare_cfg_xml)
+            self.vfrxml_menu.add_separator()
+            # self.vfrxml_menu.add_command(label='Open Build Report File...', command=self.open_build_report)
+            self.vfrxml_menu.add_command(label='Debug Dump', command=self.debug_dump)
+            self.vfrxml_menu.add_command(label="About", command=self.about)
+            menubar.add_cascade(label="File", menu=self.vfrxml_menu)
+            root.config(menu=menubar)
             self.refresh_vfrxml_menu()
 
-    # File -> Open vfrpp_resp File...
-    # Select input vfrpp_resp file
-    def open_vfrpp_resp(self):
-        file_path = os.path.normpath(filedialog.askopenfilename(
-            filetypes=(("vfrpp_resp", "*vfrpp_resp.*"), ("All files", "*.*"))))
-        if file_path and os.path.isfile(file_path):
-            self.print_msg('VFRPP_RESP: %s' % file_path)
-            for key in self.inf_dict.keys():
-                self.inf_dict[key] = file_path
+        # Check whether the data has been loaded to page list
+        def check_page(self):
+            if len(self.page_cfg_map) > 0:
+                return True
+            else:
+                return False
 
-    # File -> Process INF File
-    # Parse inf files to get vfr files, and convert vfr files to xml
-    def process_inf(self):
-        time_start = time.time()
-        self.xml_root, ret = parse_inf_to_xml(
-            self.inf_dict,
-            self.platform_build_py,
-            self.output_file_path,
-            self.build_report
-        )
-        print_time(time_start, 'parse_inf_to_xml is done. ')
+        # Refresh vfrxml_file_menu
+        def refresh_vfrxml_menu(self):
+            # Choose INF file prior to vfrpp_resp file
+            if self.tool_config.check_inf_dict():
+                inf_dict_state = 'normal'
+            else:
+                inf_dict_state = 'disabled'
+            self.vfrxml_menu.entryconfig("Open vfrpp_resp File...", state=inf_dict_state)
 
-        # Clean up temporary files in workspace
-        for item in clean_up_list:
-            clean_up_workspace(item)
+            # Choose INF file and PlatformBuild.py prior to executing Process INF File
+            if not self.tool_config.platform_build_py_required or (
+                    self.tool_config.input_platform_build_py and
+                    os.path.isfile(self.tool_config.input_platform_build_py)):
+                self.vfrxml_menu.entryconfig("Process INF File", state=inf_dict_state)
+            else:
+                self.vfrxml_menu.entryconfig("Process INF File", state='disabled')
 
-        # Load output xml file to GUI
-        if not ret:
-            print('Loading output xml file to Treeview by ConfigEditor...')
-            file_id = len(self.cfg_data_list)
-            self.load_cfg_file(self.output_file_path, file_id, True)
-            print_time(time_start, 'load_cfg_file is done. ')
-            self.refresh_vfrxml_menu()
+            # Menu items depend on page data availability
+            if self.check_page():
+                page_state = 'normal'
+            else:
+                page_state = 'disabled'
+            self.vfrxml_menu.entryconfig("Export Config to XML", state=page_state)
 
-    # File -> Export Config to XML
-    def export_config_to_xml(self):
-        self.update_config_data_on_page()
-        # file_path = filedialog.asksaveasfilename(filetypes=(("XML files", "*.xml"), ("all files", "*.*")))
-        file_path = self.export_file_path
-        if file_path:
-            self.export_file_path = os.path.normpath(file_path)
+            # Validate page data and reference xml availability before comparing them
+            if self.check_page() and self.ref_cfg_root is not None:
+                self.vfrxml_menu.entryconfig("Compare current config with reference xml", state='normal')
+            else:
+                self.vfrxml_menu.entryconfig("Compare current config with reference xml", state='disabled')
 
-            # Make a copy of self.xml_root
-            export_xml_root = ET.fromstring(ET.tostring(self.xml_root))
+        # Hide an item no matter it is mapped by pack, grid, or place
+        def hide_item(self, widget):
+            widget_winfo_manager = widget.winfo_manager()
+            if widget_winfo_manager == 'place':
+                widget.place_forget()
+            elif widget_winfo_manager == 'pack':
+                widget.pack_forget()
+            elif widget_winfo_manager == 'grid':
+                widget.grid_forget()
+            else:
+                logger.info(f'widget.winfo_manager() = {widget.winfo_manager()}')
 
-            # Update Enums under export_xml_root according to self.checkbox_state
-            enums_element = export_xml_root.find('./Enums')
+        # Output message to the status bar and as well as console
+        def print_msg(self, msg):
+            logger.info(msg)
+            if hasattr(self, 'output_current_status'):
+                self.output_current_status(msg)
 
-            # Update struct members under export_xml_root according to self.checkbox_state
-            knobs_element = export_xml_root.find('./Knobs')
-            knob_list = export_xml_root.findall('./Knobs/Knob')
+        # File -> Open INF File...
+        # Select input inf file
+        def open_inf_file(self):
+            file_path = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(("INF files", "*.inf"), ("all files", "*.*"))))
+            if file_path and os.path.isfile(file_path):
+                self.print_msg('INF FILE: %s' % file_path)
+                self.tool_config.input_inf_dict.clear()
+                # Auto find vfrpp_resp. If necessary, select vfrpp_resp again after selecting inf file
+                self.tool_config.input_inf_dict[file_path] = find_vfrpp_resp(file_path, self.tool_config.srcdir)
+                if self.tool_config.input_inf_dict[file_path] and (
+                        os.path.isfile(self.tool_config.input_inf_dict[file_path])):
+                    self.print_msg('VFRPP_RESP: %s' % self.tool_config.input_inf_dict[file_path])
+                self.refresh_vfrxml_menu()
 
-            # Prepare a dictionary from Knobs namespace {<Knob type>: <Knob name>}
-            knobs_namespace_dict = xml_get_knobs_namespace_dict(export_xml_root, dict_type='TypeToName')
+        # File -> Open PlatformBuild.py...
+        # Select input PlatformBuild.py
+        def open_platform_build(self):
+            file_path = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(("PlatformBuild", "PlatformBuild*.py"), ("all files", "*.*"))))
+            if file_path and os.path.isfile(file_path):
+                self.print_msg('PlatformBuild: %s' % file_path)
+                self.tool_config.input_platform_build_py = file_path
+                self.refresh_vfrxml_menu()
 
-            # Iterate through structs and update struct members according to self.checkbox_state
-            for structs in export_xml_root.findall('./Structs'):
-                for struct in structs.findall('./Struct'):
-                    any_member_checked = False
-                    # Note:
-                    #   In XML: <struct name="{struct_name}"...> <Member name="{member_name}...">
-                    #   In self.checkbox_state: item.get('cname') = "{knob_name}.{member_name}"
-                    struct_name = struct.get('name')
-                    knob_name = knobs_namespace_dict.get(struct_name, struct_name)
+        # File -> Open vfrpp_resp File...
+        # Select input vfrpp_resp file
+        def open_vfrpp_resp(self):
+            file_path = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(("vfrpp_resp", "*vfrpp_resp.*"), ("All files", "*.*"))))
+            if file_path and os.path.isfile(file_path):
+                self.print_msg('VFRPP_RESP: %s' % file_path)
+                for key in self.tool_config.input_inf_dict.keys():
+                    self.tool_config.input_inf_dict[key] = file_path
 
-                    # Iterate over members of the struct
-                    # Use list() to avoid iterator issues during removal
-                    for member in list(struct.findall('./Member')):
-                        member_name = member.get('name')
-                        cname = f'{knob_name}.{member_name}'
-                        if cname in self.checkbox_state:
-                            member_checked = self.checkbox_state[cname].get()
+        # File -> Process INF File
+        # Parse inf files to get vfr files, and convert vfr files to xml
+        def process_inf(self):
+            time_start = time.time()
+            self.xml_root, ret = parse_inf_to_xml(self.tool_config)
+            print_time(time_start, 'parse_inf_to_xml is done.', log_method=logger.info)
+
+            # Clean up temporary files in workspace
+            for item in self.tool_config.clean_up_list:
+                clean_up_workspace(item)
+
+            # Load output xml file to GUI
+            if not ret:
+                logger.info('Loading output xml file to Treeview by ConfigEditor...')
+                file_id = len(self.cfg_data_list)
+                self.load_cfg_file(self.tool_config.output_file_path, file_id, True)
+                print_time(time_start, 'load_cfg_file is done.', log_method=logger.info)
+                self.refresh_vfrxml_menu()
+
+        # File -> Export Config to XML
+        def export_config_to_xml(self):
+            self.update_config_data_on_page()
+            file_path = self.tool_config.export_file_path
+            if file_path:
+                self.tool_config.export_file_path = os.path.normpath(file_path)
+
+                # Make a copy of self.xml_root
+                export_xml_root = ET.fromstring(ET.tostring(self.xml_root))
+
+                # Update Enums under export_xml_root according to self.checkbox_state
+                enums_element = export_xml_root.find('./Enums')
+
+                # Update struct members under export_xml_root according to self.checkbox_state
+                knobs_element = export_xml_root.find('./Knobs')
+                knob_list = export_xml_root.findall('./Knobs/Knob')
+
+                # Prepare a dictionary from Knobs namespace {<Knob type>: <Knob name>}
+                knobs_namespace_dict = xml_get_knobs_namespace_dict(export_xml_root, dict_type='TypeToName')
+
+                # Iterate through structs and update struct members according to self.checkbox_state
+                for structs in export_xml_root.findall('./Structs'):
+                    for struct in structs.findall('./Struct'):
+                        any_member_checked = False
+                        # Note:
+                        #   In XML: <struct name="{struct_name}"...> <Member name="{member_name}...">
+                        #   In self.checkbox_state: item.get('cname') = "{knob_name}.{member_name}"
+                        struct_name = struct.get('name')
+                        knob_name = knobs_namespace_dict.get(struct_name, struct_name)
+
+                        # Iterate over members of the struct
+                        # Use list() to avoid iterator issues during removal
+                        for member in list(struct.findall('./Member')):
+                            member_name = member.get('name')
+                            cname = f'{knob_name}.{member_name}'
+                            if cname in self.checkbox_state:
+                                member_checked = self.checkbox_state[cname].get()
+                            else:
+                                member_checked = self.checkbox_default
+
+                            # Remove member if checkbox is not checked
+                            if not member_checked:
+                                struct.remove(member)
+                                # Remove corresponding Enum
+                                xml_remove_enum(enums_element, xml_get_enum_name(struct_name, member_name))
+                            else:
+                                any_member_checked = True
+
+                        # Remove empty struct and corresponding knob
+                        if not any_member_checked:
+                            # Remove struct if there is no member
+                            structs.remove(struct)
+
+                            # Remove corresponding knob
+                            for knob in knob_list:
+                                if knob.get('name') == knob_name:
+                                    knobs_element.remove(knob)
+
+                # Generate the XML string and output to a file
+                xml_root_to_string(export_xml_root, self.tool_config.export_file_path, verbose=0)
+                self.print_msg(f'Exported Config File: {self.tool_config.export_file_path}')
+
+        # File -> Load a reference PlatformCfgData.xml...
+        def load_ref_cfg_xml(self):
+            file_path = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(("XML files", "*.xml"), ("All files", "*.*"))))
+            if file_path and os.path.isfile(file_path):
+                self.tool_config.input_ref_xml = file_path
+                self.ref_cfg_root = xml_get_root_from_file(self.tool_config.input_ref_xml)
+                self.print_msg(f'Loaded reference Config File: {self.tool_config.input_ref_xml}')
+                self.refresh_vfrxml_menu()
+
+        # File -> Compare current config with reference xml
+        def compare_cfg_xml(self):
+            self.update_config_data_on_page()
+            self.reset_widget_backgrounds()
+            struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_ref_compare(
+                self.xml_root,
+                self.ref_cfg_root
+            )
+
+            # Highlight the different items
+            for cname in diff_cname_list:
+                self.highlight_items[cname] = 'yellow'
+
+            # Status bar output
+            if hasattr(self, 'output_current_status'):
+                self.output_current_status('Check the detailed comparison result in the console window.')
+                self.output_current_status(f'  Number of differences in Structs: {struct_diff_count}')
+                self.output_current_status(f'  Number of differences in Enums: {enum_diff_count}\n')
+
+        # File -> Open Build Report File...
+        # Select input build report file
+        def open_build_report(self):
+            file_path = os.path.normpath(filedialog.askopenfilename(
+                filetypes=(("Log files", "*.txt;*.log"), ("All files", "*.*"))))
+            if file_path and os.path.isfile(file_path):
+                self.print_msg('BUILD REPORT: %s' % file_path)
+                self.tool_config.input_build_report = file_path
+
+        # Debug function
+        def debug_dump(self):
+            with open(self.tool_config.debug_file_path, 'w') as f:
+                f.write('######## Debug Dump Start ########\n')
+                f.write(f'self.tool_config.input_inf_dict = {self.tool_config.input_inf_dict}\n')
+                f.write(f'self.page_id = {self.page_id}\n')
+                f.write(f'self.page_list = {self.page_list}\n')
+                f.write(f'self.conf_list = {self.conf_list}\n')
+                f.write(f'self.in_left = {self.in_left}\n')
+                f.write(f'self.in_right = {self.in_right}\n')
+                f.write(f'self.cfg_data_list = {self.cfg_data_list}\n')
+                f.write(f'self.page_cfg_map = {self.page_cfg_map}\n')
+                f.write(f'self.check_page() = {self.check_page()}\n')
+                f.write('######## Debug Dump End ########\n')
+            self.print_msg('Debug file saved to %s' % self.tool_config.debug_file_path)
+
+        # Override from ConfigEditor >>>
+        #  Also clear highlighted items when reset_widget_backgrounds
+        def reset_widget_backgrounds(self):
+            if hasattr(super(), 'reset_widget_backgrounds'):
+                super().reset_widget_backgrounds()
+            self.highlight_items.clear()
+
+        # File -> About
+        def about(self):
+            msg = (
+                'VFR to XML Converter\n--------------------------------\n'
+                f'Version {this_version}\n{time.localtime().tm_year}'
+            )
+            lines = msg.split("\n")
+            width = 30
+            text = []
+            for line in lines:
+                text.append(line.center(width, " "))
+            messagebox.showinfo(os.path.basename(os.path.abspath(__file__)), "\n".join(text))
+
+        # Update modified value to self.xml_root as well
+        def set_config_item_value(self, item, value_str, file_id):
+            if hasattr(super(), 'set_config_item_value'):
+                super().set_config_item_value(item, value_str, file_id)
+
+                # Prepare a dictionary from Knobs namespace {<Knob name>: <Knob type>}
+                knobs_namespace_dict = xml_get_knobs_namespace_dict(self.xml_root, dict_type='NameToType')
+                varid_split = item.get('cname').split('.')
+                knob_name = varid_split[0]
+                struct_name = knobs_namespace_dict.get(knob_name, knob_name)
+                member_name = '.'.join(varid_split[1:])
+
+                # Update item value to self.xml_root
+                for structs in self.xml_root.findall('./Structs'):
+                    struct = structs.find(f"./Struct[@name='{struct_name}']")
+                    if struct is not None:
+                        member = struct.find(f"./Member[@name='{member_name}']")
+                        if member is not None:
+                            member_value = member.get('default')
+                            if member_value != value_str:
+                                member.set('default', value_str)
                         else:
-                            member_checked = self.checkbox_default
-
-                        # Remove member if checkbox is not checked
-                        if not member_checked:
-                            struct.remove(member)
-                            # Remove corresponding Enum
-                            xml_remove_enum(enums_element, xml_get_enum_name(struct_name, member_name))
-                        else:
-                            any_member_checked = True
-
-                    # Remove empty struct and corresponding knob
-                    if not any_member_checked:
-                        # Remove struct if there is no member
-                        structs.remove(struct)
-
-                        # Remove corresponding knob
-                        for knob in knob_list:
-                            if knob.get('name') == knob_name:
-                                knobs_element.remove(knob)
-
-            # Generate the XML string and output to a file
-            xml_root_to_string(export_xml_root, self.export_file_path, verbose=0)
-            self.print_msg(f'Exported Config File: {self.export_file_path}')
-
-    # File -> Load a reference PlatformCfgData.xml...
-    def load_ref_cfg_xml(self):
-        file_path = os.path.normpath(filedialog.askopenfilename(
-            filetypes=(("XML files", "*.xml"), ("All files", "*.*"))))
-        if file_path and os.path.isfile(file_path):
-            self.ref_cfg_path = file_path
-            self.ref_cfg_root = xml_get_root_from_file(self.ref_cfg_path)
-            self.print_msg(f'Loaded reference Config File: {self.ref_cfg_path}')
-            self.refresh_vfrxml_menu()
-
-    # File -> Compare current config with reference xml
-    def compare_cfg_xml(self):
-        self.update_config_data_on_page()
-        self.reset_widget_backgrounds()
-        struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_ref_compare(
-            self.xml_root,
-            self.ref_cfg_root
-        )
-
-        # Highlight the different items
-        for cname in diff_cname_list:
-            self.highlight_items[cname] = 'yellow'
-
-        # Status bar output
-        if hasattr(self, 'output_current_status'):
-            self.output_current_status('Check the detailed comparison result in the console window.')
-            self.output_current_status(f'  Number of differences in Structs: {struct_diff_count}')
-            self.output_current_status(f'  Number of differences in Enums: {enum_diff_count}\n')
-
-    # File -> Open Build Report File...
-    # Select input build report file
-    def open_build_report(self):
-        file_path = os.path.normpath(filedialog.askopenfilename(
-            filetypes=(("Log files", "*.txt;*.log"), ("All files", "*.*"))))
-        if file_path and os.path.isfile(file_path):
-            self.print_msg('BUILD REPORT: %s' % file_path)
-            self.build_report = file_path
-        # print(f'file_path = {file_path}, self.build_report = {self.build_report}')
-
-    # Debug function
-    def debug_dump(self):
-        with open(debug_file_path, 'w') as f:
-            f.write('######## Debug Dump Start ########\n')
-            f.write(f'self.inf_dict = {self.inf_dict}\n')
-            f.write(f'self.page_id = {self.page_id}\n')
-            f.write(f'self.page_list = {self.page_list}\n')
-            f.write(f'self.conf_list = {self.conf_list}\n')
-            f.write(f'self.in_left = {self.in_left}\n')
-            f.write(f'self.in_right = {self.in_right}\n')
-            f.write(f'self.cfg_data_list = {self.cfg_data_list}\n')
-            f.write(f'self.page_cfg_map = {self.page_cfg_map}\n')
-            f.write(f'self.check_page() = {self.check_page()}\n')
-            f.write('######## Debug Dump End ########\n')
-        self.print_msg('Debug file saved to %s' % debug_file_path)
-
-    # Override from ConfigEditor >>>
-    #  Also clear highlighted items when reset_widget_backgrounds
-    def reset_widget_backgrounds(self):
-        if hasattr(super(), 'reset_widget_backgrounds'):
-            super().reset_widget_backgrounds()
-        self.highlight_items.clear()
-
-    # File -> About
-    def about(self):
-        msg = (
-            'VFR to XML Converter\n--------------------------------\n'
-            f'Version {this_version}\n{time.localtime().tm_year}'
-        )
-        lines = msg.split("\n")
-        width = 30
-        text = []
-        for line in lines:
-            text.append(line.center(width, " "))
-        messagebox.showinfo(os.path.basename(os.path.abspath(__file__)), "\n".join(text))
-
-    # Update modified value to self.xml_root as well
-    def set_config_item_value(self, item, value_str, file_id):
-        if hasattr(super(), 'set_config_item_value'):
-            super().set_config_item_value(item, value_str, file_id)
-
-            # Prepare a dictionary from Knobs namespace {<Knob name>: <Knob type>}
-            knobs_namespace_dict = xml_get_knobs_namespace_dict(self.xml_root, dict_type='NameToType')
-            varid_split = item.get('cname').split('.')
-            knob_name = varid_split[0]
-            struct_name = knobs_namespace_dict.get(knob_name, knob_name)
-            member_name = '.'.join(varid_split[1:])
-
-            # Update item value to self.xml_root
-            for structs in self.xml_root.findall('./Structs'):
-                struct = structs.find(f"./Struct[@name='{struct_name}']")
-                if struct is not None:
-                    member = struct.find(f"./Member[@name='{member_name}']")
-                    if member is not None:
-                        member_value = member.get('default')
-                        if member_value != value_str:
-                            member.set('default', value_str)
+                            logger.warning(f'item_cname = {item.get("cname")}, value_str = {value_str}')
+                            logger.warning(f'member_name: {member_name} is not found in struct: {struct_name}')
+                            logger.warning('')
                     else:
-                        print(f'item_cname = {item.get("cname")}, value_str = {value_str}')
-                        print(f'member_name: {member_name} is not found in struct: {struct_name}')
-                        print()
-                else:
-                    print(f'item_cname = {item.get("cname")}, value_str = {value_str}')
-                    print(f'struct_name: {struct_name} is not found')
-                    print()
+                        logger.warning(f'item_cname = {item.get("cname")}, value_str = {value_str}')
+                        logger.warning(f'struct_name: {struct_name} is not found')
+                        logger.warning('')
 
-    # Add checkbox for each item
-    def add_config_item(self, item, row, file_id):
-        if hasattr(super(), 'add_config_item'):
-            super().add_config_item(item, row, file_id)
+        # Add checkbox for each item
+        def add_config_item(self, item, row, file_id):
+            if hasattr(super(), 'add_config_item'):
+                super().add_config_item(item, row, file_id)
 
-            def is_name(child):
-                return isinstance(child, tkinter.Label) and (child.cget('text') == item.get('name'))
-            parent = self.right_grid
+                def is_name(child):
+                    return isinstance(child, tkinter.Label) and (child.cget('text') == item.get('name'))
+                parent = self.right_grid
 
-            # Get name and widget of this item and move them to padx=25
-            last_name = parent.winfo_children()[-1]
-            if not is_name(last_name):
-                last_name = parent.winfo_children()[-2]
-                last_widget = parent.winfo_children()[-1]
-                last_widget.grid(row=row + 1, column=0, padx=25, pady=5, sticky="nsew")
-            last_name.grid(row=row, column=0, padx=25, pady=5, sticky="nsew")
+                # Get name and widget of this item and move them to padx=25
+                last_name = parent.winfo_children()[-1]
+                if not is_name(last_name):
+                    last_name = parent.winfo_children()[-2]
+                    last_widget = parent.winfo_children()[-1]
+                    last_widget.grid(row=row + 1, column=0, padx=25, pady=5, sticky="nsew")
+                last_name.grid(row=row, column=0, padx=25, pady=5, sticky="nsew")
 
-            # Add Checkbox for each item
-            item_type = item.get('type')
-            item_cname = item.get('cname')
-            if not item_type == 'STRUCT_KNOB':
-                if not self.checkbox_state.get(item_cname):
-                    self.checkbox_state[item_cname] = tkinter.BooleanVar()
-                    self.checkbox_state[item_cname].set(0)
-                cb = tkinter.Checkbutton(parent, variable=self.checkbox_state[item_cname], onvalue=1, offvalue=0)
-                cb.grid(row=row, column=0, sticky="w")
+                # Add Checkbox for each item
+                item_type = item.get('type')
+                item_cname = item.get('cname')
+                if not item_type == 'STRUCT_KNOB':
+                    if not self.checkbox_state.get(item_cname):
+                        self.checkbox_state[item_cname] = tkinter.BooleanVar()
+                        self.checkbox_state[item_cname].set(0)
+                    cb = tkinter.Checkbutton(parent, variable=self.checkbox_state[item_cname], onvalue=1, offvalue=0)
+                    cb.grid(row=row, column=0, sticky="w")
 
-            # Update highlight color
-            bg_color = self.highlight_items.get(item_cname)
-            if bg_color:
-                last_name.configure(background=bg_color)
-    # Override from ConfigEditor <<<
+                # Update highlight color
+                bg_color = self.highlight_items.get(item_cname)
+                if bg_color:
+                    last_name.configure(background=bg_color)
+        # Override from ConfigEditor <<<
+    return vfrxml_app
 
 
 def ProcessArgs():
     argParser = argparse.ArgumentParser(description='VFR to XML Converter Version %s' % this_version)
+    argParser.add_argument('-dbg', '--debug', help='Debug mode', action="store_true")
+    argParser.add_argument('-dev', '--develop', help='Development mode', action="store_true")
     # Specify input/output files
     argParser.add_argument('-inf', '--inf_file', help='UEFI INF file including VFR file(s) in [Sources]')
     argParser.add_argument(
@@ -2752,73 +2779,64 @@ def ProcessArgs():
 
 if __name__ == '__main__':
 
-    # print('%s debug log. Python version = %s' % (os.path.basename(sys.argv[0]), sys.version))
-    # print(sys.argv)
-
     # Process Arguments
     args = ProcessArgs()
 
+    # Initialize tool configurations
+    tool_config = vfr_xml_config()
+
+    # Debug/Development Mode
+    if args.debug:
+        tool_config.set_verbosity(len(tool_config.verbosity_list) - 1)
+    elif args.develop:
+        tool_config.set_verbosity(2)
+
     # INF and VFRPP_RESP
     if args.inf_file and os.path.isfile(args.inf_file):
-        input_file_name_dict.clear()
+        tool_config.input_inf_dict.clear()
         if args.vfrpp_resp and os.path.isfile(args.vfrpp_resp):
-            input_file_name_dict[args.inf_file] = args.vfrpp_resp
+            tool_config.input_inf_dict[args.inf_file] = args.vfrpp_resp
         else:
-            input_file_name_dict[args.inf_file] = ''
+            tool_config.input_inf_dict[args.inf_file] = ''
 
     # PlatformBuild.py
     if args.platform_build and os.path.isfile(args.platform_build):
-        input_platform_build_py = args.platform_build
+        tool_config.input_platform_build_py = args.platform_build
 
     # Build Report
     if args.build_report and os.path.isfile(args.build_report):
-        input_build_report = args.build_report
+        tool_config.input_build_report = args.build_report
 
     # Reference XML
     if args.ref_xml and os.path.isfile(args.ref_xml):
-        input_ref_xml = args.ref_xml
+        tool_config.input_ref_xml = args.ref_xml
 
     # output.xml
     if args.output_xml:
-        output_file_path = args.output_xml
+        tool_config.output_file_path = args.output_xml
+
+    # Configure paths with inputs
+    tool_config.configure_paths()
+    tool_config.validate_path_ready()
 
     # CLI
     if args.command_line:
         ret = 0
         restore_dir = None
-        if srcdir and os.path.isdir(srcdir):
+        if tool_config.srcdir and os.path.isdir(tool_config.srcdir):
             restore_dir = os.getcwd()
-            os.chdir(srcdir)
+            os.chdir(tool_config.srcdir)
 
         # Display input files
-        inf_ready = False
-        for inf_file, vfrpp_resp_file in input_file_name_dict.items():
-            if os.path.isfile(inf_file):
-                print('INF File: %s' % inf_file)
-                inf_ready = True
-                if vfrpp_resp_file and os.path.isfile(vfrpp_resp_file):
-                    print('VFRPP_RESP: %s' % vfrpp_resp_file)
-                else:
-                    vfrpp_resp_file = find_vfrpp_resp(inf_file, srcdir)
-                    if vfrpp_resp_file and os.path.isfile(vfrpp_resp_file):
-                        print('VFRPP_RESP: %s' % vfrpp_resp_file)
-                        input_file_name_dict[inf_file] = vfrpp_resp_file
-
-        if input_platform_build_py and os.path.isfile(input_platform_build_py):
-            print('PlatformBuild.py: %s' % input_platform_build_py)
-
-        if input_build_report and os.path.isfile(input_build_report):
-            print('BUILD REPORT: %s' % input_build_report)
-
-        if input_ref_xml and os.path.isfile(input_ref_xml):
-            print('Reference XML: %s' % input_ref_xml)
+        tool_config.update_inf_dict()
+        inf_ready = tool_config.display_input_files()
 
         # Execute XML comparison or INF/VFR conversion in CLI
         if args.compare_xml:
             # Compare XML
             if args.compare_xml[0] and os.path.isfile(args.compare_xml[0]):
                 if args.compare_xml[1] and os.path.isfile(args.compare_xml[1]):
-                    print('Comparing Config XML files: %s and %s' % (args.compare_xml[0], args.compare_xml[1]))
+                    logger.info('Comparing Config XML files: %s and %s' % (args.compare_xml[0], args.compare_xml[1]))
                     new_xml_root = xml_get_root_from_file(args.compare_xml[0])
                     old_xml_root = xml_get_root_from_file(args.compare_xml[1])
                     struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_ref_compare(
@@ -2827,23 +2845,23 @@ if __name__ == '__main__':
                     )
                     ret = struct_diff_count + enum_diff_count
                 else:
-                    print('File not found: %s' % args.compare_xml[1])
+                    logger.error('File not found: %s' % args.compare_xml[1])
                     ret = 1
             else:
-                print('File not found: %s' % args.compare_xml[0])
+                logger.error('File not found: %s' % args.compare_xml[0])
                 ret = 1
 
         elif args.verify_xml:
             # Process input files
             for xml in args.verify_xml:
                 if not xml or not os.path.isfile(xml):
-                    print('File not found: %s' % xml)
+                    logger.error('File not found: %s' % xml)
                     ret += 1
             if not ret:
-                print('Verifying Config XML files:')
-                print(f'  Current RC: {args.verify_xml[0]}')
-                print(f'  Previous RC: {args.verify_xml[1]}')
-                print(f'  Platform Config: {args.verify_xml[2]}')
+                logger.info('Verifying Config XML files:')
+                logger.info(f'  Current RC: {args.verify_xml[0]}')
+                logger.info(f'  Previous RC: {args.verify_xml[1]}')
+                logger.info(f'  Platform Config: {args.verify_xml[2]}')
                 curr_xml_root = xml_get_root_from_file(args.verify_xml[0])
                 prev_xml_root = xml_get_root_from_file(args.verify_xml[1])
                 plat_xml_root = xml_get_root_from_file(args.verify_xml[2])
@@ -2856,7 +2874,7 @@ if __name__ == '__main__':
                 for prev_plat_cname in prev_plat_cname_list:
                     if prev_plat_cname not in curr_plat_cname_list:
                         plat_remove_count += 1
-                        print(
+                        logger.warning(
                             f'==> Item \"{prev_plat_cname}\" is removed or renamed '
                             'in recent Reference Code changes\n'
                         )
@@ -2873,20 +2891,18 @@ if __name__ == '__main__':
         elif inf_ready:
             # Convert INF/VFR to XML
             time_start = time.time()
-            xml_root, ret = parse_inf_to_xml(
-                input_file_name_dict, input_platform_build_py, output_file_path, input_build_report
-            )
-            print_time(time_start, 'parse_inf_to_xml is done. ')
+            xml_root, ret = parse_inf_to_xml(tool_config)
+            print_time(time_start, 'parse_inf_to_xml is done.', log_method=logger.info)
             # Clean up temporary files in workspace
-            for item in clean_up_list:
+            for item in tool_config.clean_up_list:
                 clean_up_workspace(item)
 
         elif args.inf_file:
-            print('INF File not found: %s' % args.inf_file)
+            logger.error('INF File not found: %s' % args.inf_file)
             ret = 1
 
         else:
-            print(
+            logger.error(
                 'Error: One of the arguments --inf_file, --compare_xml or --verify_xml '
                 'is required in CLI mode. Check --help for more details.'
             )
@@ -2898,7 +2914,12 @@ if __name__ == '__main__':
 
     # GUI
     else:
-        root = tkinter.Tk()
-        app = vfrxml_app(master=root)
-        root.title('VFR to XML Converter')
-        root.mainloop()
+        ConfigEditor = tool_config.import_config_editor()
+        if ConfigEditor is not None and tool_config.is_config_editor():
+            root = tkinter.Tk()
+            VfrAppClass = create_vfrxml_app(ConfigEditor.application)
+            app = VfrAppClass(master=root, tool_config=tool_config)
+            root.title('VFR to XML Converter')
+            root.mainloop()
+        else:
+            logger.error('Cannot locate ConfigEditor nor PlatformBuild.py, exiting...')
