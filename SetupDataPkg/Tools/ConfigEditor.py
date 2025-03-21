@@ -1007,6 +1007,7 @@ class application(tkinter.Frame):
     def previous_page(self, page_id):
         if self.current_page > 0:
             self.current_page -= 1
+            self.update_config_data_on_page()
             self.build_config_data_page(page_id)
 
     # Goes to a specific page if the input is valid
@@ -1015,6 +1016,7 @@ class application(tkinter.Frame):
             page_index = int(page_num) - 1  # Convert to 0-based
             if page_index >= 0 and page_index < self.total_pages:
                 self.current_page = page_index
+                self.update_config_data_on_page()
                 self.build_config_data_page(page_id)
             else:
                 self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
@@ -1025,6 +1027,7 @@ class application(tkinter.Frame):
     def next_page(self, page_id):
         if self.current_page < self.total_pages - 1:
             self.current_page += 1
+            self.update_config_data_on_page()
             self.build_config_data_page(page_id)
 
     def load_config_data(self, file_name):
