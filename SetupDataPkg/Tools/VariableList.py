@@ -521,6 +521,21 @@ class StructMember:
             self.count = int(count)
 
         data_type = xml_node.getAttribute("type")
+        data_type_split_ar = data_type.split(':')
+        #if ':' is found then seperate it out & parse the RHS as int value
+        if(len(data_type_split_ar)>1):
+            data_type = data_type_split_ar[0]
+            num_bits_str = (data_type_split_ar[1])
+            num_bits_int = 0
+            #Append the BitField Length to the name field
+            self.name = self.name + ":" + num_bits_str
+            try:
+                num_bits_int = int(num_bits_str)
+                #TODO:Update Min/Max based on num_bits
+            except:
+                InvalidTypeError(
+                 "Data type '{}' is not defined".format(data_type))
+                
         # Look up the format using the schema
         # The format may be a built-in format (e.g. 'uint32_t') or a user
         # defined enum or struct
