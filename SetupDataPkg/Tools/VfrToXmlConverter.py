@@ -17,9 +17,6 @@ import uuid
 import chardet
 import importlib.util
 import logging
-import tkinter
-import tkinter.messagebox as messagebox
-import tkinter.filedialog as filedialog
 import argparse
 
 from edk2toollib.uefi.edk2.parsers.buildreport_parser import BuildReport
@@ -41,7 +38,7 @@ console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
 logger.propagate = False
 
-this_version = '0.2'
+this_version = '0.3'
 
 
 class vfr_xml_config:
@@ -51,6 +48,7 @@ class vfr_xml_config:
         self.verbosity = 1  # Verbosity level: 0 - Error only; 1 - Normal; 2 - Keep temp files; 3 - Debug
         self.verbosity_list = [logging.ERROR, logging.INFO, logging.INFO, logging.DEBUG]
         self.set_verbosity(self.verbosity)
+        self.preprocessor = ''
 
         # Input file dictionary {INF file path to be processed : Corresponding vfr_resp file path}
         self.input_inf_dict = {}
@@ -735,6 +733,71 @@ def run_cl(
     return ret
 
 
+# Invoke gcc to preprocess the given file
+# input_file_name: vfr file name to be processed
+# include_path_list: A list of include paths
+# defines_list (Optional): A list of defines
+# add_arg (Optional): Additional attributes to be added
+# resp_file (Optional): Response file for cl
+# vfr_mode (Optional): 0 - normal; 1 - vfr
+# dump_file_name (Optional): If a dump file name is given, write the preprocessed vfr content to the file,
+#   else dump to stdout
+# Return: 0 if successful, non-zero otherwise
+def run_gcc(
+    input_file_name, include_path_list, defines_list=[], add_arg='', resp_file=None,
+    vfr_mode=0, dump_file_name=None
+):
+    # Verify gcc is in PATH
+    verify_cmd = 'gcc --version'
+    ret = os.system(verify_cmd)
+
+    if ret == 0:
+        cmd = 'gcc'
+
+        # If a resp file is given, just take it and ignore vfr_mode, defines_list, and include_path_list
+        # to avoid command too long error
+        if resp_file and os.path.isfile(resp_file):
+            cmd += f' @"{resp_file}"'
+
+        else:
+            cmd += ' -E -P -x c'
+
+            # Add /DVFRCOMPILE for vfr
+            if vfr_mode:
+                cmd += ' -DVFRCOMPILE'
+
+            # Add defines
+            for define in defines_list:
+                cmd += f' -D {define}'
+
+            # Add include paths
+            for include_path in include_path_list:
+                cmd += f' -I{include_path}'
+
+        # Add additional attributes
+        if add_arg:
+            cmd += f' {add_arg}'
+
+        # Add vfr file name
+        cmd += f' "{input_file_name}"'
+
+        # Add dump file name
+        if dump_file_name:
+            cmd += f' >"{dump_file_name}"'
+
+        # Execute gcc
+        ret = os.system(cmd)
+        if ret:
+            logger.warning('  [gcc] cmd: %s' % cmd)
+        else:
+            logger.debug('  [gcc] cmd: %s' % cmd)
+
+    else:
+        logger.warning('  [gcc] Error: gcc is not available.')
+
+    return ret
+
+
 # Invoke TrimPreprocessedVfr or TrimPreprocessedFile in Trim.py to preprocess the given file
 # input_file_name: vfr file name to be processed
 # vfr_mode (Optional): 0 - normal; 1 - vfr
@@ -786,9 +849,26 @@ def run_preprocess(
     if tool_config is None:
         tool_config = vfr_xml_config()
 
-    # Invoke cl to preprocess vfr file
-    ret = run_cl(input_file_name, include_path_list, defines_list, add_arg,
-                 resp_file, vfr_mode, temp_processed_vfr, tool_config.VsDevCmd_path)
+    # Invoke cl or gcc to preprocess vfr file
+    if sys.platform.startswith('win') and tool_config.preprocessor != 'gcc':
+        # cl.exe is only supported in Windows with VS
+        ret = run_cl(input_file_name, include_path_list, defines_list, add_arg,
+                     resp_file, vfr_mode, temp_processed_vfr, tool_config.VsDevCmd_path)
+    else:
+        ret = run_gcc(input_file_name, include_path_list, defines_list, add_arg,
+                      resp_file, vfr_mode, temp_processed_vfr)
+
+    # Log the content of resp file in use
+    if resp_file and os.path.isfile(resp_file):
+        if ret == 0:
+            log_method = logger.debug
+        else:
+            log_method = logger.info
+        log_method(f'######## {os.path.basename(resp_file)} ########')
+        with open(resp_file, 'r') as f:
+            content = f.read()
+        log_method(content)
+        log_method(f'######## {os.path.basename(resp_file)} ########\n')
 
     # Invoke Trim to preprocess vfr file
     if os.path.isfile(temp_processed_vfr):
@@ -988,7 +1068,7 @@ def find_vfrpp_resp(inf_file_path, ws_root):
     #                           => sample\file\output\vfrpp_resp.txt
     if inf_file_path and os.path.isfile(inf_file_path):
         search_string = os.path.join(
-            os.path.splitext(os.path.normpath(inf_file_path).lower().split('pkg\\')[-1])[0],
+            os.path.splitext(os.path.normpath(inf_file_path).lower().split('pkg' + os.path.sep)[-1])[0],
             'output',
             'vfrpp_resp.txt'
         )
@@ -1093,7 +1173,7 @@ def get_defines_list_and_add_arg(vfrpp_resp, tool_config):
     modified_resp = os.path.join(tool_config.srcdir, base_name + '_mod.txt')
 
     logger.info('\nApplying resp file: %s -> %s' % (vfrpp_resp, modified_resp))
-    tool_config.clean_up_list.append(modified_resp)
+    tool_config.add_to_clean_up_list(modified_resp)
 
     # Open and read the input file
     with open(vfrpp_resp, 'r') as file:
@@ -1102,8 +1182,12 @@ def get_defines_list_and_add_arg(vfrpp_resp, tool_config):
     # Use regex to match /FI followed by a file path, with or without a space
     fi_pattern = re.compile(r'(/FI\s*[\S]+)(?=\s|$|/|-)')
 
-    # Take off force include files /FI since we do not want to replace the string ids in vfr_content
+    # Use regex to match --include followed by a file path, with or without a space
+    inc_pattern = re.compile(r'(--include\s*[\S]+)(?=\s|$|/|-)')
+
+    # Take off force include files /FI and --include since we do not want to replace the string ids in vfr_content
     modified_content = re.sub(fi_pattern, '', content)
+    modified_content = re.sub(inc_pattern, '', modified_content)
 
     # Write the modified content to the output file
     with open(modified_resp, 'w') as file:
@@ -1312,25 +1396,25 @@ def validate_member(struct_name, current_member, verbose=2):
 
     if current_member.get('default') == '':
         if verbose > 1:
-            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get("name")} '
                            'is missing a default value')
         warning_count += 1
 
     if current_member.get('type') == '':
         if verbose:
-            logger.warning(f'  [vfr] Error: Member {struct_name}.{current_member.get('name')} '
+            logger.warning(f'  [vfr] Error: Member {struct_name}.{current_member.get("name")} '
                            'is missing type')
         error_count += 1
 
     if current_member.get('prompt') == '':
         if verbose > 1:
-            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get("name")} '
                            'is missing a prompt string')
         warning_count += 1
 
     if current_member.get('help') == '':
         if verbose > 1:
-            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get('name')} '
+            logger.warning(f'  [vfr] Warning: Member {struct_name}.{current_member.get("name")} '
                            'is missing a help string')
         warning_count += 1
 
@@ -1564,7 +1648,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
                 if current_prettyname is None:
                     logger.warning(
                         '  [uni] Warning: Pretty Name not found. '
-                        f'Member name={current_member.get('name')}, '
+                        f'Member name={current_member.get("name")}, '
                         f'Token={prompt_token}, '
                     )
 
@@ -1580,7 +1664,7 @@ def parse_vfr_content(vfr_content, uni_str_dict, root, structs, repeated_items, 
                 if current_help is None:
                     logger.warning(
                         '  [uni] Warning: Help not found. '
-                        f'Member name={current_member.get('name')}, Token={help_token}, '
+                        f'Member name={current_member.get("name")}, Token={help_token}, '
                     )
 
             # Parse numeric-specific attributes
@@ -1988,11 +2072,11 @@ def xml_ref_compare(xml_root, ref_cfg_root, concern_cname_list=[], verbose=1):
                         if verbose:
                             logger.warning(f'  Enum name=\"{enum_name}\":')
                             if added:
-                                logger.warning(f'    Added Value(s): {', '.join([f'\"{item}\"' for item in added])}')
+                                formatted_values = ', '.join([f'\"{item}\"' for item in added])
+                                logger.warning(f'    Added Value(s): {formatted_values}')
                             if removed:
-                                logger.warning(
-                                    f'    Removed Value(s): {', '.join([f'\"{item}\"' for item in removed])}'
-                                )
+                                formatted_values = ', '.join([f'\"{item}\"' for item in removed])
+                                logger.warning(f'    Removed Value(s): {formatted_values}')
                             if changed:
                                 for diff in changed:
                                     if diff['ref_help'] == diff['current_help']:
@@ -2001,7 +2085,7 @@ def xml_ref_compare(xml_root, ref_cfg_root, concern_cname_list=[], verbose=1):
                                         help_print = f'\"{diff["ref_help"]}\" -> \"{diff["current_help"]}\"'
                                     logger.warning(
                                         f'    Changed Value(s): \"{diff["name"]}\" (value: \"{diff["ref_value"]}\"'
-                                        f'-> \"{diff['current_value']}\", help: {help_print})'
+                                        f'-> \"{diff["current_value"]}\", help: {help_print})'
                                     )
 
     if verbose:
@@ -2744,6 +2828,11 @@ def ProcessArgs():
     argParser = argparse.ArgumentParser(description='VFR to XML Converter Version %s' % this_version)
     argParser.add_argument('-dbg', '--debug', help='Debug mode', action="store_true")
     argParser.add_argument('-dev', '--develop', help='Development mode', action="store_true")
+    argParser.add_argument(
+        '-gcc', '--gcc',
+        help='Use gcc to preprocess VFR files. Instead of cl.exe in Windows by default',
+        action="store_true"
+    )
     # Specify input/output files
     argParser.add_argument('-inf', '--inf_file', help='UEFI INF file including VFR file(s) in [Sources]')
     argParser.add_argument(
@@ -2791,6 +2880,10 @@ if __name__ == '__main__':
     elif args.develop:
         tool_config.set_verbosity(2)
 
+    # Preprocessor selection
+    if args.gcc:
+        tool_config.preprocessor = 'gcc'
+
     # INF and VFRPP_RESP
     if args.inf_file and os.path.isfile(args.inf_file):
         tool_config.input_inf_dict.clear()
@@ -2829,7 +2922,7 @@ if __name__ == '__main__':
 
         # Display input files
         tool_config.update_inf_dict()
-        inf_ready = tool_config.display_input_files()
+        inf_ready = tool_config.display_input_files(log_method=logger.info)
 
         # Execute XML comparison or INF/VFR conversion in CLI
         if args.compare_xml:
@@ -2914,6 +3007,9 @@ if __name__ == '__main__':
 
     # GUI
     else:
+        import tkinter
+        import tkinter.messagebox as messagebox
+        import tkinter.filedialog as filedialog
         ConfigEditor = tool_config.import_config_editor()
         if ConfigEditor is not None and tool_config.is_config_editor():
             root = tkinter.Tk()
