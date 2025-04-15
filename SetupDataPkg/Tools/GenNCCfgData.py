@@ -12,7 +12,7 @@ from collections import OrderedDict
 import base64
 
 import xml.etree.ElementTree as ET
-
+import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
 from CommonUtility import bytes_to_value
 from VariableList import (
     Schema,
@@ -354,72 +354,143 @@ class CGenNCCfgData:
         self.knob_shim = self.build_cfg_list()
         return 0
 
+    def delete_all_variables(self, config_xml_path):
+        schema = Schema.load(config_xml_path)
+        for knob in schema.knobs:
+            rc = uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
+            if rc == 0:
+                print(f"Error returned from SetUefiVar: {rc}")
+            else:
+                print(f"{knob.name} variable is deleted from system")
+
+    def modify_variables(self, variables, new_values, output_file="data.vl"):
+        if len(variables) != len(new_values):
+            print("Error: The number of variables and new values must match.")
+            return
+
+        for knob in self.schema.knobs:
+            for i, variable_name in enumerate(variables):
+                if variable_name in knob.value.keys():
+                    print(f"Orig {variable_name} is {knob.value[variable_name]}")
+
+                    new_knob_value = knob.value
+                    new_value = new_values[i]
+                    # Check if the new value is a hexadecimal string or a decimal string
+                    if isinstance(new_value, str) and new_value.startswith("0x"):
+                        new_knob_value[variable_name] = int(new_value, 16)  # Convert hex string to int
+                    elif new_value.isdigit():
+                        new_knob_value[variable_name] = int(new_value)  # Convert decimal string to int
+                    elif isinstance(new_value, str) and new_value.startswith("[") and new_value.endswith("]"):
+                        new_knob_value[variable_name] = [int(x) for x in new_value[1:-1].split(",")]
+                    else:
+                        new_knob_value[variable_name] = str(new_value)  # Treat as a string
+
+                    # Update the variable in the schema
+                    knob.value = new_knob_value
+                    print(f"Updated {variable_name} to {knob.value[variable_name]}")
+
+        self.generate_binary(output_file)
+        uefi_var_write.set_variable_from_file(output_file)
+
 
 def usage():
     print(
-        "\n".join(
-            [
-                "GenNCCfgData Version 0.1",
-                "Usage:",
-                "    GenNCCfgData  GENBIN  XmlFile[;CsvFile]   BinOutFile",
-                "    GenNCCfgData  GENCSV  XmlFile[;BinFile]   CsvOutFile",
-            ]
-        )
+        "Usage:\n"
+        "    python GenNCCfgData.py GENBIN <XmlFile[;CsvFile]> <BinOutFile>\n"
+        "    python GenNCCfgData.py GENCSV <XmlFile;BinFile[;BinFile2]> <CsvOutFile>\n"
+        "    python GenNCCfgData.py MODCONFIG <xml_file> <variables> <values> [output_file]\n"
+        "    python GenNCCfgData.py DELVAR <xml_file>"
     )
 
 
 def main():
-    # Parse the options and args
+    # Parse the options and args manually
     argc = len(sys.argv)
-    if argc < 4 or argc > 5:
+    if argc < 3:
         usage()
         return 1
 
     command = sys.argv[1].upper()
-    out_file = sys.argv[3]
 
-    file_list = sys.argv[2].split(";")
-    if len(file_list) >= 2:
-        xml_file = file_list[0]
-        csv_file = file_list[1]
-    elif len(file_list) == 1:
-        xml_file = file_list[0]
-        csv_file = ""
-    else:
-        raise Exception("ERROR: Invalid parameter '%s' !" % sys.argv[2])
+    # Handle MODCONFIG and DELVAR commands first
+    if command == "MODCONFIG":
+        if argc < 5:
+            print("Usage: python GenNCCfgData.py MODCONFIG <xml_file> <variables> <values> [output_file]")
+            return 1
 
-    cfg_bin_file = ""
-    cfg_bin_file2 = ""
-    if csv_file:
-        if command == "GENCSV":
-            cfg_bin_file = csv_file
+        xml_file = sys.argv[2]
+        variables = sys.argv[3].split(";")  # Split variables by semicolon
+        values = sys.argv[4].split(";")    # Split values by semicolon
+        output_file = sys.argv[5] if argc > 5 else "data.vl"
+
+        if len(variables) != len(values):
+            print("Error: The number of variables and values must match.")
+            return 1
+
+        # Call the modify_variables function
+        gen_cfg_data = CGenNCCfgData(xml_file)
+        gen_cfg_data.modify_variables(variables, values, output_file)
+        return 0
+
+    elif command == "DELVAR":
+        if argc < 3:
+            print("Usage: python GenNCCfgData.py DELVAR <xml_file>")
+            return 1
+
+        xml_file = sys.argv[2]
+        gen_cfg_data = CGenNCCfgData(xml_file)
+        gen_cfg_data.delete_all_variables(xml_file)
+        return 0
+
+    elif command == "GENBIN" or command == "GENCSV":
+        if argc < 4 or argc > 5:
+            usage()
+            return 1
+
+        out_file = sys.argv[3]
+
+        file_list = sys.argv[2].split(";")
+        if len(file_list) >= 2:
+            xml_file = file_list[0]
+            csv_file = file_list[1]
+        elif len(file_list) == 1:
+            xml_file = file_list[0]
             csv_file = ""
-            if len(file_list) >= 3:
-                cfg_bin_file2 = file_list[2]
+        else:
+            raise Exception("ERROR: Invalid parameter '%s' !" % sys.argv[2])
 
-    gen_cfg_data = CGenNCCfgData(xml_file)
+        cfg_bin_file = ""
+        cfg_bin_file2 = ""
+        if csv_file:
+            if command == "GENCSV":
+                cfg_bin_file = csv_file
+                csv_file = ""
+                if len(file_list) >= 3:
+                    cfg_bin_file2 = file_list[2]
 
-    if csv_file:
-        gen_cfg_data.override_default_value(csv_file)
+        gen_cfg_data = CGenNCCfgData(xml_file)
 
-    if command == "GENBIN":
-        if len(file_list) == 3:
-            old_data = gen_cfg_data.generate_binary_array(True)
-            fi = open(file_list[2], "rb")
-            new_data = bytearray(fi.read())
-            fi.close()
-            if len(new_data) != len(old_data):
-                raise Exception(
-                    "Binary file '%s' length does not match, ignored !" % file_list[2]
-                )
-            else:
-                gen_cfg_data.load_default_from_bin(new_data, True)
-                gen_cfg_data.override_default_value(csv_file)
+        if csv_file:
+            gen_cfg_data.override_default_value(csv_file)
 
-        gen_cfg_data.generate_binary(out_file)
+        if command == "GENBIN":
+            if len(file_list) == 3:
+                old_data = gen_cfg_data.generate_binary_array(True)
+                fi = open(file_list[2], "rb")
+                new_data = bytearray(fi.read())
+                fi.close()
+                if len(new_data) != len(old_data):
+                    raise Exception(
+                        "Binary file '%s' length does not match, ignored !" % file_list[2]
+                    )
+                else:
+                    gen_cfg_data.load_default_from_bin(new_data, True)
+                    gen_cfg_data.override_default_value(csv_file)
 
-    elif command == "GENCSV":
-        gen_cfg_data.generate_csv_file(out_file, cfg_bin_file, cfg_bin_file2)
+            gen_cfg_data.generate_binary(out_file)
+
+        elif command == "GENCSV":
+            gen_cfg_data.generate_csv_file(out_file, cfg_bin_file, cfg_bin_file2)
 
     else:
         raise Exception("Unsupported command '%s' !" % command)
