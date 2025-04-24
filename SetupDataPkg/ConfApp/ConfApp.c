@@ -73,8 +73,9 @@ CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   }
 };
 
-ConfState_t                        mConfState       = MainInit;
-EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx = NULL;
+ConfState_t                        mConfState              = MainInit;
+EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx        = NULL;
+BOOLEAN                            MainStateMachineRunning = TRUE;
 
 /**
   Quick helper function to see if ReadyToBoot has already been signalled.
@@ -357,7 +358,7 @@ ConfAppEntry (
   //
   // Main state machine
   //
-  while (TRUE) {
+  while (MainStateMachineRunning) {
     switch (mConfState) {
       case MainInit:
         PrintScreenInit ();
