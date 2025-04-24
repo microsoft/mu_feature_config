@@ -302,6 +302,8 @@ QuerySingleActiveConfigAsciiVarListInvalidParamTest (
   EFI_STATUS             Status;
   CHAR8                  AsciiName;
 
+  AsciiName = '\0';
+
   Status = QuerySingleActiveConfigAsciiVarList (mKnown_Good_Generic_Profile, sizeof (mKnown_Good_Generic_Profile), NULL, &ConfigVarListPtr);
   UT_ASSERT_STATUS_EQUAL (Status, EFI_INVALID_PARAMETER);
 
