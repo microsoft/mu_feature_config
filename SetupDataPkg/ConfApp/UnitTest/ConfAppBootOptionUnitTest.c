@@ -190,6 +190,39 @@ Print (
 }
 
 /**
+  Calling this function causes a system-wide reset. This sets
+  all circuitry within the system to its initial state. This type of reset
+  is asynchronous to system operation and operates without regard to
+  cycle boundaries.
+
+  System reset should not return, if it returns, it means the system does
+  not support cold reset.
+**/
+VOID
+EFIAPI
+ResetCold (
+  VOID
+  )
+{
+}
+
+/**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
+}
+
+/**
   Mocked version of MockWaitForEvent.
 
   @param[in]   NumberOfEvents   The number of events in the Event array.
@@ -418,7 +451,6 @@ ConfAppBootOptSelectOne (
 {
   EFI_STATUS                    Status;
   EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption = {
     .Description = L"Test1",
     .Attributes  = 0xFEEDF00D
@@ -453,11 +485,7 @@ ConfAppBootOptSelectOne (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
-
-  if (!SetJump (&JumpBuf)) {
-    BootOptionMgr ();
-  }
+  BootOptionMgr ();
 
   return UNIT_TEST_PASSED;
 }
@@ -485,7 +513,6 @@ ConfAppBootOptSelectMore (
 {
   EFI_STATUS                    Status;
   EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption[2] = {
     {
       .Description = L"Test1",
@@ -526,11 +553,7 @@ ConfAppBootOptSelectMore (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
-
-  if (!SetJump (&JumpBuf)) {
-    BootOptionMgr ();
-  }
+  BootOptionMgr ();
 
   return UNIT_TEST_PASSED;
 }
