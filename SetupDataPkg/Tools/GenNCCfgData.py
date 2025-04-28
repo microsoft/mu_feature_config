@@ -10,6 +10,7 @@ import sys
 import re
 from collections import OrderedDict
 import base64
+import argparse
 
 import xml.etree.ElementTree as ET
 import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
@@ -398,8 +399,9 @@ def usage():
         "Usage:\n"
         "    python GenNCCfgData.py GENBIN <XmlFile[;CsvFile]> <BinOutFile>\n"
         "    python GenNCCfgData.py GENCSV <XmlFile;BinFile[;BinFile2]> <CsvOutFile>\n"
-        "    python GenNCCfgData.py MODCONFIG <xml_file> <variables> <values> [output_file]\n"
-        "    python GenNCCfgData.py DELVAR <xml_file>"
+        "    python GenNCCfgData.py MODCONFIG --xml_file config.xml --var knob1 --var knob2"
+        " --val knob_val1 --val knob_val2 [--output_file out.vl]\n"
+        "    python GenNCCfgData.py DELVAR --xml_file config.xml"
     )
 
 
@@ -411,38 +413,8 @@ def main():
         return 1
 
     command = sys.argv[1].upper()
-
-    # Handle MODCONFIG and DELVAR commands first
-    if command == "MODCONFIG":
-        if argc < 5:
-            print("Usage: python GenNCCfgData.py MODCONFIG <xml_file> <variables> <values> [output_file]")
-            return 1
-
-        xml_file = sys.argv[2]
-        variables = sys.argv[3].split(";")  # Split variables by semicolon
-        values = sys.argv[4].split(";")    # Split values by semicolon
-        output_file = sys.argv[5] if argc > 5 else "data.vl"
-
-        if len(variables) != len(values):
-            print("Error: The number of variables and values must match.")
-            return 1
-
-        # Call the modify_variables function
-        gen_cfg_data = CGenNCCfgData(xml_file)
-        gen_cfg_data.modify_variables(variables, values, output_file)
-        return 0
-
-    elif command == "DELVAR":
-        if argc < 3:
-            print("Usage: python GenNCCfgData.py DELVAR <xml_file>")
-            return 1
-
-        xml_file = sys.argv[2]
-        gen_cfg_data = CGenNCCfgData(xml_file)
-        gen_cfg_data.delete_all_variables(xml_file)
-        return 0
-
-    elif command == "GENBIN" or command == "GENCSV":
+    # Use manual argument parsing for GENBIN and GENCSV commands
+    if command == "GENBIN" or command == "GENCSV":
         if argc < 4 or argc > 5:
             usage()
             return 1
@@ -491,10 +463,69 @@ def main():
 
         elif command == "GENCSV":
             gen_cfg_data.generate_csv_file(out_file, cfg_bin_file, cfg_bin_file2)
+        else:
+            raise Exception("ERROR: Invalid command '%s' !" % command)
 
+    # Use argparse for MODCONFIG, DELVAR or other new commands in the future
     else:
-        raise Exception("Unsupported command '%s' !" % command)
+        parser = argparse.ArgumentParser(
+            description="GenNCCfgData MODCONFIG/DELVAR command"
+        )
+        subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
+        modconfig_parser = subparsers.add_parser(
+            "MODCONFIG", help="Modify configuration variables"
+        )
+        modconfig_parser.add_argument(
+            "--xml_file",
+            required=True,
+            help="XML file"
+        )
+        modconfig_parser.add_argument(
+            "--var",
+            action="append",
+            required=True,
+            help="Variable knob(s)"
+        )
+        modconfig_parser.add_argument(
+            "--val",
+            action="append",
+            required=True,
+            help="Value(s) corresponding to the variables"
+        )
+        modconfig_parser.add_argument(
+            "--output_file",
+            default="data.vl",
+            help="Output file (default: data.vl)"
+        )
+
+        delvar_parser = subparsers.add_parser(
+            "DELVAR", help="Delete variables from system"
+        )
+        delvar_parser.add_argument(
+            "--xml_file",
+            required=True,
+            help="XML file"
+        )
+
+        args = parser.parse_args(sys.argv[1:])
+        if args.subcommand.upper() == "MODCONFIG":
+            if len(args.var) != len(args.val):
+                print("Error: The number of variables and values must match.")
+                return 1
+            gen_cfg_data = CGenNCCfgData(args.xml_file)
+            gen_cfg_data.modify_variables(
+                args.var,
+                args.val,
+                args.output_file
+            )
+        elif args.subcommand.upper() == "DELVAR":
+            gen_cfg_data = CGenNCCfgData(args.xml_file)
+            gen_cfg_data.delete_all_variables(args.xml_file)
+
+        else:
+            print("Unknown command: %s" % args.subcommand)
+            return 1
     return 0
 
 
