@@ -170,6 +170,7 @@
       "ENABLEDDISABLE",
       "vfrxml",
       "onvalue",
-      "offvalue"
+      "offvalue",
+      "DELVAR"
   ]
 }
