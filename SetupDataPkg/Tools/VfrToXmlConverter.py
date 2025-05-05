@@ -38,7 +38,7 @@ console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
 logger.propagate = False
 
-this_version = '0.3'
+this_version = '0.4'
 
 
 class vfr_xml_config:
@@ -2102,6 +2102,43 @@ def xml_ref_compare(xml_root, ref_cfg_root, concern_cname_list=[], verbose=1):
     return struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list
 
 
+# Verify Config XML files to notify Reference code changes related to Platform porting
+# curr_xml_root: Root of the config XML generated from current Reference Code
+# prev_xml_root: Root of the config XML generated from previous Reference Code
+# plat_xml_root: Root of the config XML from PlatformCfgData.xml
+# verbose: 0 - Not to print; 1 - Print messages
+# Return:
+#   plat_remove_count: Number of previous items got removed or renamed from current
+#   struct_diff_count: Number of concerned differences in Structs
+#   enum_diff_count: Number of concerned differences in Enums
+#   diff_cname_list: A list of concerned items with differences
+#   match_cname_list: A list of items which are found in both xml_root and ref_cfg_root
+def xml_verify(curr_xml_root, prev_xml_root, plat_xml_root, verbose=1):
+    # Get Platform porting cname lists, and check if there is anything removed
+    # in recent Reference Code changes
+    _, _, _, prev_plat_cname_list = xml_ref_compare(prev_xml_root, plat_xml_root, verbose=0)
+    _, _, _, curr_plat_cname_list = xml_ref_compare(curr_xml_root, plat_xml_root, verbose=0)
+    plat_remove_count = 0
+    for prev_plat_cname in prev_plat_cname_list:
+        if prev_plat_cname not in curr_plat_cname_list:
+            plat_remove_count += 1
+            logger.warning(
+                f'==> Item \"{prev_plat_cname}\" is removed or renamed '
+                'in recent Reference Code changes\n'
+            )
+
+    # Compare Current and Previous XML from Reference Code,
+    # but only cares about the items in plat_cname_list
+    struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_ref_compare(
+        curr_xml_root,
+        prev_xml_root,
+        prev_plat_cname_list,
+        verbose
+    )
+
+    return plat_remove_count, struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list
+
+
 # Output the given root of ET.Element to a formatted XML file
 # xml_root: The root of ET.Element
 # xml_file_path: XML file output path
@@ -2496,10 +2533,10 @@ def create_vfrxml_app(super_class):
             # menubar and File Menu
             menubar = tkinter.Menu(root)
             self.vfrxml_menu = tkinter.Menu(menubar, tearoff=0)
-            self.vfrxml_menu.add_command(label='Open INF File...', command=self.open_inf_file)
+            self.vfrxml_menu.add_command(label='Open INF File(s)...', command=self.open_inf_file)
             self.vfrxml_menu.add_command(label='Open PlatformBuild.py...', command=self.open_platform_build)
             self.vfrxml_menu.add_command(label='Open vfrpp_resp File...', command=self.open_vfrpp_resp)
-            self.vfrxml_menu.add_command(label='Process INF File', command=self.process_inf)
+            self.vfrxml_menu.add_command(label='Process INF File(s)', command=self.process_inf)
             self.vfrxml_menu.add_command(label='Export Config to XML', command=self.export_config_to_xml)
             self.vfrxml_menu.add_separator()
             self.vfrxml_menu.add_command(label='Load a reference PlatformCfgData.xml...',
@@ -2530,13 +2567,13 @@ def create_vfrxml_app(super_class):
                 inf_dict_state = 'disabled'
             self.vfrxml_menu.entryconfig("Open vfrpp_resp File...", state=inf_dict_state)
 
-            # Choose INF file and PlatformBuild.py prior to executing Process INF File
+            # Choose INF file and PlatformBuild.py prior to executing Process INF File(s)
             if not self.tool_config.platform_build_py_required or (
                     self.tool_config.input_platform_build_py and os.path.isfile(
                     self.tool_config.input_platform_build_py)):
-                self.vfrxml_menu.entryconfig("Process INF File", state=inf_dict_state)
+                self.vfrxml_menu.entryconfig("Process INF File(s)", state=inf_dict_state)
             else:
-                self.vfrxml_menu.entryconfig("Process INF File", state='disabled')
+                self.vfrxml_menu.entryconfig("Process INF File(s)", state='disabled')
 
             # Menu items depend on page data availability
             if self.check_page():
@@ -2569,20 +2606,24 @@ def create_vfrxml_app(super_class):
             if hasattr(self, 'output_current_status'):
                 self.output_current_status(msg)
 
-        # File -> Open INF File...
+        # File -> Open INF File(s)...
         # Select input inf file
         def open_inf_file(self):
-            file_path = os.path.normpath(filedialog.askopenfilename(
-                filetypes=(("INF files", "*.inf"), ("all files", "*.*"))))
-            if file_path and os.path.isfile(file_path):
-                self.print_msg('INF FILE: %s' % file_path)
-                self.tool_config.input_inf_dict.clear()
-                # Auto find vfrpp_resp. If necessary, select vfrpp_resp again after selecting inf file
-                self.tool_config.input_inf_dict[file_path] = find_vfrpp_resp(file_path, self.tool_config.srcdir)
-                if self.tool_config.input_inf_dict[file_path] and (
-                        os.path.isfile(self.tool_config.input_inf_dict[file_path])):
-                    self.print_msg('VFRPP_RESP: %s' % self.tool_config.input_inf_dict[file_path])
-                self.refresh_vfrxml_menu()
+            file_tuple = filedialog.askopenfilenames(filetypes=(("INF files", "*.inf"), ("all files", "*.*")))
+            if len(file_tuple) == 0:
+                return
+            # Rebuild input_inf_dict
+            self.tool_config.input_inf_dict.clear()
+            for file_path in file_tuple:
+                file_path = os.path.normpath(file_path)
+                if os.path.isfile(file_path):
+                    # Auto find vfrpp_resp. If necessary, select vfrpp_resp again after selecting inf file
+                    self.print_msg('INF FILE: %s' % file_path)
+                    self.tool_config.input_inf_dict[file_path] = find_vfrpp_resp(file_path, self.tool_config.srcdir)
+                    if self.tool_config.input_inf_dict[file_path] and (
+                            os.path.isfile(self.tool_config.input_inf_dict[file_path])):
+                        self.print_msg('VFRPP_RESP: %s' % self.tool_config.input_inf_dict[file_path])
+            self.refresh_vfrxml_menu()
 
         # File -> Open PlatformBuild.py...
         # Select input PlatformBuild.py
@@ -2604,7 +2645,7 @@ def create_vfrxml_app(super_class):
                 for key in self.tool_config.input_inf_dict.keys():
                     self.tool_config.input_inf_dict[key] = file_path
 
-        # File -> Process INF File
+        # File -> Process INF File(s)
         # Parse inf files to get vfr files, and convert vfr files to xml
         def process_inf(self):
             time_start = time.time()
@@ -2834,7 +2875,7 @@ def ProcessArgs():
         action="store_true"
     )
     # Specify input/output files
-    argParser.add_argument('-inf', '--inf_file', help='UEFI INF file including VFR file(s) in [Sources]')
+    argParser.add_argument('-inf', '--inf_file', nargs='+', help='UEFI INF file(s) including VFR file(s) in [Sources]')
     argParser.add_argument(
         '-resp', '--vfrpp_resp',
         help='vfrpp_resp file including additional defines for preprocessing macros in vfr files'
@@ -2885,12 +2926,14 @@ if __name__ == '__main__':
         tool_config.preprocessor = 'gcc'
 
     # INF and VFRPP_RESP
-    if args.inf_file and os.path.isfile(args.inf_file):
+    if args.inf_file:
         tool_config.input_inf_dict.clear()
+        vfrpp_resp = ''
         if args.vfrpp_resp and os.path.isfile(args.vfrpp_resp):
-            tool_config.input_inf_dict[args.inf_file] = args.vfrpp_resp
-        else:
-            tool_config.input_inf_dict[args.inf_file] = ''
+            vfrpp_resp = args.vfrpp_resp
+        for inf in args.inf_file:
+            if os.path.isfile(inf):
+                tool_config.input_inf_dict[inf] = vfrpp_resp
 
     # PlatformBuild.py
     if args.platform_build and os.path.isfile(args.platform_build):
@@ -2945,6 +2988,7 @@ if __name__ == '__main__':
                 ret = 1
 
         elif args.verify_xml:
+            # Verify XML
             # Process input files
             for xml in args.verify_xml:
                 if not xml or not os.path.isfile(xml):
@@ -2958,26 +3002,10 @@ if __name__ == '__main__':
                 curr_xml_root = xml_get_root_from_file(args.verify_xml[0])
                 prev_xml_root = xml_get_root_from_file(args.verify_xml[1])
                 plat_xml_root = xml_get_root_from_file(args.verify_xml[2])
-
-                # Get Platform porting cname lists, and check if there is anything removed
-                # in recent Reference Code changes
-                _, _, _, prev_plat_cname_list = xml_ref_compare(prev_xml_root, plat_xml_root, verbose=0)
-                _, _, _, curr_plat_cname_list = xml_ref_compare(curr_xml_root, plat_xml_root, verbose=0)
-                plat_remove_count = 0
-                for prev_plat_cname in prev_plat_cname_list:
-                    if prev_plat_cname not in curr_plat_cname_list:
-                        plat_remove_count += 1
-                        logger.warning(
-                            f'==> Item \"{prev_plat_cname}\" is removed or renamed '
-                            'in recent Reference Code changes\n'
-                        )
-
-                # Compare Current and Previous XML from Reference Code,
-                # but only cares about the items in plat_cname_list
-                struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_ref_compare(
+                plat_remove_count, struct_diff_count, enum_diff_count, diff_cname_list, match_cname_list = xml_verify(
                     curr_xml_root,
                     prev_xml_root,
-                    prev_plat_cname_list
+                    plat_xml_root,
                 )
                 ret = plat_remove_count + struct_diff_count + enum_diff_count
 
