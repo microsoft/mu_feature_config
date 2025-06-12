@@ -416,9 +416,15 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
+<<<<<<< HEAD
           // Prepare ResetData GUID
           CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
           gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+=======
+          Print (L"Reset status Checking before ResetCold debug 3\n");
+          gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
+          //ResetCold ();
+>>>>>>> 44a2951 (Modified ConfApp)
         } else {
           mConfState = MainInit;
         }
