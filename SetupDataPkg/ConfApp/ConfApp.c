@@ -414,7 +414,9 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
-          ResetCold ();
+          Print (L"Reset status Checking before ResetCold debug 3\n");
+          gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
+          //ResetCold ();
         } else {
           mConfState = MainInit;
         }
