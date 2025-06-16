@@ -23,7 +23,13 @@
 
 #include "ConfApp.h"
 
-#define MAIN_STATE_OPTIONS  5
+#include <Library/BaseMemoryLib.h>
+typedef struct {
+  GUID    ResetGuid;
+} RESET_GUID_CONFAPP_RESET_DATA;
+
+
+#define MAIN_STATE_OPTIONS  6
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   {
@@ -326,6 +332,7 @@ ConfAppEntry (
 {
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
 
@@ -415,7 +422,10 @@ ConfAppEntry (
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
           Print (L"Reset status Checking before ResetCold debug 3\n");
-          gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
+          // Prepare ResetData GUID
+          CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+          gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+          //gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
           //ResetCold ();
         } else {
           mConfState = MainInit;
