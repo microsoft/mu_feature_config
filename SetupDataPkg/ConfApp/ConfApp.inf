@@ -51,10 +51,12 @@
   PerformanceLib
   ConfigSystemModeLib
   ConfigVariableListLib
+  BaseMemoryLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize
