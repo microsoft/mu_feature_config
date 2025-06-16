@@ -424,9 +424,9 @@ ConfAppEntry (
           Print (L"Reset status Checking before ResetCold debug 3\n");
           // Prepare ResetData GUID
           CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-          gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+          //gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
           //gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
-          //ResetCold ();
+          ResetCold ();
         } else {
           mConfState = MainInit;
         }
