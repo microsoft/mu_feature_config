@@ -15,7 +15,6 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
-#include <Library/ResetSystemLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/PerformanceLib.h>
@@ -24,13 +23,7 @@
 
 #include "ConfApp.h"
 
-#include <Library/BaseMemoryLib.h>
-typedef struct {
-  GUID    ResetGuid;
-} RESET_GUID_CONFAPP_RESET_DATA;
-
-
-#define MAIN_STATE_OPTIONS  6
+#define MAIN_STATE_OPTIONS  5
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   {
@@ -331,8 +324,8 @@ ConfAppEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData;
+  EFI_STATUS                     Status;
+  EFI_KEY_DATA                   KeyData;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
