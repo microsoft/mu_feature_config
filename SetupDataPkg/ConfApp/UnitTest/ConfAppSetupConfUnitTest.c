@@ -199,38 +199,30 @@ Print (
   return Ret;
 }
 
-/**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
+STATIC
 VOID
 EFIAPI
-ResetCold (
-  VOID
+MockResetSystem (
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
   )
 {
-}
+  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
 
-/**
- * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
- * This function immediately returns instead of causing an infinite loop,
- * allowing tests to run without hanging the system.
- *
- * @return None
- */
-VOID
-EFIAPI
-MockCpuDeadLoop (
-  VOID
-  )
-{
+  check_expected (ResetType);
+
+  ASSERT (FALSE);
   return;
 }
+
+///
+/// Mock version of the UEFI Runtime Services Table
+///
+EFI_RUNTIME_SERVICES  MockRuntime = {
+  .ResetSystem = MockResetSystem,
+};
 
 /**
   Mocked version of GetTime.
@@ -658,7 +650,12 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  SetupConfMgr ();
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    SetupConfMgr ();
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -754,7 +751,12 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  SetupConfMgr ();
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    SetupConfMgr ();
+  }
 
   return UNIT_TEST_PASSED;
 }

@@ -20,14 +20,9 @@
 #include <Library/UefiBootManagerLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigSystemModeLib.h>
+#include <Library/BaseMemoryLib.h>
 
 #include "ConfApp.h"
-
-#include <Library/BaseMemoryLib.h>
-typedef struct {
-  GUID    ResetGuid;
-} RESET_GUID_CONFAPP_RESET_DATA;
-
 
 #define MAIN_STATE_OPTIONS  6
 
@@ -421,12 +416,9 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
-          Print (L"Reset status Checking before ResetCold debug 3\n");
           // Prepare ResetData GUID
           CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-          //gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
-          //gRT->ResetSystem(EfiResetCold, EFI_SUCCESS, sizeof(EFI_GUID), &gConfAppResetGuid);
-          ResetCold ();
+          gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
         } else {
           mConfState = MainInit;
         }
@@ -442,7 +434,9 @@ ConfAppEntry (
     if (EFI_ERROR (Status)) {
       // The failed step might have done residue in sub state machines, reset the system to start over.
       ASSERT (FALSE);
-      ResetCold ();
+      // Prepare ResetData GUID
+      CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+      gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
       CpuDeadLoop ();
     }
   }

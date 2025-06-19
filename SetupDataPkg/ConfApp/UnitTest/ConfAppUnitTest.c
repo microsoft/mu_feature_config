@@ -166,39 +166,30 @@ Print (
   return Ret;
 }
 
-/**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
+STATIC
 VOID
 EFIAPI
-ResetCold (
-  VOID
+MockResetSystem (
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
   )
 {
-  MainStateMachineRunning = FALSE;
-}
+  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
 
-/**
- * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
- * This function immediately returns instead of causing an infinite loop,
- * allowing tests to run without hanging the system.
- *
- * @return None
- */
-VOID
-EFIAPI
-MockCpuDeadLoop (
-  VOID
-  )
-{
+  check_expected (ResetType);
+
+  ASSERT (FALSE);
   return;
 }
+
+///
+/// Mock version of the UEFI Runtime Services Table
+///
+EFI_RUNTIME_SERVICES  MockRuntime = {
+  .ResetSystem = MockResetSystem,
+};
 
 /**
   Mocked version of LocateProtocol.
@@ -405,7 +396,12 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -457,7 +453,12 @@ ConfAppEntrySelect2 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -502,6 +503,64 @@ ConfAppEntrySelect3 (
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
+  will_return (BootOptionMgr, MainExit);
+  will_return (BootOptionMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 4.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect4 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '4';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
   will_return (SetupConfMgr, MainExit);
   will_return (SetupConfMgr, EFI_SUCCESS);
 
@@ -509,7 +568,12 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -565,7 +629,12 @@ ConfAppEntrySelectH (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -614,7 +683,12 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -668,7 +742,12 @@ ConfAppEntrySelectOther (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }
@@ -717,7 +796,12 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  if (!SetJump (&JumpBuf)) {
+    ConfAppEntry (NULL, NULL);
+  }
 
   return UNIT_TEST_PASSED;
 }

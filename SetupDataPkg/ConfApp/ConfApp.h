@@ -76,7 +76,11 @@ typedef struct {
 } ConfAppKeyOptions;
 
 STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does not match sizeof (enum) in this environment");
-// #define gConfAppResetGuid gEfiCallerIdGuid
+
+typedef struct {
+  GUID    ResetGuid;
+} RESET_GUID_CONFAPP_RESET_DATA;
+
 #pragma pack (pop)
 
 /**
