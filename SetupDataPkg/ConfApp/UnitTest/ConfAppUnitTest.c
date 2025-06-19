@@ -370,8 +370,9 @@ ConfAppEntrySelect1 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -396,12 +397,10 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -427,8 +426,8 @@ ConfAppEntrySelect2 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -453,12 +452,10 @@ ConfAppEntrySelect2 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -484,8 +481,8 @@ ConfAppEntrySelect3 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -510,12 +507,10 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -543,7 +538,7 @@ ConfAppEntrySelect4 (
 {
   EFI_KEY_DATA              KeyData1;
   EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -568,12 +563,10 @@ ConfAppEntrySelect4 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -599,9 +592,10 @@ ConfAppEntrySelectH (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
-  EFI_KEY_DATA  KeyData3;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA              KeyData3;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -629,12 +623,10 @@ ConfAppEntrySelectH (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -660,8 +652,9 @@ ConfAppEntrySelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -683,13 +676,10 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
-
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
   return UNIT_TEST_PASSED;
 }
 
@@ -714,9 +704,10 @@ ConfAppEntrySelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
-  EFI_KEY_DATA  KeyData3;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA              KeyData3;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -742,12 +733,10 @@ ConfAppEntrySelectOther (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -773,8 +762,9 @@ ConfAppEntryMfg (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  EFI_STATUS                Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -796,12 +786,10 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // will_return (ResetCold, &JumpBuf);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
