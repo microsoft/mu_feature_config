@@ -39,7 +39,7 @@
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
 extern POLICY_PROTOCOL                    *mPolicyProtocol;
-
+extern volatile BOOLEAN                   gResetCalled;
 typedef struct {
   UINTN    Tag;
   UINT8    *Data;
@@ -199,31 +199,6 @@ Print (
   return Ret;
 }
 
-STATIC
-VOID
-EFIAPI
-MockResetSystem (
-  IN EFI_RESET_TYPE  ResetType,
-  IN EFI_STATUS      ResetStatus,
-  IN UINTN           DataSize,
-  IN VOID            *ResetData OPTIONAL
-  )
-{
-  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
-
-  check_expected (ResetType);
-
-  ASSERT (FALSE);
-  return;
-}
-
-///
-/// Mock version of the UEFI Runtime Services Table
-///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .ResetSystem = MockResetSystem,
-};
-
 /**
   Mocked version of GetTime.
 
@@ -315,7 +290,7 @@ MockLocateProtocol (
   OUT VOID      **Interface
   )
 {
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  assert_non_null (Protocol);
   // Check that this is the right protocol being located
   check_expected_ptr (Protocol);
 
@@ -650,10 +625,6 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-<<<<<<< HEAD
-=======
-  // will_return (ResetCold, &JumpBuf);
->>>>>>> dee0430 (Added gRT->ResetSystem for ResetCold in source and UnitTest files)
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = SetupConfMgr ();
@@ -753,10 +724,6 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-<<<<<<< HEAD
-=======
-  // will_return (ResetCold, &JumpBuf);
->>>>>>> dee0430 (Added gRT->ResetSystem for ResetCold in source and UnitTest files)
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = SetupConfMgr ();
