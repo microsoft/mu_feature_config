@@ -278,6 +278,7 @@ ApplySettings (
   UINTN       ValueSize;
   UINT8       *ByteArray = NULL;
   CONST VOID  *SetValue  = NULL;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   //
   // Create Node List from input
@@ -480,6 +481,7 @@ ProcessSvdUsbInput (
   CHAR16      *FileName;
   CHAR8       *XmlString;
   UINTN       XmlStringSize;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   FileName  = NULL;
   XmlString = NULL;
@@ -557,6 +559,7 @@ ProcessSvdSerialInput (
 {
   EFI_STATUS  Status        = EFI_SUCCESS;
   CHAR8       *TempAsciiStr = NULL;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   // Simple resizable array and store them at mConfDataBuffer
   if (mConfDataBuffer == NULL) {
