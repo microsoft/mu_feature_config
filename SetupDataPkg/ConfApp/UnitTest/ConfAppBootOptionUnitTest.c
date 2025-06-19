@@ -107,6 +107,31 @@ EfiBootManagerConnectAll (
   return;
 }
 
+STATIC
+VOID
+EFIAPI
+MockResetSystem (
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
+  )
+{
+  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
+
+  check_expected (ResetType);
+
+  ASSERT (FALSE);
+  return;
+}
+
+///
+/// Mock version of the UEFI Runtime Services Table
+///
+EFI_RUNTIME_SERVICES  MockRuntime = {
+  .ResetSystem = MockResetSystem,
+};
+
 /**
   Mock version of EfiBootManagerGetLoadOptions.
 
@@ -453,7 +478,8 @@ ConfAppBootOptSelectOne (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   if (!SetJump (&JumpBuf)) {
     BootOptionMgr ();
@@ -526,7 +552,8 @@ ConfAppBootOptSelectMore (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
+  // will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   if (!SetJump (&JumpBuf)) {
     BootOptionMgr ();

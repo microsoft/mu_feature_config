@@ -271,7 +271,9 @@ SecureBootMgr (
       ExitSubRoutine ();
       break;
     case SecureBootConfChange:
-      ResetCold ();
+      // Prepare ResetData GUID
+      CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+      gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
       // Should not be here
       CpuDeadLoop ();
       break;
