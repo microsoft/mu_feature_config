@@ -107,31 +107,6 @@ EfiBootManagerConnectAll (
   return;
 }
 
-STATIC
-VOID
-EFIAPI
-MockResetSystem (
-  IN EFI_RESET_TYPE  ResetType,
-  IN EFI_STATUS      ResetStatus,
-  IN UINTN           DataSize,
-  IN VOID            *ResetData OPTIONAL
-  )
-{
-  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
-
-  check_expected (ResetType);
-
-  ASSERT (FALSE);
-  return;
-}
-
-///
-/// Mock version of the UEFI Runtime Services Table
-///
-EFI_RUNTIME_SERVICES  MockRuntime = {
-  .ResetSystem = MockResetSystem,
-};
-
 /**
   Mock version of EfiBootManagerGetLoadOptions.
 
