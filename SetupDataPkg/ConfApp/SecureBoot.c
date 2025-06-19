@@ -186,6 +186,7 @@ SecureBootMgr (
 {
   EFI_STATUS    Status = EFI_SUCCESS;
   EFI_KEY_DATA  KeyData;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   switch (mSecBootState) {
     case SecureBootInit:
