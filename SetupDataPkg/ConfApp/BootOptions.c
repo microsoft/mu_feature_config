@@ -137,6 +137,7 @@ BootOptionMgr (
 {
   EFI_STATUS    Status = EFI_SUCCESS;
   EFI_KEY_DATA  KeyData;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   switch (mBootOptState) {
     case BootOptInit:
@@ -176,7 +177,9 @@ BootOptionMgr (
       DEBUG ((DEBUG_INFO, "Boot to Option %d - %s now!!!\n", mOpCandidate, mBootOptions[mOpCandidate].Description));
       EfiBootManagerBoot (mBootOptions + mOpCandidate);
       // If we ever come back, we should directly reboot since the state of system might have changed...
-      ResetCold ();
+      // Prepare ResetData GUID
+      CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+      gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
       CpuDeadLoop ();
       break;
     case BootOptExit:
