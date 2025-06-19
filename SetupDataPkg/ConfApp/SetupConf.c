@@ -455,7 +455,9 @@ EXIT:
   }
 
   if (ResetRequired) {
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
   }
 
   return Status;
@@ -525,7 +527,9 @@ ProcessSvdUsbInput (
     //
     Print (L"Applied %s for configuration update. Rebooting now!!!\n", FileName);
 
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
     // Should not be here
     CpuDeadLoop ();
   }
@@ -600,7 +604,9 @@ ProcessSvdSerialInput (
       goto Exit;
     }
 
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
     // Should not be here
     CpuDeadLoop ();
   } else {
