@@ -167,6 +167,22 @@ Print (
 }
 
 /**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
+}
+
+/**
   Mocked version of LocateProtocol.
 
   @param[in]  Protocol          Provides the protocol to search for.
