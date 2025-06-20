@@ -77,7 +77,7 @@ typedef struct {
 
 STATIC_ASSERT (sizeof (UINT32) == sizeof (ConfState_t), "sizeof (UINT32) does not match sizeof (enum) in this environment");
 
-extern EFI_GUID gConfAppResetGuid;
+extern EFI_GUID  gConfAppResetGuid;
 typedef struct {
   GUID    ResetGuid;
 } RESET_GUID_CONFAPP_RESET_DATA;
