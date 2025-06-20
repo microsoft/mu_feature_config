@@ -135,8 +135,8 @@ BootOptionMgr (
   VOID
   )
 {
-  EFI_STATUS    Status = EFI_SUCCESS;
-  EFI_KEY_DATA  KeyData;
+  EFI_STATUS                     Status = EFI_SUCCESS;
+  EFI_KEY_DATA                   KeyData;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   switch (mBootOptState) {
