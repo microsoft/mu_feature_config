@@ -364,6 +364,7 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -387,6 +388,8 @@ ConfAppEntrySelect1 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
