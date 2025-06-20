@@ -207,6 +207,22 @@ ResetCold (
 }
 
 /**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
+}
+
+/**
   Mocked version of MockWaitForEvent.
 
   @param[in]   NumberOfEvents   The number of events in the Event array.
