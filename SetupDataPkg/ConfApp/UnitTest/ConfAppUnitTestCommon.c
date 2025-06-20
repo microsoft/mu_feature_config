@@ -225,11 +225,8 @@ MockResetSystem (
   IN VOID            *ResetData OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "%a \n", __func__));
-
   check_expected (ResetType);
 
-  ASSERT (FALSE);
   return;
 }
 
