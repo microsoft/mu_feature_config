@@ -18,7 +18,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 
-static int readKeyCount = 0;
+static int  readKeyCount = 0;
 
 EFI_STATUS
 EFIAPI
@@ -143,7 +143,8 @@ MockReadKey (
   )
 {
   EFI_KEY_DATA  *MockKey;
-  readKeyCount++; 
+
+  readKeyCount++;
 
   assert_ptr_equal (This, &MockSimpleInput);
   assert_non_null (KeyData);
