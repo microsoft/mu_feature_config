@@ -345,9 +345,9 @@ ConfAppEntrySelect1 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -401,8 +401,8 @@ ConfAppEntrySelect2 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -456,8 +456,8 @@ ConfAppEntrySelect3 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -511,9 +511,9 @@ ConfAppEntrySelect4 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -567,10 +567,10 @@ ConfAppEntrySelectH (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_KEY_DATA              KeyData3;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA  KeyData3;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -627,9 +627,9 @@ ConfAppEntrySelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -679,10 +679,10 @@ ConfAppEntrySelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_KEY_DATA              KeyData3;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA  KeyData3;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -737,9 +737,9 @@ ConfAppEntryMfg (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_STATUS                Status;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 

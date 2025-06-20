@@ -274,10 +274,10 @@ ApplySettings (
   UINTN       Lsv           = 0;
   BOOLEAN     ResetRequired = FALSE;
 
-  UINTN       b64Size;
-  UINTN       ValueSize;
-  UINT8       *ByteArray = NULL;
-  CONST VOID  *SetValue  = NULL;
+  UINTN                          b64Size;
+  UINTN                          ValueSize;
+  UINT8                          *ByteArray = NULL;
+  CONST VOID                     *SetValue  = NULL;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   //
@@ -477,10 +477,10 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS  Status = EFI_NOT_FOUND;
-  CHAR16      *FileName;
-  CHAR8       *XmlString;
-  UINTN       XmlStringSize;
+  EFI_STATUS                     Status = EFI_NOT_FOUND;
+  CHAR16                         *FileName;
+  CHAR8                          *XmlString;
+  UINTN                          XmlStringSize;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   FileName  = NULL;
@@ -557,8 +557,8 @@ ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS  Status        = EFI_SUCCESS;
-  CHAR8       *TempAsciiStr = NULL;
+  EFI_STATUS                     Status        = EFI_SUCCESS;
+  CHAR8                          *TempAsciiStr = NULL;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   // Simple resizable array and store them at mConfDataBuffer

@@ -567,8 +567,8 @@ ConfAppSetupConfSelectUsb (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
 
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
@@ -654,10 +654,10 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
-  UINTN                     Index;
-  CHAR8                     *KnowGoodXml;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+  UINTN         Index;
+  CHAR8         *KnowGoodXml;
 
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
