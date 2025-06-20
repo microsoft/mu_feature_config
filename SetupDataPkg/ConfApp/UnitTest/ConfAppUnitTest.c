@@ -375,7 +375,7 @@ ConfAppEntrySelect1 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '1';
@@ -423,6 +423,7 @@ ConfAppEntrySelect2 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -433,7 +434,7 @@ ConfAppEntrySelect2 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '2';
@@ -446,6 +447,8 @@ ConfAppEntrySelect2 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -479,6 +482,7 @@ ConfAppEntrySelect3 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -489,7 +493,7 @@ ConfAppEntrySelect3 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '3';
@@ -502,6 +506,8 @@ ConfAppEntrySelect3 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -545,7 +551,7 @@ ConfAppEntrySelect4 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '4';
@@ -592,6 +598,7 @@ ConfAppEntrySelectH (
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -602,14 +609,14 @@ ConfAppEntrySelectH (
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'h';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = CHAR_NULL;
   KeyData2.Key.ScanCode    = SCAN_ESC;
@@ -618,6 +625,8 @@ ConfAppEntrySelectH (
   KeyData3.Key.UnicodeChar = 'y';
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -651,6 +660,7 @@ ConfAppEntrySelectEsc (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -661,7 +671,7 @@ ConfAppEntrySelectEsc (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -671,6 +681,8 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -704,6 +716,7 @@ ConfAppEntrySelectOther (
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -714,7 +727,7 @@ ConfAppEntrySelectOther (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'q';
@@ -728,6 +741,8 @@ ConfAppEntrySelectOther (
   KeyData3.Key.UnicodeChar = 'y';
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -761,6 +776,7 @@ ConfAppEntryMfg (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -771,7 +787,7 @@ ConfAppEntryMfg (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -781,6 +797,8 @@ ConfAppEntryMfg (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
