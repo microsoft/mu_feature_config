@@ -364,7 +364,11 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
-  EFI_KEY_DATA  DummyKey = { 0 };
+  EFI_KEY_DATA  DummyKey     = { 0 };
+  static int    readKeyCount = 0;
+
+  readKeyCount++;
+  DEBUG ((DEBUG_INFO, "MockReadKey called %d times\n", readKeyCount));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
