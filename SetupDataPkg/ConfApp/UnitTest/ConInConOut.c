@@ -17,6 +17,8 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseMemoryLib.h>
 
+static int readKeyCount = 0;
+
 EFI_STATUS
 EFIAPI
 MockSetAttribute (
@@ -140,6 +142,7 @@ MockReadKey (
   )
 {
   EFI_KEY_DATA  *MockKey;
+  readKeyCount++; 
 
   assert_ptr_equal (This, &MockSimpleInput);
   assert_non_null (KeyData);
@@ -150,6 +153,7 @@ MockReadKey (
   }
 
   CopyMem (KeyData, MockKey, sizeof (EFI_KEY_DATA));
+  DEBUG ((DEBUG_INFO, "MockReadKey called %d times\n", readKeyCount));
   return EFI_SUCCESS;
 }
 
