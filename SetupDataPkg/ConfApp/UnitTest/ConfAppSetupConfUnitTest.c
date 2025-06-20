@@ -200,6 +200,22 @@ Print (
 }
 
 /**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
+}
+
+/**
   Mocked version of GetTime.
 
   @param[out]  Time             A pointer to storage to receive a snapshot of the current time.
