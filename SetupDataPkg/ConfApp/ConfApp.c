@@ -325,8 +325,8 @@ ConfAppEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS    Status;
-  EFI_KEY_DATA  KeyData;
+  EFI_STATUS                     Status;
+  EFI_KEY_DATA                   KeyData;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
