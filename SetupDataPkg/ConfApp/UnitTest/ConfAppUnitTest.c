@@ -389,9 +389,10 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (MockReadKey, &DummyKey);
-  will_return (MockReadKey, &DummyKey);
-  will_return (MockReadKey, &DummyKey);
+  // will_return (MockReadKey, &DummyKey);
+  // will_return (MockReadKey, &DummyKey);
+  // will_return (MockReadKey, &DummyKey);
+  will_return_count (MockReadKey, &DummyKey, 4);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
