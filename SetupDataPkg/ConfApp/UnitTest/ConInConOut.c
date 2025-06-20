@@ -16,6 +16,7 @@
 #include <Uefi.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
 
 static int readKeyCount = 0;
 
