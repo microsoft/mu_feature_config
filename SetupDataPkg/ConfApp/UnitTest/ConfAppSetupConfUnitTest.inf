@@ -69,6 +69,7 @@
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
   gZeroGuid
+  gConfAppResetGuid
 
 [BuildOptions]
   MSFT:*_*_*_CC_FLAGS = /DCpuDeadLoop=MockCpuDeadLoop /D UNIT_TEST_ENV
