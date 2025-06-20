@@ -507,8 +507,7 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  EFI_KEY_DATA  DummyKey = { 0 };
-
+  will_return (MockReadKey, &DummyKey);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = ConfAppEntry (NULL, NULL);
