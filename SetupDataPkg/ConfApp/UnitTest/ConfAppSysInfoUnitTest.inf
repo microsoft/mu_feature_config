@@ -56,3 +56,4 @@
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid
