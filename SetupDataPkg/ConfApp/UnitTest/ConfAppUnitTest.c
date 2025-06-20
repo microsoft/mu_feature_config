@@ -390,6 +390,7 @@ ConfAppEntrySelect1 (
   will_return (MockReadKey, &KeyData2);
 
   will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -449,6 +450,7 @@ ConfAppEntrySelect2 (
   will_return (MockReadKey, &KeyData2);
 
   will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -507,6 +509,7 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  will_return (MockReadKey, &DummyKey);
   will_return (MockReadKey, &DummyKey);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -626,6 +629,7 @@ ConfAppEntrySelectH (
   will_return (MockReadKey, &KeyData3);
 
   will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -681,6 +685,7 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  will_return (MockReadKey, &DummyKey);
   will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
@@ -742,6 +747,7 @@ ConfAppEntrySelectOther (
   will_return (MockReadKey, &KeyData3);
 
   will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
@@ -797,6 +803,7 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  will_return (MockReadKey, &DummyKey);
   will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
