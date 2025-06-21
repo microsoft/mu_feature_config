@@ -394,7 +394,7 @@ ConfAppEntrySelect1 (
   // will_return (MockReadKey, &DummyKey);
   // will_return (MockReadKey, &DummyKey);
   // will_return (MockReadKey, &DummyKey);
-  will_return_count (MockReadKey, &DummyKey, 4);
+  will_return_always (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
 
