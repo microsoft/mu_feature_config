@@ -427,7 +427,7 @@ ConfAppEntrySelect2 (
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
   EFI_KEY_DATA  DummyKey = { 0 };
-
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
