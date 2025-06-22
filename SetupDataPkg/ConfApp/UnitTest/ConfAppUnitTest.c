@@ -364,7 +364,8 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
-  EFI_KEY_DATA  DummyKey = { 0 };
+
+  // EFI_KEY_DATA  DummyKey = { 0 };
 
   // static int    readKeyCount = 0;
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
