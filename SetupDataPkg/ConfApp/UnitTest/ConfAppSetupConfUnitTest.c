@@ -200,23 +200,6 @@ Print (
 }
 
 /**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
-VOID
-EFIAPI
-ResetCold (
-  VOID
-  )
-{
-}
-
-/**
  * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
  * This function immediately returns instead of causing an infinite loop,
  * allowing tests to run without hanging the system.
@@ -658,7 +641,10 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  SetupConfMgr ();
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -754,7 +740,10 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  SetupConfMgr ();
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = SetupConfMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }

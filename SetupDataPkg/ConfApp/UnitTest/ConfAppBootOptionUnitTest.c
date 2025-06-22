@@ -485,7 +485,10 @@ ConfAppBootOptSelectOne (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  BootOptionMgr ();
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -553,7 +556,10 @@ ConfAppBootOptSelectMore (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  BootOptionMgr ();
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }

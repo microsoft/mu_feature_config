@@ -215,11 +215,27 @@ MockGetNextVariableName (
   return EFI_SUCCESS;
 }
 
+STATIC
+VOID
+EFIAPI
+MockResetSystem (
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
+  )
+{
+  check_expected (ResetType);
+
+  return;
+}
+
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
 EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetVariable         = MockGetVariable,
   .SetVariable         = MockSetVariable,
-  .GetNextVariableName = MockGetNextVariableName
+  .GetNextVariableName = MockGetNextVariableName,
+  .ResetSystem         = MockResetSystem,
 };

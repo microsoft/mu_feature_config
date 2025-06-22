@@ -167,24 +167,6 @@ Print (
 }
 
 /**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
-VOID
-EFIAPI
-ResetCold (
-  VOID
-  )
-{
-  MainStateMachineRunning = FALSE;
-}
-
-/**
  * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
  * This function immediately returns instead of causing an infinite loop,
  * allowing tests to run without hanging the system.
@@ -381,17 +363,23 @@ ConfAppEntrySelect1 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+
+  // EFI_KEY_DATA  DummyKey = { 0 };
+
+  // static int    readKeyCount = 0;
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '1';
@@ -404,8 +392,14 @@ ConfAppEntrySelect1 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
+  will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  // will_return (MockReadKey, &DummyKey);
+
+  expect_any_count (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -433,17 +427,20 @@ ConfAppEntrySelect2 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '2';
@@ -457,7 +454,13 @@ ConfAppEntrySelect2 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
+
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -485,20 +488,80 @@ ConfAppEntrySelect3 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '3';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (BootOptionMgr, MainExit);
+  will_return (BootOptionMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 4.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect4 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+
+  will_return_always (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '4';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
@@ -509,7 +572,10 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -538,6 +604,8 @@ ConfAppEntrySelectH (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -548,14 +616,14 @@ ConfAppEntrySelectH (
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'h';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = CHAR_NULL;
   KeyData2.Key.ScanCode    = SCAN_ESC;
@@ -565,7 +633,13 @@ ConfAppEntrySelectH (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  ConfAppEntry (NULL, NULL);
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
+
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -593,17 +667,19 @@ ConfAppEntrySelectEsc (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -614,8 +690,13 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
   return UNIT_TEST_PASSED;
 }
 
@@ -643,17 +724,19 @@ ConfAppEntrySelectOther (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'q';
@@ -668,7 +751,13 @@ ConfAppEntrySelectOther (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  ConfAppEntry (NULL, NULL);
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
+
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -696,17 +785,19 @@ ConfAppEntryMfg (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  DummyKey = { 0 };
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -717,7 +808,13 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  ConfAppEntry (NULL, NULL);
+  will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
+
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }

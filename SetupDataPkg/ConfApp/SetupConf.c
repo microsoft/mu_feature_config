@@ -274,10 +274,11 @@ ApplySettings (
   UINTN       Lsv           = 0;
   BOOLEAN     ResetRequired = FALSE;
 
-  UINTN       b64Size;
-  UINTN       ValueSize;
-  UINT8       *ByteArray = NULL;
-  CONST VOID  *SetValue  = NULL;
+  UINTN                          b64Size;
+  UINTN                          ValueSize;
+  UINT8                          *ByteArray = NULL;
+  CONST VOID                     *SetValue  = NULL;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   //
   // Create Node List from input
@@ -455,7 +456,9 @@ EXIT:
   }
 
   if (ResetRequired) {
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
   }
 
   return Status;
@@ -474,10 +477,11 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS  Status = EFI_NOT_FOUND;
-  CHAR16      *FileName;
-  CHAR8       *XmlString;
-  UINTN       XmlStringSize;
+  EFI_STATUS                     Status = EFI_NOT_FOUND;
+  CHAR16                         *FileName;
+  CHAR8                          *XmlString;
+  UINTN                          XmlStringSize;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   FileName  = NULL;
   XmlString = NULL;
@@ -525,7 +529,9 @@ ProcessSvdUsbInput (
     //
     Print (L"Applied %s for configuration update. Rebooting now!!!\n", FileName);
 
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
     // Should not be here
     CpuDeadLoop ();
   }
@@ -551,8 +557,9 @@ ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS  Status        = EFI_SUCCESS;
-  CHAR8       *TempAsciiStr = NULL;
+  EFI_STATUS                     Status        = EFI_SUCCESS;
+  CHAR8                          *TempAsciiStr = NULL;
+  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   // Simple resizable array and store them at mConfDataBuffer
   if (mConfDataBuffer == NULL) {
@@ -600,7 +607,9 @@ ProcessSvdSerialInput (
       goto Exit;
     }
 
-    ResetCold ();
+    // Prepare ResetData GUID
+    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
+    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
     // Should not be here
     CpuDeadLoop ();
   } else {
