@@ -393,6 +393,8 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
   will_return (MockReadKey, &KeyData2);
+  will_return (MockReadKey, &KeyData2);
+
 
   // will_return (MockReadKey, &DummyKey);
 
