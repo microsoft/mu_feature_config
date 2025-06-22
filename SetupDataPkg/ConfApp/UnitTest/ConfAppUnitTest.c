@@ -396,7 +396,8 @@ ConfAppEntrySelect1 (
 
   // will_return (MockReadKey, &DummyKey);
 
-  expect_any_count (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = ConfAppEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
