@@ -400,6 +400,7 @@ ConfAppEntrySelect1 (
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
   expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = ConfAppEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
