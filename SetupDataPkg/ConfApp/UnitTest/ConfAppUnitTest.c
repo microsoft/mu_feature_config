@@ -415,7 +415,7 @@ ConfAppEntrySelect1 (
   if (SetJump (&JumpBuf) == 0) {
     ConfAppEntry (NULL, NULL);
     // If we get here, reset was not called as expected
-    UT_ASSERT_TRUE (FALSE, "ResetSystem was not called!");
+    UT_ASSERT_TRUE (FALSE);
   }
 
   // If longjmp occurs, test passes
