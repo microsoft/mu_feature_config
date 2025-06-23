@@ -377,6 +377,7 @@ ConfAppEntry (
         // Wait for key stroke event.
         //
         Status = PollKeyStroke (FALSE, 0, &KeyData);
+        Print (L"Under MainWait\n");
         if (Status == EFI_NOT_READY) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
@@ -394,6 +395,7 @@ ConfAppEntry (
 
         break;
       case SystemInfo:
+        Print (L"Under SystemInfo\n");
         Status = SysInfoMgr ();
         break;
       case BootOption:
