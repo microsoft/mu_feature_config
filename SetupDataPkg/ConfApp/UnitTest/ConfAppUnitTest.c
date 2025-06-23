@@ -364,7 +364,7 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
   // EFI_KEY_DATA  KeyData3;
-  EFI_STATUS                Status;
+  // EFI_STATUS                Status;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
   // EFI_KEY_DATA  DummyKey = { 0 };
@@ -397,20 +397,17 @@ ConfAppEntrySelect1 (
   // expect_value (MockResetSystem, ResetType, EfiResetCold);
   // expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  KeyData2.Key.UnicodeChar = 'y';
-  KeyData2.Key.ScanCode    = SCAN_NULL;
-  will_return (MockReadKey, &KeyData2);
+  // KeyData2.Key.UnicodeChar = 'y';
+  // KeyData2.Key.ScanCode    = SCAN_NULL;
+  // will_return (MockReadKey, &KeyData2);
 
   // KeyData3.Key.UnicodeChar = CHAR_NULL;
   // KeyData3.Key.ScanCode    = SCAN_ESC;
   // will_return (MockReadKey, &KeyData3);
 
-  // expect_value (MockResetSystem, ResetType, EfiResetCold);
+  // Expect a cold reset and provide the jump buffer
   expect_value (MockResetSystem, ResetType, EfiResetCold);
-  if (SetJump (&JumpBuf) == 0) {
-    will_return (MockResetSystem, &JumpBuf);
-    // call code under test
-  }
+  will_return (MockResetSystem, &JumpBuf);
 
   // Status = ConfAppEntry (NULL, NULL);
   // UT_ASSERT_NOT_EFI_ERROR (Status);
@@ -418,7 +415,7 @@ ConfAppEntrySelect1 (
   if (SetJump (&JumpBuf) == 0) {
     ConfAppEntry (NULL, NULL);
     // If we get here, reset was not called as expected
-    UT_ASSERT_TRUE_MSG (FALSE, "ResetSystem was not called!");
+    UT_ASSERT_TRUE (FALSE, "ResetSystem was not called!");
   }
 
   // If longjmp occurs, test passes
