@@ -363,9 +363,10 @@ ConfAppEntrySelect1 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA  KeyData3;
   EFI_STATUS    Status;
 
-  EFI_KEY_DATA  DummyKey = { 0 };
+  // EFI_KEY_DATA  DummyKey = { 0 };
 
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
 
@@ -391,10 +392,10 @@ ConfAppEntrySelect1 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
-  // will_return (MockReadKey, &KeyData2);
-  // will_return (MockReadKey, &KeyData2);
 
-  will_return (MockReadKey, &DummyKey);
+  KeyData3.Key.UnicodeChar = CHAR_NULL;
+  KeyData3.Key.ScanCode    = SCAN_ESC;
+  will_return (MockReadKey, &KeyData3);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
   // expect_value (MockResetSystem, ResetType, EfiResetCold);
