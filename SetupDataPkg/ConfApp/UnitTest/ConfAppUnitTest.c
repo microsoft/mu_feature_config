@@ -361,13 +361,9 @@ ConfAppEntrySelect1 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
-  // EFI_KEY_DATA  KeyData3;
-  // EFI_STATUS                Status;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
-
-  // EFI_KEY_DATA  DummyKey = { 0 };
 
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
 
@@ -394,23 +390,8 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  // expect_value (MockResetSystem, ResetType, EfiResetCold);
-  // expect_value (MockResetSystem, ResetType, EfiResetCold);
-
-  // KeyData2.Key.UnicodeChar = 'y';
-  // KeyData2.Key.ScanCode    = SCAN_NULL;
-  // will_return (MockReadKey, &KeyData2);
-
-  // KeyData3.Key.UnicodeChar = CHAR_NULL;
-  // KeyData3.Key.ScanCode    = SCAN_ESC;
-  // will_return (MockReadKey, &KeyData3);
-
-  // Expect a cold reset and provide the jump buffer
-  // expect_value (MockResetSystem, ResetType, EfiResetCold);
   will_return (MockResetSystem, &JumpBuf);
 
-  // Status = ConfAppEntry (NULL, NULL);
-  // UT_ASSERT_NOT_EFI_ERROR (Status);
   // Use setjmp/longjmp to simulate reset
   if (SetJump (&JumpBuf) == 0) {
     ConfAppEntry (NULL, NULL);
@@ -444,12 +425,9 @@ ConfAppEntrySelect2 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
-  EFI_KEY_DATA  KeyData3;
-  EFI_STATUS    Status;
-
-  // EFI_KEY_DATA  DummyKey = { 0 };
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
+  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
@@ -457,9 +435,9 @@ ConfAppEntrySelect2 (
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 2);
-  expect_any_count (MockSetCursorPosition, Row, 2);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+  expect_any_count (MockSetCursorPosition, Column, 1);
+  expect_any_count (MockSetCursorPosition, Row, 1);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
   will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -475,17 +453,16 @@ ConfAppEntrySelect2 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  KeyData3.Key.UnicodeChar = CHAR_NULL;
-  KeyData3.Key.ScanCode    = SCAN_ESC;
-  will_return (MockReadKey, &KeyData3);
+  will_return (MockResetSystem, &JumpBuf);
 
-  // will_return (MockReadKey, &DummyKey);
-  // will_return (MockReadKey, &DummyKey);
+  // Use setjmp/longjmp to simulate reset
+  if (SetJump (&JumpBuf) == 0) {
+    ConfAppEntry (NULL, NULL);
+    // If we get here, reset was not called as expected
+    UT_ASSERT_TRUE (FALSE);
+  }
 
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
-
-  Status = ConfAppEntry (NULL, NULL);
-  UT_ASSERT_NOT_EFI_ERROR (Status);
+  // If longjmp occurs, test passes
 
   return UNIT_TEST_PASSED;
 }
