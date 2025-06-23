@@ -225,8 +225,12 @@ MockResetSystem (
   IN VOID            *ResetData OPTIONAL
   )
 {
-  check_expected (ResetType);
+  static int  readKeyCountReset = 0;
 
+  check_expected (ResetType);
+  readKeyCountReset++;
+
+  DEBUG ((DEBUG_INFO, "readKeyCountReset called %d times\n", readKeyCountReset));
   return;
 }
 
