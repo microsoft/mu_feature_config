@@ -394,6 +394,7 @@ ConfAppEntrySelect1 (
   will_return (MockReadKey, &KeyData2);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
