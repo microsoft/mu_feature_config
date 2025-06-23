@@ -247,7 +247,7 @@ MockResetSystem (
   // For example, use longjmp to exit the test as before:
   BASE_LIBRARY_JUMP_BUFFER  *JumpBuf = (BASE_LIBRARY_JUMP_BUFFER *)mock ();
 
-  longjmp (JumpBuf, 1);
+  longjmp (&JumpBuf, 1);
 }
 
 ///
