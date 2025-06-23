@@ -363,7 +363,7 @@ ConfAppEntrySelect1 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
-  EFI_KEY_DATA  KeyData3;
+  // EFI_KEY_DATA  KeyData3;
   EFI_STATUS    Status;
 
   // EFI_KEY_DATA  DummyKey = { 0 };
