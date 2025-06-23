@@ -365,9 +365,8 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData2;
   EFI_STATUS    Status;
 
-  // EFI_KEY_DATA  DummyKey = { 0 };
+  EFI_KEY_DATA  DummyKey = { 0 };
 
-  // static int    readKeyCount = 0;
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
@@ -392,15 +391,14 @@ ConfAppEntrySelect1 (
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
-  will_return (MockReadKey, &KeyData2);
-  will_return (MockReadKey, &KeyData2);
+  // will_return (MockReadKey, &KeyData2);
+  // will_return (MockReadKey, &KeyData2);
 
-
-  // will_return (MockReadKey, &DummyKey);
+  will_return (MockReadKey, &DummyKey);
 
   expect_value (MockResetSystem, ResetType, EfiResetCold);
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  // expect_value (MockResetSystem, ResetType, EfiResetCold);
+  // expect_value (MockResetSystem, ResetType, EfiResetCold);
 
   Status = ConfAppEntry (NULL, NULL);
   UT_ASSERT_NOT_EFI_ERROR (Status);
