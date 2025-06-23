@@ -488,8 +488,8 @@ ConfAppEntrySelect3 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA  KeyData1;
-  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA              KeyData1;
+  EFI_KEY_DATA              KeyData2;
   BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
 
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect3 called \n"));
@@ -528,6 +528,7 @@ ConfAppEntrySelect3 (
     // If we get here, reset was not called as expected
     UT_ASSERT_TRUE (FALSE);
   }
+
   // If longjmp occurs, test passes
 
   return UNIT_TEST_PASSED;
