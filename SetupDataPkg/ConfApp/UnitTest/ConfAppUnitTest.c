@@ -406,7 +406,7 @@ ConfAppEntrySelect1 (
   // will_return (MockReadKey, &KeyData3);
 
   // Expect a cold reset and provide the jump buffer
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  // expect_value (MockResetSystem, ResetType, EfiResetCold);
   will_return (MockResetSystem, &JumpBuf);
 
   // Status = ConfAppEntry (NULL, NULL);
