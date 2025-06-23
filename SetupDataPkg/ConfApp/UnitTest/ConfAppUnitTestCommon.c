@@ -215,7 +215,25 @@ MockGetNextVariableName (
   return EFI_SUCCESS;
 }
 
-STATIC
+// STATIC
+// VOID
+// EFIAPI
+// MockResetSystem (
+//   IN EFI_RESET_TYPE  ResetType,
+//   IN EFI_STATUS      ResetStatus,
+//   IN UINTN           DataSize,
+//   IN VOID            *ResetData OPTIONAL
+//   )
+// {
+//   static int  readKeyCountReset = 0;
+
+//   check_expected (ResetType);
+//   readKeyCountReset++;
+
+//   DEBUG ((DEBUG_INFO, "readKeyCountReset called %d times\n", readKeyCountReset));
+//   return;
+// }
+
 VOID
 EFIAPI
 MockResetSystem (
@@ -225,13 +243,11 @@ MockResetSystem (
   IN VOID            *ResetData OPTIONAL
   )
 {
-  static int  readKeyCountReset = 0;
+  // You can use a longjmp or set a flag to simulate the reset
+  // For example, use longjmp to exit the test as before:
+  BASE_LIBRARY_JUMP_BUFFER  *JumpBuf = (BASE_LIBRARY_JUMP_BUFFER *)mock ();
 
-  check_expected (ResetType);
-  readKeyCountReset++;
-
-  DEBUG ((DEBUG_INFO, "readKeyCountReset called %d times\n", readKeyCountReset));
-  return;
+  longjmp (JumpBuf, 1);
 }
 
 ///
