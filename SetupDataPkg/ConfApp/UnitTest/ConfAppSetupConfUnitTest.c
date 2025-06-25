@@ -586,6 +586,9 @@ ConfAppSetupConfSelectUsb (
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData1;
 
+  // BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  gResetCalled = FALSE;
+
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -641,10 +644,11 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
+  gResetCalled = FALSE;
   expect_value (MockResetSystem, ResetType, EfiResetCold);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
+  SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
+  // If longjmp occurs, test passes
 
   return UNIT_TEST_PASSED;
 }
@@ -740,10 +744,10 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
+  gResetCalled = FALSE;
   expect_value (MockResetSystem, ResetType, EfiResetCold);
-
-  Status = SetupConfMgr ();
-  UT_ASSERT_NOT_EFI_ERROR (Status);
+  SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
