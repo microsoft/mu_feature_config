@@ -16,7 +16,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/UefiLib.h>
-#include <Library/ResetSystemLib.h>
+// #include <Library/ResetSystemLib.h>
 
 #include "ConfApp.h"
 

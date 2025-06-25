@@ -19,7 +19,6 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiLib.h>
-#include <Library/ResetSystemLib.h>
 #include <Library/XmlTreeLib.h>
 #include <Library/XmlTreeQueryLib.h>
 #include <Library/SvdXmlSettingSchemaSupportLib.h>
