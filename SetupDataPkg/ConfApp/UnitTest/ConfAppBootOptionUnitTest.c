@@ -492,8 +492,6 @@ ConfAppBootOptSelectOne (
   BootOptionMgr ();
   UT_ASSERT_TRUE (gResetCalled);
 
-  // If longjmp occurs, test passes
-
   return UNIT_TEST_PASSED;
 }
 
@@ -565,8 +563,6 @@ ConfAppBootOptSelectMore (
   expect_value (MockResetSystem, ResetType, EfiResetCold);
   BootOptionMgr ();
   UT_ASSERT_TRUE (gResetCalled);
-
-  // If longjmp occurs, test passes
 
   return UNIT_TEST_PASSED;
 }

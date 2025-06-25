@@ -586,7 +586,6 @@ ConfAppSetupConfSelectUsb (
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData1;
 
-  // BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
   gResetCalled = FALSE;
 
   will_return (IsSystemInManufacturingMode, TRUE);
@@ -648,7 +647,6 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockResetSystem, ResetType, EfiResetCold);
   SetupConfMgr ();
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
-  // If longjmp occurs, test passes
 
   return UNIT_TEST_PASSED;
 }

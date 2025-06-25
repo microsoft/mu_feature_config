@@ -36,8 +36,6 @@ extern ConfState_t                        mConfState;
 extern BOOLEAN                            MainStateMachineRunning;
 extern volatile BOOLEAN                   gResetCalled;
 
-// extern EFI_RUNTIME_SERVICES  *gRT;
-
 /**
   Entrypoint of configuration app. This function holds the main state machine for
   console based user interface.
@@ -343,21 +341,6 @@ ConfAppCleanup (
   MainStateMachineRunning = TRUE;
 }
 
-// VOID
-// EFIAPI
-// MockResetSystem1 (
-//   IN EFI_RESET_TYPE  ResetType,
-//   IN EFI_STATUS      ResetStatus,
-//   IN UINTN           DataSize,
-//   IN VOID            *ResetData OPTIONAL
-//   )
-// {
-//   gResetCalled            = TRUE;
-//   MainStateMachineRunning = FALSE; // <-- Add this line to break the main loop
-//   check_expected (ResetType);
-//   return;
-// }
-
 /**
   Unit test for ConfAppEntry of ConfApp when selecting 1.
 
@@ -381,15 +364,7 @@ ConfAppEntrySelect1 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
-
-  // EFI_RUNTIME_SERVICES  MockRuntime = {
-  //   .ResetSystem = MockResetSystem,
-  // };
-
-  // gRT = &MockRuntime;
-
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
-
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -445,12 +420,6 @@ ConfAppEntrySelect2 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
-
-  // EFI_RUNTIME_SERVICES  MockRuntime = {
-  //   .ResetSystem = MockResetSystem1,
-  // };
-
-  // gRT = &MockRuntime;
 
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
