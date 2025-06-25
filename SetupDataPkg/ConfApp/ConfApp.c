@@ -23,7 +23,7 @@
 
 #include "ConfApp.h"
 
-#define MAIN_STATE_OPTIONS  6
+#define MAIN_STATE_OPTIONS  5
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   {
