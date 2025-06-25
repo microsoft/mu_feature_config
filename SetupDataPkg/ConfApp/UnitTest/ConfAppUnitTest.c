@@ -364,6 +364,7 @@ ConfAppEntrySelect1 (
 {
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
+
   DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
