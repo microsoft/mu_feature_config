@@ -43,7 +43,7 @@
   DebugLib
   UnitTestLib
   PrintLib
-  ResetSystemLib
+  #ResetSystemLib
   SecureBootKeyStoreLib
   PerformanceLib
   ConfigSystemModeLib
