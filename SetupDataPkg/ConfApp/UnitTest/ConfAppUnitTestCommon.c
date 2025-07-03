@@ -23,6 +23,9 @@
 
 #include <Library/UnitTestLib.h>
 
+volatile BOOLEAN  gResetCalled = FALSE;
+extern BOOLEAN    MainStateMachineRunning;
+
 /**
   Mock version of EfiSignalEventReadyToBoot.
 
@@ -215,11 +218,27 @@ MockGetNextVariableName (
   return EFI_SUCCESS;
 }
 
+VOID
+EFIAPI
+MockResetSystem (
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
+  )
+{
+  gResetCalled            = TRUE;
+  MainStateMachineRunning = FALSE; // <-- Add this line to break the main loop
+  check_expected (ResetType);
+  return;
+}
+
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
 EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetVariable         = MockGetVariable,
   .SetVariable         = MockSetVariable,
-  .GetNextVariableName = MockGetNextVariableName
+  .GetNextVariableName = MockGetNextVariableName,
+  .ResetSystem         = MockResetSystem,
 };
