@@ -275,9 +275,12 @@ ApplySettings (
 
   UINTN                          b64Size;
   UINTN                          ValueSize;
-  UINT8                          *ByteArray = NULL;
-  CONST VOID                     *SetValue  = NULL;
+  UINT8                          *ByteArray;
+  CONST VOID                     *SetValue;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+
+  ByteArray = NULL;
+  SetValue = NULL;
 
   //
   // Create Node List from input
@@ -476,7 +479,7 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS                     Status = EFI_NOT_FOUND;
+  EFI_STATUS                     Status;
   CHAR16                         *FileName;
   CHAR8                          *XmlString;
   UINTN                          XmlStringSize;
@@ -556,7 +559,7 @@ ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS                     Status        = EFI_SUCCESS;
+  EFI_STATUS                     Status;
   CHAR8                          *TempAsciiStr = NULL;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
