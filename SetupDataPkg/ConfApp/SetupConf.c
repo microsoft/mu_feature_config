@@ -280,7 +280,7 @@ ApplySettings (
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
 
   ByteArray = NULL;
-  SetValue = NULL;
+  SetValue  = NULL;
 
   //
   // Create Node List from input
