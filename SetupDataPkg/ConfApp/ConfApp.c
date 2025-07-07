@@ -419,6 +419,7 @@ ConfAppEntry (
           CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
           gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
           Print (L"reset done...\n");
+          CpuDeadLoop ();
         } else {
           mConfState = MainInit;
         }

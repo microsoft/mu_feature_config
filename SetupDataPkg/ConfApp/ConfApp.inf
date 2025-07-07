@@ -41,7 +41,6 @@
   UefiRuntimeServicesTableLib
   MemoryAllocationLib
   UefiLib
-  #ResetSystemLib
   UefiBootManagerLib
   JsonLiteParserLib
   FileHandleLib
