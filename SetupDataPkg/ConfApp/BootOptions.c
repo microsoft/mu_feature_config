@@ -16,7 +16,6 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/UefiLib.h>
-// #include <Library/ResetSystemLib.h>
 
 #include "ConfApp.h"
 
@@ -135,9 +134,11 @@ BootOptionMgr (
   VOID
   )
 {
-  EFI_STATUS                     Status = EFI_SUCCESS;
+  EFI_STATUS                     Status;
   EFI_KEY_DATA                   KeyData;
   RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+
+  Status = EFI_SUCCESS;
 
   switch (mBootOptState) {
     case BootOptInit:
