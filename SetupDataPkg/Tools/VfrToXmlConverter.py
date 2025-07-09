@@ -1965,6 +1965,7 @@ def xml_merge_root(xml_root, add_xml_root):
 
     return xml_root
 
+
 # Remove Enum from the enums_element
 # enums_element: The Enums element
 # enum_name: The name of the enum to be removed
