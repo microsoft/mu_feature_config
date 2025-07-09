@@ -38,7 +38,7 @@ console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
 logger.propagate = False
 
-this_version = '0.4'
+this_version = '0.5'
 
 
 class vfr_xml_config:
@@ -49,6 +49,7 @@ class vfr_xml_config:
         self.verbosity_list = [logging.ERROR, logging.INFO, logging.INFO, logging.DEBUG]
         self.set_verbosity(self.verbosity)
         self.preprocessor = ''
+        self.checkbox_default = False
 
         # Input file dictionary {INF file path to be processed : Corresponding vfr_resp file path}
         self.input_inf_dict = {}
@@ -64,6 +65,7 @@ class vfr_xml_config:
 
         # Misc
         self.input_ref_xml = ''
+        self.input_cfg_xml_list = []
         self.output_file_path = os.path.join(self.workdir, 'output.xml')
         self.export_file_path = os.path.join(self.workdir, 'output_export.xml')
         self.debug_file_path = os.path.join(self.workdir, 'output_debug_log.txt')
@@ -193,6 +195,9 @@ class vfr_xml_config:
     # Display input files
     def display_input_files(self, log_method=print):
         inf_ready = False
+        for cfg_xml in self.input_cfg_xml_list:
+            if os.path.isfile(cfg_xml):
+                log_method('Config XML: %s' % cfg_xml)
         for inf_file, vfrpp_resp_file in self.input_inf_dict.items():
             if os.path.isfile(inf_file):
                 log_method('INF File: %s' % inf_file)
@@ -1922,6 +1927,44 @@ def xml_get_root_from_file(file_path):
     return xml_root
 
 
+# Load add_xml_root and merge it to xml_root
+# xml_root: The root of ET.Element
+# add_xml_root: The root of additional ET.Element
+# Return: Merged xml_root
+def xml_merge_root(xml_root, add_xml_root):
+    # Do nothing when add_xml_root is None
+    if add_xml_root is None:
+        return
+
+    # If xml_root is None, adopt add_xml_root directly
+    if xml_root is None:
+        xml_root = add_xml_root
+        return xml_root
+
+    # Merge child sections: Enums, Structs, Knobs
+    for section_tag in ['Enums', 'Structs', 'Knobs']:
+        base_section = xml_root.find(section_tag)
+        add_section = add_xml_root.find(section_tag)
+
+        if add_section is None:
+            continue
+
+        # If base_section is missing, simply append it
+        if base_section is None:
+            xml_root.append(add_section)
+            continue
+
+        # Otherwise, merge children (Enum, Struct, Knob) with different names
+        existing_names = set(child.get('name') for child in base_section.findall('*'))
+
+        for child in add_section.findall('*'):
+            child_name = child.get('name')
+            if child_name and child_name not in existing_names:
+                base_section.append(child)
+                existing_names.add(child_name)
+
+    return xml_root
+
 # Remove Enum from the enums_element
 # enums_element: The Enums element
 # enum_name: The name of the enum to be removed
@@ -2151,7 +2194,10 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
     pretty_xml_str = dom.toprettyxml(indent='  ', newl='\n')
 
     # Remove XML declaration
-    formatted_xml = '\n'.join(line for line in pretty_xml_str.splitlines() if not line.strip().startswith('<?xml'))
+    formatted_xml = '\n'.join(
+        line for line in pretty_xml_str.splitlines()
+        if line.strip() and not line.strip().startswith('<?xml')
+    )
 
     # Write the custom-formatted XML to a file
     with open(xml_file_path, 'w', encoding='utf-8') as f:
@@ -2518,6 +2564,10 @@ def create_vfrxml_app(super_class):
 
             # XML
             self.xml_root = None
+            for cfg_xml in self.tool_config.input_cfg_xml_list:
+                if os.path.isfile(cfg_xml):
+                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(cfg_xml))
+            self.reload_xml_to_page()
             if self.tool_config.input_ref_xml and os.path.isfile(self.tool_config.input_ref_xml):
                 self.ref_cfg_root = xml_get_root_from_file(self.tool_config.input_ref_xml)
             else:
@@ -2525,7 +2575,7 @@ def create_vfrxml_app(super_class):
 
             # Checkbox states {<checkbox id>: <checkbox state>}
             self.checkbox_state = {}
-            self.checkbox_default = False
+            self.checkbox_default = self.tool_config.checkbox_default
 
             # Highlight items {<cname>: <background>}
             self.highlight_items = {}
@@ -2538,6 +2588,8 @@ def create_vfrxml_app(super_class):
             self.vfrxml_menu.add_command(label='Open vfrpp_resp File...', command=self.open_vfrpp_resp)
             self.vfrxml_menu.add_command(label='Process INF File(s)', command=self.process_inf)
             self.vfrxml_menu.add_command(label='Export Config to XML', command=self.export_config_to_xml)
+            self.vfrxml_menu.add_separator()
+            self.vfrxml_menu.add_command(label='Open Config XML File(s)...', command=self.open_cfg_xml)
             self.vfrxml_menu.add_separator()
             self.vfrxml_menu.add_command(label='Load a reference PlatformCfgData.xml...',
                                          command=self.load_ref_cfg_xml)
@@ -2599,6 +2651,14 @@ def create_vfrxml_app(super_class):
                 widget.grid_forget()
             else:
                 logger.info(f'widget.winfo_manager() = {widget.winfo_manager()}')
+
+        # Load self.xml_root to the TreeView
+        def reload_xml_to_page(self):
+            if self.xml_root is None:
+                return
+            xml_root_to_string(self.xml_root, self.tool_config.output_file_path)
+            file_id = len(self.cfg_data_list)
+            self.load_cfg_file(self.tool_config.output_file_path, file_id, True)
 
         # Output message to the status bar and as well as console
         def print_msg(self, msg):
@@ -2725,6 +2785,18 @@ def create_vfrxml_app(super_class):
                 # Generate the XML string and output to a file
                 xml_root_to_string(export_xml_root, self.tool_config.export_file_path, verbose=0)
                 self.print_msg(f'Exported Config File: {self.tool_config.export_file_path}')
+
+        # File -> Open Config XML File(s)...
+        def open_cfg_xml(self):
+            file_tuple = filedialog.askopenfilenames(filetypes=(("XML files", "*.xml"), ("All files", "*.*")))
+            if len(file_tuple) == 0:
+                return
+            for file_path in file_tuple:
+                file_path = os.path.normpath(file_path)
+                if os.path.isfile(file_path):
+                    self.print_msg('Config XML: %s' % file_path)
+                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(file_path))
+            self.reload_xml_to_page()
 
         # File -> Load a reference PlatformCfgData.xml...
         def load_ref_cfg_xml(self):
@@ -2853,7 +2925,7 @@ def create_vfrxml_app(super_class):
                 if not item_type == 'STRUCT_KNOB':
                     if not self.checkbox_state.get(item_cname):
                         self.checkbox_state[item_cname] = tkinter.BooleanVar()
-                        self.checkbox_state[item_cname].set(0)
+                        self.checkbox_state[item_cname].set(self.checkbox_default)
                     cb = tkinter.Checkbutton(parent, variable=self.checkbox_state[item_cname], onvalue=1, offvalue=0)
                     cb.grid(row=row, column=0, sticky="w")
 
@@ -2867,6 +2939,8 @@ def create_vfrxml_app(super_class):
 
 def ProcessArgs():
     argParser = argparse.ArgumentParser(description='VFR to XML Converter Version %s' % this_version)
+    
+    # Optional switches
     argParser.add_argument('-dbg', '--debug', help='Debug mode', action="store_true")
     argParser.add_argument('-dev', '--develop', help='Development mode', action="store_true")
     argParser.add_argument(
@@ -2874,7 +2948,10 @@ def ProcessArgs():
         help='Use gcc to preprocess VFR files. Instead of cl.exe in Windows by default',
         action="store_true"
     )
+    argParser.add_argument('-ca', '--check_all', help='Check all checkboxes by default', action="store_true")
+
     # Specify input/output files
+    argParser.add_argument('-cfg', '--cfg_xml', nargs='+', help='Load Config XML file(s)')
     argParser.add_argument('-inf', '--inf_file', nargs='+', help='UEFI INF file(s) including VFR file(s) in [Sources]')
     argParser.add_argument(
         '-resp', '--vfrpp_resp',
@@ -2887,6 +2964,7 @@ def ProcessArgs():
     )
     argParser.add_argument('-ref', '--ref_xml', help='Reference Config XML file to be compared')
     argParser.add_argument('-o', '--output_xml', help='Output Config XML file to be generated')
+
     # CLI options
     argParser.add_argument(
         '-cli', '--command_line',
@@ -2903,6 +2981,12 @@ def ProcessArgs():
         help='Verify Config XML files to notify Reference code changes related to Platform porting. '
         'This argument only works when --command_line is specified'
     )
+    argParser.add_argument(
+        '-mx', '--merge_xml',
+        help='Merge Config XML files. This argument only works when --command_line and --cfg_xml are specified',
+        action="store_true"
+    )
+
     args = argParser.parse_args()
     return args
 
@@ -2924,6 +3008,21 @@ if __name__ == '__main__':
     # Preprocessor selection
     if args.gcc:
         tool_config.preprocessor = 'gcc'
+
+    # Default state of checkbox
+    if args.check_all:
+        tool_config.checkbox_default = True
+
+    # Load Config XML files
+    if args.cfg_xml:
+        for cfg_xml in args.cfg_xml:
+            if os.path.isfile(cfg_xml):
+                if cfg_xml not in tool_config.input_cfg_xml_list:
+                    tool_config.input_cfg_xml_list.append(cfg_xml)
+                else:
+                    logger.warning('Duplicated Config XML file: %s' % cfg_xml)
+            else:
+                logger.warning('Input Config XML file is not found: %s' % cfg_xml)
 
     # INF and VFRPP_RESP
     if args.inf_file:
@@ -3008,6 +3107,20 @@ if __name__ == '__main__':
                     plat_xml_root,
                 )
                 ret = plat_remove_count + struct_diff_count + enum_diff_count
+
+        elif args.merge_xml:
+            # Merge Config XML files
+            if len(tool_config.input_cfg_xml_list) > 0:
+                logger.info('Merging Config XML files:')
+                xml_root = None
+                for cfg_xml in tool_config.input_cfg_xml_list:
+                    logger.info('  %s' % cfg_xml)
+                    xml_root = xml_merge_root(xml_root, xml_get_root_from_file(cfg_xml))
+                    xml_root_to_string(xml_root, tool_config.output_file_path, verbose=0)
+                logger.info('Output file: %s' % tool_config.output_file_path)
+            else:
+                logger.error('No Config XML files to merge. Please specify and verify -cfg or --cfg_xml arguments.')
+                ret = 1
 
         elif inf_ready:
             # Convert INF/VFR to XML
