@@ -2939,7 +2939,7 @@ def create_vfrxml_app(super_class):
 
 def ProcessArgs():
     argParser = argparse.ArgumentParser(description='VFR to XML Converter Version %s' % this_version)
-    
+
     # Optional switches
     argParser.add_argument('-dbg', '--debug', help='Debug mode', action="store_true")
     argParser.add_argument('-dev', '--develop', help='Development mode', action="store_true")
