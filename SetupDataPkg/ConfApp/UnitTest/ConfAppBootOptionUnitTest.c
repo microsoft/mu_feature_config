@@ -488,7 +488,10 @@ ConfAppBootOptSelectOne (
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   BootOptionMgr ();
   UT_ASSERT_TRUE (gResetCalled);
 
@@ -560,7 +563,9 @@ ConfAppBootOptSelectMore (
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   BootOptionMgr ();
   UT_ASSERT_TRUE (gResetCalled);
 

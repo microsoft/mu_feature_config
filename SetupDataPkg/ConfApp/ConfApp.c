@@ -20,6 +20,7 @@
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigSystemModeLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 
@@ -324,9 +325,8 @@ ConfAppEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                     Status;
-  EFI_KEY_DATA                   KeyData;
-  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData;
 
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);  // Cancel watchdog in case booted, as opposed to running in shell
 
@@ -415,10 +415,8 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
-          // Prepare ResetData GUID
-          CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-          gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
-          Print (L"reset done...\n");
+          // Prepare Reset GUID
+          ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
           CpuDeadLoop ();
         } else {
           mConfState = MainInit;
@@ -435,9 +433,8 @@ ConfAppEntry (
     if (EFI_ERROR (Status)) {
       // The failed step might have done residue in sub state machines, reset the system to start over.
       ASSERT (FALSE);
-      // Prepare ResetData GUID
-      CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-      gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+      // Prepare Reset GUID
+      ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
       CpuDeadLoop ();
     }
   }

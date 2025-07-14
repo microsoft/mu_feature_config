@@ -643,8 +643,9 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   SetupConfMgr ();
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
@@ -743,7 +744,10 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   SetupConfMgr ();
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 

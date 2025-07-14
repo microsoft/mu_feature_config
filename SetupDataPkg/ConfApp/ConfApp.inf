@@ -51,6 +51,7 @@
   ConfigSystemModeLib
   ConfigVariableListLib
   BaseMemoryLib
+  ResetUtilityLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid

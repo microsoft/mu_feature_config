@@ -218,21 +218,6 @@ MockGetNextVariableName (
   return EFI_SUCCESS;
 }
 
-VOID
-EFIAPI
-MockResetSystem (
-  IN EFI_RESET_TYPE  ResetType,
-  IN EFI_STATUS      ResetStatus,
-  IN UINTN           DataSize,
-  IN VOID            *ResetData OPTIONAL
-  )
-{
-  gResetCalled            = TRUE;
-  MainStateMachineRunning = FALSE; // <-- Add this line to break the main loop
-  check_expected (ResetType);
-  return;
-}
-
 ///
 /// Mock version of the UEFI Runtime Services Table
 ///
@@ -240,5 +225,28 @@ EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetVariable         = MockGetVariable,
   .SetVariable         = MockSetVariable,
   .GetNextVariableName = MockGetNextVariableName,
-  .ResetSystem         = MockResetSystem,
 };
+
+/**
+  Simple helper to reset the system with a subtype GUID, and a default
+  to fall back on (that isn't necessarily EfiResetPlatformSpecific).
+
+  @param[in]  ResetType     The default EFI_RESET_TYPE of the reset.
+  @param[in]  ResetSubtype  GUID pointer for the reset subtype to be used.
+
+  @retval     Pointer to the GUIDed reset data structure. Structure is
+              SIMPLE_GUIDED_RESET_DATA_SIZE in size.
+
+**/
+VOID
+EFIAPI
+ResetSystemWithSubtype (
+  IN EFI_RESET_TYPE  ResetType,
+  IN CONST  GUID     *ResetSubtype
+  )
+{
+  gResetCalled            = TRUE;
+  MainStateMachineRunning = FALSE;
+  check_expected (ResetType);
+  check_expected_ptr (ResetSubtype);
+}

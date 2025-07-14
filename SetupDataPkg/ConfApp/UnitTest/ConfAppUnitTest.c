@@ -390,7 +390,9 @@ ConfAppEntrySelect1 (
   will_return (MockReadKey, &KeyData2);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
 
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
@@ -447,7 +449,9 @@ ConfAppEntrySelect2 (
   will_return (MockReadKey, &KeyData2);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
 
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
@@ -505,7 +509,9 @@ ConfAppEntrySelect3 (
   will_return (MockReadKey, &KeyData2);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
@@ -620,7 +626,10 @@ ConfAppEntrySelectH (
   will_return (MockReadKey, &KeyData3);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
@@ -674,9 +683,13 @@ ConfAppEntrySelectEsc (
   will_return (MockReadKey, &KeyData2);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
+
   return UNIT_TEST_PASSED;
 }
 
@@ -732,9 +745,13 @@ ConfAppEntrySelectOther (
   will_return (MockReadKey, &KeyData3);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
+
   return UNIT_TEST_PASSED;
 }
 
@@ -785,9 +802,13 @@ ConfAppEntryMfg (
   will_return (MockReadKey, &KeyData2);
 
   gResetCalled = FALSE;
-  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
   UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
+
   return UNIT_TEST_PASSED;
 }
 

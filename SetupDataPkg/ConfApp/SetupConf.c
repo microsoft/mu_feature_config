@@ -25,6 +25,7 @@
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
 #include <Library/ConfigSystemModeLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 #include "SvdUsb/SvdUsb.h"
@@ -273,11 +274,10 @@ ApplySettings (
   UINTN       Lsv           = 0;
   BOOLEAN     ResetRequired = FALSE;
 
-  UINTN                          b64Size;
-  UINTN                          ValueSize;
-  UINT8                          *ByteArray;
-  CONST VOID                     *SetValue;
-  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+  UINTN       b64Size;
+  UINTN       ValueSize;
+  UINT8       *ByteArray;
+  CONST VOID  *SetValue;
 
   ByteArray = NULL;
   SetValue  = NULL;
@@ -458,9 +458,8 @@ EXIT:
   }
 
   if (ResetRequired) {
-    // Prepare ResetData GUID
-    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
   }
 
   return Status;
@@ -479,11 +478,10 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS                     Status;
-  CHAR16                         *FileName;
-  CHAR8                          *XmlString;
-  UINTN                          XmlStringSize;
-  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+  EFI_STATUS  Status;
+  CHAR16      *FileName;
+  CHAR8       *XmlString;
+  UINTN       XmlStringSize;
 
   FileName  = NULL;
   XmlString = NULL;
@@ -531,9 +529,8 @@ ProcessSvdUsbInput (
     //
     Print (L"Applied %s for configuration update. Rebooting now!!!\n", FileName);
 
-    // Prepare ResetData GUID
-    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
     // Should not be here
     CpuDeadLoop ();
   }
@@ -559,9 +556,8 @@ ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS                     Status;
-  CHAR8                          *TempAsciiStr = NULL;
-  RESET_GUID_CONFAPP_RESET_DATA  ResetData;
+  EFI_STATUS  Status;
+  CHAR8       *TempAsciiStr = NULL;
 
   // Simple resizable array and store them at mConfDataBuffer
   if (mConfDataBuffer == NULL) {
@@ -609,9 +605,8 @@ ProcessSvdSerialInput (
       goto Exit;
     }
 
-    // Prepare ResetData GUID
-    CopyGuid (&ResetData.ResetGuid, &gConfAppResetGuid);
-    gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, sizeof (ResetData), &ResetData);
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
     // Should not be here
     CpuDeadLoop ();
   } else {
