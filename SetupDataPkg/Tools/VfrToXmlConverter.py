@@ -2201,6 +2201,8 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
     )
 
     # Write the custom-formatted XML to a file
+    if not os.path.exists(os.path.dirname(xml_file_path)):
+        os.makedirs(os.path.dirname(xml_file_path))
     with open(xml_file_path, 'w', encoding='utf-8') as f:
         f.write(formatted_xml)
         if verbose:
