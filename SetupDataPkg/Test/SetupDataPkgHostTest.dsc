@@ -41,7 +41,6 @@
 
   SetupDataPkg/Test/MockLibrary/MockUefiRuntimeServicesTableLib/MockUefiRuntimeServicesTableLib.inf
   SetupDataPkg/Test/MockLibrary/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
-  SetupDataPkg/Test/MockLibrary/MockResetSystemLib/MockResetSystemLib.inf
   SetupDataPkg/Test/MockLibrary/MockResetUtilityLib/MockResetUtilityLib.inf
   SetupDataPkg/Test/MockLibrary/MockPcdLib/MockPcdLib.inf
   SetupDataPkg/Test/MockLibrary/MockConfigSystemModeLib/MockConfigSystemModeLib.inf
