@@ -39,7 +39,7 @@
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
 extern POLICY_PROTOCOL                    *mPolicyProtocol;
-
+extern volatile BOOLEAN                   gResetCalled;
 typedef struct {
   UINTN    Tag;
   UINT8    *Data;
@@ -200,23 +200,6 @@ Print (
 }
 
 /**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
-VOID
-EFIAPI
-ResetCold (
-  VOID
-  )
-{
-}
-
-/**
  * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
  * This function immediately returns instead of causing an infinite loop,
  * allowing tests to run without hanging the system.
@@ -323,7 +306,7 @@ MockLocateProtocol (
   OUT VOID      **Interface
   )
 {
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  assert_non_null (Protocol);
   // Check that this is the right protocol being located
   check_expected_ptr (Protocol);
 
@@ -603,6 +586,8 @@ ConfAppSetupConfSelectUsb (
   EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData1;
 
+  gResetCalled = FALSE;
+
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
@@ -658,7 +643,11 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -754,7 +743,13 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }

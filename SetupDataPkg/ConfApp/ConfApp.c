@@ -15,11 +15,12 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
-#include <Library/ResetSystemLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigSystemModeLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 
@@ -414,7 +415,9 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
-          ResetCold ();
+          // Prepare Reset GUID
+          ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
+          CpuDeadLoop ();
         } else {
           mConfState = MainInit;
         }
@@ -430,7 +433,8 @@ ConfAppEntry (
     if (EFI_ERROR (Status)) {
       // The failed step might have done residue in sub state machines, reset the system to start over.
       ASSERT (FALSE);
-      ResetCold ();
+      // Prepare Reset GUID
+      ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
       CpuDeadLoop ();
     }
   }

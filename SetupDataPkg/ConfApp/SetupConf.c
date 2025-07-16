@@ -19,13 +19,13 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiLib.h>
-#include <Library/ResetSystemLib.h>
 #include <Library/XmlTreeLib.h>
 #include <Library/XmlTreeQueryLib.h>
 #include <Library/SvdXmlSettingSchemaSupportLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigVariableListLib.h>
 #include <Library/ConfigSystemModeLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 #include "SvdUsb/SvdUsb.h"
@@ -276,8 +276,11 @@ ApplySettings (
 
   UINTN       b64Size;
   UINTN       ValueSize;
-  UINT8       *ByteArray = NULL;
-  CONST VOID  *SetValue  = NULL;
+  UINT8       *ByteArray;
+  CONST VOID  *SetValue;
+
+  ByteArray = NULL;
+  SetValue  = NULL;
 
   //
   // Create Node List from input
@@ -455,7 +458,8 @@ EXIT:
   }
 
   if (ResetRequired) {
-    ResetCold ();
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
   }
 
   return Status;
@@ -474,7 +478,7 @@ ProcessSvdUsbInput (
   VOID
   )
 {
-  EFI_STATUS  Status = EFI_NOT_FOUND;
+  EFI_STATUS  Status;
   CHAR16      *FileName;
   CHAR8       *XmlString;
   UINTN       XmlStringSize;
@@ -525,7 +529,8 @@ ProcessSvdUsbInput (
     //
     Print (L"Applied %s for configuration update. Rebooting now!!!\n", FileName);
 
-    ResetCold ();
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
     // Should not be here
     CpuDeadLoop ();
   }
@@ -551,7 +556,7 @@ ProcessSvdSerialInput (
   CHAR16  UnicodeChar
   )
 {
-  EFI_STATUS  Status        = EFI_SUCCESS;
+  EFI_STATUS  Status;
   CHAR8       *TempAsciiStr = NULL;
 
   // Simple resizable array and store them at mConfDataBuffer
@@ -600,7 +605,8 @@ ProcessSvdSerialInput (
       goto Exit;
     }
 
-    ResetCold ();
+    // Prepare Reset GUID
+    ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
     // Should not be here
     CpuDeadLoop ();
   } else {
