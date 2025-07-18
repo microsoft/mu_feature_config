@@ -1987,8 +1987,7 @@ def xml_merge_root(xml_root, add_xml_root):
                     else:
                         # One side missing value, but filling is not allowed
                         logger.warning(f'    {value_attr} missing on one side: {parent_tag} name="{parent_name}" > '
-                                       f'{child_tag}.{key_attr}="{key}", left="{base_value}", right="{add_value}"'
-                        )
+                                       f'{child_tag}.{key_attr}="{key}", left="{base_value}", right="{add_value}"')
 
             else:
                 # No existing element with the same key — append directly
