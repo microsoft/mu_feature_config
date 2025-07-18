@@ -1934,14 +1934,66 @@ def xml_get_root_from_file(file_path):
 def xml_merge_root(xml_root, add_xml_root):
     # Do nothing when add_xml_root is None
     if add_xml_root is None:
-        return
+        return xml_root
 
     # If xml_root is None, adopt add_xml_root directly
     if xml_root is None:
-        xml_root = add_xml_root
-        return xml_root
+        return add_xml_root
 
-    # Merge child sections: Enums, Structs, Knobs
+    def merge_elements_with_key_and_value(base_parent, add_parent, child_tag, key_attr, value_attr,
+                                        on_same=None, on_conflict=None, allow_value_fill=False):
+        # Build a dict of existing children in base_parent using the key_attr (e.g., name)
+        base_children = {
+            c.get(key_attr): c
+            for c in base_parent.findall(child_tag)
+            if c.get(key_attr)
+        }
+
+        parent_tag = base_parent.tag
+        parent_name = base_parent.get('name', '?')
+
+        # Iterate over children in add_parent to be merged
+        for add_child in add_parent.findall(child_tag):
+            key = add_child.get(key_attr)
+            if not key:
+                continue
+
+            add_value = add_child.get(value_attr)
+
+            if key in base_children:
+                # Found a matching child in base
+                base_child = base_children[key]
+                base_value = base_child.get(value_attr)
+
+                if base_value == add_value:
+                    # Value is the same — optionally call on_same handler
+                    if on_same:
+                        on_same(base_parent, key, base_value)
+                else:
+                    # Value is different — need to handle conflict or fill
+                    if base_value and add_value:
+                        # Both sides have values but they're different — call conflict handler
+                        if on_conflict:
+                            on_conflict(base_parent, key, base_value, add_value)
+                    elif allow_value_fill and add_value and not base_value:
+                        # Only add_child has value — fill base_child
+                        base_child.set(value_attr, add_value)
+                        logger.info(f'    Filled {parent_tag} name="{parent_name}" > {child_tag}.{key_attr}="{key}" with {value_attr}="{add_value}"')
+                    elif allow_value_fill and base_value and not add_value:
+                        # Only base_child has value — keep as is
+                        logger.info(f'    Kept existing {parent_tag} name="{parent_name}" > {child_tag}.{key_attr}="{key}" with {value_attr}="{base_value}"')
+                    else:
+                        # One side missing value, but filling is not allowed
+                        logger.warning(
+                            f'    {value_attr} missing on one side: {parent_tag} name="{parent_name}" > {child_tag}.{key_attr}="{key}", '
+                            f'left="{base_value}", right="{add_value}"'
+                        )
+
+            else:
+                # No existing element with the same key — append directly
+                base_parent.append(add_child)
+
+    # Merge sections: Enums, Structs, Knobs
     for section_tag in ['Enums', 'Structs', 'Knobs']:
         base_section = xml_root.find(section_tag)
         add_section = add_xml_root.find(section_tag)
@@ -1954,14 +2006,67 @@ def xml_merge_root(xml_root, add_xml_root):
             xml_root.append(add_section)
             continue
 
-        # Otherwise, merge children (Enum, Struct, Knob) with different names
-        existing_names = set(child.get('name') for child in base_section.findall('*'))
+        # Merge individual elements in the section
+        for add_elem in add_section.findall('*'):
+            name = add_elem.get('name')
+            if not name:
+                continue
 
-        for child in add_section.findall('*'):
-            child_name = child.get('name')
-            if child_name and child_name not in existing_names:
-                base_section.append(child)
-                existing_names.add(child_name)
+            # For each add_elem, try to find the same name in base_section
+            base_elem = None
+            for e in base_section.findall('*'):
+                e_name = e.get('name')
+                if e_name == name:
+                    base_elem = e
+                    break
+
+            # If add_elem is new, append it
+            if base_elem is None:
+                base_section.append(add_elem)
+                continue
+
+            # Merge Enum with same name
+            if section_tag == 'Enums' and add_elem.tag == 'Enum':
+                merge_elements_with_key_and_value(
+                    base_elem, add_elem,
+                    child_tag='Value',
+                    key_attr='name',
+                    value_attr='value',
+                    on_same=lambda parent, k, v: logger.info(f'    Enum {parent.get("name")}.{k} = "{v}" (same)'),
+                    on_conflict=lambda parent, k, v1, v2: (_ for _ in ()).throw(ValueError(
+                        f'Enum "{parent.get("name")}" Value "{k}" conflict: {v1} vs {v2}'
+                    ))
+                )
+
+            # Merge Struct with same name
+            elif section_tag == 'Structs' and add_elem.tag == 'Struct':
+                merge_elements_with_key_and_value(
+                    base_elem, add_elem,
+                    child_tag='Member',
+                    key_attr='name',
+                    value_attr='default',
+                    on_same=lambda parent, k, v: logger.info(f'    {parent.get("name")}.{k} default = "{v}" (same)'),
+                    on_conflict=lambda parent, k, v1, v2: (_ for _ in ()).throw(ValueError(
+                        f'Struct "{parent.get("name")}" Member "{k}" default conflict: {v1} vs {v2}'
+                    )),
+                    allow_value_fill=True
+                )
+
+            # Merge Knob with same name
+            elif section_tag == 'Knobs' and add_elem.tag == 'Knob':
+                merge_elements_with_key_and_value(
+                    base_section, add_section,
+                    child_tag='Knob',
+                    key_attr='name',
+                    value_attr='type',
+                    on_same=lambda parent, k, v: logger.info(f'    Knob {k} type = "{v}" (same)'),
+                    on_conflict=lambda parent, k, v1, v2: (_ for _ in ()).throw(ValueError(
+                        f'Knob "{k}" type conflict: {v1} vs {v2}'
+                    ))
+                )
+
+            else:
+                logger.warning(f'  [vfr] Warning: Duplicate {section_tag} name: {name}')
 
     return xml_root
 
@@ -2201,8 +2306,9 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
     )
 
     # Write the custom-formatted XML to a file
-    if not os.path.exists(os.path.dirname(xml_file_path)):
-        os.makedirs(os.path.dirname(xml_file_path))
+    xml_file_dir = os.path.dirname(xml_file_path)
+    if xml_file_dir and not os.path.exists(xml_file_dir):
+        os.makedirs(xml_file_dir)
     with open(xml_file_path, 'w', encoding='utf-8') as f:
         f.write(formatted_xml)
         if verbose:
@@ -2800,6 +2906,7 @@ def create_vfrxml_app(super_class):
                     self.print_msg('Config XML: %s' % file_path)
                     self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(file_path))
             self.reload_xml_to_page()
+            self.refresh_vfrxml_menu()
 
         # File -> Load a reference PlatformCfgData.xml...
         def load_ref_cfg_xml(self):
