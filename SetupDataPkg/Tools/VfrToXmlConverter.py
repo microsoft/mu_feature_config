@@ -1941,7 +1941,7 @@ def xml_merge_root(xml_root, add_xml_root):
         return add_xml_root
 
     def merge_elements_with_key_and_value(base_parent, add_parent, child_tag, key_attr, value_attr,
-                                        on_same=None, on_conflict=None, allow_value_fill=False):
+                                          on_same=None, on_conflict=None, allow_value_fill=False):
         # Build a dict of existing children in base_parent using the key_attr (e.g., name)
         base_children = {
             c.get(key_attr): c
@@ -1978,10 +1978,12 @@ def xml_merge_root(xml_root, add_xml_root):
                     elif allow_value_fill and add_value and not base_value:
                         # Only add_child has value — fill base_child
                         base_child.set(value_attr, add_value)
-                        logger.info(f'    Filled {parent_tag} name="{parent_name}" > {child_tag}.{key_attr}="{key}" with {value_attr}="{add_value}"')
+                        logger.info(f'    Filled {parent_tag} name="{parent_name}" > '
+                                    f'{child_tag}.{key_attr}="{key}" with {value_attr}="{add_value}"')
                     elif allow_value_fill and base_value and not add_value:
                         # Only base_child has value — keep as is
-                        logger.info(f'    Kept existing {parent_tag} name="{parent_name}" > {child_tag}.{key_attr}="{key}" with {value_attr}="{base_value}"')
+                        logger.info(f'    Kept existing {parent_tag} name="{parent_name}" > '
+                                    f'{child_tag}.{key_attr}="{key}" with {value_attr}="{base_value}"')
                     else:
                         # One side missing value, but filling is not allowed
                         logger.warning(
