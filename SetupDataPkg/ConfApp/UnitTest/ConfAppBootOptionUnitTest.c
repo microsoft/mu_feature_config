@@ -33,6 +33,7 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern BootOptState_t                     mBootOptState;
+extern volatile BOOLEAN                   gResetCalled;
 
 /**
   State machine for system information page. It will display fundamental information, including
@@ -449,8 +450,9 @@ ConfAppBootOptSelectOne (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption = {
     .Description = L"Test1",
     .Attributes  = 0xFEEDF00D
@@ -485,7 +487,13 @@ ConfAppBootOptSelectOne (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   BootOptionMgr ();
+  UT_ASSERT_TRUE (gResetCalled);
 
   return UNIT_TEST_PASSED;
 }
@@ -511,8 +519,9 @@ ConfAppBootOptSelectMore (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption[2] = {
     {
       .Description = L"Test1",
@@ -553,7 +562,12 @@ ConfAppBootOptSelectMore (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
+  gResetCalled = FALSE;
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   BootOptionMgr ();
+  UT_ASSERT_TRUE (gResetCalled);
 
   return UNIT_TEST_PASSED;
 }

@@ -41,7 +41,6 @@
   UefiRuntimeServicesTableLib
   MemoryAllocationLib
   UefiLib
-  ResetSystemLib
   UefiBootManagerLib
   JsonLiteParserLib
   FileHandleLib
@@ -51,10 +50,13 @@
   PerformanceLib
   ConfigSystemModeLib
   ConfigVariableListLib
+  BaseMemoryLib
+  ResetUtilityLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize

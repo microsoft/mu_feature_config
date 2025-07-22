@@ -34,6 +34,7 @@
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern ConfState_t                        mConfState;
 extern BOOLEAN                            MainStateMachineRunning;
+extern volatile BOOLEAN                   gResetCalled;
 
 /**
   Entrypoint of configuration app. This function holds the main state machine for
@@ -164,24 +165,6 @@ Print (
   DEBUG ((DEBUG_INFO, "%a", Buffer));
 
   return Ret;
-}
-
-/**
-  Calling this function causes a system-wide reset. This sets
-  all circuitry within the system to its initial state. This type of reset
-  is asynchronous to system operation and operates without regard to
-  cycle boundaries.
-
-  System reset should not return, if it returns, it means the system does
-  not support cold reset.
-**/
-VOID
-EFIAPI
-ResetCold (
-  VOID
-  )
-{
-  MainStateMachineRunning = FALSE;
 }
 
 /**
@@ -382,6 +365,7 @@ ConfAppEntrySelect1 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -391,7 +375,7 @@ ConfAppEntrySelect1 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '1';
@@ -405,7 +389,13 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -434,6 +424,7 @@ ConfAppEntrySelect2 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -443,7 +434,7 @@ ConfAppEntrySelect2 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '2';
@@ -457,7 +448,13 @@ ConfAppEntrySelect2 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -486,6 +483,8 @@ ConfAppEntrySelect3 (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect3 called \n"));
+
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -495,7 +494,7 @@ ConfAppEntrySelect3 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '3';
@@ -509,7 +508,69 @@ ConfAppEntrySelect3 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  gResetCalled = FALSE;
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for ConfAppEntry of ConfApp when selecting 4.
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppEntrySelect4 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
+
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect4 called \n"));
+  will_return (MockSetWatchdogTimer, EFI_SUCCESS);
+
+  expect_value (MockEnableCursor, Visible, FALSE);
+  will_return (MockEnableCursor, EFI_SUCCESS);
+
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
+
+  will_return_always (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  KeyData1.Key.UnicodeChar = '4';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  will_return (SetupConfMgr, MainExit);
+  will_return (SetupConfMgr, EFI_SUCCESS);
+
+  KeyData2.Key.UnicodeChar = 'y';
+  KeyData2.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData2);
+
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
+
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -539,6 +600,7 @@ ConfAppEntrySelectH (
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectH called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -548,14 +610,12 @@ ConfAppEntrySelectH (
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'h';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
-
-  will_return (MockClearScreen, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = CHAR_NULL;
   KeyData2.Key.ScanCode    = SCAN_ESC;
@@ -565,7 +625,13 @@ ConfAppEntrySelectH (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -594,6 +660,8 @@ ConfAppEntrySelectEsc (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectEsc called \n"));
+
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -603,7 +671,7 @@ ConfAppEntrySelectEsc (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -614,7 +682,13 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -644,6 +718,8 @@ ConfAppEntrySelectOther (
   EFI_KEY_DATA  KeyData2;
   EFI_KEY_DATA  KeyData3;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectOther called \n"));
+
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -653,7 +729,7 @@ ConfAppEntrySelectOther (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'q';
@@ -668,7 +744,13 @@ ConfAppEntrySelectOther (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -697,6 +779,8 @@ ConfAppEntryMfg (
   EFI_KEY_DATA  KeyData1;
   EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntryMfg called \n"));
+
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -706,7 +790,7 @@ ConfAppEntryMfg (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -717,7 +801,13 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
+  gResetCalled = FALSE;
+
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
   ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }

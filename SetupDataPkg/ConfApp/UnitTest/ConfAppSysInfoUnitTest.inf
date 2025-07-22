@@ -43,7 +43,6 @@
   DebugLib
   UnitTestLib
   PrintLib
-  ResetSystemLib
   SecureBootKeyStoreLib
   PerformanceLib
   ConfigSystemModeLib
@@ -56,3 +55,4 @@
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid

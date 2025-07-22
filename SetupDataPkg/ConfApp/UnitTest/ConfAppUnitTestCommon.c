@@ -23,6 +23,9 @@
 
 #include <Library/UnitTestLib.h>
 
+volatile BOOLEAN  gResetCalled = FALSE;
+extern BOOLEAN    MainStateMachineRunning;
+
 /**
   Mock version of EfiSignalEventReadyToBoot.
 
@@ -221,5 +224,29 @@ MockGetNextVariableName (
 EFI_RUNTIME_SERVICES  MockRuntime = {
   .GetVariable         = MockGetVariable,
   .SetVariable         = MockSetVariable,
-  .GetNextVariableName = MockGetNextVariableName
+  .GetNextVariableName = MockGetNextVariableName,
 };
+
+/**
+  Simple helper to reset the system with a subtype GUID, and a default
+  to fall back on (that isn't necessarily EfiResetPlatformSpecific).
+
+  @param[in]  ResetType     The default EFI_RESET_TYPE of the reset.
+  @param[in]  ResetSubtype  GUID pointer for the reset subtype to be used.
+
+  @retval     Pointer to the GUIDed reset data structure. Structure is
+              SIMPLE_GUIDED_RESET_DATA_SIZE in size.
+
+**/
+VOID
+EFIAPI
+ResetSystemWithSubtype (
+  IN EFI_RESET_TYPE  ResetType,
+  IN CONST  GUID     *ResetSubtype
+  )
+{
+  gResetCalled            = TRUE;
+  MainStateMachineRunning = FALSE;
+  check_expected (ResetType);
+  check_expected_ptr (ResetSubtype);
+}

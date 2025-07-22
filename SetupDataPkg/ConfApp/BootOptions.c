@@ -16,7 +16,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/UefiLib.h>
-#include <Library/ResetSystemLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 
@@ -135,8 +135,10 @@ BootOptionMgr (
   VOID
   )
 {
-  EFI_STATUS    Status = EFI_SUCCESS;
+  EFI_STATUS    Status;
   EFI_KEY_DATA  KeyData;
+
+  Status = EFI_SUCCESS;
 
   switch (mBootOptState) {
     case BootOptInit:
@@ -176,7 +178,8 @@ BootOptionMgr (
       DEBUG ((DEBUG_INFO, "Boot to Option %d - %s now!!!\n", mOpCandidate, mBootOptions[mOpCandidate].Description));
       EfiBootManagerBoot (mBootOptions + mOpCandidate);
       // If we ever come back, we should directly reboot since the state of system might have changed...
-      ResetCold ();
+      // Prepare Reset GUID
+      ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
       CpuDeadLoop ();
       break;
     case BootOptExit:
