@@ -995,6 +995,8 @@ def generate_getter_implementation(schema, header_path, efi_type):
     with open(header_path, 'w', newline='') as out:
         out.write(get_spdx_header(header_path, efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=True))
+        out.write("#include <Library/PcdLib.h>" + get_line_ending(efi_type))
+        out.write("#include <Library/BaseMemoryLib.h>" + get_line_ending(efi_type))
         out.write("// The config public header must be included prior to this file" + get_line_ending(efi_type))
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
