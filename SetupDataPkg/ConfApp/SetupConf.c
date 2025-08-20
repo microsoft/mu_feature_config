@@ -485,6 +485,7 @@ ProcessSvdUsbInput (
 
   FileName  = NULL;
   XmlString = NULL;
+  Status    = EFI_NOT_FOUND;
 
   //
   // Process request, from the PcdConfigurationFileName
@@ -557,7 +558,10 @@ ProcessSvdSerialInput (
   )
 {
   EFI_STATUS  Status;
-  CHAR8       *TempAsciiStr = NULL;
+  CHAR8       *TempAsciiStr;
+
+  Status       = EFI_SUCCESS;
+  TempAsciiStr = NULL;
 
   // Simple resizable array and store them at mConfDataBuffer
   if (mConfDataBuffer == NULL) {
