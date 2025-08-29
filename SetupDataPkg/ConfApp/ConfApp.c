@@ -291,7 +291,7 @@ CheckSupportedOptions (
       continue;
     }
 
-    if (KeyOptions[Index].EndState == MAX_UINTN) {
+    if (KeyOptions[Index].EndState == MAX_UINT32) {
       continue;
     }
 
