@@ -1,6 +1,6 @@
-pytest==8.4.1
+pytest==8.4.2
 pytest-html==4.1.1
-pytest-cov==6.2.1
+pytest-cov==7.0.0
 flake8==7.3.0
 pyopenssl==25.1.0
 pefile==2024.8.26
