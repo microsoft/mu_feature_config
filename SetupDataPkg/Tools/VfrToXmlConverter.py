@@ -60,6 +60,9 @@ class vfr_xml_config:
         # (Optional) For preprocessing the FixedPcdGet portions in VFR files
         self.input_build_report = ''
 
+        # (Optional) Replaced Config XML UUID
+        self.input_uuid = None
+
         # Default path setup for cl
         self.VsDevCmd_path = r'C:\BuildTools\Common7\Tools\VsDevCmd.bat'
 
@@ -216,6 +219,10 @@ class vfr_xml_config:
     def add_to_clean_up_list(self, file_path, target_verbosity=2):
         if self.verbosity < target_verbosity and file_path not in self.clean_up_list:
             self.clean_up_list.append(file_path)
+
+    # Set replaced Config XML UUID into input_uuid
+    def set_input_uuid(self, input_uuid):
+        self.input_uuid = input_uuid
 
 
 # Parse PlatformBuild.py and setup platform_builder for later use
@@ -1931,7 +1938,7 @@ def xml_get_root_from_file(file_path):
 # xml_root: The root of ET.Element
 # add_xml_root: The root of additional ET.Element
 # Return: Merged xml_root
-def xml_merge_root(xml_root, add_xml_root):
+def xml_merge_root(xml_root, add_xml_root, tool_config=None):
     # Do nothing when add_xml_root is None
     if add_xml_root is None:
         return xml_root
@@ -1939,6 +1946,9 @@ def xml_merge_root(xml_root, add_xml_root):
     # If xml_root is None, adopt add_xml_root directly
     if xml_root is None:
         return add_xml_root
+
+    if tool_config is None:
+        tool_config = vfr_xml_config()
 
     def merge_elements_with_key_and_value(base_parent, add_parent, child_tag, key_attr, value_attr,
                                           on_same=None, on_conflict=None, allow_value_fill=False):
@@ -2067,6 +2077,12 @@ def xml_merge_root(xml_root, add_xml_root):
 
             else:
                 logger.warning(f'  [vfr] Warning: Duplicate {section_tag} name: {name}')
+
+    # Replace Config XML UUID
+    if tool_config.input_uuid is not None:
+        for knobs in xml_root.findall("Knobs"):
+            guid_upper = str(tool_config.input_uuid).upper()
+            knobs.set("namespace", f'{{{guid_upper}}}')
 
     return xml_root
 
@@ -2322,6 +2338,7 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
 #   input_platform_build_py: PlatformBuild.py file path
 #   output_file_path: XML file output path
 #   input_build_report (Optional): Project build report for preprocessing PCD values
+#   input_uuid (Optional): Replaced Config XML UUID
 # Return: root element in XML, return code: 0 - Completed; 1 - Aborted
 def parse_inf_to_xml(tool_config):
     tempdir = os.getcwd()
@@ -2331,9 +2348,9 @@ def parse_inf_to_xml(tool_config):
         'xsi:noNamespaceSchemaLocation': 'configschema.xsd'
     })
 
-    # Create Enums element and a common ENABLEDDISABLE enum
+    # Create Enums element and a common ENABLEDISABLE enum
     enums_element = ET.SubElement(root, 'Enums')
-    enable_disable_enum = ET.SubElement(enums_element, 'Enum', name='ENABLEDDISABLE', help='')
+    enable_disable_enum = ET.SubElement(enums_element, 'Enum', name='ENABLEDISABLE', help='')
     ET.SubElement(enable_disable_enum, 'Value', name='Disabled', value='0', help='')
     ET.SubElement(enable_disable_enum, 'Value', name='Enabled', value='1', help='')
 
@@ -2619,7 +2636,10 @@ def parse_inf_to_xml(tool_config):
     # Add comment to indicate the GUID namespace
     root.append(ET.Comment(' namespace indicates the GUID namespace the values are stored in '))
 
-    knobs_guid = uuid.uuid4()
+    if tool_config.input_uuid is not None:
+        knobs_guid = uuid.UUID(tool_config.input_uuid)
+    else:
+        knobs_guid = uuid.uuid4()
     guid_upper = str(knobs_guid).upper()
     knobs_element = ET.SubElement(root, 'Knobs', attrib={
         'namespace': f'{{{guid_upper}}}'
@@ -2674,7 +2694,7 @@ def create_vfrxml_app(super_class):
             self.xml_root = None
             for cfg_xml in self.tool_config.input_cfg_xml_list:
                 if os.path.isfile(cfg_xml):
-                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(cfg_xml))
+                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(cfg_xml), self.tool_config)
             self.reload_xml_to_page()
             if self.tool_config.input_ref_xml and os.path.isfile(self.tool_config.input_ref_xml):
                 self.ref_cfg_root = xml_get_root_from_file(self.tool_config.input_ref_xml)
@@ -2903,7 +2923,7 @@ def create_vfrxml_app(super_class):
                 file_path = os.path.normpath(file_path)
                 if os.path.isfile(file_path):
                     self.print_msg('Config XML: %s' % file_path)
-                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(file_path))
+                    self.xml_root = xml_merge_root(self.xml_root, xml_get_root_from_file(file_path), self.tool_config)
             self.reload_xml_to_page()
             self.refresh_vfrxml_menu()
 
@@ -3095,6 +3115,11 @@ def ProcessArgs():
         help='Merge Config XML files. This argument only works when --command_line and --cfg_xml are specified',
         action="store_true"
     )
+    argParser.add_argument(
+        '-uuid', '--input_uuid', nargs=1,
+        metavar=('input_uuid'),
+        help='Fixed UUID for Config XML files. This argument only works when --command_line is specified'
+    )
 
     args = argParser.parse_args()
     return args
@@ -3158,6 +3183,23 @@ if __name__ == '__main__':
     # output.xml
     if args.output_xml:
         tool_config.output_file_path = args.output_xml
+
+    # Replace Config XML UUID
+    if args.input_uuid:
+        if not args.input_uuid[0]:
+            logger.error('UUID not found: %s' % args.input_uuid[0])
+            ret = 1
+        else:
+            valid_uuid = uuid.UUID(args.input_uuid[0], version=4)
+            if (str(valid_uuid).upper() == str(args.input_uuid[0]).upper()):
+                logger.info('Replace Config XML files with input UUID %s' % args.input_uuid[0])
+                tool_config.set_input_uuid(args.input_uuid[0])
+                if tool_config.input_uuid is None:
+                    logger.error('tool_config should get UUID %s' % tool_config.input_uuid)
+                    ret = 1
+            else:
+                logger.error('Input UUID format is not match, please check %s' % args.input_uuid[0])
+                ret = 1
 
     # Configure paths with inputs
     tool_config.configure_paths()
@@ -3224,7 +3266,7 @@ if __name__ == '__main__':
                 xml_root = None
                 for cfg_xml in tool_config.input_cfg_xml_list:
                     logger.info('  %s' % cfg_xml)
-                    xml_root = xml_merge_root(xml_root, xml_get_root_from_file(cfg_xml))
+                    xml_root = xml_merge_root(xml_root, xml_get_root_from_file(cfg_xml), tool_config)
                     xml_root_to_string(xml_root, tool_config.output_file_path, verbose=0)
                 logger.info('Output file: %s' % tool_config.output_file_path)
             else:
