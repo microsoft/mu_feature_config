@@ -2472,9 +2472,9 @@ def parse_inf_to_xml(tool_config):
         'xsi:noNamespaceSchemaLocation': 'configschema.xsd'
     })
 
-    # Create Enums element and a common ENABLEDDISABLE enum
+    # Create Enums element and a common ENABLEDISABLE enum
     enums_element = ET.SubElement(root, 'Enums')
-    enable_disable_enum = ET.SubElement(enums_element, 'Enum', name='ENABLEDDISABLE', help='')
+    enable_disable_enum = ET.SubElement(enums_element, 'Enum', name='ENABLEDISABLE', help='')
     ET.SubElement(enable_disable_enum, 'Value', name='Disabled', value='0', help='')
     ET.SubElement(enable_disable_enum, 'Value', name='Enabled', value='1', help='')
 
