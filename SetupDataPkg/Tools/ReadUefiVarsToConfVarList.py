@@ -65,18 +65,13 @@ def read_variable_into_variable_list(uefi_var, name, namespace):
     return b_array
 
 
-#
-# main script function
-#
-def main():
-    arguments = option_parser()
-
+def read_all_uefi_vars(output_file, configuration_file=None):
     UefiVar = UefiVariable()
 
     # Get ready to write vl file
-    with open(arguments.output_file, "wb") as file:
+    with open(output_file, "wb") as file:
         ret = b''
-        if arguments.configuration_file is None:
+        if configuration_file is None:
             # Read all the variables
             (rc, efi_var_names) = UefiVar.GetUefiAllVarNames()
             if rc != 0:
@@ -97,15 +92,24 @@ def main():
                 offset += next_offset
         else:
             # Read the variables for each config knobs
-            schema = Schema.load(arguments.configuration_file)
+            schema = Schema.load(configuration_file)
             for knob in schema.knobs:
                 ret += read_variable_into_variable_list(UefiVar, knob.name, knob.namespace)
 
         if len(ret) != 0:
             file.write(ret)
+            return 0
         else:
             logging.warning("No variables found!!!")
-    return 0
+            return -1
+
+
+#
+# main script function
+#
+def main():
+    arguments = option_parser()
+    return read_all_uefi_vars(arguments.output_file, arguments.configuration_file)
 
 
 if __name__ == "__main__":

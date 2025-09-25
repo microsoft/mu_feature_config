@@ -33,6 +33,8 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern ConfState_t                        mConfState;
+extern BOOLEAN                            MainStateMachineRunning;
+extern volatile BOOLEAN                   gResetCalled;
 
 /**
   Entrypoint of configuration app. This function holds the main state machine for
@@ -102,24 +104,6 @@ BootOptionMgr (
 }
 
 /**
-  State machine for secure boot page. It will react to user input from keystroke
-  to set selected secure boot option or go back to previous page.
-
-  @retval EFI_SUCCESS           This iteration of state machine proceeds successfully.
-  @retval Others                Failed to wait for valid keystrokes or failed to set
-                                platform key to variable service.
-**/
-EFI_STATUS
-EFIAPI
-SecureBootMgr (
-  VOID
-  )
-{
-  SwitchMachineState ((ConfState_t)mock ());
-  return (EFI_STATUS)mock ();
-}
-
-/**
   State machine for configuration setup. It will react to user keystroke to accept
   configuration data from selected option.
 
@@ -181,6 +165,22 @@ Print (
   DEBUG ((DEBUG_INFO, "%a", Buffer));
 
   return Ret;
+}
+
+/**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
 }
 
 /**
@@ -337,7 +337,8 @@ ConfAppCleanup (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  mConfState = 0;
+  mConfState              = 0;
+  MainStateMachineRunning = TRUE;
 }
 
 /**
@@ -361,10 +362,10 @@ ConfAppEntrySelect1 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect1 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -374,7 +375,7 @@ ConfAppEntrySelect1 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '1';
@@ -388,11 +389,13 @@ ConfAppEntrySelect1 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -418,10 +421,10 @@ ConfAppEntrySelect2 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect2 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -431,25 +434,27 @@ ConfAppEntrySelect2 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '2';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (SecureBootMgr, MainExit);
-  will_return (SecureBootMgr, EFI_SUCCESS);
+  will_return (BootOptionMgr, MainExit);
+  will_return (BootOptionMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -475,9 +480,10 @@ ConfAppEntrySelect3 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect3 called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -488,25 +494,26 @@ ConfAppEntrySelect3 (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '3';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
 
-  will_return (BootOptionMgr, MainExit);
-  will_return (BootOptionMgr, EFI_SUCCESS);
+  will_return (SetupConfMgr, MainExit);
+  will_return (SetupConfMgr, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = 'y';
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -532,20 +539,21 @@ ConfAppEntrySelect4 (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_STATUS    Status;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelect4 called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
   will_return (MockEnableCursor, EFI_SUCCESS);
 
-  expect_any_count (MockSetCursorPosition, Column, 1);
-  expect_any_count (MockSetCursorPosition, Row, 1);
-  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
+  expect_any_count (MockSetCursorPosition, Column, 2);
+  expect_any_count (MockSetCursorPosition, Row, 2);
+  will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = '4';
@@ -559,11 +567,10 @@ ConfAppEntrySelect4 (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  expect_value (MockResetSystem, ResetType, EfiResetCold);
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  Status = ConfAppEntry (NULL, NULL);
+  UT_ASSERT_NOT_EFI_ERROR (Status);
 
   return UNIT_TEST_PASSED;
 }
@@ -589,11 +596,11 @@ ConfAppEntrySelectH (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_KEY_DATA              KeyData3;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA  KeyData3;
 
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectH called \n"));
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
   expect_value (MockEnableCursor, Visible, FALSE);
@@ -603,14 +610,12 @@ ConfAppEntrySelectH (
   expect_any_count (MockSetCursorPosition, Row, 2);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 2);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'h';
   KeyData1.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData1);
-
-  will_return (MockClearScreen, EFI_SUCCESS);
 
   KeyData2.Key.UnicodeChar = CHAR_NULL;
   KeyData2.Key.ScanCode    = SCAN_ESC;
@@ -620,11 +625,13 @@ ConfAppEntrySelectH (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -650,9 +657,10 @@ ConfAppEntrySelectEsc (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectEsc called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -663,7 +671,7 @@ ConfAppEntrySelectEsc (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -674,11 +682,13 @@ ConfAppEntrySelectEsc (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -704,10 +714,11 @@ ConfAppEntrySelectOther (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  EFI_KEY_DATA              KeyData3;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+  EFI_KEY_DATA  KeyData3;
+
+  DEBUG ((DEBUG_INFO, "ConfAppEntrySelectOther called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -718,7 +729,7 @@ ConfAppEntrySelectOther (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = 'q';
@@ -733,11 +744,13 @@ ConfAppEntrySelectOther (
   KeyData3.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData3);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -763,9 +776,10 @@ ConfAppEntryMfg (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_KEY_DATA              KeyData1;
-  EFI_KEY_DATA              KeyData2;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_KEY_DATA  KeyData1;
+  EFI_KEY_DATA  KeyData2;
+
+  DEBUG ((DEBUG_INFO, "ConfAppEntryMfg called \n"));
 
   will_return (MockSetWatchdogTimer, EFI_SUCCESS);
 
@@ -776,7 +790,7 @@ ConfAppEntryMfg (
   expect_any_count (MockSetCursorPosition, Row, 1);
   will_return_count (MockSetCursorPosition, EFI_SUCCESS, 1);
 
-  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockClearScreen, EFI_SUCCESS);
   will_return_always (MockSetAttribute, EFI_SUCCESS);
 
   KeyData1.Key.UnicodeChar = CHAR_NULL;
@@ -787,11 +801,13 @@ ConfAppEntryMfg (
   KeyData2.Key.ScanCode    = SCAN_NULL;
   will_return (MockReadKey, &KeyData2);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    ConfAppEntry (NULL, NULL);
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  ConfAppEntry (NULL, NULL);
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -842,9 +858,8 @@ UnitTestingEntry (
   // --------------Suite-----------Description--------------Name----------Function--------Pre---Post-------------------Context-----------
   //
   AddTestCase (MiscTests, "ConfApp Select 1 should go to System Info", "Select1", ConfAppEntrySelect1, NULL, ConfAppCleanup, NULL);
-  AddTestCase (MiscTests, "ConfApp Select 2 should go to Secure Boot", "Select2", ConfAppEntrySelect2, NULL, ConfAppCleanup, NULL);
-  AddTestCase (MiscTests, "ConfApp Select 3 should go to Boot Options", "Select3", ConfAppEntrySelect3, NULL, ConfAppCleanup, NULL);
-  AddTestCase (MiscTests, "ConfApp Select 4 should go to Setup Option", "Select4", ConfAppEntrySelect4, NULL, ConfAppCleanup, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 2 should go to Boot Options", "Select2", ConfAppEntrySelect2, NULL, ConfAppCleanup, NULL);
+  AddTestCase (MiscTests, "ConfApp Select 3 should go to Setup Option", "Select3", ConfAppEntrySelect3, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select h should reprint the options", "SelectH", ConfAppEntrySelectH, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select ESC should confirm reboot", "SelectEsc", ConfAppEntrySelectEsc, NULL, ConfAppCleanup, NULL);
   AddTestCase (MiscTests, "ConfApp Select other should do nothing", "SelectOther", ConfAppEntrySelectOther, NULL, ConfAppCleanup, NULL);

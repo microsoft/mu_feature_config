@@ -11,6 +11,7 @@ import uuid
 import argparse
 import re
 import VariableList
+from CommonUtility import get_xml_full_hash
 
 
 # Converts a type name from standard C to UEFI
@@ -632,6 +633,7 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
         out.write("//  Schema: {}".format(schema.path) + get_line_ending(efi_type))
+        out.write('CHAR8 *gSchemaXmlHash = "' + get_xml_full_hash(schema.path) + '";' + get_line_ending(efi_type))
         out.write("" + get_line_ending(efi_type))
 
         out.write("typedef struct {" + get_line_ending(efi_type))
@@ -993,6 +995,8 @@ def generate_getter_implementation(schema, header_path, efi_type):
     with open(header_path, 'w', newline='') as out:
         out.write(get_spdx_header(header_path, efi_type))
         out.write(get_include_once_style(header_path, uefi=efi_type, header=True))
+        out.write("#include <Library/PcdLib.h>" + get_line_ending(efi_type))
+        out.write("#include <Library/BaseMemoryLib.h>" + get_line_ending(efi_type))
         out.write("// The config public header must be included prior to this file" + get_line_ending(efi_type))
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))

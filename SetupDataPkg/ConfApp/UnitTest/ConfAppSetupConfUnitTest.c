@@ -39,7 +39,7 @@
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern SetupConfState_t                   mSetupConfState;
 extern POLICY_PROTOCOL                    *mPolicyProtocol;
-
+extern volatile BOOLEAN                   gResetCalled;
 typedef struct {
   UINTN    Tag;
   UINT8    *Data;
@@ -200,6 +200,22 @@ Print (
 }
 
 /**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
+}
+
+/**
   Mocked version of GetTime.
 
   @param[out]  Time             A pointer to storage to receive a snapshot of the current time.
@@ -290,7 +306,7 @@ MockLocateProtocol (
   OUT VOID      **Interface
   )
 {
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  assert_non_null (Protocol);
   // Check that this is the right protocol being located
   check_expected_ptr (Protocol);
 
@@ -567,9 +583,10 @@ ConfAppSetupConfSelectUsb (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
+  gResetCalled = FALSE;
 
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
@@ -626,11 +643,11 @@ ConfAppSetupConfSelectUsb (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  will_return (ResetCold, &JumpBuf);
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
 
-  if (!SetJump (&JumpBuf)) {
-    SetupConfMgr ();
-  }
+  SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }
@@ -656,11 +673,10 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                Status;
-  EFI_KEY_DATA              KeyData1;
-  UINTN                     Index;
-  CHAR8                     *KnowGoodXml;
-  BASE_LIBRARY_JUMP_BUFFER  JumpBuf;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+  UINTN         Index;
+  CHAR8         *KnowGoodXml;
 
   will_return (IsSystemInManufacturingMode, TRUE);
   will_return (MockClearScreen, EFI_SUCCESS);
@@ -727,11 +743,13 @@ ConfAppSetupConfSelectSerialWithArbitrarySVD (
   expect_value (MockSetVariable, DataSize, mKnown_Good_VarList_DataSizes[5]);
   expect_memory (MockSetVariable, Data, mKnown_Good_VarList_Entries[5], mKnown_Good_VarList_DataSizes[5]);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    SetupConfMgr ();
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  SetupConfMgr ();
+  UT_ASSERT_TRUE (gResetCalled); // Assert that reset was called
 
   return UNIT_TEST_PASSED;
 }

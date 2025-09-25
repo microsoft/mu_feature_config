@@ -7,7 +7,6 @@
 **/
 
 #include <Uefi.h>
-#include <UefiSecureBoot.h>
 #include <Guid/MuVarPolicyFoundationDxe.h>
 
 #include <Library/DebugLib.h>
@@ -16,16 +15,16 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
-#include <Library/ResetSystemLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootManagerLib.h>
-#include <Library/SecureBootKeyStoreLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/ConfigSystemModeLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/ResetUtilityLib.h>
 
 #include "ConfApp.h"
 
-#define MAIN_STATE_OPTIONS  6
+#define MAIN_STATE_OPTIONS  5
 
 CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   {
@@ -40,27 +39,18 @@ CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   {
     .KeyName             = L"2",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description         = L"Configure Secure Boot.",
-    .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '2',
-    .ScanCode            = SCAN_NULL,
-    .EndState            = SecureBoot
-  },
-  {
-    .KeyName             = L"3",
-    .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
     .Description         = L"Boot Options.",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '3',
+    .UnicodeChar         = '2',
     .ScanCode            = SCAN_NULL,
     .EndState            = BootOption
   },
   {
-    .KeyName             = L"4",
+    .KeyName             = L"3",
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
     .Description         = L"Update Setup Configuration.\n",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
-    .UnicodeChar         = '4',
+    .UnicodeChar         = '3',
     .ScanCode            = SCAN_NULL,
     .EndState            = SetupConf
   },
@@ -84,10 +74,9 @@ CONST ConfAppKeyOptions  MainStateOptions[MAIN_STATE_OPTIONS] = {
   }
 };
 
-ConfState_t                        mConfState       = MainInit;
-EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx = NULL;
-SECURE_BOOT_PAYLOAD_INFO           *mSecureBootKeys;
-UINT8                              mSecureBootKeysCount;
+ConfState_t                        mConfState              = MainInit;
+EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mSimpleTextInEx        = NULL;
+BOOLEAN                            MainStateMachineRunning = TRUE;
 
 /**
   Quick helper function to see if ReadyToBoot has already been signalled.
@@ -302,7 +291,7 @@ CheckSupportedOptions (
       continue;
     }
 
-    if (KeyOptions[Index].EndState == MAX_UINTN) {
+    if (KeyOptions[Index].EndState == MAX_UINT32) {
       continue;
     }
 
@@ -363,12 +352,6 @@ ConfAppEntry (
     DEBUG ((DEBUG_ERROR, "Unable to reset SimpleTextIn on ConIn. Code = %r.\n", Status));
   }
 
-  Status = GetPlatformKeyStore (&mSecureBootKeys, &mSecureBootKeysCount);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to get platform secure boot keys. Code = %r.\n", Status));
-    goto Exit;
-  }
-
   // Force-connect all controllers.
   //
   EfiBootManagerConnectAll ();
@@ -376,7 +359,7 @@ ConfAppEntry (
   //
   // Main state machine
   //
-  while (TRUE) {
+  while (MainStateMachineRunning) {
     switch (mConfState) {
       case MainInit:
         PrintScreenInit ();
@@ -413,9 +396,6 @@ ConfAppEntry (
       case SystemInfo:
         Status = SysInfoMgr ();
         break;
-      case SecureBoot:
-        Status = SecureBootMgr ();
-        break;
       case BootOption:
         Status = BootOptionMgr ();
         break;
@@ -435,7 +415,9 @@ ConfAppEntry (
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
         {
-          ResetCold ();
+          // Prepare Reset GUID
+          ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
+          CpuDeadLoop ();
         } else {
           mConfState = MainInit;
         }
@@ -451,7 +433,8 @@ ConfAppEntry (
     if (EFI_ERROR (Status)) {
       // The failed step might have done residue in sub state machines, reset the system to start over.
       ASSERT (FALSE);
-      ResetCold ();
+      // Prepare Reset GUID
+      ResetSystemWithSubtype (EfiResetCold, &gConfAppResetGuid);
       CpuDeadLoop ();
     }
   }

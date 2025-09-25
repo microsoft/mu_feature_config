@@ -19,7 +19,6 @@
   BootOptions.c
   ConfApp.c
   ConfApp.h
-  SecureBoot.c
   SetupConf.c
   SystemInfo.c
   SvdUsb/SvdUsb.c
@@ -42,10 +41,7 @@
   UefiRuntimeServicesTableLib
   MemoryAllocationLib
   UefiLib
-  ResetSystemLib
   UefiBootManagerLib
-  MuSecureBootKeySelectorLib
-  SecureBootKeyStoreLib
   JsonLiteParserLib
   FileHandleLib
   XmlTreeLib
@@ -54,10 +50,13 @@
   PerformanceLib
   ConfigSystemModeLib
   ConfigVariableListLib
+  BaseMemoryLib
+  ResetUtilityLib
 
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize

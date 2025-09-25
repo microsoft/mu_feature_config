@@ -109,14 +109,9 @@ def extract_single_var_from_file_and_write_nvram(var):
     return len(var)
 
 
-#
-# main script function
-#
-def main():
-    arguments = option_parser()
-
+def set_variable_from_file(setting_file):
     # read the entire file
-    with open(arguments.setting_file, "rb") as file:
+    with open(setting_file, "rb") as file:
         var = file.read()
 
         # go through the entire file parsing each dmpstore variable
@@ -124,6 +119,36 @@ def main():
         while len(var[start:]) != 0:
             start = start + extract_single_var_from_file_and_write_nvram(var[start:])
 
+
+def delete_var_by_guid_name(var_name, guid):
+    # convert var_name to utf16
+    VarName = var_name.encode('utf16').decode('utf16')
+    Guid = uuid.UUID(guid)
+    # pass None to Attributes and Data to clear the variable
+    Attributes = None
+    Data = None
+
+    logging.debug(f"Clear Variable: {VarName} {Guid} {Attributes}")
+
+    UefiVar = UefiVariable()
+    rc = UefiVar.SetUefiVar(
+        VarName,
+        Guid,
+        Data,
+        Attributes,
+    )
+    if rc == 0:
+        logging.debug(f"Error returned from SetUefiVar: {rc}")
+        return 0
+    return 1
+
+
+#
+# main script function
+#
+def main():
+    arguments = option_parser()
+    set_variable_from_file(arguments.setting_file)
     return 0
 
 

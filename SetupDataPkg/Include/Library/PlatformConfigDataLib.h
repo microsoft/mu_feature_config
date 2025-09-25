@@ -16,6 +16,7 @@
 #include <Uefi.h>
 #include <ConfigStdStructDefs.h>
 
+extern CHAR8      *gSchemaXmlHash;
 extern KNOB_DATA  gKnobData[];
 extern UINTN      gNumKnobs;
 extern PROFILE    gProfileData[];

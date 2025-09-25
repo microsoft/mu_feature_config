@@ -43,7 +43,6 @@
   DebugLib
   UnitTestLib
   PrintLib
-  ResetSystemLib
   SecureBootKeyStoreLib
   PerformanceLib
   ConfigSystemModeLib
@@ -55,3 +54,8 @@
 [Guids]
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
+  gConfAppResetGuid
+
+[BuildOptions]
+  MSFT:*_*_*_CC_FLAGS = /DCpuDeadLoop=MockCpuDeadLoop
+  GCC:*_*_*_CC_FLAGS = -D CpuDeadLoop=MockCpuDeadLoop

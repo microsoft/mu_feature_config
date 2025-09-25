@@ -8,6 +8,8 @@
 import os
 import sys
 import base64
+import datetime
+import ctypes
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -16,14 +18,23 @@ import tkinter                                                  # noqa: E402
 import tkinter.ttk as ttk                                       # noqa: E402
 import tkinter.messagebox as messagebox                         # noqa: E402
 import tkinter.filedialog as filedialog                         # noqa: E402
-from SettingSupport.SettingsXMLLib import SettingsXMLLib        # noqa: E402
 from GenNCCfgData import CGenNCCfgData                          # noqa: E402
+import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
+import ReadUefiVarsToConfVarList as uefi_var_read               # noqa: E402
+import BoardMiscInfo                                            # noqa: E402
+from VariableList import Schema                                 # noqa: E402
 from CommonUtility import (                                     # noqa: E402
     bytes_to_value,
     bytes_to_bracket_str,
     value_to_bytes,
     array_str_to_value,
+    get_xml_full_hash
 )
+
+
+def ask_yes_no(prompt):
+    result = messagebox.askyesno("Question", prompt)
+    return result
 
 
 class create_tool_tip(object):
@@ -39,6 +50,7 @@ class create_tool_tip(object):
         self.text = text
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
+        self.config_xml_path = None
 
     def enter(self, event=None):
         if self.in_progress:
@@ -371,7 +383,6 @@ class cfg_data:
 class application(tkinter.Frame):
     def __init__(self, master=None):
         root = master
-
         self.debug = True
         self.page_id = ""
         self.page_list = {}
@@ -382,6 +393,11 @@ class application(tkinter.Frame):
         # this maps page id to cfg_data index, needed for when user changes pages
         # self.page_cfg_map[page_id] = cfg_data_idx
         self.page_cfg_map = {}
+        self.bios_schema_xml_hash = None
+        # Pagination Setup
+        self.page_size = 500   # Number of items per page, this should be <= 532 in current version
+        self.current_page = 0  # Initial page
+        self.total_pages = 0   # Default value
 
         # Check if current directory contains a file with a .yaml extension
         # if not default self.last_dir to a Platform directory where it is
@@ -408,19 +424,54 @@ class application(tkinter.Frame):
             'Load Config from Change File',
         ]
 
+        self.variable_menu_string = [
+            'Load Runtime Variables from system',
+            'Save Runtime Variables to system',
+            'Delete Runtime Variables to system',
+        ]
+
         self.xml_specific_setting = [
             'Save Config Changes to Binary'
         ]
 
         root.geometry("1200x800")
 
+        # Add a frame for the top search bar
+        top_frame = tkinter.Frame(root)
+        top_frame.pack(side=tkinter.TOP, fill=tkinter.X, padx=10, pady=5)
+
+        # Add search label and entry
+        search_label = tkinter.Label(top_frame, text="Search:")
+        search_label.pack(side=tkinter.LEFT)
+
+        self.search_active = False
+        self.search_var = tkinter.StringVar()
+        search_entry = tkinter.Entry(top_frame, textvariable=self.search_var)
+        search_entry.pack(side=tkinter.LEFT, fill=tkinter.X, expand=True)
+        search_entry.bind('<Return>', lambda event: self.search_widget_label())
+
+        search_button = tkinter.Button(top_frame, text="Search", command=self.search_widget_label)
+        search_button.pack(side=tkinter.LEFT, padx=5)
+
+        self.match_label = tkinter.Label(top_frame, text="")
+        self.match_label.pack(side=tkinter.LEFT, padx=5)
+
+        up_button = tkinter.Button(top_frame, text="↑", command=self.search_previous)
+        up_button.pack(side=tkinter.LEFT)
+
+        down_button = tkinter.Button(top_frame, text="↓", command=self.search_next)
+        down_button.pack(side=tkinter.LEFT, padx=(0, 5))
+
+        clear_button = tkinter.Button(top_frame, text="Clear", command=self.clear_search)
+        clear_button.pack(side=tkinter.LEFT, padx=5)
+
         paned = ttk.Panedwindow(root, orient=tkinter.HORIZONTAL)
         paned.pack(fill=tkinter.BOTH, expand=True, padx=(4, 4))
 
-        status = tkinter.Label(
-            master, text="", bd=1, relief=tkinter.SUNKEN, anchor=tkinter.W
+        self.status = tkinter.Text(
+            master, height=8, bd=1, relief=tkinter.SUNKEN, wrap=tkinter.WORD
         )
-        status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.status.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 
         frame_left = ttk.Frame(paned, height=800, relief="groove")
 
@@ -475,6 +526,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label="Open Config file and Clear Old Config", command=self.load_from_ml_and_clear
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[0], command=self.save_to_bin, state="disabled"
         )
@@ -484,6 +536,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[2], command=self.load_from_bin, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[3], command=self.save_full_to_svd, state="disabled"
         )
@@ -493,6 +546,7 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[5], command=self.load_from_svd, state="disabled"
         )
+        file_menu.add_separator()
         file_menu.add_command(
             label=self.menu_string[6], command=self.save_full_to_delta, state="disabled"
         )
@@ -502,11 +556,60 @@ class application(tkinter.Frame):
         file_menu.add_command(
             label=self.menu_string[8], command=self.load_from_delta, state="disabled"
         )
+
+        file_menu.add_separator()
         file_menu.add_command(label="About", command=self.about)
         menubar.add_cascade(label="File", menu=file_menu)
         self.file_menu = file_menu
 
+        self.admin_mode = False
+        if os.name == 'nt' and ctypes.windll.shell32.IsUserAnAdmin():
+            self.admin_mode = True
+        elif os.name == 'posix' and os.getuid() == 0:
+            self.admin_mode = True
+
+        if self.admin_mode:
+            # Variable Menu
+            variable_menu = tkinter.Menu(menubar, tearoff=0)
+            variable_menu.add_command(
+                label=self.variable_menu_string[0], command=self.load_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[1], command=self.set_variable_runtime, state="disabled"
+            )
+            variable_menu.add_command(
+                label=self.variable_menu_string[2], command=self.del_all_variable_runtime, state="disabled"
+            )
+            menubar.add_cascade(label="Variables", menu=variable_menu)
+            self.variable_menu = variable_menu
+
         root.config(menu=menubar)
+
+        # Checking if we are in Manufacturing mode
+        bios_info_smbios_data = BoardMiscInfo.locate_smbios_entry(0)
+        # Check if we have the SMBIOS data in the first entry
+        bios_info_smbios_data = bios_info_smbios_data[0]
+        if (bios_info_smbios_data != []):
+            char_ext2_data = bios_info_smbios_data[0x13]
+            Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
+            print(f"Manufacturing : {Manufacturing_enabled:02X}")
+
+        self.bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
+
+        # get mfci policy
+        mfci_policy_result = BoardMiscInfo.get_mfci_policy()
+        self.canvas = tkinter.Canvas(master, width=240, height=50, bg=master['bg'], highlightthickness=0)
+        self.canvas.place(relx=1.0, rely=1.0, x=0, y=0, anchor='se')
+        self.canvas.create_text(
+            120, 25,
+            text=(
+                f"AdminMode: {self.admin_mode}\n"
+                f"Manufacturing Mode: {Manufacturing_enabled}\n"
+                f"Mfci Policy: {mfci_policy_result}"
+            ),
+            fill="black",
+            font=("Helvetica", 10, "bold")
+        )
 
         idx = 0
 
@@ -545,8 +648,141 @@ class application(tkinter.Frame):
                         idx += 1
                         self.load_cfg_file(sub_path, idx, False)
 
+    def search_widget_label(self):
+        self.current_matches = []
+        self.current_match_index = -1
+
+        def expand_tree_to_page(page_id_list):
+            leaf_list = []
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for leaf in self.left.get_children(child):
+                        leaf_list.append(leaf)
+            sorted_page_id_list = sorted(page_id_list, key=lambda x: leaf_list.index(x))
+            first_page_id = sorted_page_id_list[0]
+            self.left.selection_set(first_page_id)
+            self.left.see(first_page_id)
+
+        def find_matching_knob_name(data, struct_name):
+            return next((knob.name for knob in data.schema.knobs if knob.type == struct_name), False)
+
+        def highlight_left_tree_label(page_id_list):
+            self.left.tag_configure("highlight", background="yellow")
+            for item in self.left.get_children():
+                for child in self.left.get_children(item):
+                    for leaf in self.left.get_children(child):
+                        if leaf in page_id_list:
+                            self.left.item(leaf, tags="highlight")
+                            self.left.see(leaf)
+
+        def search_in_config_data(search_term):
+            search_term = search_term.lower()
+            page_id_list = set()
+            for cfg_data in self.cfg_data_list.values():
+                data = cfg_data.cfg_data_obj
+                for struct in data.schema.structs:
+                    for member in struct.members:
+                        name = (member.pretty_name or member.name).lower()
+                        if search_term in name:
+                            knob_name = find_matching_knob_name(data, struct.name)
+                            if knob_name:
+                                page_id = f"{data.schema.knobs[0].namespace}.{knob_name}"
+                                page_id_list.add(page_id)
+            return list(page_id_list)
+
+        search_term = self.search_var.get().lower()
+        if not search_term:
+            print("'Search term' is empty.")
+            return
+
+        self.clear_search(clear_search_bar=False)
+        search_result = search_in_config_data(search_term)
+        print(f"search result: {search_result}")
+        if search_result:
+            self.remove_highlight_in_left_tree()
+            self.search_active = True
+            expand_tree_to_page(search_result)
+            highlight_left_tree_label(search_result)
+            print(f"'{search_term}' found.")
+        else:
+            print(f"'{search_term}' not found.")
+            self.output_current_status(f"search term '{search_term}' not found.")
+
+    def remove_highlight_in_left_tree(self):
+        for item in self.left.get_children():
+            for child in self.left.get_children(item):
+                for leaf in self.left.get_children(child):
+                    self.left.item(leaf, tags=())
+
+    def clear_search(self, clear_search_bar=True):
+        if clear_search_bar:
+            self.search_var.set('')
+        self.remove_highlight_in_left_tree()
+        self.reset_widget_backgrounds()
+        self.master.focus_set()
+        self.search_active = False
+        self.current_matches = []
+        self.current_match_index = -1
+        self.match_label.config(text="")
+
+    def reset_widget_backgrounds(self):
+        for widget in self.right_grid.winfo_children():
+            if isinstance(widget, tkinter.Label):
+                widget.configure(background=self.cget("background"))
+
+    def highlight_label(self):
+        search_term = self.search_var.get().lower()
+        self.current_matches = [
+            widget for widget in self.right_grid.winfo_children()[1:]
+            if search_term in widget.cget('text').lower() and isinstance(widget, tkinter.Label)
+        ]
+
+        for widget in self.current_matches:
+            widget.configure(background="yellow")
+
+        if self.current_matches:
+            self.current_match_index = 0
+            self.highlight_current_entry()
+        else:
+            self.match_label.config(text="")
+
+    def highlight_current_entry(self):
+        if not self.current_matches:
+            return
+
+        widget_list = self.right_grid.winfo_children()[1:]
+        current_widget = self.current_matches[self.current_match_index]
+        label_index = widget_list.index(current_widget)
+        entry_widget = widget_list[label_index + 1]
+
+        if hasattr(entry_widget, 'selection_range'):
+            entry_value = entry_widget.get()
+            entry_widget.selection_range(0, len(entry_value))
+            entry_widget.focus_set()
+
+        self.conf_canvas.update_idletasks()
+        widget_y = current_widget.winfo_y()
+        new_scroll = max(0, min(1, widget_y / self.right_grid.winfo_height()))
+        self.conf_canvas.update()
+        self.conf_canvas.yview_moveto(new_scroll)
+
+        self.match_label.config(text=f"{self.current_match_index + 1}/{len(self.current_matches)}")
+
+    def search_previous(self):
+        if not self.search_active or not self.current_matches:
+            return
+
+        self.current_match_index = (self.current_match_index - 1) % len(self.current_matches)
+        self.highlight_current_entry()
+
+    def search_next(self):
+        if not self.search_active or not self.current_matches:
+            return
+
+        self.current_match_index = (self.current_match_index + 1) % len(self.current_matches)
+        self.highlight_current_entry()
+
     def set_object_name(self, widget, name, file_id):
-        # associate the name of the widget with the file it came from, in case of name conflicts
         self.conf_list[id(widget)] = (name, file_id)
 
     def get_object_name(self, widget):
@@ -654,8 +890,6 @@ class application(tkinter.Frame):
         if len(sel) > 0:
             page_id = sel[0]
             self.build_config_data_page(page_id)
-            self.update_widgets_visibility_on_page()
-            self.update_page_scroll_bar()
 
     def walk_widgets_in_layout(self, parent, callback_function, args=None):
         for widget in parent.winfo_children():
@@ -709,9 +943,92 @@ class application(tkinter.Frame):
             disp_list.append(item)
         row = 0
         disp_list.sort(key=lambda x: x["order"])
-        for item in disp_list:
+
+        # Handle empty list case
+        if len(disp_list) <= 2:
+            return
+
+        # Pagination
+        self.total_pages = (len(disp_list) - 2 + self.page_size - 1) // self.page_size  # Subtract 2 for header
+        # If the current page is out of range, set it to the last page
+        if self.current_page >= self.total_pages:
+            self.current_page = max(0, self.total_pages - 1)
+        page_start = 2 + self.current_page * self.page_size
+        page_end = min(page_start + self.page_size, len(disp_list))
+
+        # Add pagination buttons when total pages > 1
+        if self.total_pages > 1:
+            self.add_pagination_controls(page_id)
+            row += 1
+
+        # Always display the second row as the header
+        self.add_config_item(disp_list[1], row, self.page_cfg_map[page_id])
+        row += 2
+
+        for item in disp_list[page_start:page_end]:
             self.add_config_item(item, row, self.page_cfg_map[page_id])
             row += 2
+
+        # Update widgets and scrollbar
+        self.update_widgets_visibility_on_page()
+        self.update_page_scroll_bar()
+
+        if self.search_active:
+            self.highlight_label()
+
+    # Add pagination controls to navigate through pages
+    def add_pagination_controls(self, page_id):
+        button_frame = tkinter.Frame(self.right_grid)
+        button_frame.grid(row=0, column=0, pady=10, sticky="w")
+
+        # Previous Page Button
+        prev_button = tkinter.Button(button_frame, text="Previous Page", command=lambda: self.previous_page(page_id))
+        prev_button.pack(side=tkinter.LEFT, padx=5)
+        prev_button["state"] = "normal" if self.current_page > 0 else "disabled"
+
+        # Page Info Label
+        page_label = tkinter.Label(button_frame, text=f"Page {self.current_page + 1} / {self.total_pages}")
+        page_label.pack(side=tkinter.LEFT, padx=5)
+
+        # Page Entry (for user input)
+        page_entry = tkinter.Entry(button_frame, width=5)
+        page_entry.pack(side=tkinter.LEFT, padx=5)
+
+        # Go Button (Jump to specific page)
+        go_button = tkinter.Button(button_frame, text="Go", command=lambda: self.go_to_page(page_id, page_entry.get()))
+        go_button.pack(side=tkinter.LEFT, padx=5)
+
+        # Next Page Button
+        next_button = tkinter.Button(button_frame, text="Next Page", command=lambda: self.next_page(page_id))
+        next_button.pack(side=tkinter.LEFT, padx=5)
+        next_button["state"] = "normal" if self.current_page < self.total_pages - 1 else "disabled"
+
+    # Goes to the previous page and rebuilds the config page
+    def previous_page(self, page_id):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_config_data_on_page()
+            self.build_config_data_page(page_id)
+
+    # Goes to a specific page if the input is valid
+    def go_to_page(self, page_id, page_num):
+        try:
+            page_index = int(page_num) - 1  # Convert to 0-based
+            if page_index >= 0 and page_index < self.total_pages:
+                self.current_page = page_index
+                self.update_config_data_on_page()
+                self.build_config_data_page(page_id)
+            else:
+                self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
+        except ValueError:
+            self.output_current_status('[go_to_page] Skip invalid page number: %s' % page_num)
+
+    # Goes to the next page and rebuilds the config page
+    def next_page(self, page_id):
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self.update_config_data_on_page()
+            self.build_config_data_page(page_id)
 
     def load_config_data(self, file_name):
         if file_name.endswith('.xml'):
@@ -784,6 +1101,37 @@ class application(tkinter.Frame):
             return
         self.load_delta_file(path)
 
+    def set_variable_runtime(self):
+        self.update_config_data_on_page()
+        if (not ask_yes_no("Do you want to save the variable to the system?\n")):
+            return
+
+        runtime_var_delta_path = "RuntimeVarToWrite.vl"
+        bin = b''
+        for idx in self.cfg_data_list:
+            if self.cfg_data_list[idx].config_type == 'xml':
+                bin = self.cfg_data_list[idx].cfg_data_obj.generate_binary_array(True)
+
+        with open(runtime_var_delta_path, "wb") as fd:
+            fd.write(bin)
+
+        uefi_var_write.set_variable_from_file(runtime_var_delta_path)
+        self.load_variable_runtime()
+        self.output_current_status("Settings are set to system and save to RuntimeVar.vl")
+
+    def del_all_variable_runtime(self):
+        if (not ask_yes_no(f"Do you want to delete all variables in {self.config_xml_path} on system?\n")):
+            return
+
+        schema = Schema.load(self.config_xml_path)
+        for knob in schema.knobs:
+            self.output_current_status(f"Delete variable {knob.name} with namespace {knob.namespace}")
+            rc = uefi_var_write.delete_var_by_guid_name(knob.name, knob.namespace)
+            if rc == 0:
+                self.output_current_status(f"{knob.name} variable was not deleted from system {rc}")
+            else:
+                self.output_current_status(f"{knob.name} variable is deleted from system")
+
     def load_delta_file(self, path):
         # assumption is there may be multiple xml files
         # so we can only load this delta file if the file name matches to this xml data
@@ -837,6 +1185,8 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
 
+        self.output_current_status(f"{path} file is loaded")
+
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
         if clear_config is True:
@@ -863,6 +1213,21 @@ class application(tkinter.Frame):
         for menu in self.menu_string:
             self.file_menu.entryconfig(menu, state="normal")
 
+        if self.admin_mode:
+            for menu in self.variable_menu_string:
+                self.variable_menu.entryconfig(menu, state="normal")
+
+        self.config_xml_path = path
+        self.output_current_status(f"{path} file is loaded")
+        # load xml file and get the hash value of all xml nodes
+        config_xml_hash = get_xml_full_hash(self.config_xml_path)
+
+        # Compare the xml hash and the hash claimed in FW.
+        if self.bios_schema_xml_hash is not None and config_xml_hash != self.bios_schema_xml_hash:
+            self.output_current_status("WARNING: Config xml file hash mismatches with system FW", color="red")
+            self.output_current_status(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
+            self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")
+
         return 0
 
     def load_from_ml_and_clear(self):
@@ -884,6 +1249,17 @@ class application(tkinter.Frame):
         file_id = len(self.cfg_data_list)
 
         self.load_cfg_file(path, file_id, False)
+
+    def load_variable_runtime(self):
+        status = uefi_var_read.read_all_uefi_vars("RuntimeVar.vl", self.config_xml_path)
+        info_msg = "Settings are read from system and save to RuntimeVar.vl"
+        if status == -1:
+            info_msg = f"No Config Var is found, all the data from from {self.config_xml_path}"
+            messagebox.showinfo("WARNING", f"No Config Var is found, all the data from from {self.config_xml_path}")
+        else:
+            self.load_bin_file("RuntimeVar.vl")
+
+        self.output_current_status(info_msg)
 
     def get_save_file_name(self, extension):
         file_ext = extension.split(' ')
@@ -916,6 +1292,44 @@ class application(tkinter.Frame):
             self.cfg_data_list[file_id].cfg_data_obj.generate_delta_file_from_bin(
                 csv_path, self.cfg_data_list[file_id].org_cfg_data_bin, new_data, full
             )
+
+    def create_settings_xml(self, filename, version, lsv, settingslist):
+
+        with open(filename, "w") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write('<SettingsPacket xmlns="urn:UefiSettings-Schema">\n')
+            f.write('    <CreatedBy>Dfci Testcase Libraries</CreatedBy>\n')
+            f.write('    <CreatedOn>')
+
+            print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), end='', file=f)
+
+            f.write('</CreatedOn>\n')
+            f.write('    <Version>')
+            print(version, end='', file=f)
+            f.write('</Version>\n')
+            f.write('    <LowestSupportedVersion>')
+            print(lsv, end='', file=f)
+            f.write('</LowestSupportedVersion>\n')
+            f.write('    <Settings>\n')
+
+            #
+            # The settings list is a list of a list.  The lowest level list is really a tuple of
+            # setting id and value
+            #
+            for setting in settingslist:
+                f.write('        <Setting>\n')
+                f.write('            <Id>')
+                print(setting[0], end='', file=f)
+                f.write('</Id>\n')
+                f.write('            <Value>')
+                print(setting[1], end='', file=f)
+                f.write('</Value>\n')
+                f.write('        </Setting>\n')
+
+            f.write('    </Settings>\n')
+            f.write('</SettingsPacket>\n')
+
+        return True
 
     def save_to_svd(self, full):
         path = self.get_save_file_name("svd")
@@ -951,8 +1365,7 @@ class application(tkinter.Frame):
                         (name_array[index], b64data.decode("utf-8"))
                     )
 
-        set_lib = SettingsXMLLib()
-        set_lib.create_settings_xml(
+        self.create_settings_xml(
             filename=temp_file, version=1, lsv=1, settingslist=settings
         )
 
@@ -1053,6 +1466,7 @@ class application(tkinter.Frame):
                     "Update %s from %s to %s !"
                     % (item["cname"], item["value"], new_value)
                 )
+                self.output_current_status("Update %s from %s to %s !" % (item["cname"], item["value"], new_value))
             item["value"] = new_value
 
     def get_config_data_item_from_widget(self, widget, label=False):
@@ -1244,6 +1658,16 @@ class application(tkinter.Frame):
         self.walk_widgets_in_layout(
             self.right_grid, self.update_config_data_from_widget
         )
+
+    def output_current_status(self, output_log, color="black"):
+        unique_tag = f"color_{color}"
+        # Configure the color tag only if it hasn't been set before
+        if unique_tag not in self.status.tag_names():
+            self.status.tag_config(unique_tag, foreground=color)
+
+        # Insert the log with the unique color tag
+        self.status.insert(tkinter.END, output_log + "\n", (unique_tag,))
+        self.status.see(tkinter.END)  # Auto-scroll to the bottom
 
 
 if __name__ == "__main__":

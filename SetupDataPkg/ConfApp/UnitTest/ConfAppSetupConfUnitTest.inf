@@ -45,7 +45,6 @@
   UnitTestLib
   PrintLib
   PerformanceLib
-  ResetSystemLib
   XmlTreeLib
   XmlTreeQueryLib
   SvdXmlSettingSchemaSupportLib
@@ -70,6 +69,8 @@
   gMuVarPolicyDxePhaseGuid
   gEfiEventReadyToBootGuid
   gZeroGuid
+  gConfAppResetGuid
 
 [BuildOptions]
-  *_*_*_CC_FLAGS = -D UNIT_TEST_ENV
+  MSFT:*_*_*_CC_FLAGS = /DCpuDeadLoop=MockCpuDeadLoop /D UNIT_TEST_ENV
+  GCC:*_*_*_CC_FLAGS = -D CpuDeadLoop=MockCpuDeadLoop  -D UNIT_TEST_ENV

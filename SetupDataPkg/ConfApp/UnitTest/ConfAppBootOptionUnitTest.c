@@ -33,6 +33,7 @@
 
 extern EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  MockSimpleInput;
 extern BootOptState_t                     mBootOptState;
+extern volatile BOOLEAN                   gResetCalled;
 
 /**
   State machine for system information page. It will display fundamental information, including
@@ -187,6 +188,39 @@ Print (
   DEBUG ((DEBUG_INFO, "%a", Buffer));
 
   return Ret;
+}
+
+/**
+  Calling this function causes a system-wide reset. This sets
+  all circuitry within the system to its initial state. This type of reset
+  is asynchronous to system operation and operates without regard to
+  cycle boundaries.
+
+  System reset should not return, if it returns, it means the system does
+  not support cold reset.
+**/
+VOID
+EFIAPI
+ResetCold (
+  VOID
+  )
+{
+}
+
+/**
+ * Mock implementation of CpuDeadLoop to prevent actual deadlocks during testing.
+ * This function immediately returns instead of causing an infinite loop,
+ * allowing tests to run without hanging the system.
+ *
+ * @return None
+ */
+VOID
+EFIAPI
+MockCpuDeadLoop (
+  VOID
+  )
+{
+  return;
 }
 
 /**
@@ -416,9 +450,9 @@ ConfAppBootOptSelectOne (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption = {
     .Description = L"Test1",
     .Attributes  = 0xFEEDF00D
@@ -453,11 +487,13 @@ ConfAppBootOptSelectOne (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
 
-  if (!SetJump (&JumpBuf)) {
-    BootOptionMgr ();
-  }
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  BootOptionMgr ();
+  UT_ASSERT_TRUE (gResetCalled);
 
   return UNIT_TEST_PASSED;
 }
@@ -483,9 +519,9 @@ ConfAppBootOptSelectMore (
   IN UNIT_TEST_CONTEXT  Context
   )
 {
-  EFI_STATUS                    Status;
-  EFI_KEY_DATA                  KeyData1;
-  BASE_LIBRARY_JUMP_BUFFER      JumpBuf;
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+
   EFI_BOOT_MANAGER_LOAD_OPTION  BootOption[2] = {
     {
       .Description = L"Test1",
@@ -526,11 +562,12 @@ ConfAppBootOptSelectMore (
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
-  will_return (ResetCold, &JumpBuf);
+  gResetCalled = FALSE;
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
 
-  if (!SetJump (&JumpBuf)) {
-    BootOptionMgr ();
-  }
+  BootOptionMgr ();
+  UT_ASSERT_TRUE (gResetCalled);
 
   return UNIT_TEST_PASSED;
 }

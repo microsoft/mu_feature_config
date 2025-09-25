@@ -12,10 +12,11 @@
 # https://www.python.org/dev/peps/pep-0440/#version-specifiers
 ##
 
-edk2-pytool-library==0.21.10
-edk2-pytool-extensions==0.27.11
+edk2-pytool-library==0.23.2
+edk2-pytool-extensions==0.29.2
 antlr4-python3-runtime==4.13.2
-xmlschema==3.3.2
-regex==2024.7.24
-pywin32==306; sys_platform == 'win32'
-pygount==1.8.0
+xmlschema==4.1.0
+regex==2025.9.18
+pywin32==311; sys_platform == 'win32'
+pygount==3.1.0
+chardet==5.2.0
