@@ -2619,8 +2619,7 @@ def parse_inf_to_xml(tool_config):
     # Add comment to indicate the GUID namespace
     root.append(ET.Comment(' namespace indicates the GUID namespace the values are stored in '))
 
-    # Use the fixed GUID for now
-    knobs_guid = uuid.UUID('DE20F1E8-A9EB-4473-802F-31BC30D121D9')
+    knobs_guid = uuid.uuid4()
     guid_upper = str(knobs_guid).upper()
     knobs_element = ET.SubElement(root, 'Knobs', attrib={
         'namespace': f'{{{guid_upper}}}'
