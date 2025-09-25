@@ -1274,6 +1274,7 @@ def write_csv_detailed(schema, csv_path):
                 if subknob.leaf:
                     # Get all valid values for each knob
                     subknob_values = ""
+                    subknob_values_str = ""
                     if isinstance(subknob.format, EnumFormat):
                         subknob_values = subknob.format.values
                         subknob_values_str = '[' + ', '.join(f"'{value.name}'" for value in subknob_values) + ']'
