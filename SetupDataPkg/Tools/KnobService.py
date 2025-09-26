@@ -633,7 +633,12 @@ def generate_cached_implementation(schema, header_path, efi_type=False, no_chang
         out.write("// Generated Header" + get_line_ending(efi_type))
         out.write("//  Script: {}".format(sys.argv[0]) + get_line_ending(efi_type))
         out.write("//  Schema: {}".format(schema.path) + get_line_ending(efi_type))
-        out.write('CHAR8 *gSchemaXmlHash = "' + get_xml_full_hash(schema.path) + '";' + get_line_ending(efi_type))
+        out.write(
+            'CHAR8 *gSchemaXmlHash = (CHAR8*)"'
+            + get_xml_full_hash(schema.path)
+            + '";'
+            + get_line_ending(efi_type)
+        )
         out.write("" + get_line_ending(efi_type))
 
         out.write("typedef struct {" + get_line_ending(efi_type))
@@ -1049,7 +1054,7 @@ def generate_getter_implementation(schema, header_path, efi_type):
 
         out.write(get_spacing_string(efi_type))
         out.write("Status = GetPolicy (")
-        out.write("PcdGetPtr (PcdConfigurationPolicyGuid), NULL,")
+        out.write("(const EFI_GUID *)PcdGetPtr (PcdConfigurationPolicyGuid), NULL,")
         out.write(" Cache + CACHED_POLICY_HEADER_SIZE, &ConfPolSize);" + get_line_ending(efi_type))
         out.write(get_spacing_string(efi_type))
         out.write("if ((EFI_ERROR (Status)) || (ConfPolSize != CACHED_POLICY_SIZE)) {" + get_line_ending(efi_type))
