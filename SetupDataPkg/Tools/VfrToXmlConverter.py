@@ -60,6 +60,9 @@ class vfr_xml_config:
         # (Optional) For preprocessing the FixedPcdGet portions in VFR files
         self.input_build_report = ''
 
+        # (Optional) Alphabetical sorted
+        self.alphabetical_sorted = False
+
         # Default path setup for cl
         self.VsDevCmd_path = r'C:\BuildTools\Common7\Tools\VsDevCmd.bat'
 
@@ -2315,6 +2318,144 @@ def xml_root_to_string(xml_root, xml_file_path, verbose=1):
             logger.info('\nOutput file: %s' % xml_file_path)
 
 
+# Output the given XML root after alphabetical sorted
+# xml_root: The root of ET.Element
+def xml_alphabetical_sorted(xml_root):
+    input_list = {
+        "Enum": [],
+        "Struct": [],
+        "Member": [],
+        "Knob": []
+    }
+    name_sorted_list = {
+        "Enum": [],
+        "Struct": [],
+        "Knob": []
+    }
+    # Dynamic create member_name dict
+    member_name_sorted_list = {}
+    sorted_xml_string = {
+        "Enum": "",
+        "Struct": "",
+        "Knob": ""
+    }
+    # Dynamic create member string dict
+    sorted_member_xml_string = {}
+    base_section = {
+        "Enums": xml_root.find('Enums'),
+        "Structs": xml_root.find('Structs'),
+        "Knobs": xml_root.find('Knobs')
+    }
+
+    # Get sorted list for each section
+    for base_section_values in base_section.values():
+        match base_section_values.tag:
+            case 'Enums':
+                # Get sorted enum_name
+                for enum in base_section_values.findall('Enum'):
+                    enum_name = enum.get('name')
+                    input_list["Enum"].append(enum_name)
+                name_sorted_list["Enum"] = sorted(input_list["Enum"])
+            case 'Structs':
+                # Get sorted struct_name and member_name
+                index = 0
+                for struct in base_section_values.findall('Struct'):
+                    input_list["Member"] = []
+                    for member in struct.findall('Member'):
+                        member_name = member.get('name')
+                        input_list["Member"].append(member_name)
+                    key = "{}".format(struct.get('name'))
+                    member_name_sorted_list[key] = sorted(input_list["Member"])
+                    index += 1
+                    struct_name = struct.get('name')
+                    input_list["Struct"].append(struct_name)
+                name_sorted_list["Struct"] = sorted(input_list["Struct"])
+            case 'Knobs':
+                # Get sorted knob_name
+                for knob in base_section_values.findall('Knob'):
+                    knob_name = knob.get('name')
+                    input_list["Knob"].append(knob_name)
+                name_sorted_list["Knob"] = sorted(input_list["Knob"])
+
+    # Fill sorted_xml_string
+    for case in sorted_xml_string:
+        for item in name_sorted_list[case]:
+            match case:
+                case "Enum":
+                    for enum in base_section["Enums"].findall('Enum'):
+                        if str(enum.get('name')) == str(item):
+                            sorted_xml_string[case] += ET.tostring(enum, encoding='unicode').strip()
+                            break
+                case "Struct":
+                    for struct in base_section["Structs"].findall('Struct'):
+                        if str(struct.get('name')) == str(item):
+                            sorted_xml_string[case] += ET.tostring(struct, encoding='unicode').strip()
+                            break
+                case "Knob":
+                    for knob in base_section["Knobs"].findall('Knob'):
+                        if str(knob.get('name')) == str(item):
+                            sorted_xml_string[case] += ET.tostring(knob, encoding='unicode').strip()
+                            break
+
+    # Fill sorted_member_xml_string
+    sorted_member_xml_string = {key: "" for key in sorted(member_name_sorted_list.keys())}
+    for key, value in member_name_sorted_list.items():
+        for str_key in sorted_member_xml_string.keys():
+            if str_key == key:
+                for item in value:
+                    for struct in base_section["Structs"].findall('Struct'):
+                        if str(struct.get('name')) == str(str_key):
+                            for member in struct.findall('Member'):
+                                if str(member.get('name')) == str(item):
+                                    member_str = ET.tostring(member, encoding='unicode').strip()
+                                    sorted_member_xml_string[str_key] += member_str
+
+    # Create enums_root
+    enums_root = ET.fromstring(f"<Enums>{sorted_xml_string['Enum']}</Enums>")
+
+    # Create structs_root
+    structs_root = ET.fromstring(f"<Structs>{sorted_xml_string['Struct']}</Structs>")
+    for index, struct in enumerate(structs_root.findall('Struct')):
+        for key, member_str in sorted_member_xml_string.items():
+            if str(key) == str(struct.get('name')):
+                struct_str = f"""
+                <Struct name="{str(struct.get('name'))}" help="{str(struct.get('help'))}">
+                {member_str}
+                </Struct>
+                """
+                structs_root.remove(struct)
+                structs_root.insert(index, ET.fromstring(struct_str))
+
+    # Create knobs_root
+    knobs_namespace = base_section["Knobs"].get('namespace')
+    knobs_str = f"""
+    <Knobs namespace="{knobs_namespace}">
+    {sorted_xml_string['Knob']}
+    </Knobs>
+    """
+    knobs_root = ET.fromstring(knobs_str)
+    guid_parts = uuid.UUID(knobs_namespace, version=4).hex
+    formatted_guid = (
+        f' {{ 0x{guid_parts[:8]}, 0x{guid_parts[8:12]}, 0x{guid_parts[12:16]}, '
+        f'{{{", ".join(f"0x{guid_parts[i:i + 2]}" for i in range(16, 32, 2))}}} }} '
+    )
+    comment = ET.Comment(f"{formatted_guid}")
+    knobs_root.insert(0, comment)
+
+    # Update sorted ET.Element into xml_root
+    for index, child in enumerate(list(xml_root)):
+        match child.tag:
+            case 'Enums':
+                xml_root.remove(child)
+                xml_root.insert(index, enums_root)
+            case 'Structs':
+                xml_root.remove(child)
+                xml_root.insert(index, structs_root)
+            case 'Knobs':
+                xml_root.remove(child)
+                xml_root.insert(index, knobs_root)
+
+
 # Parse a list of vfr files according to the given input inf files, and generate a xml file with the option structures
 # tool_config:
 #   input_inf_dict: Dictionary that stores the input inf files:
@@ -2640,6 +2781,10 @@ def parse_inf_to_xml(tool_config):
             'name': knob_name,
             'type': struct_name
         })
+
+    # Alphabetical sorted
+    if tool_config.alphabetical_sorted:
+        xml_alphabetical_sorted(root)
 
     # Generate the XML string and output to a file
     xml_root_to_string(root, tool_config.output_file_path, verbose=1)
@@ -3058,6 +3203,12 @@ def ProcessArgs():
         action="store_true"
     )
     argParser.add_argument('-ca', '--check_all', help='Check all checkboxes by default', action="store_true")
+    argParser.add_argument(
+        '-as',
+        '--alphabetical_sorted',
+        help='Alphabetical sorted Config XML files.',
+        action="store_true"
+    )
 
     # Specify input/output files
     argParser.add_argument('-cfg', '--cfg_xml', nargs='+', help='Load Config XML file(s)')
@@ -3158,6 +3309,10 @@ if __name__ == '__main__':
     # output.xml
     if args.output_xml:
         tool_config.output_file_path = args.output_xml
+
+    # Alphabetical sorted
+    if args.alphabetical_sorted:
+        tool_config.alphabetical_sorted = True
 
     # Configure paths with inputs
     tool_config.configure_paths()
