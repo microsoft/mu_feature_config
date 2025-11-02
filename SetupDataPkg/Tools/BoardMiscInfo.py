@@ -8,6 +8,7 @@
 
 import ctypes
 import struct
+import platform
 from edk2toollib.os.uefivariablesupport import UefiVariable
 
 
@@ -52,20 +53,59 @@ def get_schema_xml_hash_from_bios():
 
 
 def locate_smbios_data():
-    # Define constants
-    FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
-    SMBIOS_TABLE = 0x53
+    """
+    Locate and return SMBIOS data.
 
-    # Load the kernel32.dll library
-    kernel32 = ctypes.windll.kernel32
+    This function works on both Windows and Linux platforms:
+    - Windows: Uses GetSystemFirmwareTable API via kernel32.dll
+    - Linux: Reads from /sys/firmware/dmi/tables/DMI
 
-    buffer_size = kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, None, 0)
-    buffer = ctypes.create_string_buffer(buffer_size)
-    kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, buffer, buffer_size)
+    Returns:
+        bytes: Raw SMBIOS data, or None if unavailable
 
-    # Convert the buffer to bytes for easier manipulation
-    smbios_data = buffer.raw
-    return smbios_data
+    Raises:
+        Exception: If SMBIOS data cannot be retrieved
+    """
+    system_platform = platform.system()
+
+    if system_platform == "Windows":
+        try:
+            # Define constants
+            FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
+            SMBIOS_TABLE = 0x53
+
+            # Load the kernel32.dll library
+            kernel32 = ctypes.windll.kernel32
+
+            buffer_size = kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, None, 0)
+            if buffer_size == 0:
+                raise Exception("Failed to get SMBIOS table size on Windows")
+
+            buffer = ctypes.create_string_buffer(buffer_size)
+            kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, buffer, buffer_size)
+
+            # Convert the buffer to bytes for easier manipulation
+            smbios_data = buffer.raw
+            return smbios_data
+        except Exception as e:
+            raise Exception(f"Failed to retrieve SMBIOS data on Windows: {e}")
+
+    elif system_platform == "Linux":
+        try:
+            # On Linux, SMBIOS data is available in /sys/firmware/dmi/tables/DMI
+            dmi_path = "/sys/firmware/dmi/tables/DMI"
+            with open(dmi_path, "rb") as dmi_file:
+                smbios_data = dmi_file.read()
+            return smbios_data
+        except PermissionError:
+            raise Exception("Permission denied reading SMBIOS data. Root/sudo access may be required on Linux.")
+        except FileNotFoundError:
+            raise Exception("SMBIOS data not available at /sys/firmware/dmi/tables/DMI")
+        except Exception as e:
+            raise Exception(f"Failed to retrieve SMBIOS data on Linux: {e}")
+
+    else:
+        raise Exception(f"SMBIOS data retrieval not supported on platform: {system_platform}")
 
 
 # Helper function to calculate the total string data of an SMBIOS entry
@@ -81,11 +121,27 @@ def calc_smbios_string_len(smbios_data, string_data_offset):
 
 
 def locate_smbios_entry(smbios_type):
-    found_smbios_entry = []
-    smbios_data = locate_smbios_data()
+    """
+    Locate SMBIOS entries of a specific type.
 
-    # Offset the first 8 bytes of SMBIOS entry data
-    offset = 8
+    Args:
+        smbios_type: The SMBIOS structure type to search for
+
+    Returns:
+        list: List of SMBIOS entries of the specified type, or None if not found or on error
+    """
+    found_smbios_entry = []
+
+    try:
+        smbios_data = locate_smbios_data()
+    except Exception as e:
+        print(f"Warning: Could not retrieve SMBIOS data: {e}")
+        return None
+
+    # Offset the first 8 bytes of SMBIOS entry data on Windows
+    # Linux DMI file doesn't have this header, so detect based on platform
+    system_platform = platform.system()
+    offset = 8 if system_platform == "Windows" else 0
 
     # Iterate over all SMBIOS structures until we find given smbios_type
     while offset < len(smbios_data):
