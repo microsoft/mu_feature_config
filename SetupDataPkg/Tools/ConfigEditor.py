@@ -31,6 +31,9 @@ from CommonUtility import (                                     # noqa: E402
     get_xml_full_hash
 )
 
+# SMBIOS BIOS Information structure constants
+SMBIOS_BIOS_CHAR_EXT2_OFFSET = 0x13  # Offset to Characteristics Extension Byte 2
+
 
 def ask_yes_no(prompt):
     result = messagebox.askyesno("Question", prompt)
@@ -591,8 +594,8 @@ class application(tkinter.Frame):
         # Check if we have the SMBIOS data in the first entry
         if bios_info_smbios_data is not None and len(bios_info_smbios_data) > 0:
             bios_info_smbios_data = bios_info_smbios_data[0]
-            if (bios_info_smbios_data != []) and len(bios_info_smbios_data) > 0x13:
-                char_ext2_data = bios_info_smbios_data[0x13]
+            if (bios_info_smbios_data != []) and len(bios_info_smbios_data) > SMBIOS_BIOS_CHAR_EXT2_OFFSET:
+                char_ext2_data = bios_info_smbios_data[SMBIOS_BIOS_CHAR_EXT2_OFFSET]
                 Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
                 print(f"Manufacturing : {Manufacturing_enabled:02X}")
 

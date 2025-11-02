@@ -61,7 +61,7 @@ def locate_smbios_data():
     - Linux: Reads from /sys/firmware/dmi/tables/DMI
 
     Returns:
-        bytes: Raw SMBIOS data, or None if unavailable
+        bytes: Raw SMBIOS data
 
     Raises:
         Exception: If SMBIOS data cannot be retrieved
