@@ -15,7 +15,7 @@
 edk2-pytool-library==0.23.11
 edk2-pytool-extensions==0.30.6
 antlr4-python3-runtime==4.13.2
-xmlschema==4.2.0
+xmlschema==4.3.0
 regex==2025.11.3
 pywin32==311; sys_platform == 'win32'
 pygount==3.1.0
