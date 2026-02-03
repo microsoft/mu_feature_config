@@ -898,7 +898,6 @@ ConfAppSetupConfDumpSerialMini (
 
   BufferSize += (UINTN)TmpSize;
 
-  DEBUG ((DEBUG_ERROR, "Here %d %d\n", __LINE__, BufferSize));
   Buffer = AllocatePool (BufferSize);
   UT_ASSERT_NOT_NULL (Buffer);
 

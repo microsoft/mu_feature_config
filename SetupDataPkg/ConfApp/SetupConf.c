@@ -684,7 +684,7 @@ CreateXmlStringFromCurrentSettings (
   // Get SettingsPacket Node
   CurrentSettingsNode = GetCurrentSettingsPacketNode (List);
   if (CurrentSettingsNode == NULL) {
-    DEBUG ((DEBUG_INFO, "Failed to Get GetCurrentSettingsPacketNode Node\n"));
+    DEBUG ((DEBUG_ERROR, "Failed to Get GetCurrentSettingsPacketNode Node\n"));
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
@@ -697,7 +697,7 @@ CreateXmlStringFromCurrentSettings (
   AsciiValueToStringS (&(LsvString[0]), sizeof (LsvString), 0, (UINT32)Lsv, 19);
   Status = AddSettingsLsvNode (CurrentSettingsNode, LsvString);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_INFO, "Failed to set LSV Node for current settings. %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "Failed to set LSV Node for current settings. %r\n", Status));
     goto EXIT;
   }
 
@@ -706,7 +706,7 @@ CreateXmlStringFromCurrentSettings (
   //
   CurrentSettingsListNode = GetSettingsListNodeFromPacketNode (CurrentSettingsNode);
   if (CurrentSettingsListNode == NULL) {
-    DEBUG ((DEBUG_INFO, "Failed to Get Settings List Node from Packet Node\n"));
+    DEBUG ((DEBUG_ERROR, "Failed to Get Settings List Node from Packet Node\n"));
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
