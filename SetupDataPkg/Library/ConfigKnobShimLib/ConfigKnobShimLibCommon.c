@@ -80,7 +80,7 @@ Exit:
     // the size mismatched. Only debug verbose here as this is expected to happen in the majority of cases.
     DEBUG ((
       DEBUG_VERBOSE,
-      "%a: failed to find override for config knob %a with status %r. Expected size: %u, found size: %u.\n",
+      "%a: failed to find override for config knob %s with status %r. Expected size: %u, found size: %u.\n",
       __FUNCTION__,
       ConfigKnobName,
       Status,
