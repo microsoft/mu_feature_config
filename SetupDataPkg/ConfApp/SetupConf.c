@@ -287,7 +287,7 @@ ApplySettings (
   //
   Status = CreateXmlTree ((CHAR8 *)Buffer, Count, &InputRootNode);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Couldn't create a node list from the payload xml  %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Couldn't create a node list from the payload xml  %r\n", __func__, Status));
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
@@ -302,14 +302,14 @@ ApplySettings (
   //
   Status = gRT->GetTime (&ApplyTime, NULL);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to get time. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to get time. %r\n", __func__, Status));
     Status = EFI_ABORTED;
     goto EXIT;
   }
 
   ResultRootNode = New_ResultPacketNodeList (&ApplyTime);
   if (ResultRootNode == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - Couldn't create a node list from the result xml.\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - Couldn't create a node list from the result xml.\n", __func__));
     Status = EFI_ABORTED;
     goto EXIT;
   }
@@ -369,7 +369,7 @@ ApplySettings (
   }
 
   if (Lsv > Version) {
-    DEBUG ((DEBUG_ERROR, "%a - LSV (%a) can't be larger than current version\n", __FUNCTION__, InputTempNode->Value));
+    DEBUG ((DEBUG_ERROR, "%a - LSV (%a) can't be larger than current version\n", __func__, InputTempNode->Value));
     Status = EFI_NO_MAPPING;
     goto EXIT;
   }
@@ -432,7 +432,7 @@ ApplySettings (
     // Just write the variable
     Status = WriteSVDSetting (SetValue, ValueSize);
 
-    DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __FUNCTION__, Id, Value, Status));
+    DEBUG ((DEBUG_INFO, "%a - Set %a = %a. Result = %r\n", __func__, Id, Value, Status));
 
     // all done.
   } // end for loop
@@ -516,7 +516,7 @@ ProcessSvdUsbInput (
     }
 
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a: Error updating from JSON packet. Code=%r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a: Error updating from JSON packet. Code=%r\n", __func__, Status));
     }
   }
 
@@ -575,7 +575,7 @@ ProcessSvdSerialInput (
       DEBUG ((
         DEBUG_ERROR,
         "%a Configuration data offset (0x%x) is out of boundary (0x%x)\n",
-        __FUNCTION__,
+        __func__,
         mConfDataOffset,
         mConfDataSize
         ));
@@ -590,7 +590,7 @@ ProcessSvdSerialInput (
     TempAsciiStr                       = AllocateZeroPool (mConfDataOffset);
     Status                             = UnicodeStrToAsciiStrS (mConfDataBuffer, TempAsciiStr, mConfDataOffset);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to convert received data to Ascii string - %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a Failed to convert received data to Ascii string - %r\n", __func__, Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
     }
@@ -598,13 +598,13 @@ ProcessSvdSerialInput (
     Status = ApplySettings (TempAsciiStr, mConfDataOffset - 1);
     if (Status == EFI_NO_MAPPING) {
       // When failing to parse incoming buffer, we give users another chance, after cleaning up the buffer.
-      DEBUG ((DEBUG_ERROR, "%a Failed to parse SVD file.\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a Failed to parse SVD file.\n", __func__));
       FreePool (mConfDataBuffer);
       mConfDataBuffer = NULL;
       goto Exit;
     } else if (EFI_ERROR (Status)) {
       // For other failures, we either assert or reboot.
-      DEBUG ((DEBUG_ERROR, "%a Failed to apply received settings - %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a Failed to apply received settings - %r\n", __func__, Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
     }
@@ -621,7 +621,7 @@ ProcessSvdSerialInput (
 
 Exit:
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to process unicode from keystroke - %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a Failed to process unicode from keystroke - %r\n", __func__, Status));
   }
 
   return Status;
@@ -670,13 +670,13 @@ CreateXmlStringFromCurrentSettings (
   // create basic xml
   Status = gRT->GetTime (&Time, NULL);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to get time. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to get time. %r\n", __func__, Status));
     goto EXIT;
   }
 
   List = New_CurrentSettingsPacketNodeList (&Time);
   if (List == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create new Current Settings Packet List Node\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create new Current Settings Packet List Node\n", __func__));
     Status = EFI_ABORTED;
     goto EXIT;
   }
@@ -725,7 +725,7 @@ CreateXmlStringFromCurrentSettings (
 
   // if we get a bad size for the configuration GUID list, we just fail...
   if ((NumPolicies == 0) || (NumPolicies % sizeof (EFI_GUID) != 0)) {
-    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationPolicyGuid: %u!\n", __FUNCTION__, NumPolicies));
+    DEBUG ((DEBUG_ERROR, "%a Invalid number of bytes in PcdConfigurationPolicyGuid: %u!\n", __func__, NumPolicies));
     ASSERT (FALSE);
   } else {
     NumPolicies /= sizeof (EFI_GUID);
@@ -734,7 +734,7 @@ CreateXmlStringFromCurrentSettings (
 
     // if the PCD is not specified, there is nothing we can dump here...
     if (TargetGuids == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs!\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a Failed to get list of valid GUIDs!\n", __func__));
       ASSERT (FALSE);
     } else {
       // Try to locate all config policies specified in this PCD
@@ -742,20 +742,20 @@ CreateXmlStringFromCurrentSettings (
         DataSize = 0;
         Status   = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (Status != EFI_BUFFER_TOO_SMALL) {
-          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __FUNCTION__, &TargetGuids[i], Status));
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy size %g - %r\n", __func__, &TargetGuids[i], Status));
           ASSERT (FALSE);
           continue;
         }
 
         Data = AllocatePool (DataSize);
         if (Data == NULL) {
-          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __FUNCTION__, &TargetGuids[i]));
+          DEBUG ((DEBUG_ERROR, "%a Unable to allocate pool for configuration policy %g\n", __func__, &TargetGuids[i]));
           break;
         }
 
         Status = mPolicyProtocol->GetPolicy (&TargetGuids[i], NULL, Data, (UINT16 *)&DataSize);
         if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __FUNCTION__, &TargetGuids[i], Status));
+          DEBUG ((DEBUG_ERROR, "%a Failed to get configuration policy %g - %r\n", __func__, &TargetGuids[i], Status));
           ASSERT (FALSE);
           FreePool (Data);
           Data = NULL;
@@ -767,7 +767,7 @@ CreateXmlStringFromCurrentSettings (
           VarListSize = DataSize - Offset;
           Status      = ConvertVariableListToVariableEntry ((UINT8 *)Data + Offset, &VarListSize, &ConfigVarList);
           if (EFI_ERROR (Status)) {
-            DEBUG ((DEBUG_ERROR, "%a Failed to convert variable list to variable entry - %r\n", __FUNCTION__, Status));
+            DEBUG ((DEBUG_ERROR, "%a Failed to convert variable list to variable entry - %r\n", __func__, Status));
             goto EXIT;
           }
 
@@ -807,7 +807,7 @@ CreateXmlStringFromCurrentSettings (
           Status = SetCurrentSettings (CurrentSettingsListNode, AsciiName, EncodedBuffer);
 
           if (EFI_ERROR (Status)) {
-            DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __FUNCTION__, Status));
+            DEBUG ((DEBUG_ERROR, "%a - Error from Set Current Settings.  Status = %r\n", __func__, Status));
           }
 
           Offset += VarListSize;
@@ -828,7 +828,7 @@ CreateXmlStringFromCurrentSettings (
   // now output as xml string
   Status = XmlTreeToString (List, TRUE, StringSize, XmlString);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - XmlTreeToString failed.  %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - XmlTreeToString failed.  %r\n", __func__, Status));
   }
 
 EXIT:
@@ -903,7 +903,7 @@ SetupConfMgr (
       // Collect what is needed and print in this step
       Status = PrintOptions ();
       if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred while printing configuration options - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred while printing configuration options - %r\n", __func__, Status));
         ASSERT (FALSE);
         break;
       }
@@ -917,14 +917,14 @@ SetupConfMgr (
       if (Status == EFI_NOT_READY) {
         // Do nothing
       } else if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __func__, Status));
         ASSERT (FALSE);
       } else {
         Status = CheckSupportedOptions (&KeyData, SetupConfStateOptions, SETUP_CONF_STATE_OPTIONS, (UINT32 *)&mSetupConfState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __FUNCTION__, Status));
+          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __func__, Status));
           ASSERT (FALSE);
         }
       }
@@ -941,7 +941,7 @@ SetupConfMgr (
         mSetupConfState = SetupConfWait;
         break;
       } else if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Failed to load configuration data from USB - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Failed to load configuration data from USB - %r\n", __func__, Status));
         ASSERT (FALSE);
       }
 
@@ -1021,7 +1021,7 @@ SetupConfMgr (
       if (Status == EFI_NOT_READY) {
         // Do nothing
       } else if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for configuration selection - %r\n", __func__, Status));
         ASSERT (FALSE);
       } else if ((KeyData.Key.UnicodeChar == CHAR_NULL) && (KeyData.Key.ScanCode == SCAN_ESC)) {
         mSetupConfState = SetupConfInit;

@@ -116,14 +116,14 @@ PrintVersion (
                     );
 
     if (Status != EFI_BUFFER_TOO_SMALL) {
-      DEBUG ((DEBUG_ERROR, "%a - Unexpected Failure in GetImageInfo.  Status = %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a - Unexpected Failure in GetImageInfo.  Status = %r\n", __func__, Status));
       continue;
     }
 
     FmpImageInfoBuf = NULL;
     FmpImageInfoBuf = AllocateZeroPool (ImageInfoSize);
     if (FmpImageInfoBuf == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a - Failed to get memory for descriptors.\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a - Failed to get memory for descriptors.\n", __func__));
       continue;
     }
 
@@ -140,29 +140,29 @@ PrintVersion (
                                 );
 
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Failure in GetImageInfo.  Status = %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a - Failure in GetImageInfo.  Status = %r\n", __func__, Status));
       goto FmpCleanUp;
     }
 
     if (FmpImageInfoCount == 0) {
-      DEBUG ((DEBUG_INFO, "%a - No Image Info descriptors.\n", __FUNCTION__));
+      DEBUG ((DEBUG_INFO, "%a - No Image Info descriptors.\n", __func__));
       goto FmpCleanUp;
     }
 
     if (FmpImageInfoCount > 1) {
-      DEBUG ((DEBUG_INFO, "%a - Found %d descriptors.  For config app we only show the 1st descriptor.\n", __FUNCTION__, FmpImageInfoCount));
+      DEBUG ((DEBUG_INFO, "%a - Found %d descriptors.  For config app we only show the 1st descriptor.\n", __func__, FmpImageInfoCount));
     }
 
     if (FmpImageInfoBuf->ImageIdName != NULL) {
       Status = Print (L"\t%s:\t", FmpImageInfoBuf->ImageIdName);
     } else {
-      DEBUG ((DEBUG_ERROR, "%a - FMP ImageIdName is null\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a - FMP ImageIdName is null\n", __func__));
     }
 
     if (FmpImageInfoBuf->VersionName != NULL) {
       Status = Print (L"%s\n", FmpImageInfoBuf->VersionName);
     } else {
-      DEBUG ((DEBUG_ERROR, "%a - FMP VersionName is null\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a - FMP VersionName is null\n", __func__));
     }
 
 FmpCleanUp:
@@ -271,7 +271,7 @@ SysInfoMgr (
     case SysInfoInit:
       Status = PrintSysInfoOptions ();
       if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred while printing system information - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred while printing system information - %r\n", __func__, Status));
         ASSERT (FALSE);
         break;
       }
@@ -287,14 +287,14 @@ SysInfoMgr (
       } else if (Status == EFI_NOT_READY) {
         // There is no key entered, this might be due to terminal sends ack characters, do nothing
       } else if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Waiting for keystroke failed at system info page - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Waiting for keystroke failed at system info page - %r\n", __func__, Status));
         ASSERT (FALSE);
       } else {
         Status = CheckSupportedOptions (&KeyData, SysInfoStateOptions, SYS_INFO_STATE_OPTIONS, (UINT32 *)&mSysInfoState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __FUNCTION__, Status));
+          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __func__, Status));
           ASSERT (FALSE);
         }
       }

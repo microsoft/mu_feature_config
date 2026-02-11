@@ -357,7 +357,7 @@ MockGetPolicy (
   VOID    *Target;
 
   assert_non_null (PolicyGuid);
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, PolicyGuid));
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __func__, PolicyGuid));
   // Check that this is the right protocol being located
   check_expected (PolicyGuid);
 

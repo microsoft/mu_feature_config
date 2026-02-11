@@ -208,7 +208,7 @@ MockLocateProtocol (
   OUT VOID      **Interface
   )
 {
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __func__, Protocol));
   // Check that this is the right protocol being located
   check_expected_ptr (Protocol);
 
@@ -241,7 +241,7 @@ MockHandleProtocol (
   OUT VOID        **Interface
   )
 {
-  DEBUG ((DEBUG_INFO, "%a - %g\n", __FUNCTION__, Protocol));
+  DEBUG ((DEBUG_INFO, "%a - %g\n", __func__, Protocol));
   assert_non_null (Interface);
   assert_ptr_equal (Protocol, &gEfiSimpleTextInputExProtocolGuid);
 
