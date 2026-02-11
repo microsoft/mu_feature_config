@@ -117,7 +117,7 @@ ConvertVariableListToVariableEntry (
     DEBUG ((
       DEBUG_ERROR,
       "%a VarList size overflowed, too large of config! NameSize: 0x%x DataSize: 0x%x\n",
-      __FUNCTION__,
+      __func__,
       VarList->NameSize,
       VarList->DataSize
       ));
@@ -126,7 +126,7 @@ ConvertVariableListToVariableEntry (
 
   if ((UINTN)NeededSize > BinSize) {
     // the NameSize and DataInBinSize have bad values and are pushing us past the end of the binary
-    DEBUG ((DEBUG_ERROR, "%a VarList buffer does not have needed size (actual: %x, expected: %x)\n", __FUNCTION__, BinSize, NeededSize));
+    DEBUG ((DEBUG_ERROR, "%a VarList buffer does not have needed size (actual: %x, expected: %x)\n", __func__, BinSize, NeededSize));
     *Size  = (UINTN)NeededSize;
     Status = EFI_BUFFER_TOO_SMALL;
     goto Exit;
@@ -156,14 +156,14 @@ ConvertVariableListToVariableEntry (
   // validate CRC32
   CalcCRC32 = CalculateCrc32 ((VOID *)VarList, NeededSize - sizeof (CRC32));
   if (CRC32 != CalcCRC32) {
-    DEBUG ((DEBUG_ERROR, "%a CRC is off in the variable list: actual: %x, expect %x\n", __FUNCTION__, CRC32, CalcCRC32));
+    DEBUG ((DEBUG_ERROR, "%a CRC is off in the variable list: actual: %x, expect %x\n", __func__, CRC32, CalcCRC32));
     Status = EFI_COMPROMISED_DATA;
     goto Exit;
   }
 
   VarName = AllocatePool (VarList->NameSize);
   if (VarName == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for VarName size: %u\n", __FUNCTION__, VarList->NameSize));
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for VarName size: %u\n", __func__, VarList->NameSize));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
@@ -172,7 +172,7 @@ ConvertVariableListToVariableEntry (
 
   Data = AllocatePool (VarList->DataSize);
   if (Data == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for Data size: %u\n", __FUNCTION__, VarList->DataSize));
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for Data size: %u\n", __func__, VarList->DataSize));
     Status = EFI_OUT_OF_RESOURCES;
     // Free VarName here, as other memory gets freed in exit routine
     FreePool (VarName);
@@ -244,7 +244,7 @@ ConvertVariableEntryToVariableList (
 
   if (EFI_ERROR (Status)) {
     // overflowed...
-    DEBUG ((DEBUG_ERROR, "%a VarList size overflowed, too large of config!\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a VarList size overflowed, too large of config!\n", __func__));
     goto Exit;
   }
 
@@ -329,7 +329,7 @@ ParseActiveConfigVarList (
   UINTN                      AllocatedCount = 1;
 
   if ((ConfigVarListPtr == NULL) || (ConfigVarListCount == NULL)) {
-    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __func__));
     Status = EFI_INVALID_PARAMETER;
     if (ConfigVarListCount) {
       *ConfigVarListCount = 0;
@@ -345,7 +345,7 @@ ParseActiveConfigVarList (
   *ConfigVarListCount = 0;
 
   if ((VariableListBuffer == NULL) || (VariableListBufferSize == 0)) {
-    DEBUG ((DEBUG_ERROR, "%a Incoming variable list buffer (base: %p, size: 0x%x) invalid\n", __FUNCTION__, VariableListBuffer, VariableListBufferSize));
+    DEBUG ((DEBUG_ERROR, "%a Incoming variable list buffer (base: %p, size: 0x%x) invalid\n", __func__, VariableListBuffer, VariableListBufferSize));
     *ConfigVarListPtr = NULL;
     Status            = EFI_INVALID_PARAMETER;
     goto Exit;
@@ -358,7 +358,7 @@ ParseActiveConfigVarList (
   }
 
   if (*ConfigVarListPtr == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for ConfigVarListPtr\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a Failed to allocate memory for ConfigVarListPtr\n", __func__));
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
@@ -372,7 +372,7 @@ ParseActiveConfigVarList (
 
     if (EFI_ERROR (Status)) {
       // Unable to convert this specific variable list
-      DEBUG ((DEBUG_ERROR, "%a Configuration VarList conversion failed %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a Configuration VarList conversion failed %r\n", __func__, Status));
       ASSERT (FALSE);
       break;
     }
@@ -401,7 +401,7 @@ ParseActiveConfigVarList (
     if (AllocatedCount <= (*ConfigVarListCount) * 2) {
       *ConfigVarListPtr = ReallocatePool (AllocatedCount * sizeof (CONFIG_VAR_LIST_ENTRY), AllocatedCount * 2 * sizeof (CONFIG_VAR_LIST_ENTRY), *ConfigVarListPtr);
       if (*ConfigVarListPtr == NULL) {
-        DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr count: %u\n", __FUNCTION__, AllocatedCount));
+        DEBUG ((DEBUG_ERROR, "%a Failed to reallocate memory for ConfigVarListPtr count: %u\n", __func__, AllocatedCount));
         Status = EFI_OUT_OF_RESOURCES;
         goto Exit;
       }
@@ -413,7 +413,7 @@ ParseActiveConfigVarList (
   if ((*ConfigVarListPtr)->Name == NULL) {
     // We did not find the entry in the var list
     // caller is responsible for freeing input
-    DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __FUNCTION__, ConfigVarName));
+    DEBUG ((DEBUG_ERROR, "%a Failed to find varname in var list: %s\n", __func__, ConfigVarName));
     Status = EFI_NOT_FOUND;
     goto Exit;
   }
@@ -499,7 +499,7 @@ QuerySingleActiveConfigUnicodeVarList (
   UINTN  ConfigVarListCount = 0;
 
   if ((VarName == NULL) || (ConfigVarListPtr == NULL)) {
-    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
@@ -536,7 +536,7 @@ QuerySingleActiveConfigAsciiVarList (
   UINTN   UniVarNameLen      = 0;
 
   if ((VarName == NULL) || (ConfigVarListPtr == NULL)) {
-    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a Null parameter passed\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
@@ -544,7 +544,7 @@ QuerySingleActiveConfigAsciiVarList (
 
   UniVarName = AllocatePool (UniVarNameLen);
   if (UniVarName == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __FUNCTION__, UniVarNameLen));
+    DEBUG ((DEBUG_ERROR, "%a Failed to alloc memory for UniVarName size: %u\n", __func__, UniVarNameLen));
     return EFI_OUT_OF_RESOURCES;
   }
 

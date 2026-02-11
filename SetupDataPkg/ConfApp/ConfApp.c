@@ -159,7 +159,7 @@ PollKeyStroke (
                     (UINT64)TimeOutInterval
                     );
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a Failed to set timer for keystroke timeout event - %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a Failed to set timer for keystroke timeout event - %r\n", __func__, Status));
       ASSERT (FALSE);
       return Status;
     }
@@ -332,7 +332,7 @@ ConfAppEntry (
 
   gST->ConOut->EnableCursor (gST->ConOut, FALSE);
 
-  DEBUG ((DEBUG_INFO, "%a - Entry...\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a - Entry...\n", __func__));
 
   // Get the Simple Text Ex protocol on the ConsoleIn handle to get the "x" to terminate.
   //
@@ -380,14 +380,14 @@ ConfAppEntry (
         if (Status == EFI_NOT_READY) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for keystroke - %r\n", __FUNCTION__, Status));
+          DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for keystroke - %r\n", __func__, Status));
           ASSERT (FALSE);
         } else {
           Status = CheckSupportedOptions (&KeyData, MainStateOptions, MAIN_STATE_OPTIONS, (UINT32 *)&mConfState);
           if (Status == EFI_NOT_FOUND) {
             Status = EFI_SUCCESS;
           } else if (EFI_ERROR (Status)) {
-            DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __FUNCTION__, Status));
+            DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __func__, Status));
             ASSERT (FALSE);
           }
         }
@@ -410,7 +410,7 @@ ConfAppEntry (
         if (Status == EFI_NOT_READY) {
           // Do nothing
         } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for exit confirmation - %r\n", __FUNCTION__, Status));
+          DEBUG ((DEBUG_ERROR, "%a Error occurred while waiting for exit confirmation - %r\n", __func__, Status));
           ASSERT (FALSE);
         } else if ((KeyData.Key.UnicodeChar == 'y') ||
                    (KeyData.Key.UnicodeChar == 'Y'))
@@ -425,7 +425,7 @@ ConfAppEntry (
         break;
       default:
         // Should not happen
-        DEBUG ((DEBUG_ERROR, "%a Unexpected state found - %x\n", __FUNCTION__, mConfState));
+        DEBUG ((DEBUG_ERROR, "%a Unexpected state found - %x\n", __func__, mConfState));
         ASSERT (FALSE);
         break;
     }

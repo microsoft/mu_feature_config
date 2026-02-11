@@ -145,7 +145,7 @@ BootOptionMgr (
       // Collect what is needed and print in this step
       Status = PrintBootOptions ();
       if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred during printing boot options - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred during printing boot options - %r\n", __func__, Status));
         ASSERT (FALSE);
         break;
       }
@@ -159,14 +159,14 @@ BootOptionMgr (
       if (Status == EFI_NOT_READY) {
         Status = EFI_SUCCESS;
       } else if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for key stroke - %r\n", __FUNCTION__, Status));
+        DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for key stroke - %r\n", __func__, Status));
         ASSERT (FALSE);
       } else {
         Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINT32 *)&mBootOptState);
         if (Status == EFI_NOT_FOUND) {
           Status = EFI_SUCCESS;
         } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __FUNCTION__, Status));
+          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __func__, Status));
           ASSERT (FALSE);
         } else {
           mOpCandidate = KeyData.Key.UnicodeChar - '1';

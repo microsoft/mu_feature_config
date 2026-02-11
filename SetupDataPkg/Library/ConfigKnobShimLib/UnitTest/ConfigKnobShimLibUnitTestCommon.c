@@ -74,7 +74,7 @@ MockGetVariable (
   assert_non_null (VariableName);
   assert_non_null (DataSize);
 
-  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __func__, VariableName, VendorGuid, *DataSize));
 
   if (Status == EFI_NOT_FOUND) {
     return Status;

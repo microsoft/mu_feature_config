@@ -56,7 +56,7 @@ New_ResultPacketNodeList (
 
   Status = CreateXmlTree (RESULT_XML_TEMPLATE, sizeof (RESULT_XML_TEMPLATE) - 1, &Root);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed.  Status %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed.  Status %r\n", __func__, Status));
     goto ERROR;
   }
 
@@ -64,14 +64,14 @@ New_ResultPacketNodeList (
   AsciiSPrint (&DateString[0], DATE_STRING_SIZE, "%d-%02d-%02dT%02d:%02d:%02d", Date->Year, Date->Month, Date->Day, Date->Hour, Date->Minute, Date->Second);
   Status = AddNode (Root, RESULTS_APPLIED_ON_ELEMENT_NAME, &DateString[0], &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for applied date. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for applied date. %r\n", __func__, Status));
     goto ERROR;
   }
 
   // Add SettingsList Node
   Status = AddNode (Root, RESULTS_SETTINGS_LIST_ELEMENT_NAME, NULL, &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for Settings. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for Settings. %r\n", __func__, Status));
     goto ERROR;
   }
 
@@ -98,18 +98,18 @@ GetSettingsPacketNode (
   )
 {
   if (RootNode == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __func__));
     return NULL;
   }
 
   if (RootNode->XmlDeclaration.Declaration == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __func__));
     ASSERT (RootNode->XmlDeclaration.Declaration != NULL);
     return NULL;
   }
 
   if (AsciiStrnCmp (RootNode->Name, SETTINGS_PACKET_ELEMENT_NAME, sizeof (SETTINGS_PACKET_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Settings Packet Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Settings Packet Element\n", __func__));
     return NULL;
   }
 
@@ -123,18 +123,18 @@ GetResultsPacketNode (
   )
 {
   if (RootNode == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __func__));
     return NULL;
   }
 
   if (RootNode->XmlDeclaration.Declaration == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __func__));
     ASSERT (RootNode->XmlDeclaration.Declaration != NULL);
     return NULL;
   }
 
   if (AsciiStrnCmp (RootNode->Name, RESULTS_PACKET_ELEMENT_NAME, sizeof (RESULTS_PACKET_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Result Settings Packet Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Result Settings Packet Element\n", __func__));
     return NULL;
   }
 
@@ -149,7 +149,7 @@ GetSettingsListNodeFromPacketNode (
   )
 {
   if (PacketNode == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - PacketNode is null!!!\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - PacketNode is null!!!\n", __func__));
     ASSERT (FALSE);
     return NULL;
   }
@@ -189,20 +189,20 @@ GetInputSettings (
 
   // Check for a match on one
   if ((ParentSettingNode->ParentNode == NULL) || (AsciiStrnCmp (ParentSettingNode->ParentNode->Name, SETTINGS_LIST_ELEMENT_NAME, sizeof (SETTINGS_LIST_ELEMENT_NAME)) != 0)) {
-    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not a Setting Node\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not a Setting Node\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
   Temp = FindFirstChildNodeByName (ParentSettingNode, SETTING_ID_ELEMENT_NAME);
   if (Temp == NULL) {
-    DEBUG ((DEBUG_INFO, "%a - Failed to find Id Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_INFO, "%a - Failed to find Id Element\n", __func__));
     return EFI_NOT_FOUND;
   }
 
   *Id  = Temp->Value;
   Temp = FindFirstChildNodeByName (ParentSettingNode, SETTING_VALUE_ELEMENT_NAME);
   if (Temp == NULL) {
-    DEBUG ((DEBUG_INFO, "%a - Failed to find Value Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_INFO, "%a - Failed to find Value Element\n", __func__));
     return EFI_NOT_FOUND;
   }
 
@@ -239,21 +239,21 @@ SetOutputSettingsStatus (
   }
 
   if (AsciiStrnCmp (ParentSettingsListNode->Name, RESULTS_SETTINGS_LIST_ELEMENT_NAME, sizeof (RESULTS_SETTINGS_LIST_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not Setting Node List\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not Setting Node List\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
   // Make the <SettingResult>
   Status = AddNode ((XmlNode *)ParentSettingsListNode, RESULTS_SETTING_ELEMENT_NAME, NULL, &Setting);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create SettingResult node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create SettingResult node %r\n", __func__, Status));
     return EFI_DEVICE_ERROR;
   }
 
   // Make the <Id>
   Status = AddNode ((XmlNode *)Setting, RESULTS_SETTING_ID_ELEMENT_NAME, (CHAR8 *)Id, &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create Id node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create Id node %r\n", __func__, Status));
     return EFI_DEVICE_ERROR;
   }
 
@@ -261,7 +261,7 @@ SetOutputSettingsStatus (
   if (Flags != NULL) {
     Status = AddNode ((XmlNode *)Setting, RESULTS_SETTING_FLAG_ELEMENT_NAME, (CHAR8 *)Flags, &Temp);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Failed to create Flags node %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a - Failed to create Flags node %r\n", __func__, Status));
       return EFI_DEVICE_ERROR;
     }
   }
@@ -269,7 +269,7 @@ SetOutputSettingsStatus (
   // Make the <Id>
   Status = AddNode ((XmlNode *)Setting, RESULTS_SETTING_STATUS_ELEMENT_NAME, (CHAR8 *)Result, &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create Result node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create Result node %r\n", __func__, Status));
     return EFI_DEVICE_ERROR;
   }
 
@@ -285,18 +285,18 @@ GetCurrentSettingsPacketNode (
   )
 {
   if (RootNode == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is NULL\n", __func__));
     return NULL;
   }
 
   if (RootNode->XmlDeclaration.Declaration == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not the root node\n", __func__));
     ASSERT (RootNode->XmlDeclaration.Declaration != NULL);
     return NULL;
   }
 
   if (AsciiStrnCmp (RootNode->Name, CURRENT_PACKET_ELEMENT_NAME, sizeof (CURRENT_PACKET_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Current Settings Packet Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - RootNode is not Current Settings Packet Element\n", __func__));
     return NULL;
   }
 
@@ -321,21 +321,21 @@ SetCurrentSettings (
   }
 
   if (AsciiStrnCmp (ParentSettingsListNode->Name, CURRENT_SETTINGS_LIST_ELEMENT_NAME, sizeof (CURRENT_SETTINGS_LIST_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not Setting Node List\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - Parent Setting Node is not Setting Node List\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
   // Make the <SettingCurrent>
   Status = AddNode ((XmlNode *)ParentSettingsListNode, CURRENT_SETTING_ELEMENT_NAME, NULL, &Setting);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create SettingCurrent node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create SettingCurrent node %r\n", __func__, Status));
     return EFI_DEVICE_ERROR;
   }
 
   // Make the <Id>
   Status = AddNode ((XmlNode *)Setting, CURRENT_SETTING_ID_ELEMENT_NAME, Id, &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create Id node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create Id node %r\n", __func__, Status));
     return EFI_DEVICE_ERROR;
   }
 
@@ -343,7 +343,7 @@ SetCurrentSettings (
   if (Value != NULL) {
     Status = AddNode ((XmlNode *)Setting, CURRENT_SETTING_VALUE_ELEMENT_NAME, Value, &Temp);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a - Failed to create Value node %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a - Failed to create Value node %r\n", __func__, Status));
       return EFI_DEVICE_ERROR;
     }
   }
@@ -364,7 +364,7 @@ New_CurrentSettingsPacketNodeList (
 
   Status = CreateXmlTree (CURRENT_XML_TEMPLATE, sizeof (CURRENT_XML_TEMPLATE) - 1, &Root);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed.  Status %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed.  Status %r\n", __func__, Status));
     goto ERROR;
   }
 
@@ -372,14 +372,14 @@ New_CurrentSettingsPacketNodeList (
   AsciiSPrint (&DateString[0], DATE_STRING_SIZE, "%d-%02d-%02dT%02d:%02d:%02d", Date->Year, Date->Month, Date->Day, Date->Hour, Date->Minute, Date->Second);
   Status = AddNode (Root, CURRENT_DATE_ELEMENT_NAME, &DateString[0], &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for date. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for date. %r\n", __func__, Status));
     goto ERROR;
   }
 
   // Add SettingsList Node
   Status = AddNode (Root, CURRENT_SETTINGS_LIST_ELEMENT_NAME, NULL, &Temp);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for Settings. %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to add node for Settings. %r\n", __func__, Status));
     goto ERROR;
   }
 
@@ -410,14 +410,14 @@ AddSettingsLsvNode (
 
   // Make sure its our expected node
   if (AsciiStrnCmp (CurrentSettingsPacketNode->Name, CURRENT_PACKET_ELEMENT_NAME, sizeof (CURRENT_PACKET_ELEMENT_NAME)) != 0) {
-    DEBUG ((DEBUG_ERROR, "%a - CurrentSettingsPacketNode is not Current Settings Packet Element\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a - CurrentSettingsPacketNode is not Current Settings Packet Element\n", __func__));
     return EFI_INVALID_PARAMETER;
   }
 
   // Add LSV Node
   Status = AddNode ((XmlNode *)CurrentSettingsPacketNode, CURRENT_LSV_ELEMENT_NAME, Lsv, NULL);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a - Failed to create Lsv node %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a - Failed to create Lsv node %r\n", __func__, Status));
   }
 
   return Status;

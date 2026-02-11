@@ -81,7 +81,7 @@ FindUsbDriveWithSvdUpdate (
                   );
 
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: failed to locate any handles using the Simple FS protocol (%r)\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a: failed to locate any handles using the Simple FS protocol (%r)\n", __func__, Status));
     goto CleanUp;
   }
 
@@ -138,7 +138,7 @@ FindUsbDriveWithSvdUpdate (
                     );
 
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "%a: Failed to locate Simple FS protocol. %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a: Failed to locate Simple FS protocol. %r\n", __func__, Status));
       continue;
     }
 
@@ -147,7 +147,7 @@ FindUsbDriveWithSvdUpdate (
     //
     Status = SfProtocol->OpenVolume (SfProtocol, &VolHandle);
     if (EFI_ERROR (Status) != FALSE) {
-      DEBUG ((DEBUG_ERROR, "%a: Unable to open SimpleFileSystem. Code = %r\n", __FUNCTION__, Status));
+      DEBUG ((DEBUG_ERROR, "%a: Unable to open SimpleFileSystem. Code = %r\n", __func__, Status));
       continue;
     }
 
@@ -156,10 +156,10 @@ FindUsbDriveWithSvdUpdate (
     //
     Status = VolHandle->Open (VolHandle, &FileHandle, PktFileName, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_INFO, "%a: Unable to locate %s. Code = %r\n", __FUNCTION__, PktFileName, Status));
+      DEBUG ((DEBUG_INFO, "%a: Unable to locate %s. Code = %r\n", __func__, PktFileName, Status));
       Status2 = FileHandleClose (VolHandle);
       if (EFI_ERROR (Status2)) {
-        DEBUG ((DEBUG_ERROR, "%a: Error closing Vol Handle. Code = %r\n", __FUNCTION__, Status2));
+        DEBUG ((DEBUG_ERROR, "%a: Error closing Vol Handle. Code = %r\n", __func__, Status2));
       }
 
       continue;
@@ -168,7 +168,7 @@ FindUsbDriveWithSvdUpdate (
     FileInfo = FileHandleGetInfo (FileHandle);
 
     if (FileInfo == NULL) {
-      DEBUG ((DEBUG_ERROR, "%a: Error getting file info.\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a: Error getting file info.\n", __func__));
       FileHandleClose (FileHandle);
       FileHandleClose (VolHandle);
       continue;
@@ -178,7 +178,7 @@ FindUsbDriveWithSvdUpdate (
     // Do not accept empty files
     //
     if (FileInfo->FileSize == 0) {
-      DEBUG ((DEBUG_ERROR, "%a: Invalid file size %d.\n", __FUNCTION__, FileInfo->FileSize));
+      DEBUG ((DEBUG_ERROR, "%a: Invalid file size %d.\n", __func__, FileInfo->FileSize));
       Status = EFI_BAD_BUFFER_SIZE;
       FileHandleClose (FileHandle);
       FileHandleClose (VolHandle);
@@ -189,7 +189,7 @@ FindUsbDriveWithSvdUpdate (
     if (*Buffer == NULL) {
       FileHandleClose (FileHandle);
       FileHandleClose (VolHandle);
-      DEBUG ((DEBUG_ERROR, "%a: Unable to allocate buffer.\n", __FUNCTION__));
+      DEBUG ((DEBUG_ERROR, "%a: Unable to allocate buffer.\n", __func__));
       Status = EFI_OUT_OF_RESOURCES;
       goto CleanUp;       // Fatal error, don't try anymore
     }
@@ -206,7 +206,7 @@ FindUsbDriveWithSvdUpdate (
       DEBUG ((
         DEBUG_ERROR,
         "%a: Unable to read file. ReadSize=%d, Size=%d. Code=%r\n",
-        __FUNCTION__,
+        __func__,
         ReadSize,
         FileInfo->FileSize,
         Status

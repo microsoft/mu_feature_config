@@ -78,7 +78,7 @@ MockGetVariable (
   UINTN  Size;
   VOID   *RetData;
 
-  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __FUNCTION__, VariableName, VendorGuid, *DataSize));
+  DEBUG ((DEBUG_INFO, "%a Name: %s, GUID: %g, Size: %x\n", __func__, VariableName, VendorGuid, *DataSize));
   check_expected (VariableName);
   check_expected (VendorGuid);
   assert_non_null (Attributes);
@@ -145,7 +145,7 @@ MockSetVariable (
 {
   assert_non_null (VariableName);
 
-  DEBUG ((DEBUG_INFO, "%a Name: %s\n", __FUNCTION__, VariableName));
+  DEBUG ((DEBUG_INFO, "%a Name: %s\n", __func__, VariableName));
   DUMP_HEX (DEBUG_ERROR, 0, VendorGuid, sizeof (VendorGuid), "SetVar: ");
 
   check_expected (VariableName);

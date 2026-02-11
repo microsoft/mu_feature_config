@@ -53,7 +53,7 @@ GetConfigKnobOverride (
   if ((ConfigKnobGuid == NULL) || (ConfigKnobName == NULL) || (ConfigKnobData == NULL) ||
       (ConfigKnobDataSize == 0))
   {
-    DEBUG ((DEBUG_ERROR, "%a: Invalid parameter!\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a: Invalid parameter!\n", __func__));
     Status = EFI_INVALID_PARAMETER;
     goto Exit;
   }
@@ -81,7 +81,7 @@ Exit:
     DEBUG ((
       DEBUG_VERBOSE,
       "%a: failed to find override for config knob %s with status %r. Expected size: %u, found size: %u.\n",
-      __FUNCTION__,
+      __func__,
       ConfigKnobName,
       Status,
       ConfigKnobDataSize,

@@ -62,7 +62,7 @@ GetConfigKnobFromVariable (
     DEBUG ((
       DEBUG_ERROR,
       "%a: Failed to locate variable services with status %r, falling back to profile value for config knob %a\n",
-      __FUNCTION__,
+      __func__,
       Status,
       ConfigKnobName
       ));
