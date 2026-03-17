@@ -1227,6 +1227,10 @@ class application(tkinter.Frame):
             self.output_current_status("WARNING: Config xml file hash mismatches with system FW", color="red")
             self.output_current_status(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}", color="red")
             self.output_current_status(f"{self.config_xml_path} Hash  = {config_xml_hash}", color="red")
+            print("WARNING: Config xml file hash mismatches with system FW")
+            print(f"FW ConfigXml Hash = {self.bios_schema_xml_hash}")
+            print(f"{self.config_xml_path} Hash  = {config_xml_hash}")
+            return 1
 
         return 0
 
