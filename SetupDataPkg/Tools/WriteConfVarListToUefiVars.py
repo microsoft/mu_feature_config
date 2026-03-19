@@ -69,7 +69,8 @@ def create_unpack_statement(NameStringSize, DataBufferSize):
 # Using the passed byte array, extract the variable data and
 # write it into nvram
 #
-# Return the size of the un
+# Return a tuple that holds return code and the size of the variable.
+# A return code 0 indicates failure and other non-zero value represents success.
 #
 def extract_single_var_from_file_and_write_nvram(var):
     # check that the passed byte array has at least enough space for the NameSize and DataSize
@@ -102,14 +103,26 @@ def extract_single_var_from_file_and_write_nvram(var):
         if rc == 0:
             logging.debug(f"Error returned from SetUefiVar: {rc}")
 
-        return struct.calcsize(unpack_statement)
+        return [rc, struct.calcsize(unpack_statement)]
     else:
         logging.critical("var buffer was too small to be a valid dmpstore")
 
-    return len(var)
+    return [0, len(var)]
 
 
-def set_variable_from_file(setting_file):
+#
+# Set variable from file
+#
+# Reads variable list from given file and writes each variable to NVRAM.
+# The file is expected to be in the dmpstore format.
+#
+# The return 0 indicates failure and other non-zero value represents success.
+# If abort_when_failure is set to True, the function will stop processing further variables and return 0
+# when it encounters a failure.
+# Otherwise, it will continue processing all variables in the file regardless of individual failures
+# and return 1 at the end if it successfully processes the entire file.
+#
+def set_variable_from_file(setting_file, abort_when_failure=False) -> int:
     # read the entire file
     with open(setting_file, "rb") as file:
         var = file.read()
@@ -117,7 +130,11 @@ def set_variable_from_file(setting_file):
         # go through the entire file parsing each dmpstore variable
         start = 0
         while len(var[start:]) != 0:
-            start = start + extract_single_var_from_file_and_write_nvram(var[start:])
+            rc, var_size = extract_single_var_from_file_and_write_nvram(var[start:])
+            if abort_when_failure and rc == 0:
+                return 0
+            start = start + var_size
+    return 1
 
 
 def delete_var_by_guid_name(var_name, guid):
