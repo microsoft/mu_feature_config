@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 
 import ctypes
+import os
 import struct
 from edk2toollib.os.uefivariablesupport import UefiVariable
 
@@ -52,20 +53,24 @@ def get_schema_xml_hash_from_bios():
 
 
 def locate_smbios_data():
-    # Define constants
-    FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
-    SMBIOS_TABLE = 0x53
+    if os.name == 'nt':
+        # Define constants
+        FIRMWARE_TABLE_ID = 0x52534D42  # 'RSMB' ascii signature for smbios table
+        SMBIOS_TABLE = 0x53
 
-    # Load the kernel32.dll library
-    kernel32 = ctypes.windll.kernel32
-
-    buffer_size = kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, None, 0)
-    buffer = ctypes.create_string_buffer(buffer_size)
-    kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, buffer, buffer_size)
-
-    # Convert the buffer to bytes for easier manipulation
-    smbios_data = buffer.raw
-    return smbios_data
+        kernel32 = ctypes.windll.kernel32
+        buffer_size = kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, None, 0)
+        buffer = ctypes.create_string_buffer(buffer_size)
+        kernel32.GetSystemFirmwareTable(FIRMWARE_TABLE_ID, SMBIOS_TABLE, buffer, buffer_size)
+        # Skip the 8-byte RawSMBIOSData header (Used20CallingMethod, Major/MinorVersion,
+        # DmiRevision, Length) to return only the raw SMBIOS table data.
+        return buffer.raw[8:]
+    else:
+        dmi_path = '/sys/firmware/dmi/tables/DMI'
+        if os.path.exists(dmi_path):
+            with open(dmi_path, 'rb') as f:
+                return f.read()
+        return b''
 
 
 # Helper function to calculate the total string data of an SMBIOS entry
@@ -84,8 +89,8 @@ def locate_smbios_entry(smbios_type):
     found_smbios_entry = []
     smbios_data = locate_smbios_data()
 
-    # Offset the first 8 bytes of SMBIOS entry data
-    offset = 8
+    # locate_smbios_data() returns raw table data with any platform header already stripped
+    offset = 0
 
     # Iterate over all SMBIOS structures until we find given smbios_type
     while offset < len(smbios_data):
