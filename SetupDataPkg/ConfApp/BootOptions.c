@@ -20,13 +20,14 @@
 
 #include "ConfApp.h"
 
-#define STATIC_BOOT_OPTIONS  2
+#define STATIC_BOOT_OPTIONS           2
+#define MAX_BOOT_OPTION_INPUT_DIGITS  5
 
 CONST ConfAppKeyOptions  StaticBootOptions[STATIC_BOOT_OPTIONS] = {
   {
     .KeyName             = NULL,
     .KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK),
-    .Description         = L"\n\tSelect Index to boot to the corresponding option.\n",
+    .Description         = L"\n\tType index number and press Enter to boot to the corresponding option.\n",
     .DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK),
     .UnicodeChar         = CHAR_NULL,
     .ScanCode            = SCAN_NULL,
@@ -47,9 +48,11 @@ BootOptState_t                mBootOptState    = BootOptInit;
 EFI_BOOT_MANAGER_LOAD_OPTION  *mBootOptions    = NULL;
 UINTN                         mBootOptionCount = 0;
 UINT16                        mOpCandidate;
-ConfAppKeyOptions             *mKeyOptions = NULL;
-UINTN                         mOptionCount = 0;
-CHAR16                        *mKeyNames   = NULL;
+ConfAppKeyOptions             *mKeyOptions                                   = NULL;
+UINTN                         mOptionCount                                   = 0;
+CHAR16                        *mKeyNames                                     = NULL;
+CHAR16                        mInputBuffer[MAX_BOOT_OPTION_INPUT_DIGITS + 1] = { CHAR_NULL };
+UINTN                         mInputLen                                      = 0;
 
 /**
   Helper internal function to reset all local variable in this file.
@@ -64,6 +67,9 @@ ResetGlobals (
   mBootOptions     = NULL;
   mBootOptionCount = 0;
   mOpCandidate     = 0;
+
+  mInputBuffer[0] = CHAR_NULL;
+  mInputLen       = 0;
 
   mOptionCount = 0;
   if (mKeyOptions != NULL) {
@@ -105,9 +111,9 @@ PrintBootOptions (
     mKeyOptions[OptionIndex].KeyNameTextAttr     = EFI_TEXT_ATTR (EFI_YELLOW, EFI_BLACK);
     mKeyOptions[OptionIndex].Description         = mBootOptions[OptionIndex].Description;
     mKeyOptions[OptionIndex].DescriptionTextAttr = EFI_TEXT_ATTR (EFI_WHITE, EFI_BLACK);
-    mKeyOptions[OptionIndex].UnicodeChar         = (CHAR16)(OptionIndex + '1');
+    mKeyOptions[OptionIndex].UnicodeChar         = CHAR_NULL;
     mKeyOptions[OptionIndex].ScanCode            = SCAN_NULL;
-    mKeyOptions[OptionIndex].EndState            = BootOptBootNow;
+    mKeyOptions[OptionIndex].EndState            = MAX_UINT32;
   }
 
   CopyMem (&mKeyOptions[OptionIndex], StaticBootOptions, sizeof (ConfAppKeyOptions) * STATIC_BOOT_OPTIONS);
@@ -162,14 +168,42 @@ BootOptionMgr (
         DEBUG ((DEBUG_ERROR, "%a Error occurred waiting for key stroke - %r\n", __func__, Status));
         ASSERT (FALSE);
       } else {
-        Status = CheckSupportedOptions (&KeyData, mKeyOptions, mOptionCount, (UINT32 *)&mBootOptState);
-        if (Status == EFI_NOT_FOUND) {
-          Status = EFI_SUCCESS;
-        } else if (EFI_ERROR (Status)) {
-          DEBUG ((DEBUG_ERROR, "%a Error processing incoming keystroke - %r\n", __func__, Status));
-          ASSERT (FALSE);
-        } else {
-          mOpCandidate = KeyData.Key.UnicodeChar - '1';
+        if ((KeyData.Key.ScanCode == SCAN_ESC) && (KeyData.Key.UnicodeChar == CHAR_NULL)) {
+          mInputLen       = 0;
+          mInputBuffer[0] = CHAR_NULL;
+          mBootOptState   = BootOptExit;
+        } else if (KeyData.Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+          if (mInputLen > 0) {
+            UINTN  Selection;
+            UINTN  DigitIndex;
+
+            Selection = 0;
+            for (DigitIndex = 0; DigitIndex < mInputLen; DigitIndex++) {
+              Selection = Selection * 10 + (mInputBuffer[DigitIndex] - '0');
+            }
+
+            mInputLen       = 0;
+            mInputBuffer[0] = CHAR_NULL;
+            if ((Selection >= 1) && (Selection <= mBootOptionCount)) {
+              mOpCandidate  = (UINT16)(Selection - 1);
+              mBootOptState = BootOptBootNow;
+            }
+          }
+        } else if (KeyData.Key.UnicodeChar == CHAR_BACKSPACE) {
+          if (mInputLen > 0) {
+            mInputLen--;
+            mInputBuffer[mInputLen] = CHAR_NULL;
+            Print (L"%c %c", CHAR_BACKSPACE, CHAR_BACKSPACE);
+          }
+        } else if ((KeyData.Key.UnicodeChar >= '0') && (KeyData.Key.UnicodeChar <= '9')) {
+          // Ignore a leading zero
+          if (!((mInputLen == 0) && (KeyData.Key.UnicodeChar == '0'))) {
+            if (mInputLen < MAX_BOOT_OPTION_INPUT_DIGITS) {
+              mInputBuffer[mInputLen++] = KeyData.Key.UnicodeChar;
+              mInputBuffer[mInputLen]   = CHAR_NULL;
+              Print (L"%c", KeyData.Key.UnicodeChar);
+            }
+          }
         }
       }
 

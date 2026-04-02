@@ -482,6 +482,14 @@ ConfAppBootOptSelectOne (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
+
+  KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (mBootOptState, BootOptBootNow);
 
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption, sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
@@ -557,9 +565,109 @@ ConfAppBootOptSelectMore (
 
   Status = BootOptionMgr ();
   UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
+
+  KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
   UT_ASSERT_EQUAL (mBootOptState, BootOptBootNow);
 
   expect_memory (EfiBootManagerBoot, BootOption, &BootOption[1], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
+  will_return (EfiBootManagerBoot, EFI_SUCCESS);
+
+  gResetCalled = FALSE;
+  expect_value (ResetSystemWithSubtype, ResetType, EfiResetCold);
+  expect_value (ResetSystemWithSubtype, ResetSubtype, &gConfAppResetGuid);
+
+  BootOptionMgr ();
+  UT_ASSERT_TRUE (gResetCalled);
+
+  return UNIT_TEST_PASSED;
+}
+
+/**
+  Unit test for BootOptions page when selecting boot option 10 (two-digit input).
+
+  @param[in]  Context    [Optional] An optional parameter that enables:
+                         1) test-case reuse with varied parameters and
+                         2) test-case re-entry for Target tests that need a
+                         reboot.  This parameter is a VOID* and it is the
+                         responsibility of the test author to ensure that the
+                         contents are well understood by all test cases that may
+                         consume it.
+
+  @retval  UNIT_TEST_PASSED             The Unit test has completed and the test
+                                        case was successful.
+  @retval  UNIT_TEST_ERROR_TEST_FAILED  A test case assertion has failed.
+**/
+UNIT_TEST_STATUS
+EFIAPI
+ConfAppBootOptSelect10 (
+  IN UNIT_TEST_CONTEXT  Context
+  )
+{
+  EFI_STATUS    Status;
+  EFI_KEY_DATA  KeyData1;
+  UINTN         Index;
+
+  EFI_BOOT_MANAGER_LOAD_OPTION  BootOptions[10];
+
+  for (Index = 0; Index < 10; Index++) {
+    BootOptions[Index].Description = L"TestOption";
+    BootOptions[Index].Attributes  = 0;
+  }
+
+  BootOptions[9].Description = L"Test10";
+  BootOptions[9].Attributes  = 0xDEADBEEF;
+
+  will_return (MockClearScreen, EFI_SUCCESS);
+  will_return_always (MockSetAttribute, EFI_SUCCESS);
+
+  expect_any (MockSetCursorPosition, Column);
+  expect_any (MockSetCursorPosition, Row);
+  will_return (MockSetCursorPosition, EFI_SUCCESS);
+
+  will_return (EfiBootManagerGetLoadOptions, 10);
+  will_return (EfiBootManagerGetLoadOptions, BootOptions);
+
+  // Initial run
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
+
+  mSimpleTextInEx = &MockSimpleInput;
+
+  // Press '1'
+  KeyData1.Key.UnicodeChar = '1';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
+
+  // Press '0'
+  KeyData1.Key.UnicodeChar = '0';
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptWait);
+
+  // Press Enter to confirm
+  KeyData1.Key.UnicodeChar = CHAR_CARRIAGE_RETURN;
+  KeyData1.Key.ScanCode    = SCAN_NULL;
+  will_return (MockReadKey, &KeyData1);
+
+  Status = BootOptionMgr ();
+  UT_ASSERT_NOT_EFI_ERROR (Status);
+  UT_ASSERT_EQUAL (mBootOptState, BootOptBootNow);
+
+  expect_memory (EfiBootManagerBoot, BootOption, &BootOptions[9], sizeof (EFI_BOOT_MANAGER_LOAD_OPTION));
   will_return (EfiBootManagerBoot, EFI_SUCCESS);
 
   gResetCalled = FALSE;
@@ -622,6 +730,7 @@ UnitTestingEntry (
   AddTestCase (MiscTests, "Boot Options page select others should do nothing", "SelectOther", ConfAppBootOptSelectOther, NULL, BootOptionsCleanup, NULL);
   AddTestCase (MiscTests, "Boot Options page should boot to single option", "BootOptionSingle", ConfAppBootOptSelectOne, NULL, BootOptionsCleanup, NULL);
   AddTestCase (MiscTests, "Boot Options page should boot to multiple options", "BootOptionMultiple", ConfAppBootOptSelectMore, NULL, BootOptionsCleanup, NULL);
+  AddTestCase (MiscTests, "Boot Options page should boot to option 10 with two-digit input", "BootOption10", ConfAppBootOptSelect10, NULL, BootOptionsCleanup, NULL);
 
   //
   // Execute the tests.
