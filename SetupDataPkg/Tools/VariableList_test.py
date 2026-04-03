@@ -5,11 +5,14 @@
 #
 #
 
+import os
+import tempfile
 import unittest
 import pytest
 from xml.dom.minidom import parseString
 
 from VariableList import Schema, ParseError, InvalidNameError, InvalidRangeError
+from VariableList import read_csv
 
 
 class SchemaParseUnitTests(unittest.TestCase):
@@ -548,6 +551,139 @@ class SchemaParseUnitTests(unittest.TestCase):
 </Knobs>""")
         with pytest.raises(InvalidRangeError):
             Schema(dom)
+
+
+class CsvProcessingUnitTests(unittest.TestCase):
+    """Tests for read_csv CSV processing and error handling."""
+
+    csvSchema = """<ConfigSchema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:noNamespaceSchemaLocation="configschema.xsd">
+
+  <Enums>
+    <Enum name="EnableDisable" help="">
+      <Value name="Disabled" value="0" help="" />
+      <Value name="Enabled" value="1" help="" />
+    </Enum>
+  </Enums>
+
+  <Structs />
+
+  <Knobs namespace="{FE3ED49F-B173-41ED-9076-356661D46A42}">
+    <Knob type="uint32_t" name="TestKnob1" default="0" />
+    <Knob type="uint32_t" name="TestKnob2" default="0" />
+    <Knob type="EnableDisable" name="TestEnum" default="Disabled" />
+  </Knobs>
+
+</ConfigSchema>"""
+
+    def _write_csv(self, content):
+        """Write CSV content to a temporary file and return the path.
+
+        Args:
+            content: String content to write to the CSV file.
+
+        Returns:
+            Path to the temporary CSV file.
+        """
+        fd, path = tempfile.mkstemp(suffix='.csv')
+        os.close(fd)
+        with open(path, 'w') as f:
+            f.write(content)
+        self.addCleanup(os.unlink, path)
+        return path
+
+    def test_read_csv_basic(self):
+        """Test basic CSV reading with valid data."""
+        schema = Schema.parse(self.csvSchema)
+        csv_path = self._write_csv(
+            "Guid,Knob,Value\n"
+            "FE3ED49F-B173-41ED-9076-356661D46A42,"
+            "TestKnob1,42\n"
+            "*,TestKnob2,99\n"
+        )
+        count = read_csv(schema, csv_path)
+        self.assertEqual(count, 2)
+        knob1 = schema.get_knob(
+            'FE3ED49F-B173-41ED-9076-356661D46A42', 'TestKnob1')
+        knob2 = schema.get_knob(
+            'FE3ED49F-B173-41ED-9076-356661D46A42', 'TestKnob2')
+        self.assertEqual(knob1.value, 42)
+        self.assertEqual(knob2.value, 99)
+
+    def test_read_csv_blank_trailing_line(self):
+        """Test that a blank trailing line does not crash."""
+        schema = Schema.parse(self.csvSchema)
+        csv_path = self._write_csv(
+            "Guid,Knob,Value\n"
+            "FE3ED49F-B173-41ED-9076-356661D46A42,"
+            "TestKnob1,42\n"
+            "\n"
+        )
+        count = read_csv(schema, csv_path)
+        self.assertEqual(count, 1)
+
+    def test_read_csv_multiple_blank_lines(self):
+        """Test that multiple blank lines are skipped."""
+        schema = Schema.parse(self.csvSchema)
+        csv_path = self._write_csv(
+            "Guid,Knob,Value\n"
+            "\n"
+            "FE3ED49F-B173-41ED-9076-356661D46A42,"
+            "TestKnob1,42\n"
+            "\n"
+            "\n"
+        )
+        count = read_csv(schema, csv_path)
+        self.assertEqual(count, 1)
+
+    def test_read_csv_enum_leading_space(self):
+        """Test that leading space in enum value is stripped."""
+        schema = Schema.parse(self.csvSchema)
+        csv_path = self._write_csv(
+            "Guid,Knob,Value\n"
+            "FE3ED49F-B173-41ED-9076-356661D46A42,"
+            "TestEnum, Enabled\n"
+        )
+        count = read_csv(schema, csv_path)
+        self.assertEqual(count, 1)
+        knob = schema.get_knob(
+            'FE3ED49F-B173-41ED-9076-356661D46A42', 'TestEnum')
+        self.assertEqual(knob.value, 1)
+
+    def test_read_csv_enum_trailing_space(self):
+        """Test that trailing space in enum value is stripped."""
+        schema = Schema.parse(self.csvSchema)
+        csv_path = self._write_csv(
+            "Guid,Knob,Value\n"
+            "FE3ED49F-B173-41ED-9076-356661D46A42,"
+            "TestEnum,Disabled \n"
+        )
+        count = read_csv(schema, csv_path)
+        self.assertEqual(count, 1)
+        knob = schema.get_knob(
+            'FE3ED49F-B173-41ED-9076-356661D46A42', 'TestEnum')
+        self.assertEqual(knob.value, 0)
+
+    def test_read_csv_missing_guid_header(self):
+        """Test that missing Guid header includes filename in error."""
+        csv_path = self._write_csv("Knob,Value\nfoo,bar\n")
+        schema = Schema.parse(self.csvSchema)
+        with pytest.raises(ParseError, match=csv_path.replace('\\', '\\\\')):
+            read_csv(schema, csv_path)
+
+    def test_read_csv_missing_knob_header(self):
+        """Test that missing Knob header includes filename in error."""
+        csv_path = self._write_csv("Guid,Value\nfoo,bar\n")
+        schema = Schema.parse(self.csvSchema)
+        with pytest.raises(ParseError, match=csv_path.replace('\\', '\\\\')):
+            read_csv(schema, csv_path)
+
+    def test_read_csv_missing_value_header(self):
+        """Test that missing Value header includes filename in error."""
+        csv_path = self._write_csv("Guid,Knob\nfoo,bar\n")
+        schema = Schema.parse(self.csvSchema)
+        with pytest.raises(ParseError, match=csv_path.replace('\\', '\\\\')):
+            read_csv(schema, csv_path)
 
 
 if __name__ == '__main__':

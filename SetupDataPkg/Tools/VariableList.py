@@ -1173,24 +1173,32 @@ def read_csv(schema, csv_path):
         try:
             guid_index = header.index('Guid')
         except ValueError:
-            raise ParseError("CSV is missing 'Guid' column header. Ensure CSV was generated with latest changes.")
+            raise ParseError("CSV '{}' is missing 'Guid' column header."
+                             " Ensure CSV was generated with latest"
+                             " changes.".format(csv_path))
 
         try:
             knob_index = header.index('Knob')
         except ValueError:
-            raise ParseError("CSV is missing 'Knob' column header")
+            raise ParseError(
+                "CSV '{}' is missing 'Knob' column"
+                " header".format(csv_path))
 
         try:
             value_index = header.index('Value')
         except ValueError:
-            raise ParseError("CSV is missing 'Value' column header")
+            raise ParseError(
+                "CSV '{}' is missing 'Value' column"
+                " header".format(csv_path))
 
         for row in reader:
+            if not row or all(cell.strip() == '' for cell in row):
+                continue
             read_guid = row[guid_index]
             if read_guid != '*':
                 guid = read_guid
-            knob_name = row[knob_index]
-            knob_value_string = row[value_index]
+            knob_name = row[knob_index].strip()
+            knob_value_string = row[value_index].strip()
             knob = schema.get_knob(guid, knob_name)
             if knob is not None:
                 knob.value = knob.format.string_to_object(knob_value_string)
