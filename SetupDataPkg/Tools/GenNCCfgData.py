@@ -14,7 +14,7 @@ import argparse
 
 import xml.etree.ElementTree as ET
 import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
-from CommonUtility import bytes_to_value
+from CommonUtility import bytes_to_value, validate_config_xml_hash_against_fw
 from VariableList import (
     Schema,
     IntValueFormat,
@@ -407,6 +407,18 @@ def usage():
 
 def main():
     # Parse the options and args manually
+    # Optional global flags (work for all commands and do not change positional syntax):
+    #   --skip-fw-xml-hash-check
+    #   --ignore-fw-xml-hash-mismatch
+    skip_fw_xml_hash_check = False
+    ignore_fw_xml_hash_mismatch = False
+    if "--skip-fw-xml-hash-check" in sys.argv:
+        skip_fw_xml_hash_check = True
+        sys.argv.remove("--skip-fw-xml-hash-check")
+    if "--ignore-fw-xml-hash-mismatch" in sys.argv:
+        ignore_fw_xml_hash_mismatch = True
+        sys.argv.remove("--ignore-fw-xml-hash-mismatch")
+
     argc = len(sys.argv)
     if argc < 3:
         usage()
@@ -440,6 +452,14 @@ def main():
                 if len(file_list) >= 3:
                     cfg_bin_file2 = file_list[2]
 
+        ok, _, _ = validate_config_xml_hash_against_fw(
+            xml_file,
+            skip_check=skip_fw_xml_hash_check,
+            ignore_mismatch=ignore_fw_xml_hash_mismatch,
+        )
+        if not ok:
+            return 1
+
         gen_cfg_data = CGenNCCfgData(xml_file)
 
         if csv_file:
@@ -470,6 +490,16 @@ def main():
     else:
         parser = argparse.ArgumentParser(
             description="GenNCCfgData MODCONFIG/DELVAR command"
+        )
+        parser.add_argument(
+            "--skip-fw-xml-hash-check",
+            action="store_true",
+            help="Skip validating the XML hash against system FW",
+        )
+        parser.add_argument(
+            "--ignore-fw-xml-hash-mismatch",
+            action="store_true",
+            help="Do not fail when XML hash mismatches FW (still prints a warning)",
         )
         subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -509,9 +539,24 @@ def main():
         )
 
         args = parser.parse_args(sys.argv[1:])
+        # Flags may have been provided before/after the subcommand. Since we
+        # strip them from sys.argv for the manual GENBIN/GENCSV syntax, make
+        # sure they are still honored here.
+        if skip_fw_xml_hash_check:
+            args.skip_fw_xml_hash_check = True
+        if ignore_fw_xml_hash_mismatch:
+            args.ignore_fw_xml_hash_mismatch = True
         if args.subcommand.upper() == "MODCONFIG":
             if len(args.var) != len(args.val):
                 print("Error: The number of variables and values must match.")
+                return 1
+
+            ok, _, _ = validate_config_xml_hash_against_fw(
+                args.xml_file,
+                skip_check=args.skip_fw_xml_hash_check,
+                ignore_mismatch=args.ignore_fw_xml_hash_mismatch,
+            )
+            if not ok:
                 return 1
             gen_cfg_data = CGenNCCfgData(args.xml_file)
             gen_cfg_data.modify_variables(
@@ -520,6 +565,13 @@ def main():
                 args.output_file
             )
         elif args.subcommand.upper() == "DELVAR":
+            ok, _, _ = validate_config_xml_hash_against_fw(
+                args.xml_file,
+                skip_check=args.skip_fw_xml_hash_check,
+                ignore_mismatch=args.ignore_fw_xml_hash_mismatch,
+            )
+            if not ok:
+                return 1
             gen_cfg_data = CGenNCCfgData(args.xml_file)
             gen_cfg_data.delete_all_variables(args.xml_file)
 
