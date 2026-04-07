@@ -14,6 +14,8 @@ import uuid
 import ctypes
 from edk2toollib.os.uefivariablesupport import UefiVariable
 
+from CommonUtility import validate_config_xml_hash_against_fw
+
 gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
 
@@ -30,10 +32,35 @@ def option_parser():
         help="""Specify the input setting file""",
     )
 
+    parser.add_argument(
+        "-x",
+        "--xml",
+        dest="configuration_file",
+        required=False,
+        type=str,
+        help="""Optional: config XML path used only to validate schema hash against FW before writing variables""",
+    )
+
+    parser.add_argument(
+        "--skip-fw-xml-hash-check",
+        action="store_true",
+        help="Skip validating the XML hash against system FW",
+    )
+
+    parser.add_argument(
+        "--ignore-fw-xml-hash-mismatch",
+        action="store_true",
+        help="Do not fail when XML hash mismatches FW (still prints a warning)",
+    )
+
     arguments = parser.parse_args()
 
     if not os.path.isfile(arguments.setting_file):
         print("Invalid input file: %s" % arguments.setting_file)
+        sys.exit(1)
+
+    if arguments.configuration_file is not None and not os.path.isfile(arguments.configuration_file):
+        print("Invalid input file: %s" % arguments.configuration_file)
         sys.exit(1)
 
     return arguments
@@ -69,7 +96,8 @@ def create_unpack_statement(NameStringSize, DataBufferSize):
 # Using the passed byte array, extract the variable data and
 # write it into nvram
 #
-# Return the size of the un
+# Return a tuple that holds return code and the size of the variable.
+# A return code 0 indicates failure and other non-zero value represents success.
 #
 def extract_single_var_from_file_and_write_nvram(var):
     # check that the passed byte array has at least enough space for the NameSize and DataSize
@@ -102,14 +130,26 @@ def extract_single_var_from_file_and_write_nvram(var):
         if rc == 0:
             logging.debug(f"Error returned from SetUefiVar: {rc}")
 
-        return struct.calcsize(unpack_statement)
+        return [rc, struct.calcsize(unpack_statement)]
     else:
         logging.critical("var buffer was too small to be a valid dmpstore")
 
-    return len(var)
+    return [0, len(var)]
 
 
-def set_variable_from_file(setting_file):
+#
+# Set variable from file
+#
+# Reads variable list from given file and writes each variable to NVRAM.
+# The file is expected to be in the dmpstore format.
+#
+# The return 0 indicates failure and other non-zero value represents success.
+# If abort_when_failure is set to True, the function will stop processing further variables and return 0
+# when it encounters a failure.
+# Otherwise, it will continue processing all variables in the file regardless of individual failures
+# and return 1 at the end if it successfully processes the entire file.
+#
+def set_variable_from_file(setting_file, abort_when_failure=False) -> int:
     # read the entire file
     with open(setting_file, "rb") as file:
         var = file.read()
@@ -117,7 +157,11 @@ def set_variable_from_file(setting_file):
         # go through the entire file parsing each dmpstore variable
         start = 0
         while len(var[start:]) != 0:
-            start = start + extract_single_var_from_file_and_write_nvram(var[start:])
+            rc, var_size = extract_single_var_from_file_and_write_nvram(var[start:])
+            if abort_when_failure and rc == 0:
+                return 0
+            start = start + var_size
+    return 1
 
 
 def delete_var_by_guid_name(var_name, guid):
@@ -148,6 +192,15 @@ def delete_var_by_guid_name(var_name, guid):
 #
 def main():
     arguments = option_parser()
+
+    if arguments.configuration_file is not None:
+        ok, _, _ = validate_config_xml_hash_against_fw(
+            arguments.configuration_file,
+            skip_check=arguments.skip_fw_xml_hash_check,
+            ignore_mismatch=arguments.ignore_fw_xml_hash_mismatch,
+        )
+        if not ok:
+            return 1
     set_variable_from_file(arguments.setting_file)
     return 0
 
