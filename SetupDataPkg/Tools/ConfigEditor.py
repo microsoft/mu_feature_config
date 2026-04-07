@@ -586,13 +586,15 @@ class application(tkinter.Frame):
         root.config(menu=menubar)
 
         # Checking if we are in Manufacturing mode
+        Manufacturing_enabled = 0
         bios_info_smbios_data = BoardMiscInfo.locate_smbios_entry(0)
         # Check if we have the SMBIOS data in the first entry
-        bios_info_smbios_data = bios_info_smbios_data[0]
-        if (bios_info_smbios_data != []):
-            char_ext2_data = bios_info_smbios_data[0x13]
-            Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
-            print(f"Manufacturing : {Manufacturing_enabled:02X}")
+        if bios_info_smbios_data is not None:
+            bios_info_smbios_data = bios_info_smbios_data[0]
+            if (bios_info_smbios_data != []):
+                char_ext2_data = bios_info_smbios_data[0x13]
+                Manufacturing_enabled = (char_ext2_data & (0x1 << 6)) >> 6
+                print(f"Manufacturing : {Manufacturing_enabled:02X}")
 
         self.bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
 
@@ -1115,7 +1117,12 @@ class application(tkinter.Frame):
         with open(runtime_var_delta_path, "wb") as fd:
             fd.write(bin)
 
-        uefi_var_write.set_variable_from_file(runtime_var_delta_path)
+        rc = uefi_var_write.set_variable_from_file(runtime_var_delta_path, abort_when_failure=True)
+        if rc == 0:
+            err_msg = "Set variable failed."
+            messagebox.showinfo("ERROR", err_msg)
+            self.output_current_status(err_msg)
+            return
         self.load_variable_runtime()
         self.output_current_status("Settings are set to system and save to RuntimeVar.vl")
 
