@@ -14,6 +14,8 @@ import uuid
 import ctypes
 from edk2toollib.os.uefivariablesupport import UefiVariable
 
+from CommonUtility import validate_config_xml_hash_against_fw
+
 gEfiGlobalVariableGuid = "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
 
 
@@ -30,10 +32,35 @@ def option_parser():
         help="""Specify the input setting file""",
     )
 
+    parser.add_argument(
+        "-x",
+        "--xml",
+        dest="configuration_file",
+        required=False,
+        type=str,
+        help="""Optional: config XML path used only to validate schema hash against FW before writing variables""",
+    )
+
+    parser.add_argument(
+        "--skip-fw-xml-hash-check",
+        action="store_true",
+        help="Skip validating the XML hash against system FW",
+    )
+
+    parser.add_argument(
+        "--ignore-fw-xml-hash-mismatch",
+        action="store_true",
+        help="Do not fail when XML hash mismatches FW (still prints a warning)",
+    )
+
     arguments = parser.parse_args()
 
     if not os.path.isfile(arguments.setting_file):
         print("Invalid input file: %s" % arguments.setting_file)
+        sys.exit(1)
+
+    if arguments.configuration_file is not None and not os.path.isfile(arguments.configuration_file):
+        print("Invalid input file: %s" % arguments.configuration_file)
         sys.exit(1)
 
     return arguments
@@ -165,6 +192,15 @@ def delete_var_by_guid_name(var_name, guid):
 #
 def main():
     arguments = option_parser()
+
+    if arguments.configuration_file is not None:
+        ok, _, _ = validate_config_xml_hash_against_fw(
+            arguments.configuration_file,
+            skip_check=arguments.skip_fw_xml_hash_check,
+            ignore_mismatch=arguments.ignore_fw_xml_hash_mismatch,
+        )
+        if not ok:
+            return 1
     set_variable_from_file(arguments.setting_file)
     return 0
 

@@ -14,6 +14,7 @@ import uuid
 import ctypes
 from edk2toollib.os.uefivariablesupport import UefiVariable
 from VariableList import Schema, UEFIVariable, create_vlist_buffer
+from CommonUtility import validate_config_xml_hash_against_fw
 
 
 def option_parser():
@@ -26,6 +27,18 @@ def option_parser():
         required=False,
         type=str,
         help="""Specify the input setting file""",
+    )
+
+    parser.add_argument(
+        "--skip-fw-xml-hash-check",
+        action="store_true",
+        help="Skip validating the XML hash against system FW",
+    )
+
+    parser.add_argument(
+        "--ignore-fw-xml-hash-mismatch",
+        action="store_true",
+        help="Do not fail when XML hash mismatches FW (still prints a warning)",
     )
 
     parser.add_argument(
@@ -109,6 +122,15 @@ def read_all_uefi_vars(output_file, configuration_file=None):
 #
 def main():
     arguments = option_parser()
+    if arguments.configuration_file is not None:
+        ok, _, _ = validate_config_xml_hash_against_fw(
+            arguments.configuration_file,
+            skip_check=arguments.skip_fw_xml_hash_check,
+            ignore_mismatch=arguments.ignore_fw_xml_hash_mismatch,
+        )
+        if not ok:
+            return 1
+
     return read_all_uefi_vars(arguments.output_file, arguments.configuration_file)
 
 
