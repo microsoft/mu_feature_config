@@ -15,6 +15,65 @@ import hashlib
 import xml.etree.ElementTree as ET
 
 
+def _try_get_fw_schema_xml_hash():
+    """Best-effort read of FW schema XML hash.
+
+    Returns:
+        str | None: FW-reported schema XML hash, or None if unavailable.
+
+    Notes:
+        - This function intentionally swallows exceptions so tools can still
+          run in environments without UEFI variable access (CI, non-admin,
+          non-UEFI systems).
+    """
+    try:
+        import BoardMiscInfo
+
+        return BoardMiscInfo.get_schema_xml_hash_from_bios()
+    except Exception:
+        return None
+
+
+def validate_config_xml_hash_against_fw(xml_path, *, skip_check=False, ignore_mismatch=False, logger=None):
+    """Validate that the given config XML matches the platform FW schema hash.
+
+    Args:
+        xml_path (str): Path to config XML.
+        skip_check (bool): If True, do not perform FW comparison.
+        ignore_mismatch (bool): If True, do not fail on mismatch (still logs warning).
+        logger (callable | None): Optional logging function. Defaults to print.
+
+    Returns:
+        tuple[bool, str | None, str | None]: (ok, fw_hash, xml_hash)
+            - ok is True when validation passed, was skipped, FW hash unavailable,
+              or mismatch was ignored.
+    """
+    log = logger if logger is not None else print
+
+    if skip_check:
+        return (True, None, None)
+
+    fw_hash = _try_get_fw_schema_xml_hash()
+    xml_hash = None
+    try:
+        xml_hash = get_xml_full_hash(xml_path)
+    except Exception as e:
+        log(f"ERROR: Failed to compute XML hash for '{xml_path}': {e}")
+        return (False, fw_hash, None)
+
+    # If FW hash can't be obtained, we can't validate; treat as non-fatal.
+    if fw_hash is None:
+        return (True, None, xml_hash)
+
+    if xml_hash != fw_hash:
+        log("WARNING: Config xml file hash mismatches with system FW")
+        log(f"FW ConfigXml Hash = {fw_hash}")
+        log(f"{xml_path} Hash  = {xml_hash}")
+        return (True, fw_hash, xml_hash) if ignore_mismatch else (False, fw_hash, xml_hash)
+
+    return (True, fw_hash, xml_hash)
+
+
 def print_bytes(data, indent=0, offset=0, show_ascii=False):
     bytes_per_line = 16
     printable = ' ' + string.ascii_letters + string.digits + string.punctuation
