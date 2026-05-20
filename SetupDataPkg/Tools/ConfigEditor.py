@@ -31,7 +31,7 @@ from CommonUtility import (                                     # noqa: E402
     array_str_to_value,
     get_xml_full_hash
 )
-from KnobDelta import CompareConfigs
+from KnobDelta import CompareConfigs                             # noqa: E402
 
 
 def ask_yes_no(prompt):
@@ -1195,7 +1195,7 @@ class application(tkinter.Frame):
             return
 
         idx = len(self.cfg_data_list) - 1
-        cmp_obj = CompareConfigs(self.config_xml_path,self.default_cfg_data_obj, self.cfg_data_list[idx].cfg_data_obj)
+        cmp_obj = CompareConfigs(self.config_xml_path, self.default_cfg_data_obj, self.cfg_data_list[idx].cfg_data_obj)
         diff_cfg = cmp_obj.compare_mu_setting()
         for knob in diff_cfg:
             print(knob)
@@ -1213,7 +1213,7 @@ class application(tkinter.Frame):
             messagebox.showerror("LOADING ERROR", str(e))
             return
         self.output_current_status(f"{path} file is loaded\n")
-        print("\n",f"{path} file is loaded\n")
+        print("\n", f"{path} file is loaded\n")
         if print_diff:
             self.print_diff_cfg()
         print()

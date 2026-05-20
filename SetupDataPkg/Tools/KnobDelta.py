@@ -37,7 +37,9 @@ class CompareConfigs:
                             xml_info[subroot.tag][child.get("name")][index_count]["name"] = item.get("name")
                             xml_info[subroot.tag][child.get("name")][index_count]["value"] = item.get("default")
                             xml_info[subroot.tag][child.get("name")][index_count]["type"] = item.get("type")
-                            xml_info[subroot.tag][child.get("name")][index_count]["prettyname"] = item.get("prettyname", "")
+                            xml_info[subroot.tag][child.get("name")][index_count][
+                                "prettyname"
+                            ] = item.get("prettyname", "")
                             index_count += 1
         return xml_info
 
@@ -222,12 +224,15 @@ def parse_args():
             """\
             Examples:
               python KnobDelta.py --bin data.vl --xml-path C:\\path\\config.xml
-                            python KnobDelta.py -v data.vl -p C:\\path\\config.xml -f <flavor>(GN) --flavor-csv C:\\path\\profile.csv
-                            python KnobDelta.py -v data.vl -p C:\\path\\config.xml -f <flavor>(GN) -c C:\\path\\profile.csv
+                            python KnobDelta.py -v data.vl -p C:\\path\\config.xml
+                            -f <FlavorName>(e.g. GN) --flavor-csv C:\\path\\profile.csv
+                            python KnobDelta.py -v data.vl -p C:\\path\\config.xml
+                            -f <FlavorName>(e.g. GN) -c C:\\path\\profile.csv
 
             Flavor behavior:
               Base BIOS flavors use XML defaults directly.
-              Non-Base BIOS flavors can use --flavor-csv explicitly, otherwise the tool searches the XML folder.
+                            Non-Base BIOS flavors can use --flavor-csv explicitly.
+                            Otherwise the tool searches the XML folder.
             """
         ),
     )
