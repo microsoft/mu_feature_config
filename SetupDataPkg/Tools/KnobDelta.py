@@ -225,7 +225,8 @@ def parse_args():
             Examples:
               python KnobDelta.py --bin data.vl --xml-path C:\\path\\config.xml
                             python KnobDelta.py -v data.vl -p C:\\path\\config.xml
-                            -f <FlavorName>(e.g. GN) --flavor-csv C:\\path\\profile.csv
+                            -f <FlavorName>(e.g. GN)
+                            --flavor-csv C:\\path\\profile.csv
                             python KnobDelta.py -v data.vl -p C:\\path\\config.xml
                             -f <FlavorName>(e.g. GN) -c C:\\path\\profile.csv
 
