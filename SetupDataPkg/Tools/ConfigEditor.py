@@ -10,6 +10,7 @@ import sys
 import base64
 import datetime
 import ctypes
+import copy
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -30,6 +31,7 @@ from CommonUtility import (                                     # noqa: E402
     array_str_to_value,
     get_xml_full_hash
 )
+from KnobDelta import CompareConfigs
 
 
 def ask_yes_no(prompt):
@@ -384,6 +386,8 @@ class application(tkinter.Frame):
     def __init__(self, master=None):
         root = master
         self.debug = True
+        self.config_xml_path = None
+        self.default_cfg_data_obj = None
         self.page_id = ""
         self.page_list = {}
         self.conf_list = {}
@@ -1147,6 +1151,7 @@ class application(tkinter.Frame):
             # if loading xml, ensure that knobs GUID + name exist in any loaded XML
             try:
                 updated_knobs += self.cfg_data_list[idx].cfg_data_obj.override_default_value(path)
+                self.default_cfg_data_obj = copy.deepcopy(self.cfg_data_list[idx].cfg_data_obj)
             except Exception as e:
                 messagebox.showerror("LOADING ERROR", str(e))
                 return
@@ -1181,7 +1186,23 @@ class application(tkinter.Frame):
             self.cfg_data_list[idx].cfg_data_obj.load_from_svd(path)
             self.refresh_config_data_page()
 
-    def load_bin_file(self, path):
+    def print_diff_cfg(self):
+        if self.default_cfg_data_obj is None or not self.config_xml_path:
+            self.output_current_status("Skip config diff: default configuration is not initialized.")
+            return
+
+        if len(self.cfg_data_list) == 0:
+            return
+
+        idx = len(self.cfg_data_list) - 1
+        cmp_obj = CompareConfigs(self.config_xml_path,self.default_cfg_data_obj, self.cfg_data_list[idx].cfg_data_obj)
+        diff_cfg = cmp_obj.compare_mu_setting()
+        for knob in diff_cfg:
+            print(knob)
+            self.output_current_status(knob)
+        self.output_current_status("\n")
+
+    def load_bin_file(self, path, print_diff=True):
         with open(path, "rb") as fd:
             bin_data = bytearray(fd.read())
 
@@ -1191,8 +1212,11 @@ class application(tkinter.Frame):
         except Exception as e:
             messagebox.showerror("LOADING ERROR", str(e))
             return
-
-        self.output_current_status(f"{path} file is loaded")
+        self.output_current_status(f"{path} file is loaded\n")
+        print("\n",f"{path} file is loaded\n")
+        if print_diff:
+            self.print_diff_cfg()
+        print()
 
     def load_cfg_file(self, path, file_id, clear_config):
         # Clear out old config if requested
@@ -1226,6 +1250,7 @@ class application(tkinter.Frame):
 
         self.config_xml_path = path
         self.output_current_status(f"{path} file is loaded")
+        self.default_cfg_data_obj = copy.deepcopy(self.cfg_data_list[file_id].cfg_data_obj)
         # load xml file and get the hash value of all xml nodes
         config_xml_hash = get_xml_full_hash(self.config_xml_path)
 
