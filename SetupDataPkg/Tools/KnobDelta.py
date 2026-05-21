@@ -17,27 +17,27 @@ class CompareConfigs:
     def _parsing_xml(self, xml_path):
         root = ET.parse(xml_path).getroot()
         xml_info = {}
-        for subroot in root:
-            xml_info[subroot.tag] = {}
-            for child in subroot:
-                if subroot.tag == "Knobs":
-                    namespace = subroot.get("namespace")
+        for section in root:
+            xml_info[section.tag] = {}
+            for child in section:
+                if section.tag == "Knobs":
+                    namespace = section.get("namespace")
                     if namespace is None:
                         raise RuntimeError("Fail to get Sub root namespace")
-                    xml_info[subroot.tag]["guid"] = namespace.strip("{}")
-                    xml_info[subroot.tag][child.get("type")] = child.get("name")
+                    xml_info[section.tag]["guid"] = namespace.strip("{}")
+                    xml_info[section.tag][child.get("type")] = child.get("name")
                 else:
-                    xml_info[subroot.tag][child.get("name")] = {}
+                    xml_info[section.tag][child.get("name")] = {}
                     index_count = 0
                     for item in child:
-                        if subroot.tag == "Enums":
-                            xml_info[subroot.tag][child.get("name")][item.get("name")] = item.get("value")
-                        elif subroot.tag == "Structs":
-                            xml_info[subroot.tag][child.get("name")][index_count] = {}
-                            xml_info[subroot.tag][child.get("name")][index_count]["name"] = item.get("name")
-                            xml_info[subroot.tag][child.get("name")][index_count]["value"] = item.get("default")
-                            xml_info[subroot.tag][child.get("name")][index_count]["type"] = item.get("type")
-                            xml_info[subroot.tag][child.get("name")][index_count][
+                        if section.tag == "Enums":
+                            xml_info[section.tag][child.get("name")][item.get("name")] = item.get("value")
+                        elif section.tag == "Structs":
+                            xml_info[section.tag][child.get("name")][index_count] = {}
+                            xml_info[section.tag][child.get("name")][index_count]["name"] = item.get("name")
+                            xml_info[section.tag][child.get("name")][index_count]["value"] = item.get("default")
+                            xml_info[section.tag][child.get("name")][index_count]["type"] = item.get("type")
+                            xml_info[section.tag][child.get("name")][index_count][
                                 "prettyname"
                             ] = item.get("prettyname", "")
                             index_count += 1
@@ -115,9 +115,9 @@ class CompareConfigs:
             return []
         return out
 
-    def parsing_csv_data(self, csv_datas, with_eg_token_name=False):
+    def parsing_csv_data(self, csv_rows, with_eg_token_name=False):
         bios_setting_dict = {}
-        for csv_data in csv_datas[1:]:
+        for csv_data in csv_rows[1:]:
             csv_knob_value = csv_data[1]
             csv_page_name = None
             for type_name, value_name in self.xml_information["Knobs"].items():
