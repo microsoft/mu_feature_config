@@ -14,7 +14,8 @@ import argparse
 
 import xml.etree.ElementTree as ET
 import WriteConfVarListToUefiVars as uefi_var_write             # noqa: E402
-from CommonUtility import bytes_to_value
+import BoardMiscInfo
+from CommonUtility import bytes_to_value, get_xml_full_hash
 from VariableList import (
     Schema,
     IntValueFormat,
@@ -346,6 +347,7 @@ class CGenNCCfgData:
 
     def load_xml(self, cfg_file):
         self.initialize(cfg_file)
+        self.config_xml_path = cfg_file
         self.schema = Schema.load(cfg_file)
 
         # Assign all values to their defaults
@@ -353,6 +355,20 @@ class CGenNCCfgData:
             knob.value = knob.default
 
         self.knob_shim = self.build_cfg_list()
+        return 0
+
+    def compare_xml_hash_with_bios(self):
+        # load xml file and get the hash value of all xml nodes
+        config_xml_hash = get_xml_full_hash(self.config_xml_path)
+
+        # Compare the xml hash and the hash claimed in FW.
+        bios_schema_xml_hash = BoardMiscInfo.get_schema_xml_hash_from_bios()
+        if bios_schema_xml_hash is not None and config_xml_hash != bios_schema_xml_hash:
+            print("WARNING: Config xml file hash mismatches with system FW")
+            print(f"FW ConfigXml Hash = {bios_schema_xml_hash}")
+            print(f"{self.config_xml_path} Hash  = {config_xml_hash}")
+            return 1
+
         return 0
 
     def delete_all_variables(self, config_xml_path):
@@ -397,11 +413,11 @@ class CGenNCCfgData:
 def usage():
     print(
         "Usage:\n"
-        "    python GenNCCfgData.py GENBIN <XmlFile[;CsvFile]> <BinOutFile>\n"
-        "    python GenNCCfgData.py GENCSV <XmlFile;BinFile[;BinFile2]> <CsvOutFile>\n"
+        "    python GenNCCfgData.py GENBIN <XmlFile[;CsvFile]> <BinOutFile> [--force]\n"
+        "    python GenNCCfgData.py GENCSV <XmlFile;BinFile[;BinFile2]> <CsvOutFile> [--force]\n"
         "    python GenNCCfgData.py MODCONFIG --xml_file config.xml --var knob1 --var knob2"
-        " --val knob_val1 --val knob_val2 [--output_file out.vl]\n"
-        "    python GenNCCfgData.py DELVAR --xml_file config.xml"
+        " --val knob_val1 --val knob_val2 [--output_file out.vl] [--force]\n"
+        "    python GenNCCfgData.py DELVAR --xml_file config.xml [--force]"
     )
 
 
@@ -415,13 +431,17 @@ def main():
     command = sys.argv[1].upper()
     # Use manual argument parsing for GENBIN and GENCSV commands
     if command == "GENBIN" or command == "GENCSV":
+        # Strip the optional --force flag before validating positional args
+        force = "--force" in sys.argv
+        pos_args = [arg for arg in sys.argv if arg != "--force"]
+        argc = len(pos_args)
         if argc < 4 or argc > 5:
             usage()
             return 1
 
-        out_file = sys.argv[3]
+        out_file = pos_args[3]
 
-        file_list = sys.argv[2].split(";")
+        file_list = pos_args[2].split(";")
         if len(file_list) >= 2:
             xml_file = file_list[0]
             csv_file = file_list[1]
@@ -429,7 +449,7 @@ def main():
             xml_file = file_list[0]
             csv_file = ""
         else:
-            raise Exception("ERROR: Invalid parameter '%s' !" % sys.argv[2])
+            raise Exception("ERROR: Invalid parameter '%s' !" % pos_args[2])
 
         cfg_bin_file = ""
         cfg_bin_file2 = ""
@@ -441,6 +461,10 @@ def main():
                     cfg_bin_file2 = file_list[2]
 
         gen_cfg_data = CGenNCCfgData(xml_file)
+
+        if gen_cfg_data.compare_xml_hash_with_bios() != 0 and not force:
+            print("Aborting %s: config XML hash mismatches with system FW. Use --force to override." % command)
+            return 1
 
         if csv_file:
             gen_cfg_data.override_default_value(csv_file)
@@ -498,6 +522,11 @@ def main():
             default="data.vl",
             help="Output file (default: data.vl)"
         )
+        modconfig_parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Proceed even if the config XML hash mismatches with system FW"
+        )
 
         delvar_parser = subparsers.add_parser(
             "DELVAR", help="Delete variables from system"
@@ -507,20 +536,32 @@ def main():
             required=True,
             help="XML file"
         )
+        delvar_parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Proceed even if the config XML hash mismatches with system FW"
+        )
 
         args = parser.parse_args(sys.argv[1:])
-        if args.subcommand.upper() == "MODCONFIG":
+
+        subcommand = args.subcommand.upper()
+        gen_cfg_data = CGenNCCfgData(args.xml_file)
+
+        # Check the config XML hash against system FW once up front
+        if gen_cfg_data.compare_xml_hash_with_bios() != 0 and not args.force:
+            print("Aborting %s: config XML hash mismatches with system FW. Use --force to override." % subcommand)
+            return 1
+
+        if subcommand == "MODCONFIG":
             if len(args.var) != len(args.val):
                 print("Error: The number of variables and values must match.")
                 return 1
-            gen_cfg_data = CGenNCCfgData(args.xml_file)
             gen_cfg_data.modify_variables(
                 args.var,
                 args.val,
                 args.output_file
             )
-        elif args.subcommand.upper() == "DELVAR":
-            gen_cfg_data = CGenNCCfgData(args.xml_file)
+        elif subcommand == "DELVAR":
             gen_cfg_data.delete_all_variables(args.xml_file)
 
         else:
